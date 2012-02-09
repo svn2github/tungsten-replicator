@@ -25,6 +25,18 @@ class VerticaDatabasePlatform < ConfigureDatabasePlatform
     nil
   end
   
+  def enable_applier_filter_pkey?
+    false
+  end
+  
+  def enable_applier_filter_bidiSlave?
+    false
+  end
+  
+  def enable_applier_filter_colnames?
+    false
+  end
+  
   def getBasicJdbcUrl()
     "jdbc:vertica://${replicator.global.db.host}:${replicator.global.db.port}/"
   end

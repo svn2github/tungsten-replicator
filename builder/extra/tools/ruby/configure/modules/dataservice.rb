@@ -1132,16 +1132,56 @@ class ReplicationServiceApplierFilters < ConfigurePrompt
   
   def get_template_value(transform_values_method)
     filters = []
-    
-    if @config.getProperty(get_member_key(BATCH_ENABLED)) == "true"
-      filters << "colnames"
-    end
-    
+  
     (get_value().to_s().split(",") + get_applier_datasource().get_applier_filters() + filters).join(",")
   end
   
   def required?
     false
+  end
+end
+
+REPL_SVC_EXTRACTOR_FILTER_COLNAMES = "repl_svc_extractor_filter_colnames"
+class ReplicationServiceEnableExtractorFilterColnames < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_SVC_EXTRACTOR_FILTER_PKEY, "Enable Colnames on the extractor side?", 
+      PV_BOOLEAN, "false")
+  end
+  
+  def get_default_value
+    if get_extractor_datasource().class == MySQLDatabasePlatform
+      case get_applier_datasource().class
+      when VerticaDatabasePlatform
+        return "true"
+      end
+    end
+    
+    super()
+  end
+end
+
+REPL_SVC_EXTRACTOR_FILTER_PKEY = "repl_svc_extractor_filter_pkey"
+class ReplicationServiceEnableExtractorFilterPkey < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_SVC_EXTRACTOR_FILTER_PKEY, "Enable PrimaryKeyFilter on the extractor side?", 
+      PV_BOOLEAN, "false")
+  end
+  
+  def get_default_value
+    if get_extractor_datasource().class == MySQLDatabasePlatform
+      case get_applier_datasource().class
+      when VerticaDatabasePlatform
+        return "true"
+      end
+    end
+    
+    super()
   end
 end
 

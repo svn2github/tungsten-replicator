@@ -29,16 +29,72 @@ class ConfigureDatabasePlatform
     "tungsten-replicator/samples/conf/appliers/#{get_uri_scheme()}.tpl"
 	end
 	
+  def enable_extractor_filter_colnames?
+    if @config.getProperty(get_member_key(REPL_SVC_EXTRACTOR_FILTER_COLNAMES)) == "true"
+      true
+    else
+      false
+    end
+  end
+  
+  def enable_extractor_filter_pkey?
+    if @config.getProperty(get_member_key(REPL_SVC_EXTRACTOR_FILTER_PKEY)) == "true"
+      true
+    else
+      false
+    end
+  end
+  
 	def get_extractor_filters()
-	  []
+	  filters = []
+    
+    if enable_extractor_filter_colnames?
+      filters << "colnames"
+    end
+    
+    if enable_extractor_filter_pkey?
+      filters << "pkey"
+    end
+  
+    return filters
 	end
 	
 	def get_thl_filters()
 	  []
 	end
+  
+  def enable_applier_filter_pkey?
+    true
+  end
+  
+  def enable_applier_filter_bidiSlave?
+    true
+  end
+  
+  def enable_applier_filter_colnames?
+    if @config.getProperty(get_member_key(BATCH_ENABLED)) == "true"
+      true
+    else
+      false
+    end
+  end
 	
 	def get_applier_filters()
-	  ["pkey", "bidiSlave"]
+    filters = []
+    
+    if enable_applier_filter_pkey?
+      filters << "pkey"
+    end
+    
+    if enable_applier_filter_bidiSlave?
+      filters << "bidiSlave"
+    end
+    
+    if enable_applier_filter_colnames?
+      filters << "colnames"
+    end
+    
+    return filters
 	end
 	
 	def get_backup_agents()
