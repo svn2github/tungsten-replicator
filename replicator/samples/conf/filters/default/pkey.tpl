@@ -9,8 +9,8 @@ replicator.filter.pkey.password=
 
 # Set to true in order to add primary keys to INSERT operations.  This is
 # required for batch loading. 
-replicator.filter.pkey.addPkeyToInserts=false
+replicator.filter.pkey.addPkeyToInserts=@{BATCH_ENABLED}
 
 # Set to true in order to add full column metadata to DELETEs.  This is
 # likewise required for batch loading. 
-replicator.filter.pkey.addColumnsToDeletes=false
+replicator.filter.pkey.addColumnsToDeletes=@{BATCH_ENABLED}
