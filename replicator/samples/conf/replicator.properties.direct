@@ -252,6 +252,7 @@ replicator.store.parallel-queue.maxSize=${replicator.global.buffer.size}
 replicator.store.parallel-queue.partitions=${replicator.global.apply.channels}
 replicator.store.parallel-queue.partitionerClass=com.continuent.tungsten.replicator.storage.parallel.ShardListPartitioner
 replicator.store.parallel-queue.maxOfflineInterval=5
+replicator.store.parallel-queue.syncInterval=10000
 
 ##############
 # EXTRACTORS #
