@@ -30,7 +30,7 @@ class ConfigureDatabasePlatform
 	end
 	
   def enable_extractor_filter_colnames?
-    if @config.getProperty(get_member_key(REPL_SVC_EXTRACTOR_FILTER_COLNAMES)) == "true"
+    if @config.getProperty(REPL_SVC_EXTRACTOR_FILTER_COLNAMES) == "true"
       true
     else
       false
@@ -38,7 +38,7 @@ class ConfigureDatabasePlatform
   end
   
   def enable_extractor_filter_pkey?
-    if @config.getProperty(get_member_key(REPL_SVC_EXTRACTOR_FILTER_PKEY)) == "true"
+    if @config.getProperty(REPL_SVC_EXTRACTOR_FILTER_PKEY) == "true"
       true
     else
       false
@@ -72,7 +72,7 @@ class ConfigureDatabasePlatform
   end
   
   def enable_applier_filter_colnames?
-    if @config.getProperty(get_member_key(BATCH_ENABLED)) == "true"
+    if @config.getProperty(BATCH_ENABLED) == "true"
       true
     else
       false
