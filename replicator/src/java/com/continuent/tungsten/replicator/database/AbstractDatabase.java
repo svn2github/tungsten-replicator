@@ -866,6 +866,12 @@ public abstract class AbstractDatabase implements Database
     protected abstract ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException;
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#findTable(java.lang.String,
+     *      java.lang.String)
+     */
     public Table findTable(String schemaName, String tableName)
             throws SQLException
     {

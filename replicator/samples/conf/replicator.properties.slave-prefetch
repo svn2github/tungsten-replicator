@@ -224,20 +224,38 @@ replicator.store.thl.readOnly=@{REPL_SVC_THL_READ_ONLY}
 #################################
 
 # Prefetch queue storage.  
-replicator.store.prefetch-queue=com.continuent.tungsten.replicator.storage.prefetch.PrefetchStore
+replicator.store.prefetch-queue=com.continuent.tungsten.replicator.prefetch.PrefetchStore
+
+# Buffer size for internal queue.  Larger values (i.e., over 100 have little
+# impact on performance. 
 replicator.store.prefetch-queue.maxSize=${replicator.global.buffer.size}
+
 replicator.store.prefetch-queue.url=@{APPLIER.REPL_DBBASICJDBCURL}@{PREFETCH_SCHEMA}
+
+# Name of the catalog schema of the slave for which we are prefetching. 
 replicator.store.prefetch-queue.slaveCatalogSchema=@{PREFETCH_SCHEMA}
+
+# Maximum number of seconds to precede slave.  
 replicator.store.prefetch-queue.aheadMaxTime=@{PREFETCH_TIME_AHEAD}
+
+# Time *in milliseconds* that prefetcher should sleep if it gets too far ahead
+# of the slave. 
 replicator.store.prefetch-queue.sleepTime=@{PREFETCH_SLEEP_TIME}
+
+# Number of transactions to drop when starting up on a brand new slave. 
 replicator.store.prefetch-queue.warmUpEventCount=@{PREFETCH_WARMUP_EVENT_COUNT}
+
+# If set to true allow all events to be prefetched.  This aids debugging
+# as it causes all events to flow through the prefetcher regardless of the
+# slave position. 
+replicator.store.prefetch-queue.allowAll=false
 
 # In-memory storage to buffer events between stages.
 replicator.store.queue=com.continuent.tungsten.replicator.storage.InMemoryQueueStore
 replicator.store.queue.maxSize=${replicator.global.buffer.size}
 
 # Parallel queue storage. 
-replicator.store.parallel-queue=@{REPL_SVC_PARALLELIZATION_STORE_CLASS}
+replicator.store.parallel-queue=com.continuent.tungsten.replicator.storage.parallel.ParallelQueueStore
 replicator.store.parallel-queue.maxSize=${replicator.global.buffer.size}
 replicator.store.parallel-queue.partitions=${replicator.global.apply.channels}
 replicator.store.parallel-queue.partitionerClass=com.continuent.tungsten.replicator.storage.parallel.RoundRobinPartitioner
@@ -265,7 +283,7 @@ replicator.extractor.queue=com.continuent.tungsten.replicator.storage.InMemoryQu
 replicator.extractor.queue.storeName=queue
 
 # Parallel queue extractor. 
-replicator.extractor.parallel-q-extractor=@{REPL_SVC_PARALLELIZATION_EXTRACTOR_CLASS}
+replicator.extractor.parallel-q-extractor=com.continuent.tungsten.replicator.storage.parallel.ParallelQueueExtractor
 replicator.extractor.parallel-q-extractor.storeName=parallel-queue
 
 # Prefetch queue extractor.
@@ -287,7 +305,7 @@ replicator.applier.queue=com.continuent.tungsten.replicator.storage.InMemoryQueu
 replicator.applier.queue.storeName=queue
 
 # Parallel queue applier. 
-replicator.applier.parallel-q-applier=@{REPL_SVC_PARALLELIZATION_APPLIER_CLASS}
+replicator.applier.parallel-q-applier=com.continuent.tungsten.replicator.storage.parallel.ParallelQueueApplier
 replicator.applier.parallel-q-applier.storeName=parallel-queue
 
 # Prefetch queue applier.

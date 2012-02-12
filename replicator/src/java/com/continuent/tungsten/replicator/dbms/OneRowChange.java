@@ -145,7 +145,23 @@ public class OneRowChange implements Serializable
         {
             this.typeDescription = typeDescription;
         }
+
+        /**
+         * {@inheritDoc}
+         * 
+         * @see java.lang.Object#toString()
+         */
+        public String toString()
+        {
+            StringBuffer sb = new StringBuffer(this.getClass().getSimpleName());
+            sb.append(" name=").append(name);
+            sb.append(" index=").append(index);
+            sb.append(" type=").append(type);
+            sb.append(" description=").append(typeDescription);
+            return sb.toString();
+        }
     }
+
     public class ColumnVal implements Serializable
     {
         private static final long serialVersionUID = 1L;
@@ -164,6 +180,13 @@ public class OneRowChange implements Serializable
         public Object getValue()
         {
             return value;
+        }
+
+        public String toString()
+        {
+            StringBuffer sb = new StringBuffer(this.getClass().getSimpleName());
+            sb.append(" value=").append(value);
+            return sb.toString();
         }
     }
 

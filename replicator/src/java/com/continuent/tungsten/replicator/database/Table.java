@@ -134,6 +134,14 @@ public class Table
             purge(key.getColumns(), nonKeyColumns);
         }
     }
+    
+    /** Reset keys, which also resets non-key columns. */
+    public void clearKeys()
+    {
+        keys.clear();
+        nonKeyColumns.clear();
+        nonKeyColumns.addAll(this.allColumns);
+    }
 
     public void Dump()
     {
@@ -285,7 +293,7 @@ public class Table
         {
             if (i > 0)
                 buf.append(",");
-            buf.append(listColumns(keys.get(i).getColumns()));
+            buf.append(keys.get(i));
         }
         buf.append(")");
 

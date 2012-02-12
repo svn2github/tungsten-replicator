@@ -16,11 +16,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * Initial developer(s): Stephane Giron
- * Contributor(s):
+ * Initial developer(s): Stephane Giron, Robert Hodges
+ * Contributor(s): 
  */
 
-package com.continuent.tungsten.replicator.filter;
+package com.continuent.tungsten.replicator.prefetch;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -33,47 +33,62 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.commons.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeaderData;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
+import com.continuent.tungsten.replicator.storage.InMemoryQueueStore;
 import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
 
 /**
- * This class defines a PrefetchFilter
- * 
- * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
- * @version 1.0
+ * Implements a specialized store for handling slave prefetch from another
+ * replicator. This store coordinates restart at the current slave position and
+ * implements logic to drop events that are not far enough ahead of the slave
+ * position or have already been executed.
  */
-public class PrefetchFilter implements Filter
+public class PrefetchStore extends InMemoryQueueStore
 {
-    private static Logger        logger           = Logger.getLogger(PrefetchFilter.class);
+    private static Logger        logger           = Logger.getLogger(PrefetchStore.class);
 
-    // Filter parameters.
+    // Prefetch store parameters.
     private String               user;
     private String               url;
     private String               password;
     private String               slaveCatalogSchema;
 
     private long                 interval         = 1000;
-    private int                  aheadMaxTime     = 3000;
+    private int                  aheadMaxTime     = 60;
     private int                  sleepTime        = 500;
     private int                  warmUpEventCount = 100;
+    private boolean              allowAll         = false;
 
     // Database connection information.
     private Database             conn             = null;
     private PreparedStatement    seqnoStatement   = null;
 
-    // Coordination information.
+    // Prefetch coordination information.
     private long                 lastChecked      = 0;
     private long                 currentSeqno     = -1;
     private long                 initTime         = 0;
-
     private Map<Long, Timestamp> appliedTimes;
-
     private long                 totalEvents      = 0;
     private long                 prefetchEvents   = 0;
+
+    // State information.
+    enum PrefetchState
+    {
+        active, sleeping
+    };
+
+    private PrefetchState prefetchState;
+    private long          startTimeMillis;
+    private long          sleepTimeMillis;
+    private long          slaveLatency;
+    private long          prefetchLatency;
 
     /** Sets the JDBC URL to connect to the slave server. */
     public void setUrl(String url)
@@ -111,10 +126,10 @@ public class PrefetchFilter implements Filter
     }
 
     /**
-     * Sets the aheadMaxTime value. This is the maximum time that event should
-     * be from the last applied event (based on master times
+     * Sets the aheadMaxTime value. This is the maximum number of seconds that
+     * event should be from the last applied event (based on master times).
      * 
-     * @param aheadMaxTime The aheadMaxTime to set.
+     * @param aheadMaxTime Time in seconds
      */
     public void setAheadMaxTime(int aheadMaxTime)
     {
@@ -142,22 +157,59 @@ public class PrefetchFilter implements Filter
     }
 
     /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#configure(com.continuent.tungsten.replicator.plugin.PluginContext)
+     * Allow all events regardless of position of slave service we are tracking.
+     * Used for debugging and to exercise prefetch applier code easily.
      */
-    public void configure(PluginContext context) throws ReplicatorException
+    public synchronized void setAllowAll(boolean allowAll)
     {
+        this.allowAll = allowAll;
+    }
+
+    /** Sets the last header processed. This is required for restart. */
+    public void setLastHeader(ReplDBMSHeader header)
+    {
+        // Ignore last header from downstream stages.
     }
 
     /**
-     * {@inheritDoc}
+     * Returns the position of the slave on which we are handling prefetch.
+     */
+    public ReplDBMSHeader getLastHeader()
+    {
+        return this.getCurrentSlaveHeader();
+    }
+
+    /**
+     * Puts an event in the queue, blocking if it is full.
+     */
+    public void put(ReplDBMSEvent event) throws InterruptedException,
+            ReplicatorException
+    {
+        // See if we want the event and put it in the queue if so.
+        if (filter(event) != null)
+        {
+            super.put(event);
+        }
+    }
+
+    /**
+     * Prepare prefetch store. {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#prepare(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
     public void prepare(PluginContext context) throws ReplicatorException
     {
-        logger.info("Preparing PrefetchFilter");
+        // Perform super-class prepare.
+        super.prepare(context);
+
+        // Print a warning if the allowAll flag is set.
+        if (allowAll)
+        {
+            logger.warn("PrefetchStore allowAll property set--all transactions will be allowed");
+        }
+
+        logger.info("Preparing PrefetchStore for slave catalog schema: "
+                + slaveCatalogSchema);
         // Load defaults for connection
         if (url == null)
             url = context.getJdbcUrl("tungsten_" + context.getServiceName());
@@ -170,10 +222,10 @@ public class PrefetchFilter implements Filter
         try
         {
             conn = DatabaseFactory.createDatabase(url, user, password);
-            conn.connect();
+            conn.connect(true);
 
             seqnoStatement = conn
-                    .prepareStatement("select seqno, fragno, last_Frag, source_id, epoch_number, eventid from "
+                    .prepareStatement("select seqno, fragno, last_Frag, source_id, epoch_number, eventid, applied_latency from "
                             + slaveCatalogSchema
                             + "."
                             + CommitSeqnoTable.TABLE_NAME);
@@ -182,15 +234,20 @@ public class PrefetchFilter implements Filter
         {
             throw new ReplicatorException(e);
         }
+
+        // Show that we have started.
+        startTimeMillis = System.currentTimeMillis();
+        prefetchState = PrefetchState.active;
     }
 
     /**
-     * {@inheritDoc}
+     * Release queue. {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#release(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
     public void release(PluginContext context) throws ReplicatorException
     {
+        queue = null;
         if (conn != null)
         {
             conn.close();
@@ -201,12 +258,64 @@ public class PrefetchFilter implements Filter
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.filter.Filter#filter(com.continuent.tungsten.replicator.event.ReplDBMSEvent)
+     * @see com.continuent.tungsten.replicator.storage.Store#status()
+     */
+    public TungstenProperties status()
+    {
+        // Get super class properties.
+        TungstenProperties props = super.status();
+
+        // Add properties for prefetch.
+        props.setString("url", url);
+        props.setString("slaveCatalogSchema", slaveCatalogSchema);
+        props.setLong("interval", interval);
+        props.setLong("aheadMaxTime", aheadMaxTime);
+        props.setLong("sleepTime", sleepTime);
+        props.setLong("warmUpEventCount", warmUpEventCount);
+        props.setBoolean("allowAll", allowAll);
+
+        // Add runtime properties.
+        props.setLong("prefetchEvents", prefetchEvents);
+        double prefetchRatio = 0.0;
+        if (totalEvents > 0)
+            prefetchRatio = ((double) prefetchEvents) / totalEvents;
+        props.setString("prefetchRatio", formatDouble(prefetchRatio));
+        props.setString("prefetchState", prefetchState.toString());
+        props.setString("slaveLatency", formatDouble(slaveLatency));
+        props.setString("prefetchLatency",
+                formatDouble(prefetchLatency / 1000.0));
+        props.setString("prefetchTimeAhead", formatDouble(slaveLatency
+                - (prefetchLatency / 1000.0)));
+        props.setString("prefetchState", prefetchState.toString());
+
+        long duration = System.currentTimeMillis() - startTimeMillis;
+        double timeActive = (duration - sleepTimeMillis) / 1000.0;
+        double timeSleeping = sleepTimeMillis / 1000.0;
+        props.setString("timeActive", formatDouble(timeActive));
+        props.setString("timeSleeping", formatDouble(timeSleeping));
+
+        return props;
+    }
+
+    // Format double values to 3 decimal places.
+    private String formatDouble(double d)
+    {
+        return String.format("%-15.3f", d);
+    }
+
+    /**
+     * Filter the event if it has already been executed.
      */
     public ReplDBMSEvent filter(ReplDBMSEvent event)
             throws ReplicatorException, InterruptedException
     {
         totalEvents++;
+
+        // If we are debugging, stop right here.
+        if (allowAll)
+        {
+            return event;
+        }
 
         if (appliedTimes == null)
             appliedTimes = new TreeMap<Long, Timestamp>();
@@ -215,6 +324,7 @@ public class PrefetchFilter implements Filter
         appliedTimes.put(event.getSeqno(), sourceTstamp);
 
         long currentTime = System.currentTimeMillis();
+        prefetchLatency = currentTime - sourceTstamp.getTime();
 
         if (interval == 0 || lastChecked == 0
                 || (currentTime - lastChecked >= interval))
@@ -234,19 +344,27 @@ public class PrefetchFilter implements Filter
             return null;
         }
         else
-            while (sourceTstamp.getTime() - initTime > aheadMaxTime)
+            while (sourceTstamp.getTime() - initTime > (aheadMaxTime * 1000))
             {
                 if (logger.isDebugEnabled())
                     logger.debug("Event is too far ahead of current slave position... sleeping");
                 // this event is too far ahead of the CommitSeqnoTable position:
                 // sleep some time and continue
+                long sleepStartMillis = System.currentTimeMillis();
                 try
                 {
+
+                    prefetchState = PrefetchState.sleeping;
                     Thread.sleep(sleepTime);
                 }
                 catch (InterruptedException e)
                 {
                     return null;
+                }
+                finally
+                {
+                    prefetchState = PrefetchState.active;
+                    sleepTimeMillis += (System.currentTimeMillis() - sleepStartMillis);
                 }
                 // Check again CommitSeqnoTable
                 checkSlavePosition(System.currentTimeMillis());
@@ -273,10 +391,11 @@ public class PrefetchFilter implements Filter
     private void checkSlavePosition(long currentTime)
     {
         lastChecked = currentTime;
+        ReplDBMSHeader header = getCurrentSlaveHeader();
         if (currentSeqno == -1)
-            currentSeqno = getCurrentSeqno() + warmUpEventCount;
+            currentSeqno = header.getSeqno() + warmUpEventCount;
         else
-            currentSeqno = getCurrentSeqno();
+            currentSeqno = header.getSeqno();
 
         // Drop every appliedTimes prior to currentSeqno and update time
         // accordingly (time from max known applied event)
@@ -301,17 +420,28 @@ public class PrefetchFilter implements Filter
         }
     }
 
-    // Gets the current sequence number.
-    private long getCurrentSeqno()
+    // Fetch position data from slave.
+    private ReplDBMSHeaderData getCurrentSlaveHeader()
     {
-        long seqno = -1;
+        ReplDBMSHeaderData header = null;
         ResultSet rs = null;
         try
         {
             rs = seqnoStatement.executeQuery();
             if (rs.next())
             {
-                seqno = rs.getLong("seqno");
+                // Construct header data
+                long seqno = rs.getLong("seqno");
+                short fragno = rs.getShort("fragno");
+                boolean lastFrag = rs.getBoolean("last_frag");
+                String sourceId = rs.getString("source_id");
+                long epochNumber = rs.getLong("epoch_number");
+                String eventId = rs.getString("eventid");
+                header = new ReplDBMSHeaderData(seqno, fragno, lastFrag,
+                        sourceId, epochNumber, eventId, null, new Timestamp(0));
+
+                // Record current slave latency.
+                this.slaveLatency = rs.getLong("applied_latency");
             }
         }
         catch (SQLException e)
@@ -329,6 +459,6 @@ public class PrefetchFilter implements Filter
                 {
                 }
         }
-        return seqno;
+        return header;
     }
 }
