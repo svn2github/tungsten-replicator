@@ -591,6 +591,14 @@ class ReplicationServiceBufferSize < ConfigurePrompt
     super(REPL_BUFFER_SIZE, "Replicator block commit size (min 1)",
       PV_INTEGER, 10)
   end
+  
+  def get_default_value
+    if @config.getProperty(BATCH_ENABLED) == "true"
+      return 10000
+    else
+      return 10
+    end
+  end
 end
 
 class ReplicationServiceSlaveTakeover < ConfigurePrompt
