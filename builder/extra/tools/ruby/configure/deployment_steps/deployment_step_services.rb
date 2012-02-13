@@ -11,19 +11,15 @@ module ConfigureDeploymentStepServices
     Configurator.instance.write_header "Performing services configuration"
 
     config_wrapper()
+    write_deployall()
+    write_undeployall()
+    write_startall()
+    write_stopall()
     
     if @config.getProperty(SVC_INSTALL) == "true" then
-      write_deployall()
-      write_undeployall()
-      write_startallsvcs()
-      write_stopallsvcs()
-            
       info("Installing services")
       installed = cmd_result("#{get_root_prefix()} #{get_deployment_basedir()}/cluster-home/bin/deployall")
       info(installed)
-    else
-      write_startall()
-      write_stopall()
     end
     
     if @config.getProperty(SVC_REPORT) == "true" || @config.getProperty(SVC_START) == "true"
@@ -81,28 +77,6 @@ module ConfigureDeploymentStepServices
     info "GENERATED FILE: " + script
   end
 
-  def write_startallsvcs
-    # Create startallsvcs script.
-    if Configurator.instance.can_install_services_on_os?()
-      script = "#{get_deployment_basedir()}/cluster-home/bin/startall"
-      out = File.open(script, "w")
-      out.puts "#!/bin/bash"
-      out.puts "# Start all services"
-      @services.each { |svc|
-        svcname = File.basename svc
-        if Configurator.instance.distro?() == OS_DISTRO_REDHAT
-          out.puts get_svc_command("/sbin/service t" + svcname + " start")
-        elsif Configurator.instance.distro?() == OS_DISTRO_DEBIAN
-          out.puts get_svc_command("/etc/init.d/t" + svcname + " start")
-        end
-      }
-      out.puts "# AUTO-CONFIGURED: #{DateTime.now}"
-      out.chmod(0755)
-      out.close
-      info "GENERATED FILE: " + script
-    end
-  end
-
   def write_stopall
     # Create stopall script.
     script = "#{get_deployment_basedir()}/cluster-home/bin/stopall"
@@ -116,28 +90,6 @@ module ConfigureDeploymentStepServices
     out.chmod(0755)
     out.close
     info "GENERATED FILE: " + script
-  end
-
-  def write_stopallsvcs
-    # Create stopallsvcs script.
-    if Configurator.instance.can_install_services_on_os?()
-      script = "#{get_deployment_basedir()}/cluster-home/bin/stopall"
-      out = File.open(script, "w")
-      out.puts "#!/bin/bash"
-      out.puts "# Stop all services"
-      @services.reverse_each { |svc|
-        svcname = File.basename svc
-        if Configurator.instance.distro?() == OS_DISTRO_REDHAT
-          out.puts get_svc_command("/sbin/service t" + svcname + " stop")
-        elsif Configurator.instance.distro?() == OS_DISTRO_DEBIAN
-          out.puts get_svc_command("/etc/init.d/t" + svcname + " stop")
-        end
-      }
-      out.puts "# AUTO-CONFIGURED: #{DateTime.now}"
-      out.chmod(0755)
-      out.close
-      info "GENERATED FILE: " + script
-    end
   end
 
   def write_deployall
