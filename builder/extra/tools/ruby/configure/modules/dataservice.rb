@@ -1155,14 +1155,13 @@ class ReplicationServiceEnableExtractorFilterColnames < ConfigurePrompt
   include ConstantValueModule
   
   def initialize
-    super(REPL_SVC_EXTRACTOR_FILTER_PKEY, "Enable Colnames on the extractor side?", 
+    super(REPL_SVC_EXTRACTOR_FILTER_COLNAMES, "Enable Colnames on the extractor side?", 
       PV_BOOLEAN, "false")
   end
   
   def get_default_value
     if get_extractor_datasource().class == MySQLDatabasePlatform
-      case get_applier_datasource().class
-      when VerticaDatabasePlatform
+      if get_applier_datasource().class == VerticaDatabasePlatform
         return "true"
       end
     end
@@ -1183,8 +1182,7 @@ class ReplicationServiceEnableExtractorFilterPkey < ConfigurePrompt
   
   def get_default_value
     if get_extractor_datasource().class == MySQLDatabasePlatform
-      case get_applier_datasource().class
-      when VerticaDatabasePlatform
+      if get_applier_datasource().class == VerticaDatabasePlatform
         return "true"
       end
     end
