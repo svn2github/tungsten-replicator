@@ -405,6 +405,20 @@ class JavaMemorySize < ConfigurePrompt
   end
 end
 
+class JavaFileEncoding < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_JAVA_FILE_ENCODING, "Java platform charset (esp. for heterogeneous replication)",
+      PV_ANY, "")
+  end
+  
+  def required?
+    false
+  end
+end
+
 class ReplicationAPI < ConfigurePrompt
   include ClusterHostPrompt
   include AdvancedPromptModule

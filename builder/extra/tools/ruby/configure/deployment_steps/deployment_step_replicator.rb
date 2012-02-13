@@ -60,6 +60,13 @@ module ConfigureDeploymentStepReplicator
     transformer.transform { |line|
       if line =~ /wrapper.java.maxmemory=/
         "wrapper.java.maxmemory=" + @config.getProperty(REPL_JAVA_MEM_SIZE)
+      elsif line =~ /-Dfile.encoding=/ and @config.getProperty(REPL_JAVA_FILE_ENCODING) != ""
+        if line[0,1] == "#"
+            line.slice!(0)
+        end
+        
+        parts = line.split("=")
+        line = "#{parts[0]}=-Dfile.encoding=" + @config.getProperty(REPL_JAVA_FILE_ENCODING)
       elsif line =~ /jolokia-jvm/
         if @config.getProperty(REPL_API) == "true"
           if line[0,1] == "#"
