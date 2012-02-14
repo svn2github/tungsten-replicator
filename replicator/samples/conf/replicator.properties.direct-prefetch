@@ -160,7 +160,7 @@ replicator.stage.d-pq-to-dbms=com.continuent.tungsten.replicator.pipeline.Single
 replicator.stage.d-pq-to-dbms.extractor=parallel-q-extractor
 replicator.stage.d-pq-to-dbms.applier=dbms
 replicator.stage.d-pq-to-dbms.taskCount=${replicator.global.apply.channels}
-replicator.stage.d-pq-to-dbms.blockCommitRowCount=${replicator.global.buffer.size}
+replicator.stage.d-pq-to-dbms.blockCommitRowCount=@{REPL_SVC_APPLIER_BUFFER_SIZE}
 
 #################################
 # TRANSACTION HISTORY LOG (THL) #
