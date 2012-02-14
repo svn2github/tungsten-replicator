@@ -591,12 +591,22 @@ class ReplicationServiceBufferSize < ConfigurePrompt
     super(REPL_BUFFER_SIZE, "Replicator block commit size (min 1)",
       PV_INTEGER, 10)
   end
+end
+
+class ReplicationServiceApplierBufferSize < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_SVC_APPLIER_BUFFER_SIZE, "Applier block commit size (min 1)",
+      PV_ANY, nil)
+  end
   
   def get_default_value
-    if @config.getProperty(BATCH_ENABLED) == "true"
-      return 10000
+    if @config.getProperty(get_member_key(BATCH_ENABLED)) == "true"
+      return "10000"
     else
-      return 10
+      return "${replicator.global.buffer.size}"
     end
   end
 end
