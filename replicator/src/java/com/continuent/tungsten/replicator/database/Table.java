@@ -125,6 +125,10 @@ public class Table
         nonKeyColumns.add(column);
     }
 
+    /**
+     * Adds a key definition to the table. This method maintains non-key columns
+     * automatically.
+     */
     public void AddKey(Key key)
     {
         keys.add(key);
@@ -134,24 +138,13 @@ public class Table
             purge(key.getColumns(), nonKeyColumns);
         }
     }
-    
+
     /** Reset keys, which also resets non-key columns. */
     public void clearKeys()
     {
         keys.clear();
         nonKeyColumns.clear();
         nonKeyColumns.addAll(this.allColumns);
-    }
-
-    public void Dump()
-    {
-        System.out.format("%s.%s\n", this.schema, this.name);
-        Iterator<Column> i = allColumns.iterator();
-        while (i.hasNext())
-        {
-            Column c = i.next();
-            c.Dump();
-        }
     }
 
     public String getSchema()
@@ -222,6 +215,19 @@ public class Table
     public int getColumnCount()
     {
         return allColumns.size();
+    }
+
+    /**
+     * Returns the estimates number of rows in the table, if known, or 0 if not.
+     * This method works by calling the method of the same name on the primary
+     * key if there is one.
+     */
+    public long getMaxCardinality()
+    {
+        if (primaryKey == null)
+            return 0;
+        else
+            return primaryKey.getMaxCardinality();
     }
 
     /*

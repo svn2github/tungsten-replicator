@@ -44,7 +44,6 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.applier.ApplierException;
 import com.continuent.tungsten.replicator.applier.RawApplier;
-import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
@@ -81,81 +80,80 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class PrefetchApplier implements RawApplier
 {
-    // Holder for column-value pairs.
-    class ColumnValue
-    {
-        Column column;
-        Object value;
-        String specifier;
-
-        ColumnValue(Column column, Object value, String specifier)
-        {
-            this.column = column;
-            this.value = value;
-            this.specifier = specifier;
-        }
-    }
-
-    private static Logger             logger               = Logger.getLogger(PrefetchApplier.class);
+    private static Logger             logger                 = Logger.getLogger(PrefetchApplier.class);
 
     // DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
-    private Pattern                   delete               = Pattern
-                                                                   .compile(
-                                                                           "^\\s*delete\\s*(?:low_priority\\s*)?(?:quick\\s*)?(?:ignore\\s*)?(?:from\\s*)(.*)",
-                                                                           Pattern.CASE_INSENSITIVE);
+    private Pattern                   delete                 = Pattern
+                                                                     .compile(
+                                                                             "^\\s*delete\\s*(?:low_priority\\s*)?(?:quick\\s*)?(?:ignore\\s*)?(?:from\\s*)(.*)",
+                                                                             Pattern.CASE_INSENSITIVE);
 
     // UPDATE [LOW_PRIORITY] [IGNORE] table_reference
-    private Pattern                   update               = Pattern
-                                                                   .compile(
-                                                                           "^\\s*update\\s*(?:low_priority\\s*)?(?:ignore\\s*)?((?:[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*(?:\\s*,\\s*(?:[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*)*)\\s+SET\\s+(?:.*)?\\s+(WHERE\\s+.*)",
-                                                                           Pattern.CASE_INSENSITIVE);
+    private Pattern                   update                 = Pattern
+                                                                     .compile(
+                                                                             "^\\s*update\\s*(?:low_priority\\s*)?(?:ignore\\s*)?((?:[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*(?:\\s*,\\s*(?:[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*(?:[a-zA-Z0-9_]+)[`\"]*)*)\\s+SET\\s+(?:.*)?\\s+(WHERE\\s+.*)",
+                                                                             Pattern.CASE_INSENSITIVE);
 
     // INSERT [LOW_PRIORITY | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name
     // [(col_name,...)] SELECT ...[ ON DUPLICATE KEY UPDATE col_name=expr
     // [,col_name=expr] ... ]
-    private Pattern                   insert               = Pattern
-                                                                   .compile(
-                                                                           "^\\s*insert\\s*(?:(?:low_priority|high_priority)\\s*)?(?:ignore\\s*)?(?:into\\s*)?(?:(?:[`\\\"]*(?:[a-zA-Z0-9_]+)[`\\\"]*\\.){0,1}[`\\\"]*(?:[a-zA-Z0-9_]+)[`\\\"]*)\\s+(?:\\((?:.*)?\\)\\s*)?(?:(?:(SELECT.*?)(?:ON\\s+DUPLICATE\\s+KEY\\s+UPDATE\\s+.*))|(SELECT.*))",
-                                                                           Pattern.CASE_INSENSITIVE);
+    private Pattern                   insert                 = Pattern
+                                                                     .compile(
+                                                                             "^\\s*insert\\s*(?:(?:low_priority|high_priority)\\s*)?(?:ignore\\s*)?(?:into\\s*)?(?:(?:[`\\\"]*(?:[a-zA-Z0-9_]+)[`\\\"]*\\.){0,1}[`\\\"]*(?:[a-zA-Z0-9_]+)[`\\\"]*)\\s+(?:\\((?:.*)?\\)\\s*)?(?:(?:(SELECT.*?)(?:ON\\s+DUPLICATE\\s+KEY\\s+UPDATE\\s+.*))|(SELECT.*))",
+                                                                             Pattern.CASE_INSENSITIVE);
 
-    protected int                     taskId               = 0;
-    protected ReplicatorRuntime       runtime              = null;
-    protected String                  driver               = null;
-    protected String                  url                  = null;
-    protected String                  user                 = "root";
-    protected String                  password             = "rootpass";
-    protected String                  ignoreSessionVars    = null;
+    // Plugin parameters.
+    protected int                     taskId                 = 0;
+    protected String                  driver                 = null;
+    protected String                  url                    = null;
+    protected String                  user                   = "root";
+    protected String                  password               = "rootpass";
+    protected String                  ignoreSessionVars      = null;
 
-    protected String                  metadataSchema       = null;
-    protected Database                conn                 = null;
-    protected Statement               statement            = null;
-    protected Pattern                 ignoreSessionPattern = null;
+    protected int                     slowQueryCacheSize     = 10000;
+    protected int                     slowQueryRows          = 100;
+    protected double                  slowQuerySelectivity   = .05;
+    protected int                     slowQueryCacheDuration = 60;
+
+    protected PluginContext           runtime                = null;
+    protected String                  metadataSchema         = null;
+    protected Database                conn                   = null;
+    protected Statement               statement              = null;
+    protected Pattern                 ignoreSessionPattern   = null;
 
     // Values of schema, timestamp and session variables which are buffered to
     // avoid unnecessary commands on the SQL connection.
-    protected String                  currentSchema        = null;
-    protected long                    currentTimestamp     = -1;
+    protected String                  currentSchema          = null;
+    protected long                    currentTimestamp       = -1;
     protected HashMap<String, String> currentOptions;
 
     // Statistics.
-    protected long                    eventCount           = 0;
-    private long                      transformed;
+    private static long               events                 = 0;
+    private static long               statements             = 0;
+    private static long               rowUpdates             = 0;
+    private static long               transformed            = 0;
+    private static long               prefetchedQueries      = 0;
+    private static long               skippedSlowQueries     = 0;
 
     /**
      * Maximum length of SQL string to log in case of an error. This is needed
      * because some statements may be very large. TODO: make this configurable
      * via replicator.properties
      */
-    protected int                     maxSQLLogLength      = 1000;
+    protected int                     maxSQLLogLength        = 1000;
 
     // Table and prepared statement caches.
     private TableMetadataCache        tableMetadataCache;
     private PreparedStatementCache    preparedStatementCache;
 
-    private ReplDBMSHeader            lastProcessedEvent   = null;
+    // Slow query cache. This is managed by task 0 but is shared across
+    // threads.
+    private static SlowQueryCache     slowQueryCache;
+
+    private ReplDBMSHeader            lastProcessedEvent     = null;
 
     // SQL parser.
-    private SqlOperationMatcher       sqlMatcher           = new MySQLOperationMatcher();
+    private SqlOperationMatcher       sqlMatcher             = new MySQLOperationMatcher();
 
     /**
      * {@inheritDoc}
@@ -199,9 +197,25 @@ public class PrefetchApplier implements RawApplier
         this.ignoreSessionVars = ignoreSessionVars;
     }
 
-    enum PrintMode
+    public synchronized void setSlowQueryCacheSize(int slowQueryCacheSize)
     {
-        ASSIGNMENT, NAMES_ONLY, VALUES_ONLY, PLACE_HOLDER
+        this.slowQueryCacheSize = slowQueryCacheSize;
+    }
+
+    public synchronized void setSlowQueryRows(int slowQueryRows)
+    {
+        this.slowQueryRows = slowQueryRows;
+    }
+
+    public synchronized void setSlowQuerySelectivity(double slowQuerySelectivity)
+    {
+        this.slowQuerySelectivity = slowQuerySelectivity;
+    }
+
+    public synchronized void setSlowQueryCacheDuration(
+            int slowQueryCacheDuration)
+    {
+        this.slowQueryCacheDuration = slowQueryCacheDuration;
     }
 
     /**
@@ -316,7 +330,7 @@ public class PrefetchApplier implements RawApplier
         lastProcessedEvent = header;
 
         // Update statistics.
-        this.eventCount++;
+        events++;
 
         return;
 
@@ -380,12 +394,22 @@ public class PrefetchApplier implements RawApplier
             conn.connect(true);
             statement = conn.createStatement();
 
-            // Instantiate caches.
+            // Instantiate local caches.
             tableMetadataCache = new TableMetadataCache(5000);
             preparedStatementCache = new PreparedStatementCache(500);
 
-            transformed = 0;
-            eventCount = 0;
+            // If we are task 0, we need to initialized the shared slow query
+            // cache.
+            if (this.taskId == 0)
+            {
+                slowQueryCache = new SlowQueryCache();
+                slowQueryCache
+                        .setSlowQueryCacheDuration(slowQueryCacheDuration);
+                slowQueryCache.setSlowQueryCacheSize(slowQueryCacheSize);
+                slowQueryCache.setSlowQueryRows(slowQueryRows);
+                slowQueryCache.setSlowQuerySelectivity(slowQuerySelectivity);
+                slowQueryCache.init();
+            }
         }
         catch (SQLException e)
         {
@@ -402,7 +426,7 @@ public class PrefetchApplier implements RawApplier
      */
     public void configure(PluginContext context) throws ReplicatorException
     {
-        runtime = (ReplicatorRuntime) context;
+        runtime = context;
         metadataSchema = context.getReplicatorSchemaName();
         if (ignoreSessionVars != null)
         {
@@ -417,6 +441,7 @@ public class PrefetchApplier implements RawApplier
      */
     public void release(PluginContext context) throws ReplicatorException
     {
+        // Release local resources.
         currentOptions = null;
 
         statement = null;
@@ -431,14 +456,33 @@ public class PrefetchApplier implements RawApplier
             tableMetadataCache.invalidateAll();
             tableMetadataCache = null;
         }
+
+        // If we are task 0, print prefetch stats, then free the slow
+        // query cache.
+        if (taskId == 0)
+        {
+            StringBuffer stats = new StringBuffer("Prefetch statistics:");
+            stats.append(" events=").append(events);
+            stats.append(" statements=").append(statements);
+            stats.append(" rowUpdates=").append(rowUpdates);
+            stats.append(" transformed=").append(transformed);
+            stats.append(" prefetchedQueries=").append(prefetchedQueries);
+            stats.append(" skippedSlowQueries=").append(skippedSlowQueries);
+            stats.append(" slowQueryCache=[").append(slowQueryCache.toString())
+                    .append("]");
+            logger.info(stats.toString());
+
+            slowQueryCache = null;
+        }
     }
 
     /**
      * Prefetch data for statements.
      */
-    protected void prefetchStatementData(StatementData data)
+    private void prefetchStatementData(StatementData data)
             throws ReplicatorException
     {
+        statements++;
         String sqlQuery = null;
         try
         {
@@ -595,6 +639,7 @@ public class PrefetchApplier implements RawApplier
                     if (logger.isDebugEnabled())
                         logger.debug("Executing transformed query: " + sqlQuery);
                     rs = statement.executeQuery(sqlQuery);
+                    prefetchedQueries++;
                     if (fetchSecondaryIndexes)
                     {
                         // Fetch secondary indexes if this value exists.
@@ -661,25 +706,18 @@ public class PrefetchApplier implements RawApplier
                         continue;
 
                     // Try to get the values corresponding to the key.
-                    List<ColumnValue> colValues = new ArrayList<ColumnValue>(
-                            key.size());
+                    KeySelect keySelect = new KeySelect(table, key);
                     for (Column col : key.getColumns())
                     {
                         Object value = valueMap.get(col.getName());
-                        if (value == null)
-                            break;
-                        else
-                        {
-                            ColumnValue cv = new ColumnValue(col, value, null);
-                            colValues.add(cv);
-                        }
+                        keySelect.setValue(col.getName(), value);
                     }
 
                     // If we got entries for each key value, try to execute a
                     // SQL query for same.
-                    if (colValues.size() == key.size())
+                    if (!keySelect.hasNulls())
                     {
-                        executeIndexQuery(schemaName, tableName, key, colValues);
+                        executeIndexQuery(keySelect);
                     }
                 }
             }
@@ -702,53 +740,36 @@ public class PrefetchApplier implements RawApplier
      * 
      * @throws SQLException
      */
-    private void executeIndexQuery(String schemaName, String tableName,
-            Key key, List<ColumnValue> colValues) throws ReplicatorException
+    private void executeIndexQuery(KeySelect keySelect)
+            throws ReplicatorException
     {
+        // Extract table and key definitions.
+        Table table = keySelect.getTable();
+        Key key = keySelect.getKey();
         if (logger.isDebugEnabled())
         {
             logger.debug("Executing prefetch query for key: " + key);
         }
+
+        // See if we have a slow query that does not need to be repeated.
+        if (!slowQueryCache.shouldExecute(keySelect))
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Skipping slow query: keySelect=" + keySelect);
+            }
+            skippedSlowQueries++;
+            return;
+        }
+
         // Fetch prepared statement from cache.
-        String pstmtName = String.format("%s.%s.%s-statement", schemaName,
-                tableName, key.getName());
+        String pstmtName = String.format("%s.%s.%s-statement",
+                table.getSchema(), table.getName(), key.getName());
         PreparedStatement pstmt = this.preparedStatementCache
                 .retrieve(pstmtName);
         if (pstmt == null)
         {
-            // Make a prepared statement if we don't have one.
-            StringBuffer sb = new StringBuffer();
-
-            // Select all for primary, otherwise use count(*) to force
-            // scan of index pages only.
-            if (key.isPrimaryKey())
-                sb.append("SELECT * FROM `");
-            else
-                sb.append("SELECT count(*) FROM `");
-            sb.append(schemaName);
-            sb.append("`.`");
-            sb.append(tableName);
-            sb.append("`");
-            // Use force index hint to ensure our chosen index loads.
-            sb.append(" FORCE INDEX (").append(key.getName()).append(")");
-            // Supply key columns on which to join.
-            sb.append(" WHERE ");
-            for (int i = 0; i < colValues.size(); i++)
-            {
-                ColumnValue cv = colValues.get(i);
-                if (i > 0)
-                    sb.append(" AND ");
-                sb.append(cv.column.getName());
-                // if (cv.specifier == null)
-                sb.append("=?");
-                // else
-                // sb.append("=").append(cv.specifier);
-            }
-            sb.append(String.format(
-                    " /* TUNGSTEN PREFETCH: schema=%s table=%s, key=%s */",
-                    schemaName, tableName, key.getName()));
-
-            String query = sb.toString();
+            String query = keySelect.createPrefetchSelect();
             if (logger.isDebugEnabled())
             {
                 logger.debug("Generating prepared statement for index load: key="
@@ -771,9 +792,9 @@ public class PrefetchApplier implements RawApplier
         try
         {
             // Populate values in prepared statement and execute.
-            for (int i = 0; i < colValues.size(); i++)
+            for (int i = 1; i <= keySelect.size(); i++)
             {
-                pstmt.setObject(i + 1, colValues.get(i).value);
+                pstmt.setObject(i, keySelect.getValue(i));
             }
             if (logger.isDebugEnabled())
             {
@@ -781,39 +802,44 @@ public class PrefetchApplier implements RawApplier
                 StringBuffer sb = new StringBuffer();
                 sb.append("Executing index prefetch: key=").append(key);
                 sb.append(" values=[");
-                for (int i = 0; i < colValues.size(); i++)
+                List<Column> columns = keySelect.getKey().getColumns();
+                for (int i = 0; i < columns.size(); i++)
                 {
-                    ColumnValue cv = colValues.get(i);
                     if (i > 0)
                         sb.append(",");
-                    sb.append(cv.column.getName());
+                    sb.append(columns.get(i).getName());
                     sb.append("=");
-                    sb.append(cv.value.toString());
+                    sb.append(keySelect.getValue(i + 1));
                 }
                 sb.append("]");
                 logger.debug(sb.toString());
             }
 
+            // Execute the query and compute the number of rows that were
+            // touched.
             rs = pstmt.executeQuery();
+            prefetchedQueries++;
+            long rowCount = -1;
+            if (rs.next())
+            {
+                if (key.isPrimaryKey())
+                    rowCount = 1;
+                else
+                    rowCount = rs.getLong(1);
+            }
             if (logger.isDebugEnabled())
             {
-                if (rs.next())
-                {
-                    logger.debug("Executed index prefetch: key=" + key
-                            + " count=" + rs.getInt(1));
-                }
-                else
-                {
-                    logger.debug("Executed prefetch but did not receive any results: key="
-                            + key);
-                }
+                logger.debug("Executed index prefetch: key=" + key
+                        + " rowCount=" + rowCount);
             }
+
+            // Offer result to slow query cache.
+            slowQueryCache.updateCache(keySelect, rowCount);
         }
         catch (SQLException e)
         {
-            throw new ApplierException(
-                    "Unable to prefetch secondary index: schema=" + schemaName
-                            + " table=" + tableName + " key=" + key, e);
+            throw new ApplierException("Unable to prefetch secondary index: "
+                    + key.toString(), e);
         }
         finally
         {
@@ -823,7 +849,7 @@ public class PrefetchApplier implements RawApplier
     }
 
     // Prefetch data for one or one or more rows.
-    protected void prefetchRowChangeData(RowChangeData data,
+    private void prefetchRowChangeData(RowChangeData data,
             List<ReplOption> options) throws ReplicatorException
     {
         if (options != null)
@@ -852,7 +878,7 @@ public class PrefetchApplier implements RawApplier
     }
 
     // Prefetches data for a set of changes on a single table.
-    protected void prefetchOneRowChangePrepared(OneRowChange oneRowChange)
+    private void prefetchOneRowChangePrepared(OneRowChange oneRowChange)
             throws ReplicatorException
     {
         // Fill in column names in column specifications.
@@ -921,7 +947,7 @@ public class PrefetchApplier implements RawApplier
      *         retrieved (table does not exist or has no columns).
      * @throws SQLException
      */
-    protected int fillColumnNames(OneRowChange data) throws ReplicatorException
+    private int fillColumnNames(OneRowChange data) throws ReplicatorException
     {
 
         Table t = fetchTableDefinition(data.getSchemaName(),
@@ -977,6 +1003,7 @@ public class PrefetchApplier implements RawApplier
     private void prefetchSimpleRowIndexes(RbrRowImage image)
             throws ReplicatorException
     {
+        rowUpdates++;
         if (logger.isDebugEnabled())
         {
             logger.debug("Seeking indexes for row image: schema="
@@ -998,31 +1025,19 @@ public class PrefetchApplier implements RawApplier
                 logger.debug("Looking for values for key: " + key);
             }
             // Try to get the values corresponding to the key.
-            List<ColumnValue> colValues = new ArrayList<ColumnValue>(key.size());
+            KeySelect keySelect = new KeySelect(table, key);
             for (Column col : key.getColumns())
             {
                 int imageColIndex = image.getColumnIndex(col.getName());
                 ColumnVal colValue = image.getValue(imageColIndex);
-                if (colValue == null)
-                {
-                    break;
-                }
-                else
-                {
-                    String specifier = conn.getPlaceHolder(
-                            image.getSpec(imageColIndex), colValue.getValue(),
-                            col.getTypeDescription());
-                    ColumnValue cv = new ColumnValue(col, colValue.getValue(),
-                            specifier);
-                    colValues.add(cv);
-                }
+                keySelect.setValue(col.getName(), colValue.getValue());
             }
 
-            // If we got entries for each key value, try to execute a SQL
-            // query for the same.
-            if (colValues.size() == key.size())
+            // If we got entries for each key value, try to execute a
+            // SQL query for same.
+            if (!keySelect.hasNulls())
             {
-                executeIndexQuery(schemaName, tableName, key, colValues);
+                executeIndexQuery(keySelect);
             }
         }
     }
@@ -1122,13 +1137,13 @@ public class PrefetchApplier implements RawApplier
         }
         if (logger.isDebugEnabled())
         {
-            logger.debug("Table metadata contructed: " + t.toExtendedString());
+            logger.debug("Table metadata found: " + t.toExtendedString());
         }
         return t;
 
     }
 
-    protected void applyRowIdData(RowIdData data) throws ReplicatorException
+    private void applyRowIdData(RowIdData data) throws ReplicatorException
     {
         String query = "SET ";
 
@@ -1181,7 +1196,7 @@ public class PrefetchApplier implements RawApplier
      * @param timestamp the timestamp to be used
      * @throws SQLException if an error occurs
      */
-    protected void applySetTimestamp(Long timestamp) throws SQLException
+    private void applySetTimestamp(Long timestamp) throws SQLException
     {
         if (timestamp != null && conn.supportsControlTimestamp())
         {
@@ -1201,7 +1216,7 @@ public class PrefetchApplier implements RawApplier
      * @param schema the schema to be used
      * @throws SQLException if an error occurs
      */
-    protected void applyUseSchema(String schema) throws SQLException
+    private void applyUseSchema(String schema) throws SQLException
     {
         boolean schemaSet = false;
         if (schema != null && schema.length() > 0
@@ -1240,7 +1255,7 @@ public class PrefetchApplier implements RawApplier
      * @return true if any option changed
      * @throws SQLException
      */
-    protected boolean applySessionVariables(List<ReplOption> options)
+    private boolean applySessionVariables(List<ReplOption> options)
             throws SQLException
     {
         boolean sessionVarChange = false;
@@ -1312,7 +1327,7 @@ public class PrefetchApplier implements RawApplier
      * @see #maxSQLLogLength
      * @param sql the sql statement to be logged
      */
-    protected void logFailedStatementSQL(String sql, SQLException ex)
+    private void logFailedStatementSQL(String sql, SQLException ex)
     {
         try
         {

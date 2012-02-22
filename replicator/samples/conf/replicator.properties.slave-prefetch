@@ -235,15 +235,15 @@ replicator.store.prefetch-queue.url=@{APPLIER.REPL_DBBASICJDBCURL}@{PREFETCH_SCH
 # Name of the catalog schema of the slave for which we are prefetching. 
 replicator.store.prefetch-queue.slaveCatalogSchema=@{PREFETCH_SCHEMA}
 
+# Minimum number of seconds latency on prefetched eents. 
+replicator.store.prefetch-queue.minTimeAhead=@{PREFETCH_MIN_TIME_AHEAD}
+
 # Maximum number of seconds to precede slave.  
-replicator.store.prefetch-queue.aheadMaxTime=@{PREFETCH_TIME_AHEAD}
+replicator.store.prefetch-queue.maxTimeAhead=@{PREFETCH_MAX_TIME_AHEAD}
 
 # Time *in milliseconds* that prefetcher should sleep if it gets too far ahead
 # of the slave. 
 replicator.store.prefetch-queue.sleepTime=@{PREFETCH_SLEEP_TIME}
-
-# Number of transactions to drop when starting up on a brand new slave. 
-replicator.store.prefetch-queue.warmUpEventCount=@{PREFETCH_WARMUP_EVENT_COUNT}
 
 # If set to true allow all events to be prefetched.  This aids debugging
 # as it causes all events to flow through the prefetcher regardless of the

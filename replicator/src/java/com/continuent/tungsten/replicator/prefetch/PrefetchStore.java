@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,10 +26,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
@@ -52,31 +48,25 @@ import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
  */
 public class PrefetchStore extends InMemoryQueueStore
 {
-    private static Logger        logger           = Logger.getLogger(PrefetchStore.class);
+    private static Logger     logger         = Logger.getLogger(PrefetchStore.class);
 
     // Prefetch store parameters.
-    private String               user;
-    private String               url;
-    private String               password;
-    private String               slaveCatalogSchema;
+    private String            user;
+    private String            url;
+    private String            password;
+    private String            slaveCatalogSchema;
 
-    private long                 interval         = 1000;
-    private int                  aheadMaxTime     = 60;
-    private int                  sleepTime        = 500;
-    private int                  warmUpEventCount = 100;
-    private boolean              allowAll         = false;
+    private long              interval       = 1000;
+    private int               maxTimeAhead   = 60;
+    private int               minTimeAhead   = 0;
+    private int               sleepTime      = 500;
+    private boolean           allowAll       = false;
 
     // Database connection information.
-    private Database             conn             = null;
-    private PreparedStatement    seqnoStatement   = null;
+    private Database          conn           = null;
+    private PreparedStatement seqnoStatement = null;
 
     // Prefetch coordination information.
-    private long                 lastChecked      = 0;
-    private long                 currentSeqno     = -1;
-    private long                 initTime         = 0;
-    private Map<Long, Timestamp> appliedTimes;
-    private long                 totalEvents      = 0;
-    private long                 prefetchEvents   = 0;
 
     // State information.
     enum PrefetchState
@@ -84,9 +74,19 @@ public class PrefetchStore extends InMemoryQueueStore
         active, sleeping
     };
 
+    // Prefetch stats.
+    private long          totalEvents    = 0;
+    private long          prefetchEvents = 0;
     private PrefetchState prefetchState;
     private long          startTimeMillis;
     private long          sleepTimeMillis;
+
+    // Prefetch control information.
+    private long          lastChecked    = 0;
+    private long          slaveSeqno     = -1;
+    private long          aheadMaxMillis;
+    private long          aheadMinMillis;
+
     private long          slaveLatency;
     private long          prefetchLatency;
 
@@ -126,18 +126,31 @@ public class PrefetchStore extends InMemoryQueueStore
     }
 
     /**
-     * Sets the aheadMaxTime value. This is the maximum number of seconds that
-     * event should be from the last applied event (based on master times).
+     * Sets the minimum number of seconds ahead of slave in order to accept an
+     * event for prefetch. If an event is under this number we discard it.
      * 
-     * @param aheadMaxTime Time in seconds
+     * @param maxTimeAhead Time in seconds
      */
-    public void setAheadMaxTime(int aheadMaxTime)
+    public void setMinTimeAhead(int aheadMinTime)
     {
-        this.aheadMaxTime = aheadMaxTime;
+        this.minTimeAhead = aheadMinTime;
     }
 
     /**
-     * Sets the sleepTime value.
+     * Sets the maximum number of seconds that event should be from the last
+     * event applied by the slave. If we exceed this we sleep to let the slave
+     * catch up.
+     * 
+     * @param maxTimeAhead Time in seconds
+     */
+    public void setMaxTimeAhead(int aheadMaxTime)
+    {
+        this.maxTimeAhead = aheadMaxTime;
+    }
+
+    /**
+     * Sets the number of milliseconds to sleep when we get too far ahead of the
+     * slave.
      * 
      * @param sleepTime The sleepTime to set.
      */
@@ -147,20 +160,10 @@ public class PrefetchStore extends InMemoryQueueStore
     }
 
     /**
-     * Sets the warmUpEventCount value.
-     * 
-     * @param warmUpEventCount The warmUpEventCount to set.
-     */
-    public void setWarmUpEventCount(int warmUpEventCount)
-    {
-        this.warmUpEventCount = warmUpEventCount;
-    }
-
-    /**
      * Allow all events regardless of position of slave service we are tracking.
      * Used for debugging and to exercise prefetch applier code easily.
      */
-    public synchronized void setAllowAll(boolean allowAll)
+    public void setAllowAll(boolean allowAll)
     {
         this.allowAll = allowAll;
     }
@@ -190,6 +193,30 @@ public class PrefetchStore extends InMemoryQueueStore
         {
             super.put(event);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.storage.InMemoryQueueStore#configure(com.continuent.tungsten.replicator.plugin.PluginContext)
+     */
+    public void configure(PluginContext context) throws ReplicatorException
+    {
+        super.configure(context);
+
+        // Validate min and max ahead times.
+        if (minTimeAhead >= 0)
+            aheadMinMillis = minTimeAhead * 1000;
+        else
+            throw new ReplicatorException(
+                    "Property minTimeAhead must be 0 or more: " + minTimeAhead);
+
+        if (maxTimeAhead >= minTimeAhead)
+            aheadMaxMillis = maxTimeAhead * 1000;
+        else
+            throw new ReplicatorException(
+                    "Property maxTimeAhead equal to or greater than minTimeAhead: maxTimeAhead="
+                            + maxTimeAhead + " minTimeAhead=" + minTimeAhead);
     }
 
     /**
@@ -269,23 +296,24 @@ public class PrefetchStore extends InMemoryQueueStore
         props.setString("url", url);
         props.setString("slaveCatalogSchema", slaveCatalogSchema);
         props.setLong("interval", interval);
-        props.setLong("aheadMaxTime", aheadMaxTime);
+        props.setLong("maxTimeAhead", maxTimeAhead);
+        props.setLong("minTimeAhead", minTimeAhead);
         props.setLong("sleepTime", sleepTime);
-        props.setLong("warmUpEventCount", warmUpEventCount);
         props.setBoolean("allowAll", allowAll);
 
         // Add runtime properties.
         props.setLong("prefetchEvents", prefetchEvents);
+        props.setLong("skippedEvents", totalEvents - prefetchEvents);
         double prefetchRatio = 0.0;
         if (totalEvents > 0)
             prefetchRatio = ((double) prefetchEvents) / totalEvents;
         props.setString("prefetchRatio", formatDouble(prefetchRatio));
         props.setString("prefetchState", prefetchState.toString());
-        props.setString("slaveLatency", formatDouble(slaveLatency));
+        props.setString("slaveLatency", formatDouble(slaveLatency / 1000.0));
         props.setString("prefetchLatency",
                 formatDouble(prefetchLatency / 1000.0));
-        props.setString("prefetchTimeAhead", formatDouble(slaveLatency
-                - (prefetchLatency / 1000.0)));
+        props.setString("prefetchTimeAhead",
+                formatDouble((slaveLatency - prefetchLatency) / 1000.0));
         props.setString("prefetchState", prefetchState.toString());
 
         long duration = System.currentTimeMillis() - startTimeMillis;
@@ -309,115 +337,111 @@ public class PrefetchStore extends InMemoryQueueStore
     public ReplDBMSEvent filter(ReplDBMSEvent event)
             throws ReplicatorException, InterruptedException
     {
+        // Force a lock to ensure stats are shared.
         totalEvents++;
 
-        // If we are debugging, stop right here.
+        // Get the time and latency of the event.
+        Timestamp sourceTstamp = event.getExtractedTstamp();
+        long currentTime = System.currentTimeMillis();
+        prefetchLatency = currentTime - sourceTstamp.getTime();
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Processing event: seqno=" + event.getSeqno()
+                    + " prefetchLatency=" + prefetchLatency);
+        }
+
+        // Check latency of slave if we have not done so for a while.
+        if (lastChecked == 0 || (currentTime - lastChecked >= interval))
+        {
+            getCurrentSlaveHeader();
+        }
+
+        // If we are debugging, stop right here. (If we exited earlier
+        // the prefetch store stats would not be updated, which is very
+        // confusing to outside observers.)
         if (allowAll)
         {
+            prefetchEvents++;
             return event;
         }
 
-        if (appliedTimes == null)
-            appliedTimes = new TreeMap<Long, Timestamp>();
-
-        Timestamp sourceTstamp = event.getDBMSEvent().getSourceTstamp();
-        appliedTimes.put(event.getSeqno(), sourceTstamp);
-
-        long currentTime = System.currentTimeMillis();
-        prefetchLatency = currentTime - sourceTstamp.getTime();
-
-        if (interval == 0 || lastChecked == 0
-                || (currentTime - lastChecked >= interval))
-        {
-            // It is now time to check CommitSeqnoTable again
-            checkSlavePosition(currentTime);
-        }
-
-        if (initTime == 0)
-            initTime = sourceTstamp.getTime();
-
-        if (event.getSeqno() <= currentSeqno)
+        // Drop the event if the slave has already executed it.
+        if (event.getSeqno() <= slaveSeqno)
         {
             if (logger.isDebugEnabled())
-                logger.debug("Discarding event " + event.getSeqno()
-                        + " as it is already applied");
+            {
+                logger.debug("Discarding event already executed by slave seqno="
+                        + event.getSeqno() + " slaveSeqno=" + slaveSeqno);
+            }
             return null;
         }
-        else
-            while (sourceTstamp.getTime() - initTime > (aheadMaxTime * 1000))
-            {
-                if (logger.isDebugEnabled())
-                    logger.debug("Event is too far ahead of current slave position... sleeping");
-                // this event is too far ahead of the CommitSeqnoTable position:
-                // sleep some time and continue
-                long sleepStartMillis = System.currentTimeMillis();
-                try
-                {
 
-                    prefetchState = PrefetchState.sleeping;
-                    Thread.sleep(sleepTime);
-                }
-                catch (InterruptedException e)
-                {
-                    return null;
-                }
-                finally
-                {
-                    prefetchState = PrefetchState.active;
-                    sleepTimeMillis += (System.currentTimeMillis() - sleepStartMillis);
-                }
-                // Check again CommitSeqnoTable
-                checkSlavePosition(System.currentTimeMillis());
-                // and whereas the event got applied while sleeping
-                if (event.getSeqno() <= currentSeqno)
-                {
-                    if (logger.isDebugEnabled())
-                        logger.debug("Discarding event " + event.getSeqno()
-                                + " as it is already applied");
-                    return null;
-                }
+        // If the event latency is less than the prescribed minimum latency
+        // from the slave, drop it. This way we don't execute queries the slave
+        // is about to do anyway.
+        if ((slaveLatency - prefetchLatency) < aheadMinMillis)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Discarding event that is under minimum prefetch latency: seqno="
+                        + event.getSeqno()
+                        + " prefetchLatency="
+                        + prefetchLatency + " slaveLatency=" + slaveLatency);
+            }
+            return null;
+        }
+
+        // If our latency is too far below the slave, we need to wait.
+        long aheadMillis = 0;
+        long originalSlaveLatency = slaveLatency;
+        while ((aheadMillis = originalSlaveLatency - prefetchLatency) > aheadMaxMillis)
+        {
+            // This event is too far ahead of the CommitSeqnoTable position:
+            // Sleep some time and continue.
+            if (logger.isDebugEnabled())
+                logger.debug("Event is too far ahead of current slave position: aheadMillis="
+                        + aheadMillis);
+            long sleepStartMillis = System.currentTimeMillis();
+            try
+            {
+                // Interrupted exception is passed up chain.
+                prefetchState = PrefetchState.sleeping;
+                Thread.sleep(sleepTime);
+            }
+            finally
+            {
+                prefetchState = PrefetchState.active;
+                sleepTimeMillis += (System.currentTimeMillis() - sleepStartMillis);
             }
 
+            // Recompute our latency, which increases as we sleep.
+            currentTime = System.currentTimeMillis();
+            prefetchLatency = currentTime - sourceTstamp.getTime();
+
+            // Check slave's commit_seqno_table again to see which seqno it's
+            // on.
+            getCurrentSlaveHeader();
+
+            // Drop the event if the slave has already executed it. This gets
+            // out
+            // of a trap if the slave suddenly jumps ahead while we are pausing.
+            if (event.getSeqno() <= slaveSeqno)
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Discarding event already executed by slave seqno="
+                            + event.getSeqno() + " slaveSeqno=" + slaveSeqno);
+                }
+                return null;
+            }
+        }
+
+        // Whatever we have now is ripe for fetching, so return it.
         prefetchEvents++;
         if (logger.isDebugEnabled() && totalEvents % 20000 == 0)
             logger.debug("Prefetched " + prefetchEvents + " events - Ratio "
                     + (100 * prefetchEvents / totalEvents) + "%");
         return event;
-    }
-
-    /**
-     * Check slave position.
-     */
-    private void checkSlavePosition(long currentTime)
-    {
-        lastChecked = currentTime;
-        ReplDBMSHeader header = getCurrentSlaveHeader();
-        if (currentSeqno == -1)
-            currentSeqno = header.getSeqno() + warmUpEventCount;
-        else
-            currentSeqno = header.getSeqno();
-
-        // Drop every appliedTimes prior to currentSeqno and update time
-        // accordingly (time from max known applied event)
-        for (Iterator<Entry<Long, Timestamp>> iterator = appliedTimes
-                .entrySet().iterator(); iterator.hasNext();)
-        {
-            Entry<Long, Timestamp> next = iterator.next();
-            if (next.getKey() > currentSeqno)
-            {
-                break;
-            }
-
-            long time = next.getValue().getTime();
-            initTime = time;
-
-            if (next.getKey() < currentSeqno)
-            {
-                iterator.remove();
-            }
-            else
-                break;
-        }
     }
 
     // Fetch position data from slave.
@@ -440,8 +464,10 @@ public class PrefetchStore extends InMemoryQueueStore
                 header = new ReplDBMSHeaderData(seqno, fragno, lastFrag,
                         sourceId, epochNumber, eventId, null, new Timestamp(0));
 
-                // Record current slave latency.
-                this.slaveLatency = rs.getLong("applied_latency");
+                // Record current slave latency and time of last check.
+                slaveLatency = rs.getLong("applied_latency") * 1000;
+                slaveSeqno = header.getSeqno();
+                lastChecked = System.currentTimeMillis();
             }
         }
         catch (SQLException e)
