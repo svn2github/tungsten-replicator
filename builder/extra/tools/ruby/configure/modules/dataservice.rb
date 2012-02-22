@@ -860,12 +860,22 @@ module PrefetchModule
   end
 end
 
-class PrefetchTimeAhead < ConfigurePrompt
+class PrefetchMaxTimeAhead < ConfigurePrompt
   include ReplicationServicePrompt
   include PrefetchModule
   
   def initialize
-    super(PREFETCH_TIME_AHEAD, "Maximum number of seconds that the prefetch applier can get in front of the standard applier", 
+    super(PREFETCH_MAX_TIME_AHEAD, "Maximum number of seconds that the prefetch applier can get in front of the standard applier", 
+      PV_INTEGER, 60)
+  end
+end
+
+class PrefetchMinTimeAhead < ConfigurePrompt
+  include ReplicationServicePrompt
+  include PrefetchModule
+  
+  def initialize
+    super(PREFETCH_MIN_TIME_AHEAD, "Minimum number of seconds that the prefetch applier must be in front of the standard applier", 
       PV_INTEGER, 60)
   end
 end
@@ -876,16 +886,6 @@ class PrefetchSleepTime < ConfigurePrompt
   
   def initialize
     super(PREFETCH_SLEEP_TIME, "How long to wait when the prefetch applier gets too far ahead", 
-      PV_INTEGER, 200)
-  end
-end
-
-class PrefetchWarmupEventCount < ConfigurePrompt
-  include ReplicationServicePrompt
-  include PrefetchModule
-  
-  def initialize
-    super(PREFETCH_WARMUP_EVENT_COUNT, "How many events to skip when the prefetch applier goes ONLINE", 
       PV_INTEGER, 200)
   end
 end
