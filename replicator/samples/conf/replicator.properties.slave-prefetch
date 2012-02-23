@@ -235,7 +235,7 @@ replicator.store.prefetch-queue.url=@{APPLIER.REPL_DBBASICJDBCURL}@{PREFETCH_SCH
 # Name of the catalog schema of the slave for which we are prefetching. 
 replicator.store.prefetch-queue.slaveCatalogSchema=@{PREFETCH_SCHEMA}
 
-# Minimum number of seconds latency on prefetched eents. 
+# Minimum number of seconds latency on prefetched events. 
 replicator.store.prefetch-queue.minTimeAhead=@{PREFETCH_MIN_TIME_AHEAD}
 
 # Maximum number of seconds to precede slave.  

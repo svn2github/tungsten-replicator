@@ -51,8 +51,13 @@ public class SlowQueryCache
     private long                  minRows                 = Long.MAX_VALUE;
     private long                  maxRows                 = 0;
 
-    // Our cache.
-    private IndexedLRUCache<Long> cache;
+    // Pending query cache. This keeps a list of queries that are currently
+    // running so that individual threads do not execute identical queries
+    // twice.
+    private IndexedLRUCache<Long> pendingQueries;
+
+    // Our slow query cache.
+    private IndexedLRUCache<Long> slowQueries;
 
     public SlowQueryCache()
     {
@@ -145,7 +150,8 @@ public class SlowQueryCache
     public synchronized void init()
     {
         if (slowQueryCacheSize > 0)
-            cache = new IndexedLRUCache<Long>(slowQueryCacheSize, null);
+            slowQueries = new IndexedLRUCache<Long>(slowQueryCacheSize, null);
+        pendingQueries = new IndexedLRUCache<Long>(100, null);
     }
 
     /**
@@ -157,12 +163,24 @@ public class SlowQueryCache
     public synchronized boolean shouldExecute(KeySelect keySelect)
     {
         // Ensure cache is active.
-        if (cache == null)
+        if (slowQueries == null)
             return true;
 
-        // See if we have a slow query.
+        // See if this is a pending query. If so some other thread
+        // is already running it.
         String queryKey = keySelect.generateKey();
-        Long slowQueryInvocation = cache.get(queryKey);
+        Long pendingQueryInvocation = pendingQueries.get(queryKey);
+        if (pendingQueryInvocation != null)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Skipped pending query: queryKey=" + queryKey);
+            }
+            return false;
+        }
+
+        // See if we have a slow query.
+        Long slowQueryInvocation = slowQueries.get(queryKey);
         if (slowQueryInvocation != null)
         {
             // Mark the query as slow and check the duraction since last
@@ -175,9 +193,16 @@ public class SlowQueryCache
                     - slowQueryInvocation;
             if (sinceLastMillis < (slowQueryCacheDuration * 1000))
             {
+                // Mark the execution time and return false. This
+                // prevents other threads from uselessly running this one.
+                slowQueries.put(queryKey, System.currentTimeMillis());
                 return false;
             }
         }
+
+        // We should add this to the pending query cache to prevent
+        // other threads from running it and execute.
+        pendingQueries.put(queryKey, System.currentTimeMillis());
         return true;
     }
 
@@ -187,7 +212,7 @@ public class SlowQueryCache
     public synchronized void updateCache(KeySelect keySelect, long rowCount)
     {
         // Ensure cache is active.
-        if (cache == null)
+        if (slowQueries == null)
             return;
 
         // See if this meets the criteria for a slow query based on its
@@ -206,7 +231,7 @@ public class SlowQueryCache
         // If this is a slow query add it. Otherwise try to remove it from the
         // cache.
         String queryKey = keySelect.generateKey();
-        boolean cached = (cache.get(queryKey) != null);
+        boolean cached = (slowQueries.get(queryKey) != null);
         if (slow)
         {
             // Increment cached queries if we are currently uncached.
@@ -214,7 +239,7 @@ public class SlowQueryCache
                 this.totalCachedQueries++;
 
             // Cache the query.
-            cache.put(queryKey, System.currentTimeMillis());
+            slowQueries.put(queryKey, System.currentTimeMillis());
             if (logger.isDebugEnabled())
             {
                 logger.debug("Added slow prefetch query: selectivity="
@@ -234,7 +259,7 @@ public class SlowQueryCache
         }
         else if (!slow && cached)
         {
-            cache.invalidate(queryKey);
+            slowQueries.invalidate(queryKey);
             if (logger.isDebugEnabled())
             {
                 logger.debug("Invalidated existing slow prefetch query: selectivity="
@@ -246,6 +271,9 @@ public class SlowQueryCache
             }
             totalInvalidatedQueries++;
         }
+
+        // Remove this query from the pending query cache.
+        pendingQueries.invalidate(queryKey);
     }
 
     /**
@@ -260,13 +288,15 @@ public class SlowQueryCache
         sb.append(" slowQueryRows=").append(slowQueryRows);
         sb.append(" slowQuerySelectivity=").append(slowQuerySelectivity);
         sb.append(" slowQueryCacheDuration=").append(slowQueryCacheDuration);
-        sb.append(" currentSize=").append(cache == null ? 0 : cache.size());
+        sb.append(" currentSize=").append(
+                slowQueries == null ? 0 : slowQueries.size());
         sb.append(" totalCachedQueries=").append(totalCachedQueries);
         sb.append(" totalInvalidatedQueries=").append(totalInvalidatedQueries);
         sb.append(" minSelectivity=").append(minSelectivity);
         sb.append(" maxSelectivity=").append(maxSelectivity);
         sb.append(" maxRows=").append(maxRows);
         sb.append(" minRows=").append(minRows);
+        sb.append(" pendingQueries=").append(pendingQueries.size());
         return sb.toString();
     }
 }

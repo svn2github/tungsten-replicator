@@ -461,18 +461,21 @@ public class PrefetchApplier implements RawApplier
         // query cache.
         if (taskId == 0)
         {
-            StringBuffer stats = new StringBuffer("Prefetch statistics:");
-            stats.append(" events=").append(events);
-            stats.append(" statements=").append(statements);
-            stats.append(" rowUpdates=").append(rowUpdates);
-            stats.append(" transformed=").append(transformed);
-            stats.append(" prefetchedQueries=").append(prefetchedQueries);
-            stats.append(" skippedSlowQueries=").append(skippedSlowQueries);
-            stats.append(" slowQueryCache=[").append(slowQueryCache.toString())
-                    .append("]");
-            logger.info(stats.toString());
+            if (slowQueryCache != null)
+            {
+                StringBuffer stats = new StringBuffer("Prefetch statistics:");
+                stats.append(" events=").append(events);
+                stats.append(" statements=").append(statements);
+                stats.append(" rowUpdates=").append(rowUpdates);
+                stats.append(" transformed=").append(transformed);
+                stats.append(" prefetchedQueries=").append(prefetchedQueries);
+                stats.append(" skippedSlowQueries=").append(skippedSlowQueries);
+                stats.append(" slowQueryCache=[").append(slowQueryCache.toString())
+                        .append("]");
+                logger.info(stats.toString());
 
-            slowQueryCache = null;
+                slowQueryCache = null;
+            }
         }
     }
 
