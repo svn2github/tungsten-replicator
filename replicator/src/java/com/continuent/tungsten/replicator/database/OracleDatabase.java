@@ -686,7 +686,7 @@ public class OracleDatabase extends AbstractDatabase
 
             if (!tungstenTableType.equals("CDCSYNC"))
             {
-                // Disable Tungsten Change Set 
+                // Disable Tungsten Change Set
                 execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'TUNGSTEN_CHANGE_SET',enable_capture=>'N'); END;");
                 // Or prepare table for asynchronous capture.
                 // This should not be done for synchronous capture as this would
@@ -745,6 +745,9 @@ public class OracleDatabase extends AbstractDatabase
                         + "'); END;";
 
             execute(cdcSQL);
+
+            execute("GRANT SELECT ON CT_" + tableName + " TO PUBLIC");
+            execute("GRANT SELECT ON " + tableName + " TO PUBLIC");
 
             if (!tungstenTableType.equals("CDCSYNC"))
                 // Enable Tungsten Change Set back
