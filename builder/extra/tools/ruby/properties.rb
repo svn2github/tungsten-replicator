@@ -124,7 +124,7 @@ class Properties
           file.printf "%s=%s\n", key, value
         end
       else
-        file.printf JSON.pretty_generate(@props)
+        file.print JSON.pretty_generate(@props)
       end
     end
     

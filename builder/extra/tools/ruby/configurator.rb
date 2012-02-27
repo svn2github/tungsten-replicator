@@ -810,7 +810,7 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
     end
     
     begin
-      ip_addresses = Timeout.timeout(2) {
+      ip_addresses = Timeout.timeout(5) {
         Resolv.getaddresses(hostname)
       }
     rescue Timeout::Error
