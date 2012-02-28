@@ -143,8 +143,8 @@ public class SimpleBatchApplier implements RawApplier
     private Map<String, CsvInfo>        openCsvFiles         = new TreeMap<String, CsvInfo>();
 
     // Cached load commands.
-    private SqlScriptGenerator          loadScriptGenerator  = new SqlScriptGenerator();
-    private Map<String, List<String>>   loadScripts          = new HashMap<String, List<String>>();
+    protected SqlScriptGenerator          loadScriptGenerator  = new SqlScriptGenerator();
+    protected Map<String, List<String>>   loadScripts          = new HashMap<String, List<String>>();
 
     // Cached merge commands.
     private SqlScriptGenerator          mergeScriptGenerator = new SqlScriptGenerator();
@@ -976,8 +976,12 @@ public class SimpleBatchApplier implements RawApplier
         }
     }
 
-    // Load an open CSV file.
-    private void load(CsvInfo info) throws ReplicatorException
+    /**
+     * Load an open CSV file.
+     * 
+     * @see {@link VerticaStreamBatchApplier#load(CsvInfo)}
+     */
+    protected void load(CsvInfo info) throws ReplicatorException
     {
         if (logger.isDebugEnabled())
         {
@@ -1197,7 +1201,7 @@ public class SimpleBatchApplier implements RawApplier
     }
 
     // Generate parameters required by SQL load scripts.
-    private Map<String, String> getSqlParameters(CsvInfo info)
+    protected Map<String, String> getSqlParameters(CsvInfo info)
             throws ReplicatorException
     {
         // Generate data for base and staging tables.
