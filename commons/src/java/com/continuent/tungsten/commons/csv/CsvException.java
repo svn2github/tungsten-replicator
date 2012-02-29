@@ -31,12 +31,12 @@ public class CsvException extends Exception
 {
     private static final long serialVersionUID = 1L;
 
-    CsvException(String msg)
+    public CsvException(String msg)
     {
         super(msg);
     }
 
-    CsvException(String msg, Throwable cause)
+    public CsvException(String msg, Throwable cause)
     {
         super(msg, cause);
     }
