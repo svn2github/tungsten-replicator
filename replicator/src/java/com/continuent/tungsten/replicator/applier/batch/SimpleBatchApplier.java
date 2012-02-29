@@ -44,6 +44,8 @@ import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import javax.sql.rowset.serial.SerialException;
+
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.commons.csv.CsvException;
@@ -70,6 +72,7 @@ import com.continuent.tungsten.replicator.dbms.RowIdData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
@@ -1307,8 +1310,10 @@ public class SimpleBatchApplier implements RawApplier
      * @param value Column value
      * @param columnSpec Column metadata
      * @return String for loading
+     * @throws CsvException
      */
     protected String getCsvString(ColumnVal columnVal, ColumnSpec columnSpec)
+            throws CsvException
     {
         Object value = columnVal.getValue();
         if (value == null)
@@ -1322,6 +1327,43 @@ public class SimpleBatchApplier implements RawApplier
         else if (value instanceof java.sql.Date)
         {
             return dateFormatter.format((java.sql.Date) value);
+        }
+        else if (columnSpec.getType() == Types.BLOB
+                || (columnSpec.getType() == Types.NULL && columnVal.getValue() instanceof SerialBlob))
+        { // ______^______
+          // Blob in the incoming event masked as NULL,
+          // though this happens with a non-NULL value!
+          // Case targeted with this: MySQL.TEXT -> CSV
+
+            SerialBlob blob = (SerialBlob) columnVal.getValue();
+
+            if (columnSpec.isBlob())
+            {
+                // If it's really a blob, the following will not work correctly,
+                // but let's not eat the value, if there's a possibility of one.
+                return value.toString();
+            }
+            else
+            {
+                // Expect a textual field.
+                String toString = null;
+
+                if (blob != null)
+                {
+                    try
+                    {
+                        toString = new String(blob.getBytes(1,
+                                (int) blob.length()));
+                    }
+                    catch (SerialException e)
+                    {
+                        throw new CsvException(
+                                "Execption while getting blob.getBytes(...)", e);
+                    }
+                }
+
+                return toString;
+            }
         }
         else
             return value.toString();
