@@ -1641,7 +1641,7 @@ public class JdbcApplier implements RawApplier
             // message, which is important for diagnostic purposes.
             if (conn.supportsControlSessionLevelLogging())
             {
-                if (runtime.logReplicatorUpdates() || runtime.isRemoteService())
+                if (runtime.logReplicatorUpdates())
                 {
                     if (logger.isDebugEnabled())
                         logger.debug("Slave updates will be logged");

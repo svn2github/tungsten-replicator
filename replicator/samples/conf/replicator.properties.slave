@@ -53,8 +53,8 @@ site.name=default
 # Cluster name to which the replicator belongs.
 cluster.name=@{CLUSTERNAME}
 
-# Replication service type.  Values are 'remote' or 'local'.  Local services 
-# do not log updates to Tungsten catalogs.  Remote services do log them. 
+# Replication service type.  Values are 'remote' or 'local'.  Remote 
+# remote services are bringing in transactions from another master. 
 replicator.service.type=@{REPL_SVC_SERVICE_TYPE}
 
 # Name of this replication service.  
@@ -66,6 +66,12 @@ service.name=@{SERVICE.DEPLOYMENT_SERVICE}
 # loops.  It may not be the same as the value of service.name if the service
 # is remote. 
 local.service.name=@{SERVICE.DSNAME}
+
+# Whether to log slave updates or not.  This is normally false but can
+# be enabled so that updates inserted into the slave can be extracted again
+# by another replicator.  This can be useful for multi-master and some
+# chained replication topologies.
+replicator.log.slave.updates=@{LOG_SLAVE_UPDATES}
 
 # Schema to store Replicator catalog tables. 
 replicator.schema=@{REPL_SVC_SCHEMA}
