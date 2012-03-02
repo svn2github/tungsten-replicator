@@ -841,6 +841,15 @@ class RelayEnabled < ConfigurePrompt
   end
 end
 
+class LogSlaveUpdates < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(LOG_SLAVE_UPDATES, "Should slaves log updates to binlog", 
+      PV_BOOLEAN, "false")
+  end
+end
+
 class PrefetchEnabled < ConfigurePrompt
   include ReplicationServicePrompt
   
