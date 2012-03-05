@@ -134,6 +134,7 @@ public class PrefetchApplier implements RawApplier
     private static long               transformed            = 0;
     private static long               prefetchedQueries      = 0;
     private static long               skippedSlowQueries     = 0;
+    private static long               errors                 = 0;
 
     /**
      * Maximum length of SQL string to log in case of an error. This is needed
@@ -324,6 +325,7 @@ public class PrefetchApplier implements RawApplier
         {
             logger.warn("Failed to prefetch event " + header.getSeqno()
                     + "... Skipping", e);
+            errors++;
         }
 
         // Update the last processed
@@ -470,8 +472,9 @@ public class PrefetchApplier implements RawApplier
                 stats.append(" transformed=").append(transformed);
                 stats.append(" prefetchedQueries=").append(prefetchedQueries);
                 stats.append(" skippedSlowQueries=").append(skippedSlowQueries);
-                stats.append(" slowQueryCache=[").append(slowQueryCache.toString())
-                        .append("]");
+                stats.append(" errors=").append(errors);
+                stats.append(" slowQueryCache=[")
+                        .append(slowQueryCache.toString()).append("]");
                 logger.info(stats.toString());
 
                 slowQueryCache = null;
@@ -696,7 +699,16 @@ public class PrefetchApplier implements RawApplier
                 for (int i = 1; i <= columns; i++)
                 {
                     String name = metadata.getColumnName(i);
-                    valueMap.put(name, rs.getObject(i));
+                    int colType = metadata.getColumnType(i);
+                    if (colType == Types.DATE)
+                    {
+                        String safeValue = rs.getString(i);
+                        valueMap.put(name, safeValue);
+                    }
+                    else
+                    {
+                        valueMap.put(name, rs.getObject(i));
+                    }
                 }
 
                 // If we have values for any secondary key, see if we can
