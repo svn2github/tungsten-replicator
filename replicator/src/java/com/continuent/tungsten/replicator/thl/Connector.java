@@ -24,11 +24,10 @@ package com.continuent.tungsten.replicator.thl;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.UnresolvedAddressException;
-import java.nio.channels.UnsupportedAddressTypeException;
 
 import org.apache.log4j.Logger;
 
@@ -63,6 +62,9 @@ public class Connector implements ReplicatorPlugin
     protected String        lastEventId;
 
     private String          remoteURI       = null;
+
+    // Marked true to show this connector has been closed.
+    boolean                 closed;
 
     /**
      * Creates a new <code>Connector</code> object
@@ -113,15 +115,21 @@ public class Connector implements ReplicatorPlugin
             logger.debug("Connecting to " + host + ":" + port);
         try
         {
-            channel = SocketChannel.open(new InetSocketAddress(host, port));
+            // Create a socket without connecting, so we can set a
+            // relatively short timeout, then connect.
+            channel = SocketChannel.open();
+            Socket socket = channel.socket();
+            socket.setSoTimeout(heartbeatMillis);
+            InetSocketAddress address = new InetSocketAddress(host, port);
+            if (address.isUnresolved())
+            {
+                throw new THLException(
+                        "THL connection failure; cannot resolve address: host="
+                                + host + " port=" + port);
+            }
+            socket.connect(address);
         }
-        catch (UnresolvedAddressException e)
-        {
-            throw new THLException(
-                    "THL connection failure; cannot resolve address: host="
-                            + host + " port=" + port);
-        }
-        catch (UnsupportedAddressTypeException e)
+        catch (IllegalArgumentException e)
         {
             throw new THLException(
                     "THL connection failure; address is invalid: host=" + host
@@ -132,7 +140,8 @@ public class Connector implements ReplicatorPlugin
         channel.socket().setTcpNoDelay(true);
         // Enable TCP keepalive
         channel.socket().setKeepAlive(true);
-        // Timeout at 10 times the heartbeat interval.
+        // Timeout at 10 times the heartbeat interval. This is longer than the
+        // connect timeout by design so we don't time out if the server is busy.
         channel.socket().setSoTimeout(heartbeatMillis * 10);
 
         protocol = new Protocol(pluginContext, channel, resetPeriod);
@@ -147,7 +156,7 @@ public class Connector implements ReplicatorPlugin
      */
     public synchronized void close()
     {
-        if (channel != null)
+        if (!closed)
         {
             try
             {
@@ -159,7 +168,7 @@ public class Connector implements ReplicatorPlugin
             }
             finally
             {
-                channel = null;
+                closed = true;
             }
         }
     }

@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.replicator.pipeline;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -44,6 +45,8 @@ import com.continuent.tungsten.replicator.extractor.Extractor;
 import com.continuent.tungsten.replicator.extractor.ExtractorException;
 import com.continuent.tungsten.replicator.filter.Filter;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
+import com.continuent.tungsten.replicator.plugin.ReplicatorPlugin;
+import com.continuent.tungsten.replicator.plugin.ShutdownHook;
 
 /**
  * Implements thread logic for single-threaded stage execution. If your name is
@@ -56,23 +59,24 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class SingleThreadStageTask implements Runnable
 {
-    private static Logger    logger          = Logger.getLogger(SingleThreadStageTask.class);
-    private Stage            stage;
-    private int              taskId;
-    private Extractor        extractor;
-    private List<Filter>     filters;
-    private Applier          applier;
-    private boolean          usingBlockCommit;
-    private int              blockCommitRowsCount;
-    private EventDispatcher  eventDispatcher;
-    private Schedule         schedule;
-    private String           name;
+    private static Logger      logger          = Logger.getLogger(SingleThreadStageTask.class);
+    private Stage              stage;
+    private int                taskId;
+    private Extractor          extractor;
+    private List<Filter>       filters;
+    private Applier            applier;
+    private List<ShutdownHook> shutdownHooks   = new LinkedList<ShutdownHook>();
+    private boolean            usingBlockCommit;
+    private int                blockCommitRowsCount;
+    private EventDispatcher    eventDispatcher;
+    private Schedule           schedule;
+    private String             name;
 
-    private long             blockEventCount = 0;
-    private TaskProgress     taskProgress;
-    private PluginContext    context;
+    private long               blockEventCount = 0;
+    private TaskProgress       taskProgress;
+    private PluginContext      context;
 
-    private volatile boolean cancelled       = false;
+    private volatile boolean   cancelled       = false;
 
     public SingleThreadStageTask(Stage stage, int taskId)
     {
@@ -109,16 +113,20 @@ public class SingleThreadStageTask implements Runnable
     public void setExtractor(Extractor extractor)
     {
         this.extractor = extractor;
+        addShutdownHook(extractor);
     }
 
     public void setFilters(List<Filter> filters)
     {
         this.filters = filters;
+        for (Filter f : filters)
+            addShutdownHook(f);
     }
 
     public void setApplier(Applier applier)
     {
         this.applier = applier;
+        addShutdownHook(applier);
     }
 
     public Extractor getExtractor()
@@ -667,5 +675,43 @@ public class SingleThreadStageTask implements Runnable
             logger.error(message);
         else
             logger.error(message, e);
+    }
+
+    // Checks a plugin and if it implements ShutdownHook add to list of
+    // shutdown hooks that must be invoked.
+    private void addShutdownHook(ReplicatorPlugin plugin)
+    {
+        if (plugin instanceof ShutdownHook)
+            this.shutdownHooks.add((ShutdownHook) plugin);
+    }
+
+    /**
+     * Invoke shutdown hooks (if any) defined on components of this task.
+     * 
+     * @param context Plugin context
+     * @throws InterruptedException
+     */
+    public void execShutdownHooks(PluginContext context)
+            throws InterruptedException
+    {
+        for (ShutdownHook hook : shutdownHooks)
+        {
+            try
+            {
+                hook.shutdown(context);
+            }
+            catch (InterruptedException e)
+            {
+                throw e;
+            }
+            catch (ReplicatorException e)
+            {
+                logger.warn("Received exception on shutdown hook invocation", e);
+            }
+            catch (Exception e)
+            {
+                logger.error("Unexpected error on shutdown hook invocation", e);
+            }
+        }
     }
 }

@@ -39,14 +39,22 @@ import com.continuent.tungsten.replicator.extractor.Extractor;
 import com.continuent.tungsten.replicator.extractor.ExtractorException;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 import com.continuent.tungsten.replicator.plugin.PluginLoader;
+import com.continuent.tungsten.replicator.plugin.ShutdownHook;
 
 /**
  * Implements an extractor to pull events from a remote THL.
+ * <p/>
+ * This class has specialized concurrency requirements as there is a potential
+ * race condition to close connections within the task thread and thread trying
+ * to shut down the pipeline. The race arises due the fact that connections may
+ * hang when connecting or reading from a connection to a dropped interface and
+ * do not accept interrupts. They need to be interrupted by closing the
+ * connection. For this reason, closing the connection is synchronized.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
  */
-public class RemoteTHLExtractor implements Extractor
+public class RemoteTHLExtractor implements Extractor, ShutdownHook
 {
     private static Logger  logger             = Logger.getLogger(RemoteTHLExtractor.class);
 
@@ -63,6 +71,9 @@ public class RemoteTHLExtractor implements Extractor
     private Connector      conn;
 
     private ReplEvent      pendingEvent;
+
+    // Set to show that we have been shut down.
+    private volatile boolean shutdown           = false;
 
     /**
      * Create Connector instance.
@@ -148,7 +159,7 @@ public class RemoteTHLExtractor implements Extractor
 
             // Fetch the event.
             ReplEvent replEvent = null;
-            while (replEvent == null)
+            while (replEvent == null && !shutdown)
             {
                 // If we have a pending event from an earlier read, return that.
                 if (pendingEvent != null)
@@ -205,12 +216,26 @@ public class RemoteTHLExtractor implements Extractor
                 }
                 catch (IOException e)
                 {
-                    reconnect();
-                    // If the connection dropped in the middle of a fragmented
-                    // transaction, we need to ignore events that were already
-                    // stored, otherwise it will generate an integrity
-                    // constraint violation
-                    continue;
+                    if (shutdown)
+                    {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug(
+                                    "Ignoring exception after shutdown request",
+                                    e);
+                        }
+                        logger.info("Connector read failed after shutdown; not attempting to reconnect");
+                        break;
+                    }
+                    else
+                    {
+                        // If the connection dropped in the middle of a
+                        // fragmented transaction, we need to ignore events that
+                        // were already stored, otherwise it will generate an
+                        // integrity constraint violation
+                        reconnect();
+                        continue;
+                    }
                 }
 
                 // Ensure we have the right *sort* of replication event.
@@ -310,17 +335,35 @@ public class RemoteTHLExtractor implements Extractor
      */
     public void release(PluginContext context) throws ReplicatorException
     {
-        if (conn != null)
+        // Clearing the connection must be synchronized.
+        // See concurrency note in class header comment.
+        synchronized (this)
         {
-            conn.close();
-            try
+            if (conn != null)
             {
-                conn.release(context);
-            }
-            catch (InterruptedException e)
-            {
+                conn.close();
+                // Do not clear variable. It can cause an NPR in the
+                // openConnector() method which may still be attempting to
+                // open a connection.
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.plugin.ShutdownHook#shutdown(com.continuent.tungsten.replicator.plugin.PluginContext)
+     */
+    public void shutdown(PluginContext context) throws ReplicatorException,
+            InterruptedException
+    {
+        // Stop the connector.
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Shutdown hook invoked; attempting to close connector");
+        }
+        shutdown = true;
+        release(context);
     }
 
     // Reconnect a failed connection.
@@ -384,23 +427,29 @@ public class RemoteTHLExtractor implements Extractor
             catch (IOException e)
             {
                 // Sleep for 1 second per retry; report every 10 retries.
-                if (conn != null)
+                synchronized (this)
                 {
-                    conn.close();
-                    conn = null;
+                    // Clearing the connection must be synchronized.
+                    // See concurrency note in class header comment.
+                    if (conn != null)
+                    {
+                        conn.close();
+                        conn = null;
+                    }
                 }
-                retryCount++;
                 if ((retryCount % 10) == 0)
                 {
                     logger.info("Waiting for master to become available: uri="
                             + connectUri + " retries=" + retryCount);
                 }
+                retryCount++;
                 Thread.sleep(1000);
             }
         }
 
-        // Announce the happy event.
+        // Announce the happy event and reset retry count.
         logger.info("Connected to master after " + retryCount + " retries");
+        retryCount = 0;
         pluginContext.getEventDispatcher().put(new InSequenceNotification());
     }
 }

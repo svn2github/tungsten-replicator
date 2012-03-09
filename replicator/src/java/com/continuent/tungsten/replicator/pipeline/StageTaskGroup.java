@@ -105,7 +105,8 @@ public class StageTaskGroup implements ReplicatorPlugin
             InterruptedException
     {
         // Instantiate and configure each task.
-        logger.info("Instantiating and configuring tasks for stage: " + stage.getName());
+        logger.info("Instantiating and configuring tasks for stage: "
+                + stage.getName());
         tasks = new SingleThreadStageTask[taskCount];
         for (int i = 0; i < taskCount; i++)
         {
@@ -303,6 +304,7 @@ public class StageTaskGroup implements ReplicatorPlugin
                     {
                         task.cancel();
                         stageThread.interrupt();
+                        task.execShutdownHooks(stage.getPluginContext());
                         stageThread.join();
                     }
                     else
