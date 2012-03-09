@@ -606,7 +606,7 @@ public class ReplicationServiceManager
         {
             throw new ReplicatorException(String.format(
                     "Unable to instantiate replication service '%s'",
-                    serviceName));
+                    serviceName), e);
         }
     }
 
