@@ -1447,7 +1447,7 @@ public class JdbcApplier implements RawApplier
             fileQuery.setLocalFile(temporaryFile);
             applyStatementData(fileQuery);
         }
-        // Make sure we really delete the temp file. 
+        // Make sure we really delete the temp file.
         boolean deleted = temporaryFile.delete();
         if (logger.isDebugEnabled())
         {
@@ -1643,8 +1643,7 @@ public class JdbcApplier implements RawApplier
             {
                 if (runtime.logReplicatorUpdates())
                 {
-                    if (logger.isDebugEnabled())
-                        logger.debug("Slave updates will be logged");
+                    logger.info("Slave updates will be logged");
                     conn.controlSessionLevelLogging(false);
                 }
                 else

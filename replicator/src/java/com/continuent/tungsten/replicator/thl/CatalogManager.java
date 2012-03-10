@@ -89,9 +89,9 @@ public class CatalogManager
         // Create the database handle
         try
         {
-            // Log updates for a remote data service.
+            // Log updates if requested in configuration.
             conn = DatabaseFactory.createDatabase(url, user, password, vendor);
-            conn.connect(runtime.isRemoteService());
+            conn.connect(runtime.logReplicatorUpdates());
         }
         catch (SQLException e)
         {
@@ -119,7 +119,7 @@ public class CatalogManager
             // Create tables, allowing schema changes to be logged if requested.
             if (conn.supportsControlSessionLevelLogging())
             {
-                if (runtime.logReplicatorUpdates() || runtime.isRemoteService())
+                if (runtime.logReplicatorUpdates())
                 {
                     logger.info("Logging schema creation");
                     conn.controlSessionLevelLogging(false);
