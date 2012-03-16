@@ -185,7 +185,9 @@ public class ReplicateFilter implements Filter
             }
         }
 
-        if (data.isEmpty())
+        // Don't drop events when dealing with fragmented events (This could
+        // drop the commit part)
+        if (event.getFragno() == 0 && event.getLastFrag() && data.isEmpty())
         {
             return null;
         }
