@@ -42,6 +42,7 @@ import com.continuent.tungsten.replicator.storage.ParallelStore;
 import com.continuent.tungsten.replicator.storage.parallel.Partitioner;
 import com.continuent.tungsten.replicator.storage.parallel.PartitionerResponse;
 import com.continuent.tungsten.replicator.storage.parallel.SimplePartitioner;
+import com.continuent.tungsten.replicator.storage.parallel.StatefulPartitioner;
 import com.continuent.tungsten.replicator.util.AtomicCounter;
 import com.continuent.tungsten.replicator.util.AtomicIntervalGuard;
 import com.continuent.tungsten.replicator.util.WatchPredicate;
@@ -521,6 +522,14 @@ public class THLParallelQueue implements ParallelStore
                         "Unable to instantiated partitioner: class="
                                 + partitionerClass, e);
             }
+        }
+
+        // Stateful partitioners are not accepted.
+        if (partitioner instanceof StatefulPartitioner)
+        {
+            throw new ReplicatorException(
+                    "This store does not support StatefulPartitioner implementations: class="
+                            + partitionerClass);
         }
 
         // Allocate queue for watch predicates.

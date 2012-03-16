@@ -48,6 +48,7 @@ import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.management.MockOpenReplicatorContext;
 import com.continuent.tungsten.replicator.pipeline.PipelineConfigBuilder;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
+import com.continuent.tungsten.replicator.storage.parallel.LoadBalancingPartitioner;
 import com.continuent.tungsten.replicator.storage.parallel.ParallelQueueStore;
 import com.continuent.tungsten.replicator.storage.parallel.ShardListPartitioner;
 import com.continuent.tungsten.replicator.util.SeqnoWatchPredicate;
@@ -588,6 +589,67 @@ public class ParallelQueueStoreTest extends TestCase
             // Release queue.
             pqs.release(context);
         }
+    }
+
+    /**
+     * Confirm that a load balancing partitioner spreads events evenly across
+     * all queues.
+     */
+    public void testLoadBalancingPartitioner() throws Exception
+    {
+        // Configure and prepare store.
+        TungstenProperties conf = generateConfig();
+        PluginContext context = new ReplicatorRuntime(conf,
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        ParallelQueueStore pqs = new ParallelQueueStore();
+        pqs.setPartitions(4);
+        pqs.setMaxSize(10);
+        pqs.setSyncEnabled(false);
+        pqs.setPartitionerClass(LoadBalancingPartitioner.class.getName());
+
+        // Configure and prepare our humble store.
+        pqs.configure(context);
+        pqs.prepare(context);
+
+        // Load 32 events, which amounts to 8 events per partition.
+        for (int i = 0; i < 32; i++)
+        {
+            ReplDBMSEvent event = createEvent(i, "db" + i);
+            pqs.put(0, event);
+        }
+
+        // Confirm that we have 32 total events.
+        long storeSize = pqs.getStoreSize();
+        assertEquals("Total store size after loading", 32, storeSize);
+
+        // Confirm each partition has exactly 8 events.
+        for (int i = 0; i < 4; i++)
+        {
+            // Read and check 8 events.
+            for (int j = 0; j < 8; j++)
+            {
+                ReplDBMSEvent event = (ReplDBMSEvent) pqs.peek(i);
+                assertNotNull("Expected event: queue=" + i + " number=" + j,
+                        event);
+                pqs.get(i);
+            }
+
+            // Confirm queue is empty.
+            ReplDBMSEvent event = (ReplDBMSEvent) pqs.peek(i);
+            if (event != null)
+            {
+                throw new Exception(
+                        "Expected queue to be empty but found event: queue="
+                                + i + " seqno=" + event.getSeqno());
+            }
+        }
+
+        // Confirm the queue is now empty.
+        assertEquals("Queue should be empty", 0, pqs.getStoreSize());
+
+        // Release the queue.
+        pqs.release(context);
     }
 
     // Generate a stripped-down runtime properties.

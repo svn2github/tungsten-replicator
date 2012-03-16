@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.storage.parallel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
@@ -54,6 +55,7 @@ public class ParallelQueueStore implements ParallelStore
     private static Logger                                       logger             = Logger.getLogger(ParallelQueueStore.class);
     private String                                              name;
     private List<LinkedBlockingQueue<ReplEvent>>                queues;
+    private List<PartitionMetadata>                             queueMetadata;
     private ReplDBMSHeader[]                                    lastHeaders;
     private ReplDBMSEvent                                       lastInsertedEvent;
 
@@ -86,6 +88,29 @@ public class ParallelQueueStore implements ParallelStore
     private int                                                 criticalPartition  = -1;
     private AtomicCounter                                       activeSize         = new AtomicCounter(
                                                                                            0);
+
+    // Implements partition metadata for an in-memory queue.
+    public class QueueMetadataImpl implements PartitionMetadata
+    {
+        int      partition;
+        Queue<?> q;
+
+        QueueMetadataImpl(int partition, Queue<?> q)
+        {
+            this.partition = partition;
+            this.q = q;
+        }
+
+        public int getPartitionNumber()
+        {
+            return partition;
+        }
+
+        public long getCurrentSize()
+        {
+            return q.size();
+        }
+    }
 
     public String getName()
     {
@@ -448,12 +473,14 @@ public class ParallelQueueStore implements ParallelStore
         // Instantiate queue list, followed by array of last sequence numbers to
         // permit propagation of restart points from each output task.
         queues = new ArrayList<LinkedBlockingQueue<ReplEvent>>(partitions);
+        queueMetadata = new ArrayList<PartitionMetadata>(partitions);
         lastHeaders = new ReplDBMSHeader[partitions];
         this.watchPredicates = new LinkedBlockingQueue<WatchPredicate<ReplDBMSHeader>>();
+
     }
 
     /**
-     * Allocate an in-memory queue. {@inheritDoc}
+     * Allocate an in-memory queue.
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#prepare(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
@@ -464,6 +491,18 @@ public class ParallelQueueStore implements ParallelStore
         for (int i = 0; i < partitions; i++)
         {
             queues.add(new LinkedBlockingQueue<ReplEvent>(maxSize));
+        }
+
+        // Add queue metadata required by stateful partitioners.
+        if (partitioner instanceof StatefulPartitioner)
+        {
+            logger.info("Generating queue metadata for stateful partitioner");
+            for (int i = 0; i < partitions; i++)
+            {
+                queueMetadata.add(new QueueMetadataImpl(i, queues.get(i)));
+            }
+            ((StatefulPartitioner) partitioner)
+                    .setPartitionMetadata(queueMetadata);
         }
     }
 
