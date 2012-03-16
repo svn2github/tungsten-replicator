@@ -289,6 +289,8 @@ cluster_home=$reldir/cluster-home
 mkdir -p $cluster_home/conf/cluster
 
 mkdir -p $cluster_home/bin
+echo "# Copying Nagios scripts"
+cp extra/cluster-home/bin/check* $cluster_home/bin/
 echo "# Moving wrapper binaries"
 \mv $reldir_replicator/bin/wrapper* $cluster_home/bin/
 chmod 755 $cluster_home/bin/* > /dev/null 2>&1
