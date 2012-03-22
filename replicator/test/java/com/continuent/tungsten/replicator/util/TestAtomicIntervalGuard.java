@@ -196,12 +196,12 @@ public class TestAtomicIntervalGuard extends TestCase
     public void testMultiThreadedInterval() throws Exception
     {
         // Allocate interval array and threads to live in it.
-        AtomicIntervalGuard<String> ati = new AtomicIntervalGuard<String>(30);
+        AtomicIntervalGuard<String> ati = new AtomicIntervalGuard<String>(15);
         AtomicCounter counter = new AtomicCounter(0);
-        SampleThreadIntervalWriter[] writer = new SampleThreadIntervalWriter[30];
+        SampleThreadIntervalWriter[] writer = new SampleThreadIntervalWriter[15];
         for (int i = 0; i < writer.length; i++)
         {
-            writer[i] = new SampleThreadIntervalWriter(i, counter, ati, 1000000);
+            writer[i] = new SampleThreadIntervalWriter(i, counter, ati, 500000);
             ati.report(i, 0, 0);
             writer[i].start();
         }
@@ -212,7 +212,7 @@ public class TestAtomicIntervalGuard extends TestCase
         for (;;)
         {
             long seqno = counter.incrAndGetSeqno();
-            if (seqno >= 1000000)
+            if (seqno >= 500000)
                 break;
             ati.waitMinTime(Math.max(seqno - 5000, 0));
             if (seqno % 50000 == 0)
@@ -244,7 +244,7 @@ public class TestAtomicIntervalGuard extends TestCase
             }
 
             // Make sure we finished expected # of transactions.
-            assertEquals("Checking writer[" + i + "] seqno", 1000000,
+            assertEquals("Checking writer[" + i + "] seqno", 500000,
                     writer[i].seqno);
         }
     }

@@ -357,7 +357,7 @@ public class THLParallelQueueTest extends TestCase
         String[] shardNames = {"db01", "db07", "db09"};
         LogConnection conn = thl.connect(false);
         long seqno = 0;
-        for (int i = 0; i < 100000; i++)
+        for (int i = 0; i < 50000; i++)
         {
             for (int shard = 0; shard < 3; shard++)
             {
@@ -371,9 +371,9 @@ public class THLParallelQueueTest extends TestCase
         thl.disconnect(conn);
 
         // Read across each queue until we reach 100K events for the main
-        // shards (i.e., 300K total). Time out after 60 seconds to avoid hangs.
+        // shards (i.e., 150K total). Time out after 60 seconds to avoid hangs.
         int shardTotal = 0;
-        while (shardTotal < 300000)
+        while (shardTotal < 150000)
         {
             // Iterate across all queues.
             for (int q = 0; q < 30; q++)

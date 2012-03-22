@@ -69,7 +69,7 @@ public class JavaOpsTest extends TestCase
         for (int i = 0; i < 5; i++)
         {
             logger.info("System.currentTimeMillis() invocation count: " + count);
-            for (int j = 0; j < 10000000; j++)
+            for (int j = 0; j < 1000000; j++)
             {
                 // Make call with usage to prevent it from being optimized out. 
                 count++;

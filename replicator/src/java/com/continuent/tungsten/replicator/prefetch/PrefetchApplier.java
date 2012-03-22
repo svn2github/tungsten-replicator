@@ -115,6 +115,12 @@ public class PrefetchApplier implements RawApplier
     protected double                  slowQuerySelectivity   = .05;
     protected int                     slowQueryCacheDuration = 60;
 
+    // Maximum number of rows to prefetch on transformed statements.
+    protected int                     prefetchRowLimit       = 25000;
+
+    // Fail the applier after this number of errors.
+    protected int                     maxErrors              = 1000;
+
     protected PluginContext           runtime                = null;
     protected String                  metadataSchema         = null;
     protected Database                conn                   = null;
@@ -153,8 +159,9 @@ public class PrefetchApplier implements RawApplier
 
     private ReplDBMSHeader            lastProcessedEvent     = null;
 
-    // SQL parser.
+    // SQL parsing and transformation.
     private SqlOperationMatcher       sqlMatcher             = new MySQLOperationMatcher();
+    private PrefetchSqlTransformer    prefetchTransformer    = new PrefetchSqlTransformer();
 
     /**
      * {@inheritDoc}
@@ -219,6 +226,26 @@ public class PrefetchApplier implements RawApplier
         this.slowQueryCacheDuration = slowQueryCacheDuration;
     }
 
+    public int getPrefetchRowLimit()
+    {
+        return prefetchRowLimit;
+    }
+
+    public void setPrefetchRowLimit(int prefetchRowLimit)
+    {
+        this.prefetchRowLimit = prefetchRowLimit;
+    }
+
+    public int getMaxErrors()
+    {
+        return maxErrors;
+    }
+
+    public void setMaxErrors(int maxErrors)
+    {
+        this.maxErrors = maxErrors;
+    }
+
     /**
      * {@inheritDoc}
      * 
@@ -227,7 +254,7 @@ public class PrefetchApplier implements RawApplier
      *      boolean)
      */
     public void apply(DBMSEvent event, ReplDBMSHeader header, boolean doCommit,
-            boolean doRollback)
+            boolean doRollback) throws ReplicatorException
     {
         // Ensure we are not trying to apply a previously applied event.
         // This case can arise during restart.
@@ -323,9 +350,21 @@ public class PrefetchApplier implements RawApplier
         }
         catch (ReplicatorException e)
         {
-            logger.warn("Failed to prefetch event " + header.getSeqno()
-                    + "... Skipping", e);
+            // Update error count.
             errors++;
+
+            // Check for maxErrors and fail.
+            if (maxErrors < 0 || errors < maxErrors)
+            {
+                logger.warn("Failed to prefetch event " + header.getSeqno()
+                        + "... Skipping", e);
+            }
+            else
+            {
+                logger.info("Maximum number of prefetch errors exceeded: "
+                        + errors);
+                throw e;
+            }
         }
 
         // Update the last processed
@@ -639,6 +678,11 @@ public class PrefetchApplier implements RawApplier
             ResultSet rs = null;
             if (hasTransform)
             {
+                // Add a limit clause
+                if (prefetchRowLimit > 0)
+                    sqlQuery = prefetchTransformer.addLimitToQuery(sqlQuery,
+                            prefetchRowLimit);
+
                 // Load the row.
                 try
                 {
@@ -685,6 +729,7 @@ public class PrefetchApplier implements RawApplier
         Table table = this.fetchTableDefinition(schemaName, tableName);
         List<Key> keys = table.getKeys();
 
+        int rows = 0;
         try
         {
             // Get result set metadata so we know the number of columns.
@@ -694,6 +739,8 @@ public class PrefetchApplier implements RawApplier
             // Iterate over result set.
             while (rs.next())
             {
+                rows++;
+
                 // Load up row values.
                 Map<String, Object> valueMap = new HashMap<String, Object>();
                 for (int i = 1; i <= columns; i++)
@@ -746,6 +793,13 @@ public class PrefetchApplier implements RawApplier
         finally
         {
             closeResultSet(rs);
+        }
+
+        // Check for an excessively large query.
+        if (rows >= prefetchRowLimit)
+        {
+            logger.info("Statement row count exceeded prefetch row limit: rows="
+                    + rows + " statement=" + data.getQuery());
         }
     }
 

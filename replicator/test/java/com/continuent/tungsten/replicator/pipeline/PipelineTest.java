@@ -570,7 +570,7 @@ public class PipelineTest extends TestCase
      */
     public void testManyEvents() throws Exception
     {
-        int maxEvents = 10000000;
+        int maxEvents = 5000000;
         TungstenProperties config = helper.createSimpleRuntime();
         ReplicatorRuntime runtime = new ReplicatorRuntime(config,
                 new MockOpenReplicatorContext(),
