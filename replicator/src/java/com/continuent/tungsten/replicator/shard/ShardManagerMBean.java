@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Stephane Giron
- * Contributor(s): 
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.shard;
@@ -25,6 +25,8 @@ package com.continuent.tungsten.replicator.shard;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+
+import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
 
 /**
  * Defines API for shard management extensions.
@@ -84,5 +86,9 @@ public interface ShardManagerMBean
      * @returns A list of shards represented by maps of name-value.
      */
     public List<Map<String, String>> list() throws SQLException;
-
+    
+    /**
+     * Returns a helper that supplies MBean metadata.
+     */
+    public abstract DynamicMBeanHelper createHelper() throws Exception;
 }

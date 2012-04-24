@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Stephane Giron
- * Contributor(s):
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.shard;
@@ -29,7 +29,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
 import com.continuent.tungsten.commons.jmx.JmxManager;
+import com.continuent.tungsten.commons.jmx.MethodDesc;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
 
@@ -65,6 +67,7 @@ public class ShardManager implements ShardManagerMBean
     }
 
     @Override
+    @MethodDesc(description = "Inserts new shards for service", usage = "insert")
     public int insert(List<Map<String, String>> params) throws SQLException
     {
         int shardsCount = 0;
@@ -105,6 +108,7 @@ public class ShardManager implements ShardManagerMBean
     }
 
     @Override
+    @MethodDesc(description = "Updates shards for service", usage = "update")
     public int update(List<Map<String, String>> params) throws SQLException
     {
         if (logger.isDebugEnabled())
@@ -144,6 +148,7 @@ public class ShardManager implements ShardManagerMBean
     }
 
     @Override
+    @MethodDesc(description = "Deletes shards for service", usage = "delete")
     public int delete(List<Map<String, String>> params) throws SQLException
     {
         if (logger.isDebugEnabled())
@@ -182,6 +187,7 @@ public class ShardManager implements ShardManagerMBean
     }
 
     @Override
+    @MethodDesc(description = "Deletes all shards for service", usage = "deleteAll")
     public int deleteAll() throws SQLException
     {
         if (logger.isDebugEnabled())
@@ -202,6 +208,7 @@ public class ShardManager implements ShardManagerMBean
     }
 
     @Override
+    @MethodDesc(description = "Lists defined shards for service", usage = "list")
     public List<Map<String, String>> list() throws SQLException
     {
         if (logger.isDebugEnabled())
@@ -238,4 +245,14 @@ public class ShardManager implements ShardManagerMBean
         JmxManager.registerMBean(this, ShardManager.class, serviceName, true);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorManager#createHelper()
+     */
+    @MethodDesc(description = "Returns a DynamicMBeanHelper to facilitate dynamic JMX calls", usage = "createHelper")
+    public DynamicMBeanHelper createHelper() throws Exception
+    {
+        return JmxManager.createHelper(getClass(), serviceName);
+    }
 }
