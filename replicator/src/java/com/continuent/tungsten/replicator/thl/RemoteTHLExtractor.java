@@ -369,6 +369,15 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
     // Reconnect a failed connection.
     private void reconnect() throws InterruptedException, ReplicatorException
     {
+        synchronized (this)
+        {
+            if (conn != null)
+            {
+                conn.close();
+                conn = null;
+            }
+        }
+        
         // Reconnect after lost connection.
         logger.info("Connection to remote thl lost; reconnecting");
         pluginContext.getEventDispatcher().put(new OutOfSequenceNotification());
