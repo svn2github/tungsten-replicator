@@ -160,11 +160,11 @@ public class MongoApplier implements RawApplier
                                 else
                                     doc.put(name, value.toString());
                             }
+                            if (logger.isDebugEnabled())
+                                logger.debug("Adding document: doc="
+                                        + doc.toString());
+                            coll.insert(doc);
                         }
-                        if (logger.isDebugEnabled())
-                            logger.debug("Adding document: doc="
-                                    + doc.toString());
-                        coll.insert(doc);
                     }
                     else if (action.equals(ActionType.UPDATE))
                     {

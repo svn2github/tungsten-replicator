@@ -52,6 +52,13 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 public class SetDocumentSchema implements Filter
 {
     private static Logger logger = Logger.getLogger(LoggingFilter.class);
+    
+    private String        targetSchemaName;
+    
+    public void setTargetSchemaName(String schemaName)
+    {
+        this.targetSchemaName = schemaName;
+    }
 
     /**
      * {@inheritDoc}
@@ -68,19 +75,30 @@ public class SetDocumentSchema implements Filter
                 RowChangeData rdata = (RowChangeData) dataElem;
                 for (OneRowChange orc : rdata.getRowChanges())
                 {
-                    ArrayList<ColumnSpec> columns = orc.getColumnSpec();
+                    ArrayList<ColumnSpec> cSpec = orc.getColumnSpec();
+                    ArrayList<ColumnSpec> kSpec = orc.getKeySpec();
                     
                     OneRowChange.ColumnSpec c = orc.new ColumnSpec();
                     c.setType(12);
                     c.setName("schema");
-                    columns.add(c);
                     
-                    for (ArrayList<OneRowChange.ColumnVal> values : orc.getColumnValues())
+                    OneRowChange.ColumnVal v = orc.new ColumnVal();
+                    v.setValue(orc.getSchemaName());
+                    
+                    cSpec.add(c);
+                    kSpec.add(c);
+                    
+                    for (ArrayList<OneRowChange.ColumnVal> cValues : orc.getColumnValues())
                     {
-                        OneRowChange.ColumnVal v = orc.new ColumnVal();
-                        v.setValue(orc.getSchemaName());
-                        values.add(v);
+                        cValues.add(v);
                     }
+                    
+                    for (ArrayList<OneRowChange.ColumnVal> kValues : orc.getKeyValues())
+                    {
+                        kValues.add(v);
+                    }
+                    
+                    orc.setSchemaName(this.targetSchemaName);
                 }
             }
             else if (dataElem instanceof StatementData)
