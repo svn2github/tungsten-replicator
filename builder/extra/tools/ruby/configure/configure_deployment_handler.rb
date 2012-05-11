@@ -28,7 +28,7 @@ class ConfigureDeploymentHandler
       debug("Transfer configuration code to #{@config.getProperty(HOST)}")
       user = @config.getProperty(USERID)
       ssh_user = Configurator.instance.get_ssh_user(user)
-      cmd_result("rsync -Caze 'ssh -p#{Configurator.instance.get_ssh_port()}' --delete #{Configurator.instance.get_base_path()}/ #{ssh_user}@#{@config.getProperty(HOST)}:#{validation_temp_directory}")
+      cmd_result("rsync -aze 'ssh -p#{Configurator.instance.get_ssh_port()}' --delete #{Configurator.instance.get_base_path()}/ #{ssh_user}@#{@config.getProperty(HOST)}:#{validation_temp_directory}")
       if user != ssh_user
         ssh_result("chown -R #{user} #{validation_temp_directory}/#{Configurator.instance.get_basename}", @config.getProperty(HOST), ssh_user)
       end
