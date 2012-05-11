@@ -351,7 +351,6 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
             {
                 SqlOperation createView = new SqlOperation(SqlOperation.VIEW,
                         SqlOperation.CREATE, m.group(1), m.group(2));
-                createView.setBidiUnsafe(true);
                 return createView;
             }
             // Create procedure.
