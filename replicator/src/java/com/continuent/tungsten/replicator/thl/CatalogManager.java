@@ -204,19 +204,19 @@ public class CatalogManager
     }
 
     /**
-     * Return the last applied event as stored in the CommitSeqnoTable.
+     * Return the minimum last applied event as stored in the CommitSeqnoTable.
      * 
      * @return the last applied event, or null if nothing was found
      * @throws ReplicatorException
      */
-    public ReplDBMSHeader getLastEvent() throws ReplicatorException
+    public ReplDBMSHeader getMinLastEvent() throws ReplicatorException
     {
         if (commitSeqnoTable == null)
             return null;
 
         try
         {
-            return commitSeqnoTable.lastCommitSeqno(taskId);
+            return commitSeqnoTable.minCommitSeqno();
         }
         catch (SQLException e)
         {

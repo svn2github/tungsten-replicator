@@ -82,6 +82,7 @@ public class CommitSeqnoTable
 
     private PreparedStatement  commitSeqnoUpdate;
     private PreparedStatement  lastSeqnoQuery;
+    private PreparedStatement  allSeqnoQuery;
 
     private String             tableType;
 
@@ -148,6 +149,9 @@ public class CommitSeqnoTable
         lastSeqnoQuery = database
                 .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp from "
                         + schema + "." + TABLE_NAME + " WHERE task_id=?");
+        allSeqnoQuery = database
+                .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp from "
+                        + schema + "." + TABLE_NAME);
 
         commitSeqnoUpdate = database.prepareStatement("UPDATE "
                 + commitSeqnoTable.getSchema() + "."
@@ -242,6 +246,35 @@ public class CommitSeqnoTable
 
         // Return whatever we found, including null value.
         return header;
+    }
+
+    /**
+     * Returns the header for the lowest committed sequence number or null if
+     * none such can be found.
+     */
+    public ReplDBMSHeader minCommitSeqno() throws SQLException
+    {
+        ReplDBMSHeaderData minHeader = null;
+        ResultSet res = null;
+
+        try
+        {
+            res = allSeqnoQuery.executeQuery();
+            while (res.next())
+            {
+                ReplDBMSHeaderData header = headerFromResult(res);
+                if (minHeader == null
+                        || header.getSeqno() < minHeader.getSeqno())
+                    minHeader = header;
+            }
+        }
+        finally
+        {
+            close(res);
+        }
+
+        // Return whatever we found, including null value.
+        return minHeader;
     }
 
     /**

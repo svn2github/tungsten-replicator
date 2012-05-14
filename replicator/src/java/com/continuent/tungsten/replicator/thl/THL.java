@@ -538,7 +538,7 @@ public class THL implements Store
         // If that does not work, try the catalog.
         if (catalog != null)
         {
-            return catalog.getLastEvent();
+            return catalog.getMinLastEvent();
         }
 
         // If we get to this point, the log is newly initialized and there is no
