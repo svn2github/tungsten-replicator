@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
  */
 public class EventSchemaStatistics
 {
-    private static Logger        logger             = Logger.getLogger(EventMetadataFilter.class);
+    private static Logger        logger             = Logger.getLogger(EventSchemaStatistics.class);
 
     // Map relating schema names and references.
     private Map<String, Integer> dbMap              = new HashMap<String, Integer>();
