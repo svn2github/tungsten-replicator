@@ -61,8 +61,14 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
     // DROP [TEMPORARY] TABLE [IF EXISTS]
     protected Pattern                   dropTable       = Pattern
                                                                 .compile(
-                                                                        "^\\s*drop\\s*(?:temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*(drop\\s*(?:temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
                                                                         Pattern.CASE_INSENSITIVE);
+
+    protected Pattern                   dropTableMdata  = Pattern
+                                                                .compile(
+                                                                        "^\\s*(drop\\s*(?:temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:[`\"]*(TUNGSTEN_INFO)[`\"]*\\.)[`\"]*([a-zA-Z0-9_]+)",
+                                                                        Pattern.CASE_INSENSITIVE);
+
     // INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name
     protected Pattern                   insert          = Pattern
                                                                 .compile(
@@ -383,8 +389,28 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
             m = dropTable.matcher(statement);
             if (m.find())
             {
-                return new SqlOperation(SqlOperation.TABLE, SqlOperation.DROP,
-                        m.group(1), m.group(2));
+                // Check for Tungsten Metadata
+                // DROP TABLE IF EXISTS TUNGSTEN_INFO.<service_name>, ...
+                String command = m.group(1);
+                if (logger.isDebugEnabled())
+                    logger.debug("Command is " + command);
+                Matcher metadata = dropTableMdata.matcher(statement);
+                if (metadata.find())
+                {
+                    if (logger.isDebugEnabled())
+                        logger.debug("Found TUNGSTEN metadata");
+                    statement = command
+                            + statement.substring(statement.indexOf(",",
+                                    statement.indexOf("TUNGSTEN_INFO")));
+                    if (logger.isDebugEnabled())
+                        logger.debug("Analyzing statement :" + statement);
+                    m.reset(statement);
+                    m.find();
+                }
+                logger.warn("Command " + command + " for table : " + m.group(2)
+                        + " " + m.group(3));
+                return new SqlOperation(command, SqlOperation.TABLE,
+                        SqlOperation.DROP, m.group(2), m.group(3));
             }
             // Drop view.
             m = dropView.matcher(statement);

@@ -97,6 +97,16 @@ public class EventMetadataFilter implements Filter
                                                                         serviceCommentRegex,
                                                                         Pattern.CASE_INSENSITIVE);
 
+    private Pattern             ifExistsPattern         = Pattern
+                                                                .compile(
+                                                                        "^.*if\\s+exists\\s+.*",
+                                                                        Pattern.CASE_INSENSITIVE);
+
+    private Pattern             dropTablePattern        = Pattern
+                                                                .compile(
+                                                                        "^\\s*drop\\s*(?:temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?[`\"]*(?:TUNGSTEN_INFO[`\"]*\\.)[`\"]*([a-zA-Z0-9_]+)",
+                                                                        Pattern.CASE_INSENSITIVE);
+
     // State to track service names and shard ID across fragments. If a first
     // fragment has a service name set, all succeeding fragments must
     // have the same service name. Similarly, all succeeding fragments
@@ -160,7 +170,6 @@ public class EventMetadataFilter implements Filter
                 && dbmsDataValues.get(0) instanceof StatementData)
         {
             sd = (StatementData) dbmsDataValues.get(0);
-
         }
         else if (dbmsDataValues.size() >= 2
                 && dbmsDataValues.get(0) instanceof RowIdData
@@ -177,13 +186,35 @@ public class EventMetadataFilter implements Filter
                 op = opMatcher.match(query);
                 sd.setParsingMetadata(op);
             }
-            String serviceComment = commentEditor.fetchComment(query, op);
-            if (serviceComment != null)
+
+            if (op.dropTable())
             {
-                Matcher m = serviceCommentPattern.matcher(serviceComment);
+                // Check if this statement contains TUNGSTEN metadata
+                Matcher m = dropTablePattern.matcher(query);
+
+                if (logger.isDebugEnabled())
+                    logger.debug("Checking whether DROP TABLE query contains Tungsten metadata : "
+                            + query);
                 if (m.find())
                 {
                     serviceSessionVar = m.group(1);
+                    if (logger.isDebugEnabled())
+                        logger.debug("Found DROP TABLE from service "
+                                + serviceSessionVar);
+                }
+                else if (logger.isDebugEnabled())
+                    logger.debug("DROP TABLE does not contain Tungsten metadata");
+            }
+            else
+            {
+                String serviceComment = commentEditor.fetchComment(query, op);
+                if (serviceComment != null)
+                {
+                    Matcher m = serviceCommentPattern.matcher(serviceComment);
+                    if (m.find())
+                    {
+                        serviceSessionVar = m.group(1);
+                    }
                 }
             }
 
@@ -461,23 +492,67 @@ public class EventMetadataFilter implements Filter
                     op = opMatcher.match(query);
                     sd.setParsingMetadata(op);
                 }
-                String comment = "___SERVICE___ = ["
-                        + tags.get(ReplOptionParams.SERVICE) + "]";
-                String appendableComment = this.commentEditor
-                        .formatAppendableComment(op, comment);
-                if (appendableComment == null)
+
+                if (op.dropTable())
                 {
-                    // Have to edit the SQL because we don't have a way to make
-                    // an appendable comment.
-                    String queryCommented = this.commentEditor.addComment(
-                            query,
-                            op,
-                            "___SERVICE___ = ["
-                                    + tags.get(ReplOptionParams.SERVICE) + "]");
-                    sd.setQuery(queryCommented);
+                    // This is a DROP TABLE that does not contain Tungsten
+                    // metadata. We need to modify it in order to include
+                    // metadata
+                    if (op.getSqlCommand() != null)
+                    {
+                        Matcher m = ifExistsPattern.matcher(op.getSqlCommand());
+
+                        boolean foundIfExists = m.find();
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Query is : " + query);
+                            logger.debug("Checking for IF EXISTS in command "
+                                    + op.getSqlCommand() + " : "
+                                    + foundIfExists);
+                        }
+
+                        String tableName = (op.getSchema() != null ? op
+                                .getSchema() : op.getName());
+                        int pos = query.indexOf(tableName, op.getSqlCommand()
+                                .length());
+
+                        pos = query.substring(0, pos).lastIndexOf(" ");
+
+                        String newQuery = query.substring(0, pos)
+                                + (foundIfExists ? " " : " IF EXISTS ")
+                                + "TUNGSTEN_INFO."
+                                + tags.get(ReplOptionParams.SERVICE) + ", "
+                                + query.substring(pos + 1);
+
+                        if (logger.isDebugEnabled())
+                            logger.debug("Query transformed into : " + newQuery);
+                        sd.setQuery(newQuery);
+                    }
+                    else if (logger.isDebugEnabled())
+                        logger.debug("No match for command");
                 }
                 else
-                    sd.appendToQuery(appendableComment);
+                {
+                    String comment = "___SERVICE___ = ["
+                            + tags.get(ReplOptionParams.SERVICE) + "]";
+                    String appendableComment = this.commentEditor
+                            .formatAppendableComment(op, comment);
+                    if (appendableComment == null)
+                    {
+                        // Have to edit the SQL because we don't have a way to
+                        // make
+                        // an appendable comment.
+                        String queryCommented = this.commentEditor.addComment(
+                                query,
+                                op,
+                                "___SERVICE___ = ["
+                                        + tags.get(ReplOptionParams.SERVICE)
+                                        + "]");
+                        sd.setQuery(queryCommented);
+                    }
+                    else
+                        sd.appendToQuery(appendableComment);
+                }
             }
             catch (Exception e)
             {

@@ -71,6 +71,7 @@ public class SqlOperation
     String            name;
     boolean           autoCommit   = true;
     boolean           bidiUnsafe;
+    private String    sqlCommand;
 
     /** Instantiate a SQL operation with default values. */
     public SqlOperation()
@@ -84,15 +85,33 @@ public class SqlOperation
         this(object, operation, schema, name, true);
     }
 
+    public SqlOperation(String command, int object, int operation,
+            String schema, String name)
+    {
+        this(command, object, operation, schema, name, true);
+    }
+
     /** Instantiate a SQL operation with full metadata. */
     public SqlOperation(int object, int operation, String schema, String name,
             boolean autoCommit)
     {
+        this(null, object, operation, schema, name, autoCommit);
+    }
+
+    public SqlOperation(String command, int object, int operation,
+            String schema, String name, boolean autoCommit)
+    {
+        this.sqlCommand = command;
         this.objectType = object;
         this.operation = operation;
         this.schema = schema;
         this.name = name;
         this.autoCommit = autoCommit;
+    }
+
+    public String getSqlCommand()
+    {
+        return sqlCommand;
     }
 
     public int getObjectType()
@@ -187,5 +206,10 @@ public class SqlOperation
     public boolean dropDatabase()
     {
         return objectType == SCHEMA && operation == DROP;
+    }
+
+    public boolean dropTable()
+    {
+        return operation == DROP && objectType == TABLE;
     }
 }
