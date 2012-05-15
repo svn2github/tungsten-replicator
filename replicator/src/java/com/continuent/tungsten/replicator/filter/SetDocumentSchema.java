@@ -22,18 +22,12 @@
 package com.continuent.tungsten.replicator.filter;
 
 import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
-import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
-import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
-import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
+import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
@@ -50,9 +44,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * @see java.util.regex.Matcher
  */
 public class SetDocumentSchema implements Filter
-{
-    private static Logger logger = Logger.getLogger(LoggingFilter.class);
-    
+{    
     private String        targetSchemaName;
     
     public void setTargetSchemaName(String schemaName)
