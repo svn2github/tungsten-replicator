@@ -140,7 +140,7 @@ replicator.plugin=tungsten
 #################################
 
 # Generic pipelines.
-replicator.pipelines=master,slave
+replicator.pipelines=master,slave,relay
 
 # MASTER PIPELINE:  Two stages with an intervening queue:  extract from binlog
 # and place events in THL.
@@ -182,6 +182,14 @@ replicator.stage.q-to-dbms.applier=dbms
 replicator.stage.q-to-dbms.filters=@{REPL_SVC_APPLIER_FILTERS}
 replicator.stage.q-to-dbms.taskCount=${replicator.global.apply.channels}
 replicator.stage.q-to-dbms.blockCommitRowCount=@{REPL_SVC_APPLIER_BUFFER_SIZE}
+
+# RELAY PIPELINE: The relay pipeline is the same as the slave at present but
+# may diverge at some point.  And this pipeline is required to support a
+# replicator with role 'relay'
+replicator.pipeline.relay=remote-to-thl,thl-to-q,q-to-dbms
+replicator.pipeline.relay.stores=thl,parallel-queue
+replicator.pipeline.relay.services=channel-assignment
+replicator.pipeline.relay.syncTHLWithExtractor=false
 
 #################################
 # TRANSACTION HISTORY LOG (THL) #
