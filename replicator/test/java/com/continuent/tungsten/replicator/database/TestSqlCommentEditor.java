@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): 
+ * Contributor(s): Andreas Wederbrand, Stephane Giron
  */
 
 package com.continuent.tungsten.replicator.database;
@@ -58,9 +58,7 @@ public class TestSqlCommentEditor
             String newCmd = editor.addComment(cmd, op, comment);
             String foundComment = editor.fetchComment(newCmd, op);
             Assert.assertTrue("Comment added", newCmd.length() > cmd.length());
-            Assert
-                    .assertEquals("Found original comment", comment,
-                            foundComment);
+            Assert.assertEquals("Found original comment", comment, foundComment);
         }
     }
 
@@ -93,6 +91,25 @@ public class TestSqlCommentEditor
         String[] cmds = {
                 "CREATE PROCEDURE simpleproc2 (OUT param1 INT) \nBEGIN\n"
                         + "SELECT 1 INTO param1;\nEND",
+                "CREATE PROCEDURE `evilProc`(begin_comment VARCHAR(255), comment_body VARCHAR (255))\n"
+                        + "    COMMENT 'will be removed'\n"
+                        + "BEGIN\n"
+                        + "INSERT INTO my_comments VALUES(begin_comment, comment_body, now());\n"
+                        + "END",
+                "CREATE FUNCTION `evilFunc`(begin_comment VARCHAR(255), comment_body VARCHAR (255))\nRETURNS int\n"
+                        + "    COMMENT 'will be removed'\n"
+                        + "BEGIN\n"
+                        + "INSERT INTO my_comments VALUES(begin_comment, comment_body, now());return 1;"
+                        + "END",
+                "CREATE FUNCTION `evilFunc`(begin_comment VARCHAR(255),\n comment_body VARCHAR (255)) RETURNS int\nDETERMINISTIC\n"
+                        + "BEGIN "
+                        + "INSERT INTO my_comments VALUES(begin_comment, comment_body, now());return 1;"
+                        + "END",
+                "CREATE PROCEDURE `evilProc`(begin_comment VARCHAR(255), comment_body VARCHAR (255))\n"
+                        + "    COMMENT 'multi lines comment\\nwill be removed'\n"
+                        + "BEGIN\n"
+                        + "INSERT INTO my_comments VALUES(begin_comment, comment_body, now());\n"
+                        + "END",
                 "create procedure `test`.`simpleproc2` (OUT param1 INT) \n"
                         + "BEGIN\nSELECT 1 INTO param1;\nEND",
                 "CREATE DEFINER=`root`@`localhost` PROCEDURE `simpleproc2`(OUT param1 INT)\n"
@@ -110,11 +127,12 @@ public class TestSqlCommentEditor
             SqlOperation op = matcher.match(cmd);
             String newCmd = editor.addComment(cmd, op, comment);
             String foundComment = editor.fetchComment(newCmd, op);
-            Assert.assertTrue("Comment must be added", newCmd.length() > cmd
-                    .length());
-            Assert
-                    .assertEquals("Found original comment", comment,
-                            foundComment);
+            System.out.println("Command\n" + cmd + "\nwas changed into\n"
+                    + newCmd + "\n");
+            Assert.assertTrue("Comment must be added",
+                    newCmd.length() > cmd.length()
+                            || newCmd.indexOf("COMMENT") > 0);
+            Assert.assertEquals("Found original comment", comment, foundComment);
         }
     }
 
@@ -144,19 +162,21 @@ public class TestSqlCommentEditor
         String commentRegex = "___SERVICE = \\[([a-zA-Z0-9-_]+)\\]___";
         editor.setCommentRegex(commentRegex);
 
-        // Test cases that generate comments. 
+        // Test cases that generate comments.
         for (String cmd : cmds1)
         {
             SqlOperation op = matcher.match(cmd);
-            String formattedComment = editor.formatAppendableComment(op, comment);
+            String formattedComment = editor.formatAppendableComment(op,
+                    comment);
             Assert.assertNotNull("Must have comment", formattedComment);
         }
 
-        // Test cases that do not. 
+        // Test cases that do not.
         for (String cmd : cmds2)
         {
             SqlOperation op = matcher.match(cmd);
-            String formattedComment = editor.formatAppendableComment(op, comment);
+            String formattedComment = editor.formatAppendableComment(op,
+                    comment);
             Assert.assertNull("Must not have comment", formattedComment);
         }
     }

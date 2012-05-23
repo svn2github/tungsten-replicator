@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s):
+ * Contributor(s): Andreas Wederbrand, Stephane Giron
  */
 
 package com.continuent.tungsten.replicator.database;
@@ -34,11 +34,33 @@ import java.util.regex.Pattern;
  */
 public class MySQLCommentEditor implements SqlCommentEditor
 {
-    protected Pattern             standardPattern;
-    protected Pattern             sprocPattern;
-    protected SqlOperationMatcher sqlMatcher = new MySQLOperationMatcher();
+    private enum CreateProcedureStage
+    {
+        CREATE, PARAMETERS, CHARACTERISTICS, BODY;
 
-    @Override
+        public CreateProcedureStage next()
+        {
+            if (this.ordinal() < CreateProcedureStage.values().length - 1)
+            {
+                return CreateProcedureStage.values()[this.ordinal() + 1];
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
+    protected Pattern standardPattern;
+    protected Pattern sprocPattern;
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.SqlCommentEditor#addComment(java.lang.String,
+     *      com.continuent.tungsten.replicator.database.SqlOperation,
+     *      java.lang.String)
+     */
     public String addComment(String statement, SqlOperation sqlOp,
             String comment)
     {
@@ -49,32 +71,7 @@ public class MySQLCommentEditor implements SqlCommentEditor
             if (objectType == SqlOperation.PROCEDURE
                     || objectType == SqlOperation.FUNCTION)
             {
-                // Processing for CREATE PROCEDURE/FUNCTION -- add a COMMENT.
-                // Following regex splits on line boundaries.
-                String[] lines = statement.split("(?m)$");
-                StringBuffer sb = new StringBuffer();
-                boolean hasComment = false;
-                for (String line : lines)
-                {
-                    String uline = line.toUpperCase();
-                    if (uline.indexOf("COMMENT") > -1)
-                    {
-                        sb.append("    COMMENT '" + comment + "'");
-                        hasComment = true;
-                    }
-                    else if (uline.indexOf("BEGIN") > -1)
-                    {
-                        if (!hasComment)
-                        {
-                            sb.append("    COMMENT '" + comment + "'");
-                            hasComment = true;
-                        }
-                        sb.append(line);
-                    }
-                    else
-                        sb.append(line);
-                }
-                return sb.toString();
+                return processCreateProcedure(statement, comment);
             }
         }
 
@@ -83,12 +80,117 @@ public class MySQLCommentEditor implements SqlCommentEditor
     }
 
     /**
+     * Handles CREATE (PROCEDURE|FUNCTION) statements.<BR>
+     * The format of a CREATE PROCEDURE seems pretty well formed once in the
+     * binlog. No matter where you put line breaks on the master this is the
+     * format in the binlog.<BR>
+     * On the first line comes :
+     * "CREATE DEFINER=`user`@`host` PROCEDURE `procedure_name`("<BR>
+     * Then comes the parameters list. Line breaks are valid inside the
+     * parameter list so we can't know for sure that the line ends with a ")"
+     * There is a unknown number of lines. The last one of those ends with a ")"
+     * that matches the "(" on on the first line. Make sure to count the "(" and
+     * ")" so the last one is really the last one. <BR>
+     * Following that block there will be 0 or more rows containing
+     * characteristics. They are all indented with 4 spaces. We're only
+     * interested in COMMENT (and COMMENT always seems to be the last one).
+     * Following that comes the routine body that may or may not be surrounded
+     * with "BEGIN ... END"<BR>
+     * CREATE FUNCTION is exactly the same except that after the closing ")" it
+     * always says RETURNS. As it turns out, the same code will work for both
+     * cases.
+     * 
+     * @param statement Create Procedure statement that requires a comment to be
+     *            inserted.
+     * @param comment Comment string to be added.
+     * @return
+     */
+    private String processCreateProcedure(String statement, String comment)
+    {
+        // Processing for CREATE PROCEDURE/FUNCTION -- add a COMMENT.
+        // Following regex splits on line boundaries.
+        String[] lines = statement.split("(?m)$");
+        StringBuffer sb = new StringBuffer();
+
+        CreateProcedureStage stage = CreateProcedureStage.CREATE;
+        int parentheses = 0;
+        boolean hasComment = false;
+
+        for (String line : lines)
+        {
+            switch (stage)
+            {
+                case CREATE :
+                    // Do nothing but advance to the next stage and start
+                    // processing parameters
+                    stage = stage.next();
+                    // note, no break
+                case PARAMETERS :
+                    // Count number of parentheses and advance to
+                    // Stage.CHARACTERISTICS if we're down to 0.
+                    parentheses += countParentheses(line);
+                    if (parentheses == 0)
+                    {
+                        stage = stage.next();
+                    }
+                    sb.append(line);
+                    break;
+                case CHARACTERISTICS :
+                    if (line.matches("(\\n)?\\s{4}.*"))
+                    {
+                        // found characteristics
+                        if (line.matches("(\\n)?\\s{4}(COMMENT|comment).*'"))
+                        {
+                            // Replace COMMENT with our own COMMENT if found
+                            // NOTE: the upper replace doesn't replace the
+                            // original comment, it just adds to it.
+                            // line = line.replaceAll("COMMENT\\s*'(.*)'",
+                            // "COMMENT '$1 " + comment + "'");
+
+                            line = line.replaceAll(
+                                    "(COMMENT|comment)\\s*'(.*)'", "COMMENT '"
+                                            + comment + "'");
+                            hasComment = true;
+                        }
+                        sb.append(line);
+                        break;
+                    }
+                    else
+                    {
+                        // actually first line of Stage.BODY
+                        // Advance to Stage.BODY (and redo this line)
+                        // note, no break
+                        stage = stage.next();
+                    }
+                case BODY :
+                    if (!hasComment)
+                    {
+                        // no comment this far, add it
+                        sb.append("\n    COMMENT '").append(comment)
+                                .append("'");
+                        hasComment = true;
+                    }
+                    sb.append(line);
+                    break;
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private int countParentheses(String line)
+    {
+        int left = line.length() - line.replace("(", "").length();
+        int right = line.length() - line.replace(")", "").length();
+        return left - right;
+    }
+
+    /**
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.database.SqlCommentEditor#formatAppendableComment(SqlOperation,
      *      String)
      */
-    @Override
     public String formatAppendableComment(SqlOperation sqlOp, String comment)
     {
         // Look for a stored procedure or function and return null. They are not
@@ -113,7 +215,6 @@ public class MySQLCommentEditor implements SqlCommentEditor
      * @see com.continuent.tungsten.replicator.database.SqlCommentEditor#fetchComment(String,
      *      SqlOperation)
      */
-    @Override
     public String fetchComment(String statement, SqlOperation sqlOp)
     {
         // Select correct comment pattern.
@@ -140,7 +241,6 @@ public class MySQLCommentEditor implements SqlCommentEditor
      * 
      * @see com.continuent.tungsten.replicator.database.SqlCommentEditor#setCommentRegex(java.lang.String)
      */
-    @Override
     public void setCommentRegex(String regex)
     {
         String standardRegex = "\\/\\* (" + regex + ") \\*\\/";
