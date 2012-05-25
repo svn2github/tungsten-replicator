@@ -401,14 +401,18 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
                         logger.debug("Found TUNGSTEN metadata");
                     statement = command
                             + statement.substring(statement.indexOf(",",
-                                    statement.indexOf("TUNGSTEN_INFO")));
+                                    statement.indexOf("TUNGSTEN_INFO")) + 1);
                     if (logger.isDebugEnabled())
                         logger.debug("Analyzing statement :" + statement);
                     m.reset(statement);
                     m.find();
                 }
-                logger.warn("Command " + command + " for table : " + m.group(2)
-                        + " " + m.group(3));
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Command " + command + " for table : "
+                            + m.group(2) + " " + m.group(3));
+
+                }
                 return new SqlOperation(command, SqlOperation.TABLE,
                         SqlOperation.DROP, m.group(2), m.group(3));
             }
