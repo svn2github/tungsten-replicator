@@ -419,6 +419,20 @@ class JavaFileEncoding < ConfigurePrompt
   end
 end
 
+class JavaUserTimezone < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_JAVA_USER_TIMEZONE, "Java VM Timezone (esp. for cross-site replication)",
+      PV_ANY, "")
+  end
+  
+  def required?
+    false
+  end
+end
+
 class ReplicationAPI < ConfigurePrompt
   include ClusterHostPrompt
   include AdvancedPromptModule

@@ -51,7 +51,10 @@ module ConfigureDeploymentStepReplicator
     transformer.output
   end
 	
-	def write_wrapper_conf
+  def write_wrapper_conf
+    # Handling numbering of application parameters. 
+    app_num = 3
+
     transformer = Transformer.new(
       "#{get_deployment_basedir()}/tungsten-replicator/conf/wrapper.conf",
       "#{get_deployment_basedir()}/tungsten-replicator/conf/wrapper.conf", nil)
@@ -61,20 +64,16 @@ module ConfigureDeploymentStepReplicator
       if line =~ /wrapper.java.maxmemory=/
         "wrapper.java.maxmemory=" + @config.getProperty(REPL_JAVA_MEM_SIZE)
       elsif line =~ /-Dfile.encoding=/ and @config.getProperty(REPL_JAVA_FILE_ENCODING) != ""
-        if line[0,1] == "#"
-            line.slice!(0)
-        end
-        
-        parts = line.split("=")
-        line = "#{parts[0]}=-Dfile.encoding=" + @config.getProperty(REPL_JAVA_FILE_ENCODING)
+        app_num += 1
+        line = "wrapper.java.additional.#{app_num}=-Dfile.encoding=" + @config.getProperty(REPL_JAVA_FILE_ENCODING)
+      elsif line =~ /-Duser.timezone=/ and @config.getProperty(REPL_JAVA_USER_TIMEZONE) != ""
+        app_num += 1
+        line = "wrapper.java.additional.#{app_num}=-Duser.timezone=" + @config.getProperty(REPL_JAVA_USER_TIMEZONE)
       elsif line =~ /jolokia-jvm/
         if @config.getProperty(REPL_API) == "true"
-          if line[0,1] == "#"
-            line.slice!(0)
-          end
-          
+          app_num += 1
           parts = line.split("=")
-          line = "#{parts[0]}=#{parts[1]}=port=#{@config.getProperty(REPL_API_PORT)},host=#{@config.getProperty(REPL_API_HOST)},user=#{@config.getProperty(REPL_API_USER)},password=#{@config.getProperty(REPL_API_PASSWORD)}"
+          line = "wrapper.java.additional.#{app_num}=#{parts[1]}=port=#{@config.getProperty(REPL_API_PORT)},host=#{@config.getProperty(REPL_API_HOST)},user=#{@config.getProperty(REPL_API_USER)},password=#{@config.getProperty(REPL_API_PASSWORD)}"
         else
           unless line[0,1] == "#"
             line = "#" + line
