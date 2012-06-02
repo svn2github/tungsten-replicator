@@ -110,12 +110,31 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                     // Did we find it?
                     if (event == null)
                     {
-                        throw new THLException(
-                                "Client requested non-existent transaction: client source ID="
-                                        + handshakeResponse.getSourceId()
-                                        + " seqno=" + clientLastSeqno
-                                        + " client epoch number="
-                                        + clientLastEpochNumber);
+                        // We didn't find the sequence number but that could
+                        // happen if the master is a relay that just loaded a
+                        // backup and has logs that start after the last
+                        // committed seqno. See if the next seqno is present.
+                        if (conn.seek(clientLastSeqno + 1))
+                            event = conn.next(false);
+
+                        // If it's still null, we really don't have the seqno
+                        // and the slave is out of luck.
+                        if (event == null)
+                        {
+                            throw new THLException(
+                                    "Client requested non-existent transaction: client source ID="
+                                            + handshakeResponse.getSourceId()
+                                            + " seqno=" + clientLastSeqno
+                                            + " client epoch number="
+                                            + clientLastEpochNumber);
+                        }
+                        else
+                        {
+                            // Otherwise we give the slave a pass and let it
+                            // connect.
+                            logger.info("Master log has starting client seqno but does not have previous committed seqno;"
+                                    + " not checking for diverging histories");
+                        }
                     }
                     else if (event.getEpochNumber() != clientLastEpochNumber)
                     {
