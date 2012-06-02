@@ -522,7 +522,6 @@ public class SimpleBatchApplier implements RawApplier
             InterruptedException
     {
         // Ensure basic properties are not null.
-        assertNotNull(driver, "driver");
         assertNotNull(url, "url");
         assertNotNull(user, "user");
         assertNotNull(password, "password");
@@ -603,7 +602,7 @@ public class SimpleBatchApplier implements RawApplier
         // Initialize table metadata cache.
         fullMetadataCache = new TableMetadataCache(5000);
 
-        // Load JDBC driver and connect.
+        // Connect to DBMS.
         try
         {
             // Load driver if provided.
@@ -672,7 +671,7 @@ public class SimpleBatchApplier implements RawApplier
                 try
                 {
                     long start = System.currentTimeMillis();
-                    statement.executeUpdate(startCommand);
+                    statement.execute(startCommand);
                     double interval = (System.currentTimeMillis() - start) / 1000.0;
                     if (logger.isDebugEnabled())
                     {

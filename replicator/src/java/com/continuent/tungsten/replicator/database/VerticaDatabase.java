@@ -39,14 +39,26 @@ import com.continuent.tungsten.commons.csv.NullPolicy;
  */
 public class VerticaDatabase extends PostgreSQLDatabase
 {
-    @SuppressWarnings("unused")
     private static Logger logger = Logger.getLogger(VerticaDatabase.class);
 
     public VerticaDatabase() throws SQLException
     {
         dbms = DBMS.VERTICA;
-        // Hard code the driver so it gets loaded correctly.
+        // Hard code the version 4.x driver so it gets loaded.
         dbDriver = "com.vertica.Driver";
+        // Check to see if the version 4.x driver is present.  If not, use
+        // the 5.x driver name. 
+        try
+        {
+            logger.debug("Checking for default driver: " + dbDriver);
+            Class.forName(dbDriver);
+        }
+        catch (Exception e)
+        {
+            dbDriver = "com.vertica.jdbc.Driver";
+            logger.debug("Unable to load Vertica 4.x JDBC driver; will default to Version 5.x name: " + dbDriver);
+        }
+
     }
 
     /**

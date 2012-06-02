@@ -145,6 +145,12 @@ public class CommitSeqnoTable
         pkey.AddColumn(commitSeqnoTableTaskId);
         commitSeqnoTable.AddKey(pkey);
 
+        // Create the table if it does not exist.
+        if (logger.isDebugEnabled())
+            logger.debug("Initializing " + TABLE_NAME + " table");
+
+        database.createTable(commitSeqnoTable, false, tableType);
+
         // Prepare SQL.
         lastSeqnoQuery = database
                 .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp from "
@@ -167,12 +173,6 @@ public class CommitSeqnoTable
                 + commitSeqnoTableShardId.getName() + "=?, "
                 + commitSeqnoTableExtractTimestamp.getName() + "=? " + "WHERE "
                 + commitSeqnoTableTaskId.getName() + "=?");
-
-        // Create the table if it does not exist.
-        if (logger.isDebugEnabled())
-            logger.debug("Initializing " + TABLE_NAME + " table");
-
-        database.createTable(commitSeqnoTable, false, tableType);
 
         if (database instanceof GreenplumDatabase)
         {
