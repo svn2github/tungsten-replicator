@@ -52,6 +52,11 @@ class VerticaDatabasePlatform < ConfigureDatabasePlatform
   def getVendor()
     "postgresql"
   end
+
+  # Vertica does not have an extractor. 
+  def get_extractor_template
+    raise "Unable to use VerticaDatabasePlatform as an extractor"
+  end
 end
 
 #
