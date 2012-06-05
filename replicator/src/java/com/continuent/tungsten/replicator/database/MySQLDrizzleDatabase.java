@@ -80,7 +80,8 @@ public class MySQLDrizzleDatabase extends MySQLDatabase
     }
 
     @Override
-    public String getPlaceHolder(ColumnSpec col, Object colValue, String typeDesc)
+    public String getPlaceHolder(ColumnSpec col, Object colValue,
+            String typeDesc)
     {
         if (col.getType() == Types.BLOB && typeDesc != null
                 && typeDesc.contains("TEXT"))
@@ -101,7 +102,10 @@ public class MySQLDrizzleDatabase extends MySQLDatabase
     @Override
     public boolean nullsBoundDifferently(ColumnSpec col)
     {
-        return (col.getType() == Types.BLOB || col.getType() == Types.VARCHAR);
+        String typeDescription = col.getTypeDescription();
+        return ((col.getType() == Types.BLOB
+                && typeDescription != null && typeDescription
+                .contains("TEXT")) || col.getType() == Types.VARCHAR);
     }
 
     @Override
