@@ -1344,7 +1344,8 @@ public class JdbcApplier implements RawApplier
                 }
                 catch (SQLException e1)
                 {
-                    e1.initCause(e);
+                    if (e1.getCause() == null)
+                        e1.initCause(e);
                     e = e1;
                 }
             }
