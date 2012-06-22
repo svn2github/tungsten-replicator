@@ -147,9 +147,9 @@ public class MongoApplier implements RawApplier
                         // Make a document and insert for each row.
                         Iterator<ArrayList<ColumnVal>> colValues = orc
                                 .getColumnValues().iterator();
-                        BasicDBObject doc = new BasicDBObject();
                         while (colValues.hasNext())
                         {
+                            BasicDBObject doc = new BasicDBObject();
                             ArrayList<ColumnVal> row = colValues.next();
                             for (int i = 0; i < row.size(); i++)
                             {
