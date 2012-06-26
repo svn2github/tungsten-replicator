@@ -22,7 +22,7 @@
 package com.continuent.tungsten.replicator.management.events;
 
 import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.patterns.fsm.Event;
+import com.continuent.tungsten.fsm.core.Event;
 
 /**
  * Signals that the replicator should move to the off-line state. This event may

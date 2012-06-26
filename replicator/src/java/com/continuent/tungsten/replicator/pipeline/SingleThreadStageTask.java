@@ -27,7 +27,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.patterns.event.EventDispatcher;
+import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.ErrorNotification;
 import com.continuent.tungsten.replicator.InSequenceNotification;
 import com.continuent.tungsten.replicator.ReplicatorException;

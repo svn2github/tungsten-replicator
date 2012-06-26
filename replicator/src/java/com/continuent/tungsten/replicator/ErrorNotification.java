@@ -22,8 +22,8 @@
 
 package com.continuent.tungsten.replicator;
 
-import com.continuent.tungsten.commons.patterns.event.OutOfBandEvent;
-import com.continuent.tungsten.commons.patterns.fsm.Event;
+import com.continuent.tungsten.fsm.core.Event;
+import com.continuent.tungsten.fsm.event.OutOfBandEvent;
 
 /**
  * This class defines a ErrorNotification, which denotes a severe replication

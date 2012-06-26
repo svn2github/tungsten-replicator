@@ -21,7 +21,7 @@
  */
 package com.continuent.tungsten.replicator.management.events;
 
-import com.continuent.tungsten.commons.patterns.fsm.Event;
+import com.continuent.tungsten.fsm.core.Event;
 
 public class OfflineNotification extends Event
 {

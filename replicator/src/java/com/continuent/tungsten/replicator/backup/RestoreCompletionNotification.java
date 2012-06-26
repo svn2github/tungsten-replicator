@@ -24,7 +24,7 @@ package com.continuent.tungsten.replicator.backup;
 
 import java.net.URI;
 
-import com.continuent.tungsten.commons.patterns.fsm.Event;
+import com.continuent.tungsten.fsm.core.Event;
 
 /**
  * Event to indicate that restore has completed successfully.  

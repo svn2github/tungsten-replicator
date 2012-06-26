@@ -22,7 +22,7 @@
 
 package com.continuent.tungsten.replicator;
 
-import com.continuent.tungsten.commons.patterns.fsm.Event;
+import com.continuent.tungsten.fsm.core.Event;
 
 /**
  * 

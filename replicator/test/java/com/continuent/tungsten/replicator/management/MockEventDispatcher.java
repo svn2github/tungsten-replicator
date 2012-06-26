@@ -22,10 +22,10 @@
 
 package com.continuent.tungsten.replicator.management;
 
-import com.continuent.tungsten.commons.patterns.event.EventCompletionListener;
-import com.continuent.tungsten.commons.patterns.event.EventDispatcher;
-import com.continuent.tungsten.commons.patterns.event.EventRequest;
-import com.continuent.tungsten.commons.patterns.fsm.Event;
+import com.continuent.tungsten.fsm.core.Event;
+import com.continuent.tungsten.fsm.event.EventCompletionListener;
+import com.continuent.tungsten.fsm.event.EventDispatcher;
+import com.continuent.tungsten.fsm.event.EventRequest;
 
 /**
  * Dummy event dispatcher used for testing.

@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.patterns.event.EventDispatcher;
+import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.ErrorNotification;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;

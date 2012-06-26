@@ -23,7 +23,7 @@
 package com.continuent.tungsten.replicator.management;
 
 import com.continuent.tungsten.commons.jmx.JmxManager;
-import com.continuent.tungsten.commons.patterns.event.EventDispatcher;
+import com.continuent.tungsten.fsm.event.EventDispatcher;
 
 /**
  * Dummy OpenReplicatorContext used for testing.
