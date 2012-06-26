@@ -10,8 +10,6 @@ BUILD_DIR=build
 TREP_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/replicator
 # Replicator Extras URL.
 TREP_EXT_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/replicator-extra
-# FSM URL.
-TFSM_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/fsm
 # Commons URL.
 TCOM_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/commons
 # Bristlecone URL.

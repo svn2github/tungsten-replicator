@@ -8,7 +8,7 @@
 # OVERVIEW:
 #   This script performs a full build of the replicator and all its
 #   dependencies, plus bristlecone tool.
-#   It checks out and builds all components: replicator, commons, fsm and
+#   It checks out and builds all components: replicator, commons, and
 #   replicator-extra.
 #
 #   Before building you should review properties in the 'config' file. If
@@ -148,7 +148,6 @@ fi
 ##########################################################################
 
 source_commons=${SRC_DIR}/commons
-source_fsm=${SRC_DIR}/fsm
 source_bristlecone=${SRC_DIR}/bristlecone
 source_replicator=${SRC_DIR}/replicator
 source_replicator_extra=${SRC_DIR}/replicator-extra
@@ -216,7 +215,6 @@ fi
 
 echo "### List of source locations"
 echo "# Commons:    $source_commons"
-echo "# FSM:        $source_fsm"
 echo "# Replicator: $source_replicator"
 echo "# Replicator Extras: $source_replicator_extra"
 echo "# Bristlecone: $source_bristlecone"
@@ -224,7 +222,6 @@ echo "# Bristlecone: $source_bristlecone"
 if [ ${SKIP_CHECKOUT} -eq 1 ]; then
   echo "### Using existing code without checkout"
 else
-  doSvnCheckout fsm ${TFSM_SVN_URL} $source_fsm
   doSvnCheckout commons ${TCOM_SVN_URL} $source_commons
   doSvnCheckout replicator ${TREP_SVN_URL} $source_replicator
   doSvnCheckout replicator-extra ${TREP_EXT_SVN_URL} $source_replicator_extra
@@ -242,7 +239,6 @@ else
   printHeader "Building replicator from source"
   # Run the builds.
   doAnt commons $source_commons/build.xml clean dist 
-  doAnt fsm $source_fsm/build.xml clean dist 
   doAnt replicator $source_replicator/build.xml clean dist javadoc
   #doAnt replicator-extra $source_replicator_extra/build.xml clean dist
   doAnt bristlecone $source_bristlecone/build.xml clean dist
@@ -342,7 +338,6 @@ echo "SVN_REVISION: ${SVN_REVISION}" >> $manifest
 echo "HOST: `hostname`" >> $manifest
 echo "SVN URLs:" >> $manifest
 echo "  ${TCOM_SVN_URL}" >> $manifest
-echo "  ${TFSM_SVN_URL}" >> $manifest
 echo "  ${TREP_SVN_URL}" >> $manifest
 echo "  ${TREP_EXT_SVN_URL}" >> $manifest
 echo "  ${BRI_SVN_URL}" >> $manifest
@@ -350,8 +345,6 @@ echo "  ${BRI_SVN_URL}" >> $manifest
 echo "SVN Revisions:" >> $manifest
 echo -n "  commons: " >> $manifest
 svn info $source_commons | grep Revision: >> $manifest
-echo -n "  fsm: " >> $manifest
-svn info $source_fsm | grep Revision: >> $manifest
 echo -n "  replicator: " >> $manifest
 svn info $source_replicator | grep Revision: >> $manifest
 echo -n "  replicator-extra: " >> $manifest
@@ -403,12 +396,6 @@ echo    "    {" >> $manifestJSON
 echo    "      \"URL\": \"${TCOM_SVN_URL}\"," >> $manifestJSON
 echo -n "      \"revision\": " >> $manifestJSON
 echo           "`extractRevision $source_commons`" >> $manifestJSON
-echo    "    }," >> $manifestJSON
-echo    "    \"fsm\":" >> $manifestJSON
-echo    "    {" >> $manifestJSON
-echo    "      \"URL\": \"${TFSM_SVN_URL}\"," >> $manifestJSON
-echo -n "      \"revision\": " >> $manifestJSON
-echo           "`extractRevision $source_fsm`" >> $manifestJSON
 echo    "    }," >> $manifestJSON
 echo    "    \"replicator\":" >> $manifestJSON
 echo    "    {" >> $manifestJSON
@@ -488,7 +475,6 @@ if [ "$SKIP_SOURCE" = 0 ]; then
   mkdir $builder_folder
   cp -r $SRC_DIR/replicator $modules_sources_folder
   cp -r $SRC_DIR/commons $modules_sources_folder
-  cp -r $SRC_DIR/fsm $modules_sources_folder
   cp -r $SRC_DIR/bristlecone $modules_sources_folder
   cp -r $SRC_DIR/replicator-extra $modules_sources_folder
   cp -r build.sh config extra $builder_folder/
@@ -498,7 +484,6 @@ if [ "$SKIP_SOURCE" = 0 ]; then
   echo "### Cleaning-up source folders"
   reldir_src_sources=${reldir_src}/sources
   doAnt commons ${reldir_src_sources}/commons/build.xml clean
-  doAnt fsm ${reldir_src_sources}/fsm/build.xml clean
   doAnt replicator ${reldir_src_sources}/replicator/build.xml clean
   doAnt bristlecone ${reldir_src_sources}/bristlecone/build.xml clean
 
