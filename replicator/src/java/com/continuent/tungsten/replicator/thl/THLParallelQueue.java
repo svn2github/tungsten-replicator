@@ -287,8 +287,10 @@ public class THLParallelQueue implements ParallelStore
 
         // Discard empty events.
         DBMSEvent dbmsEvent = event.getDBMSEvent();
-        if (dbmsEvent == null | dbmsEvent instanceof DBMSEmptyEvent
-                || dbmsEvent.getData().size() == 0)
+        if (dbmsEvent == null
+                | dbmsEvent instanceof DBMSEmptyEvent
+                || (event.getFragno() == 0 && event.getLastFrag() && dbmsEvent
+                        .getData().size() == 0))
         {
             discardCount++;
             return;
