@@ -23,6 +23,8 @@
 package com.continuent.tungsten.replicator.thl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -56,21 +58,21 @@ import com.continuent.tungsten.replicator.plugin.ShutdownHook;
  */
 public class RemoteTHLExtractor implements Extractor, ShutdownHook
 {
-    private static Logger  logger             = Logger.getLogger(RemoteTHLExtractor.class);
+    private static Logger    logger             = Logger.getLogger(RemoteTHLExtractor.class);
 
     // Properties.
-    private String         connectUri;
-    private int            resetPeriod        = 1;
-    private boolean        checkSerialization = true;
-    private int            heartbeatMillis    = 3000;
+    private List<String>     uriList;
+    private int              resetPeriod        = 1;
+    private boolean          checkSerialization = true;
+    private int              heartbeatMillis    = 3000;
 
     // Connection control variables.
-    private PluginContext  pluginContext;
-    private ReplDBMSHeader lastEvent;
-    private String         lastEventId;
-    private Connector      conn;
+    private PluginContext    pluginContext;
+    private ReplDBMSHeader   lastEvent;
+    private String           lastEventId;
+    private Connector        conn;
 
-    private ReplEvent      pendingEvent;
+    private ReplEvent        pendingEvent;
 
     // Set to show that we have been shut down.
     private volatile boolean shutdown           = false;
@@ -82,19 +84,19 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
     {
     }
 
-    public String getConnectUri()
+    public List<String> getConnectUri()
     {
-        return connectUri;
+        return uriList;
     }
 
     /**
-     * Set the URI of the store to which we connect.
+     * Set the URI(s) of the store to which we connect.
      * 
      * @param connectUri
      */
-    public void setConnectUri(String connectUri)
+    public void setConnectUri(List<String> connectUri)
     {
-        this.connectUri = connectUri;
+        this.uriList = connectUri;
     }
 
     public int getResetPeriod()
@@ -300,10 +302,11 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
         this.pluginContext = context;
 
         // Set the connect URI to a default if not already set.
-        if (this.connectUri == null)
+        if (this.uriList == null || this.uriList.size() == 0)
         {
-            connectUri = context.getReplicatorProperties().get(
-                    ReplicatorConf.MASTER_CONNECT_URI);
+            uriList = new ArrayList<String>();
+            uriList.add(context.getReplicatorProperties().get(
+                    ReplicatorConf.MASTER_CONNECT_URI));
         }
 
         // See if we have an online option that overrides serialization
@@ -377,7 +380,7 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                 conn = null;
             }
         }
-        
+
         // Reconnect after lost connection.
         logger.info("Connection to remote thl lost; reconnecting");
         pluginContext.getEventDispatcher().put(new OutOfSequenceNotification());
@@ -389,7 +392,9 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
             InterruptedException
     {
         // Connect to remote THL.
-        logger.info("Opening connection to master: " + connectUri);
+        ConnectUriManager uriManager = new ConnectUriManager(uriList);
+        logger.info("Opening connection to master: " + uriManager.toString());
+        String currentUri = null;
         long retryCount = 0;
         for (;;)
         {
@@ -399,6 +404,7 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                 // and epoch.
                 try
                 {
+                    currentUri = uriManager.next();
                     conn = (Connector) PluginLoader
                             .load(pluginContext
                                     .getReplicatorProperties()
@@ -406,7 +412,7 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                                             ReplicatorConf.THL_PROTOCOL,
                                             ReplicatorConf.THL_PROTOCOL_DEFAULT,
                                             false));
-                    conn.setURI(connectUri);
+                    conn.setURI(currentUri);
                     conn.setResetPeriod(resetPeriod);
                     conn.setHeartbeatMillis(heartbeatMillis);
                     conn.setLastEventId(this.lastEventId);
@@ -449,7 +455,7 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                 if ((retryCount % 10) == 0)
                 {
                     logger.info("Waiting for master to become available: uri="
-                            + connectUri + " retries=" + retryCount);
+                            + uriManager.toString() + " retries=" + retryCount);
                 }
                 retryCount++;
                 Thread.sleep(1000);
@@ -457,7 +463,8 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
         }
 
         // Announce the happy event and reset retry count.
-        logger.info("Connected to master after " + retryCount + " retries");
+        logger.info("Connected to master on uri=" + currentUri + " after "
+                + retryCount + " retries");
         retryCount = 0;
         pluginContext.getEventDispatcher().put(new InSequenceNotification());
     }
