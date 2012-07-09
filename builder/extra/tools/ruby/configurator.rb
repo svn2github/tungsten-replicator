@@ -463,7 +463,7 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
 
     remainder = run_option_parser(opts, arguments)
     
-    if is_batch?()
+    if is_batch?() && !@package.is_a?(UpdatePackage)
       @package = ConfigurePackageCluster.new(@config)
     end
 

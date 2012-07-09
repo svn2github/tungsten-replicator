@@ -434,6 +434,7 @@ end
 
 class HostReplicatorServiceRunningCheck < ConfigureValidationCheck
   include ClusterHostCheck
+  include NotTungstenUpdateCheck
   
   def set_vars
     @title = "Replicator is running check"
@@ -455,6 +456,7 @@ end
 
 class HostReplicatorPortAvailableCheck < ConfigureValidationCheck
   include ClusterHostCheck
+  include NotTungstenUpdateCheck
   
   def set_vars
     @title = "Replicator RMI port is available check"

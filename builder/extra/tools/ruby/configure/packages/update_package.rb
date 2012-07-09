@@ -82,3 +82,13 @@ module NotTungstenUpdatePrompt
     end
   end
 end
+
+module NotTungstenUpdateCheck
+  def enabled?
+    unless Configurator.instance.package.is_a?(UpdatePackage)
+      super() && true
+    else
+      false
+    end
+  end
+end
