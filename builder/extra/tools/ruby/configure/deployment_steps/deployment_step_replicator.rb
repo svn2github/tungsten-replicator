@@ -46,7 +46,7 @@ module ConfigureDeploymentStepReplicator
 			"#{get_deployment_basedir()}/tungsten-replicator/conf/services.properties", "#")
 
     transformer.set_fixed_properties(@config.getProperty(get_host_key(FIXED_PROPERTY_STRINGS)))
-	  transformer.transform_values(method(:transform_values))
+	  transformer.transform_values(method(:transform_replication_dataservice_values))
 
     transformer.output
   end
