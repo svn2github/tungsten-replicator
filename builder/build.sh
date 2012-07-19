@@ -188,6 +188,14 @@ echo "### ... Success!"
 
 # SVN user
 if [ -z $SVN_USER ]; then
+  export SVN_USER=anonymous
+# else use $SVN_USER environment variable
+fi
+echo "OK to set code.google.com <http://code.google.com> SVN_USER to $SVN_USER?"
+echo "Press enter to continue.  Otherwise quit and set SVN_USER in your environment"
+read ignored_answer
+
+if [ -z $SVN_USER ]; then
   export SVN_USER=`whoami`
   echo "OK to set code.google.com SVN_USER to $SVN_USER?"
   echo "Press enter to continue.  Otherwise quit and set SVN_USER in your environment"
@@ -196,9 +204,15 @@ else
   export SVN_USER=anonymous
 fi
 
+
 # Release name.
 product="Tungsten Replicator"
 relname=tungsten-replicator-${VERSION}
+# Add Jenkins build number if any
+if [ "x${BUILD_NUMBER}" != "x" ]
+then
+    relname=${relname}-${BUILD_NUMBER}
+fi
 
 ##########################################################################
 # Check out files.
