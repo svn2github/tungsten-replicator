@@ -583,12 +583,17 @@ class MySQLSettingsCheck < ConfigureValidationCheck
   end
   
   def validate
-    info("Checking sync_binlog setting")
-    sync_binlog = get_applier_datasource.get_value("show variables like 'sync_binlog'", "Value")
-    if sync_binlog == nil || sync_binlog != "0"
-      warning("The value of sync_binlog is wrong for #{get_applier_datasource.get_connection_summary()}")
-      help("Add \"sync_binlog=0\" to the MySQL configuration file to increase MySQL performance for #{get_applier_datasource.get_connection_summary()}")
-    end
+    #
+    # Removed by Giuseppe - 19-Jul-2012
+    # While we should recommend values that improve performance, we should not do that at the expense of safety.
+    # This check is better left out.  
+    # 
+    #info("Checking sync_binlog setting")
+    #sync_binlog = get_applier_datasource.get_value("show variables like 'sync_binlog'", "Value")
+    #if sync_binlog == nil || sync_binlog != "1"
+    #  warning("The value of sync_binlog is wrong for #{get_applier_datasource.get_connection_summary()}")
+    #  help("Add \"sync_binlog=0\" to the MySQL configuration file to increase MySQL performance for #{get_applier_datasource.get_connection_summary()}")
+    #end
     
     info("Checking innodb_flush_log_at_trx_commit")
     innodb_flush_log_at_trx_commit = get_applier_datasource.get_value("show variables like 'innodb_flush_log_at_trx_commit'", "Value")
