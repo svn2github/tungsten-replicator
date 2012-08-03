@@ -64,6 +64,11 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  *  - KEY(2: null) = 10
  *  - KEY(3: null) = Ten
  * <br/>
+ * <br/>
+ * NOTE: if all columns are static (Issue 355), all are left intact (not
+ * removed). In this corner case, we can't remove the event completely, because
+ * if there are triggers (eg. which count UPDATEs), they would not fire. Hence,
+ * instead, we leave the event unchanged and unoptimized.
  *  
  * @author <a href="mailto:linas.virbalas@continuent.com">Linas Virbalas</a>
  * @version 1.0
@@ -201,8 +206,21 @@ public class OptimizeUpdatesFilter implements Filter
             if (columnStatic)
                 columnsToRemove.add(colSpec);
         }
+        
+        // Issue 355 - Oracle UPDATEs that change no columns lead to
+        // OptimizeUpdatesFilter removing too much.
+        if (columnsToRemove.size() == columns.size())
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("All "
+                        + columnsToRemove.size()
+                        + " of "
+                        + columns.size()
+                        + " columns where static - leaving them as is to have a valid transaction");
+            return transformed;
+        }
 
-        // Remove static columns now that we now which those are.
+        // Remove static columns now that we know which those are.
         for (Iterator<ColumnSpec> iterator = columnsToRemove.iterator(); iterator
                 .hasNext();)
         {
