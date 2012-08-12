@@ -29,15 +29,14 @@ import java.util.ArrayList;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
-import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
+import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 
@@ -48,7 +47,7 @@ import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
  */
 public class OptimizeUpdatesFilterTest extends TestCase
 {
-    private static Logger  logger = Logger.getLogger(OptimizeUpdatesFilterTest.class);
+//    private static Logger  logger = Logger.getLogger(OptimizeUpdatesFilterTest.class);
 
     /**
      * Setup.
