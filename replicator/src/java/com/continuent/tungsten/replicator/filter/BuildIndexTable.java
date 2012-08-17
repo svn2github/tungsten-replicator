@@ -22,13 +22,19 @@
 package com.continuent.tungsten.replicator.filter;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
+import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
+import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
@@ -43,9 +49,13 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * @see java.util.regex.Pattern
  * @see java.util.regex.Matcher
  */
-public class SetDocumentSchema implements Filter
+public class BuildIndexTable implements Filter
 {    
-    private String        targetSchemaName;
+    private static Logger            logger = Logger.getLogger(BuildIndexTable.class);
+    
+    private String                   targetSchemaName;
+    
+    private String                   tungstenSchema;
     
     public void setTargetSchemaName(String schemaName)
     {
@@ -67,8 +77,16 @@ public class SetDocumentSchema implements Filter
                 RowChangeData rdata = (RowChangeData) dataElem;
                 for (OneRowChange orc : rdata.getRowChanges())
                 {
-                    ArrayList<ColumnSpec> cSpec = orc.getColumnSpec();
-                    ArrayList<ColumnSpec> kSpec = orc.getKeySpec();
+                    // Tungsten schema is always passed through as dropping this can
+                    // confuse the replicator.
+                    if (orc.getSchemaName().equals(tungstenSchema)) {
+                        continue;
+                    }
+                        
+                    ArrayList<ColumnSpec> keys = orc.getKeySpec();
+                    ArrayList<ColumnSpec> columns = orc.getColumnSpec();
+                    ArrayList<ArrayList<ColumnVal>> keyValues = orc.getKeyValues();
+                    ArrayList<ArrayList<ColumnVal>> columnValues = orc.getColumnValues();
                     
                     OneRowChange.ColumnSpec c = orc.new ColumnSpec();
                     c.setType(12);
@@ -77,15 +95,15 @@ public class SetDocumentSchema implements Filter
                     OneRowChange.ColumnVal v = orc.new ColumnVal();
                     v.setValue(orc.getSchemaName());
                     
-                    cSpec.add(c);
-                    kSpec.add(c);
+                    columns.add(c);
+                    keys.add(c);
                     
-                    for (ArrayList<OneRowChange.ColumnVal> cValues : orc.getColumnValues())
+                    for (ArrayList<OneRowChange.ColumnVal> cValues : columnValues)
                     {
                         cValues.add(v);
                     }
                     
-                    for (ArrayList<OneRowChange.ColumnVal> kValues : orc.getKeyValues())
+                    for (ArrayList<OneRowChange.ColumnVal> kValues : keyValues)
                     {
                         kValues.add(v);
                     }
@@ -108,6 +126,8 @@ public class SetDocumentSchema implements Filter
      */
     public void configure(PluginContext context) throws ReplicatorException
     {
+        tungstenSchema = context.getReplicatorProperties().getString(
+                ReplicatorConf.METADATA_SCHEMA);
     }
 
     /**
@@ -117,6 +137,7 @@ public class SetDocumentSchema implements Filter
      */
     public void prepare(PluginContext context) throws ReplicatorException
     {
+        
     }
 
     /**
@@ -126,5 +147,6 @@ public class SetDocumentSchema implements Filter
      */
     public void release(PluginContext context) throws ReplicatorException
     {
+        
     }
 }

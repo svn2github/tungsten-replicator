@@ -646,8 +646,12 @@ class MysqldumpAvailableCheck < ConfigureValidationCheck
   end
   
   def validate
-    path = cmd_result("which mysqldump")
-    info("mysqldump found at #{path}")
+    begin
+      path = cmd_result("which mysqldump")
+      info("mysqldump found at #{path}")
+    rescue CommandError
+      error("Unable to find mysqldump in your path")
+    end
   end
   
   def enabled?
