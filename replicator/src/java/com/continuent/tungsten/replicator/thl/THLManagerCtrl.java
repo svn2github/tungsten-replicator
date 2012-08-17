@@ -551,7 +551,7 @@ public class THLManagerCtrl
                 break;
             default :
                 type = "INSERT_ID";
-                return lastSchema;
+                break;
         }
         if (pureSQL)
         {
