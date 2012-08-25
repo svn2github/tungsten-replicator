@@ -268,6 +268,13 @@ class OSCheck < ConfigureValidationCheck
         system = cmd_result("cat /etc/redhat-release")
       elsif File.exist?("/etc/debian_version")
         system = cmd_result("cat /etc/debian_version")
+      elsif File.exist?("/etc/system-release")
+           system = cmd_result("cat /etc/system-release")
+           amazon_check = cmd_result("cat /etc/system-release | grep Amazon | wc -l")
+           if amazon_check == '0'
+              raise "Could not determine Linux distribution.  Tungsten has been tested on RedHat and Debian systems."
+              debug "Found \"/etc/system-release\" but it does not appear to be an Amazon distribution."
+           end
       else
         debug "Tungsten checks for the presence of \"/etc/redhat-release\" or \"/etc/debian_version\" to determine the distribution." 
         raise "Could not determine Linux distribution.  Tungsten has been tested on RedHat and Debian systems."
