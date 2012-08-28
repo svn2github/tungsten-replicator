@@ -33,7 +33,7 @@ replicator.role=@{REPL_ROLE}
 replicator.nativeSlaveTakeover=@{REPL_SVC_NATIVE_SLAVE_TAKEOVER}
 
 # URI to which we connect when this replicator is a slave.   
-replicator.master.connect.uri=thl://@{REPL_MASTERHOST}:@{REPL_MASTERPORT}/
+replicator.master.connect.uri=@{REPL_MASTER_URI}
 
 # URI for our listener when we are acting as a master.  Slaves 
 # use this as their connect URI.

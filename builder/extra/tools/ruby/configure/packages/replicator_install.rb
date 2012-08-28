@@ -284,6 +284,7 @@ class ReplicatorInstallPackage < ConfigurePackage
     if master_host == nil
       error("You must specify a value for --master-host")
     end
+    master_hosts = master_host.to_s().split(",")
     
     if service_options.getProperty(DEPLOYMENT_SERVICE) == nil
       error("You must specify a value for --service-name")
@@ -314,7 +315,7 @@ class ReplicatorInstallPackage < ConfigurePackage
       @config.setProperty([REPL_SERVICES, service_alias, REPL_DATASOURCE],
         datasource_alias)
       
-      if host == master_host &&
+      if master_hosts.include?(host) &&
           (@config.getProperty([REPL_SERVICES, service_alias, REPL_MASTERPORT]) == 
           @config.getProperty([REPL_SERVICES, service_alias, REPL_SVC_THL_PORT]))
         @config.setProperty([REPL_SERVICES, service_alias, REPL_ROLE], "master")
@@ -337,8 +338,17 @@ class ReplicatorInstallPackage < ConfigurePackage
           raise ""
         end
       rescue => e
-        unless cluster_hosts.include?(master_host)
-          confirm("The master-host (#{master_host}) does not appear in the cluster-hosts (#{cluster_hosts.join(', ')}).")
+        found_master = false
+
+        cluster_hosts.each{
+          |host|
+          if master_hosts.include?(host)
+            found_master = true
+          end
+        }
+        
+        unless found_master
+          confirm("The master-host (#{master_hosts.join(", ")}) does not appear in the cluster-hosts (#{cluster_hosts.join(', ')}).")
         end
       end
     end
@@ -639,17 +649,17 @@ class InstallerMasterSlaveCheck < ConfigureValidationCheck
       |s_key|
       if @config.getProperty([REPL_SERVICES, s_key, REPL_ROLE]) == REPL_ROLE_S
         found_master = false
-        master_host = @config.getProperty([REPL_SERVICES, s_key, REPL_MASTERHOST])
-        
+        master_hosts = @config.getProperty([REPL_SERVICES, s_key, REPL_MASTERHOST]).to_s().split(",")
+
         @config.getPropertyOr(HOSTS, {}).keys.each{
           |h_key|
-          if @config.getProperty([HOSTS, h_key, HOST]) == master_host
+          if master_hosts.include?(@config.getProperty([HOSTS, h_key, HOST]))
             found_master = true
           end
         }
         
         if found_master == false
-          error("Unable to find master host '#{master_host}' for service '#{@config.getProperty([REPL_SERVICES, s_key, DEPLOYMENT_SERVICE])}'")
+          error("Unable to find master host '#{master_hosts.join(", ")}' for service '#{@config.getProperty([REPL_SERVICES, s_key, DEPLOYMENT_SERVICE])}'")
           help("You can skip this check by adding --skip-validation-check=InstallerMasterSlaveCheck")
         end
       end

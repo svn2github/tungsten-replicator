@@ -431,6 +431,30 @@ class ReplicationServiceTHLMasterPort < ConfigurePrompt
   end
 end
 
+class ReplicationServiceTHLMasterURI < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_MASTER_URI, "Master THL URI", PV_ANY)
+  end
+  
+  def get_template_value(transform_values_method)
+    values = []
+    
+    hosts = @config.getPropertyOr(get_member_key(REPL_MASTERHOST), "").split(",")
+    port = @config.getProperty(get_member_key(REPL_MASTERPORT))
+    
+    hosts.each{
+      |host|
+      
+      values << "thl://#{host}:#{port}/"
+    }
+    
+    return values.join(",")
+  end
+end
+
 class ReplicationServiceTHLPort < ConfigurePrompt
   include ReplicationServicePrompt
   

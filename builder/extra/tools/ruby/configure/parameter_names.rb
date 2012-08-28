@@ -45,6 +45,7 @@ REPL_RMI_PORT = "repl_rmi_port"
 REPL_AUTOENABLE = "repl_auto_enable"
 REPL_DATASOURCE = 'repl_datasource'
 REPL_MASTER_DATASOURCE = "repl_master_datasource"
+REPL_MASTER_URI = "repl_master_uri"
 REPL_MASTERHOST = "repl_master_thl_host"
 REPL_MASTERPORT = "repl_master_thl_port"
 REPL_BACKUP_METHOD = "repl_backup_method"

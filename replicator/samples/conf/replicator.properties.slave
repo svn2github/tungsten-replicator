@@ -27,7 +27,7 @@ replicator.global.db.password=@{APPLIER.REPL_DBPASSWORD}
 replicator.role=@{REPL_ROLE}
 
 # URI to which we connect when this replicator is a slave.   
-replicator.master.connect.uri=thl://@{REPL_MASTERHOST}:@{REPL_MASTERPORT}/
+replicator.master.connect.uri=@{REPL_MASTER_URI}
 
 # Force replicator to check if THL is in sync with database. 
 # This check is enabled by default. Set the following property 
