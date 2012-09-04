@@ -47,8 +47,21 @@ module ConfigureDeploymentStepServices
     
     if @config.getProperty(SVC_REPORT) == "true"
       output("Getting services list")
-      services = cmd_result("#{get_deployment_basedir()}/tungsten-replicator/bin/trepctl -port #{@config.getProperty(REPL_RMI_PORT)} services")
-      output(services)
+      
+      begin
+        Timeout::timeout(30) {
+          while true
+            begin
+              services = cmd_result("#{get_deployment_basedir()}/tungsten-replicator/bin/trepctl -port #{@config.getProperty(REPL_RMI_PORT)} services")
+              output(services)
+              break
+            rescue CommandError
+            end
+          end
+        }
+      rescue Timeout::Error
+        warning("Unable to retrieve the list of services for the replicator.  Review the logs to see if there is an issue.")
+      end
     end
   end
   
