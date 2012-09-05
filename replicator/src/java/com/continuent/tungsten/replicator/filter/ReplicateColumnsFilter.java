@@ -48,9 +48,9 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * @see java.util.regex.Pattern
  * @see java.util.regex.Matcher
  */
-public class RemoveColumnsFilter implements Filter
+public class ReplicateColumnsFilter implements Filter
 {    
-    private static Logger            logger = Logger.getLogger(RemoveColumnsFilter.class);
+    private static Logger            logger = Logger.getLogger(ReplicateColumnsFilter.class);
     
     private TableMatcher             doMatcher;
     private TableMatcher             ignoreMatcher;
