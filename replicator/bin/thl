@@ -18,7 +18,7 @@ RPBIN=`dirname $0`
 RPHOME=`cd $RPBIN/..; pwd`
 
 # Add jars from all directories to class path.
-for jar in $RPHOME/lib/*.jar $RPHOME/lib/lib-ext/*.jar; do 
+for jar in $RPHOME/lib/*.jar $RPHOME/lib-ext/*.jar; do 
   if [ -z "$CP" ]; then
     CP=$jar
   else
