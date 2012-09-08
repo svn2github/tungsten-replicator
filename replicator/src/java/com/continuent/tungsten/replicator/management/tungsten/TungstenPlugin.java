@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -71,10 +71,15 @@ import com.continuent.tungsten.replicator.management.events.GoOfflineEvent;
 import com.continuent.tungsten.replicator.management.events.OfflineNotification;
 import com.continuent.tungsten.replicator.pipeline.Pipeline;
 import com.continuent.tungsten.replicator.pipeline.ShardProgress;
+import com.continuent.tungsten.replicator.pipeline.Stage;
+import com.continuent.tungsten.replicator.pipeline.StageProgressTracker;
 import com.continuent.tungsten.replicator.pipeline.TaskProgress;
+import com.continuent.tungsten.replicator.plugin.PluginSpecification;
 import com.continuent.tungsten.replicator.service.PipelineService;
 import com.continuent.tungsten.replicator.shard.ShardManager;
 import com.continuent.tungsten.replicator.storage.Store;
+import com.continuent.tungsten.replicator.util.Watch;
+import com.continuent.tungsten.replicator.util.WatchAction;
 
 /**
  * This class defines a ReplicatorManager, which is the starting class for a
@@ -730,7 +735,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                             + seqno + " to be applied.");
 
         Future<ReplDBMSHeader> expectedEvent = pipeline
-                .watchForAppliedSequenceNumber(seqno);
+                .watchForCommittedSequenceNumber(seqno, false);
 
         ReplDBMSHeader replEvent = null;
         try
@@ -898,7 +903,8 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                     props.put("otherTime",
                             Double.toString(progress.getTotalOtherSeconds()));
                     props.put("state", progress.getState().toString());
-                    ReplDBMSHeader lastCommittedEvent = progress.getLastCommittedEvent();
+                    ReplDBMSHeader lastCommittedEvent = progress
+                            .getLastCommittedEvent();
                     if (lastCommittedEvent == null)
                     {
                         props.put("appliedLastSeqno", "-1");
@@ -908,9 +914,11 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                     {
                         props.put("appliedLastSeqno",
                                 Long.toString(lastCommittedEvent.getSeqno()));
-                        props.put("appliedLastEventId", lastCommittedEvent.getEventId());
+                        props.put("appliedLastEventId",
+                                lastCommittedEvent.getEventId());
                     }
-                    ReplDBMSHeader lastDirtyEvent = progress.getLastProcessedEvent();
+                    ReplDBMSHeader lastDirtyEvent = progress
+                            .getLastProcessedEvent();
                     if (lastDirtyEvent == null)
                     {
                         props.put("currentLastSeqno", "-1");
@@ -921,8 +929,10 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                     {
                         props.put("currentLastSeqno",
                                 Long.toString(lastDirtyEvent.getSeqno()));
-                        props.put("currentLastEventId", lastDirtyEvent.getEventId());
-                        props.put("currentLastFragno", Short.toString(lastDirtyEvent.getFragno()));
+                        props.put("currentLastEventId",
+                                lastDirtyEvent.getEventId());
+                        props.put("currentLastFragno",
+                                Short.toString(lastDirtyEvent.getFragno()));
                     }
                     statusList.add(props);
                 }
@@ -992,6 +1002,57 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                     }
                 }
             }
+            else if ("stages".equals(name))
+            {
+                // Fetch stage information and put into the list.
+                List<Stage> stages = pipeline.getStages();
+                for (Stage stage : stages)
+                {
+                    Map<String, String> props = new HashMap<String, String>();
+                    props.put("name", stage.getName());
+                    props.put("taskCount",
+                            new Integer(stage.getTaskCount()).toString());
+                    props.put("blockCommitRowCount",
+                            new Integer(stage.getBlockCommitRowCount())
+                                    .toString());
+
+                    // Add stage components.
+                    props.put("applier.name", stage.getApplierSpec().getName());
+                    props.put("applier.class", stage.getApplierSpec()
+                            .getPluginClass().getName());
+                    props.put("extractor.name", stage.getExtractorSpec()
+                            .getName());
+                    props.put("extractor.class", stage.getExtractorSpec()
+                            .getPluginClass().getName());
+                    List<PluginSpecification> filters = stage.getFilterSpecs();
+                    for (int i = 0; i < filters.size(); i++)
+                    {
+                        String prefix = "filter." + i;
+                        props.put(prefix + ".name", filters.get(i).getName());
+                        props.put(prefix + ".class", filters.get(i)
+                                .getPluginClass().getName());
+                    }
+
+                    // Print stage progress.
+                    StageProgressTracker tracker = stage.getProgressTracker();
+                    props.put("committedMinSeqno",
+                            new Long(tracker.getCommittedMinSeqno()).toString());
+                    props.put("processedMinSeqno",
+                            new Long(tracker.getDirtyMinLastSeqno()).toString());
+
+                    statusList.add(props);
+                }
+            }
+            else if ("watches".equals(name))
+            {
+                List<Stage> stages = pipeline.getStages();
+                for (Stage stage : stages)
+                {
+                    // Fetch committed and processing watches.
+                    addWatchStatus(stage, statusList, true);
+                    addWatchStatus(stage, statusList, false);
+                }
+            }
 
             else
                 throw new ReplicatorException("Unrecognized status list type: "
@@ -1000,6 +1061,52 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
 
         // Return whatever we found.
         return statusList;
+    }
+
+    // Fetch watches and add list status list.
+    private void addWatchStatus(Stage stage,
+            List<Map<String, String>> statusList, boolean committed)
+    {
+        List<Watch<?>> watches = stage.getProgressTracker().getWatches(
+                committed);
+        for (Watch<?> watch : watches)
+        {
+            // Unfortunately running a "toString()" on the watch is a bit
+            // unsightly as it dumps data in a single line. We have to
+            // format it ourselves.
+            Map<String, String> props = new HashMap<String, String>();
+            WatchAction<?> action = watch.getAction();
+            props.put("stage", stage.getName());
+            props.put("committed", new Boolean(committed).toString());
+            props.put("action", action == null ? "none" : action.toString());
+            props.put("predicate", watch.getPredicate().toString());
+            props.put("cancelled", new Boolean(watch.isCancelled()).toString());
+            props.put("done", new Boolean(watch.isDone()).toString());
+
+            boolean[] matched = watch.getMatched();
+            StringBuffer matchString = new StringBuffer("[");
+            for (int i = 0; i < matched.length; i++)
+            {
+                if (i > 0)
+                    matchString.append(",");
+                matchString.append("[").append(i).append(":")
+                        .append(matched[i]).append("]");
+            }
+            matchString.append("]");
+            props.put("matched", matchString.toString());
+            statusList.add(props);
+        }
+
+        /*
+         * // Turn the list of matches into a string. StringBuffer matchString =
+         * new StringBuffer("["); for (int i = 0; i < matched.length; i++) { if
+         * (i > 0) matchString.append(",");
+         * matchString.append("[").append(i).append(":").append(matched[i])
+         * .append("]"); } matchString.append("]"); return
+         * this.getClass().getSimpleName() + " predicate=" +
+         * predicate.toString() + " done=" + done + " cancelled=" + cancelled +
+         * " matched=" + matchString.toString();
+         */
     }
 
     public void provision(String uri) throws Exception

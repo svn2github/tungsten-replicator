@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -48,6 +48,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 import com.continuent.tungsten.replicator.plugin.ReplicatorPlugin;
 import com.continuent.tungsten.replicator.service.PipelineService;
 import com.continuent.tungsten.replicator.storage.Store;
+import com.continuent.tungsten.replicator.util.Watch;
 
 /**
  * Stores the information related to a replication pipeline, which is a set of
@@ -561,6 +562,21 @@ public class Pipeline implements ReplicatorPlugin
     }
 
     /**
+     * Sets a watch for a particular sequence number to be safely committed on
+     * all channels at the end of the pipeline.
+     * 
+     * @param seqno Sequence number to watch for
+     * @param terminate If true, terminate task when watch is successful
+     * @return Returns a watch on matching event
+     * @throws InterruptedException
+     */
+    public Future<ReplDBMSHeader> watchForCommittedSequenceNumber(long seqno,
+            boolean terminate) throws InterruptedException
+    {
+        return stages.getLast().watchForCommittedSequenceNumber(seqno, false);
+    }
+
+    /**
      * Sets a watch for a particular sequence number to be applied.
      * 
      * @param seqno Sequence number to watch for
@@ -587,6 +603,14 @@ public class Pipeline implements ReplicatorPlugin
     }
 
     /**
+     * Returns the currently scheduled watches.
+     */
+    public List<Watch<?>> getWatches(boolean committed)
+    {
+        return stages.getLast().getProgressTracker().getWatches(committed);
+    }
+
+    /**
      * Find the current native event ID in the DBMS and wait until it reaches
      * the log.
      * 
@@ -600,6 +624,8 @@ public class Pipeline implements ReplicatorPlugin
     {
         Extractor extractor = stages.getFirst().getExtractor0();
         String currentEventId = extractor.getCurrentResourceEventId();
+        logger.info("Scheduling pipeline flush on current event ID: "
+                + currentEventId);
         return watchForAppliedEventId(currentEventId);
     }
 

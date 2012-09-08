@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -306,6 +306,24 @@ public class Stage implements ReplicatorPlugin
     public synchronized boolean isShutdown()
     {
         return taskGroup.isShutdown();
+    }
+
+    /**
+     * Sets a watch for a particular sequence number to be safely committed on
+     * all channels.
+     * 
+     * @param seqno Sequence number to watch for
+     * @param terminate If true, terminate task when watch is successful
+     * @return Returns a watch on matching event
+     * @throws InterruptedException
+     */
+    public Future<ReplDBMSHeader> watchForCommittedSequenceNumber(long seqno,
+            boolean terminate) throws InterruptedException
+    {
+        Future<ReplDBMSHeader> watch = progressTracker
+                .watchForCommittedSequenceNumber(seqno, terminate);
+        notifyThreads();
+        return watch;
     }
 
     /**

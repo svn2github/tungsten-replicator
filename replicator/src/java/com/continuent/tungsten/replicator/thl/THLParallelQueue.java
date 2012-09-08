@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,6 +24,8 @@ package com.continuent.tungsten.replicator.thl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
@@ -66,6 +68,9 @@ public class THLParallelQueue implements ParallelStore
     private int                                                 syncInterval        = 5000;
     private int                                                 maxOfflineInterval  = 300;
     private String                                              thlStoreName        = "thl";
+
+    // Plugin context in case we need to make inquiries.
+    private PluginContext                                       context;
 
     // THL for which we are implementing a parallel queue.
     private THL                                                 thl;
@@ -278,7 +283,7 @@ public class THLParallelQueue implements ParallelStore
         {
             logger.debug("Received event: seqno=" + event.getSeqno()
                     + " fragno=" + event.getFragno() + " lastFrag="
-                    + event.getLastFrag());
+                    + event.getLastFrag() + " shardId=" + event.getShardId());
         }
 
         // Update transaction count at end.
@@ -298,10 +303,21 @@ public class THLParallelQueue implements ParallelStore
 
         // Partition the event. Handle critical sections by "blocking to zero"
         // under the following circumstances:
+        //
         // 1.) Event is critical and we are not in a critical section.
         // 2.) We are in a critical section but the shard ID has changed.
         // 3.) Event is not critical and we are in a critical section.
+        //
+        // At section boundaries all threads must commit fully to avoid
+        // deadlocks.
         PartitionerResponse response = partitioner.partition(event, taskId);
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Assigning event to partition: seqno="
+                    + event.getSeqno() + " partition="
+                    + response.getPartition() + " critical="
+                    + response.isCritical());
+        }
         if (response.isCritical()
                 && (criticalPartition != response.getPartition()))
         {
@@ -426,15 +442,48 @@ public class THLParallelQueue implements ParallelStore
         }
     }
 
-    // Block until all queues are empty.
-    private void blockToZero() throws InterruptedException
+    // Block until all queues have committed their current transactions.
+    private void blockToZero() throws InterruptedException, ReplicatorException
     {
-        if (logger.isDebugEnabled())
+        // Add a sync event so we can block on it committing.
+        if (lastInsertedEvent != null)
         {
-            logger.debug("Blocking to zero: activeSize="
-                    + activeSize.getSeqno());
+            long requiredSeqno = lastInsertedEvent.getSeqno();
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Blocking to zero: seqno=" + requiredSeqno);
+            }
+
+            putControlEvent(ReplControlEvent.SYNC, lastInsertedEvent);
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Scheduling wait for committed event: seqno="
+                        + requiredSeqno);
+            }
+            Future<ReplDBMSHeader> future = context
+                    .waitForCommitted(requiredSeqno);
+            try
+            {
+                ReplDBMSHeader satisfyingEvent = future.get();
+                if (logger.isDebugEnabled())
+                {
+                    if (satisfyingEvent == null)
+                        logger.debug("Finished wait as seqno is committed: requiredSeqno="
+                                + requiredSeqno + " awaitedSeqno=null");
+                    else
+                        logger.debug("Finished wait as seqno is committed: requiredSeqno="
+                                + requiredSeqno
+                                + " awaitedSeqno="
+                                + satisfyingEvent.getSeqno());
+                }
+            }
+            catch (ExecutionException e)
+            {
+                throw new ReplicatorException(
+                        "Failure while waiting for pending event to commit: seqno="
+                                + requiredSeqno, e);
+            }
         }
-        activeSize.waitSeqnoLessEqual(0);
     }
 
     // Inserts a control event in all queues.
@@ -472,7 +521,9 @@ public class THLParallelQueue implements ParallelStore
         if (logger.isDebugEnabled())
         {
             logger.debug("Returning event: taskId=" + taskId + " seqno="
-                    + event.getSeqno() + " activeSize=" + activeSize.getSeqno());
+                    + event.getSeqno() + " type="
+                    + event.getClass().getSimpleName() + " activeSize="
+                    + activeSize.getSeqno());
         }
 
         // Only decrement for a proper event belonging to a transaction.
@@ -508,6 +559,9 @@ public class THLParallelQueue implements ParallelStore
     public synchronized void configure(PluginContext context)
             throws ReplicatorException
     {
+        // Store the context.
+        this.context = context;
+
         // Instantiate partitioner class.
         if (partitioner == null)
         {
@@ -598,6 +652,12 @@ public class THLParallelQueue implements ParallelStore
     {
         if (readTasks != null)
         {
+            // Dump statistics.
+            TungstenProperties status = status();
+            logger.info("Releasing THL parallel queue store: "
+                    + status.toString());
+
+            // Stop processing.
             for (THLParallelReadTask readTask : readTasks)
             {
                 // Stop the task thread again for good measure.

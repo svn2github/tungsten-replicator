@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -38,7 +38,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 /**
  * Implements an in-memory queue store with multiple queues. This is used for
  * testing other parallel queues where we need to simulate ability to apply in
- * parallel.
+ * parallel across a bunch of threads and tell what happened on each.  
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0

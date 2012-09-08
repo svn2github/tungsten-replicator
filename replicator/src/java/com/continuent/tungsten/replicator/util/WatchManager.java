@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,8 @@ package com.continuent.tungsten.replicator.util;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 /**
  * Manages a list of event watches and allows clients to submit events to the
  * list for processing to see if there is a predicate match. Methods are
@@ -35,6 +37,7 @@ import java.util.Vector;
  */
 public class WatchManager<E>
 {
+    private static Logger  logger    = Logger.getLogger(WatchManager.class);
     private List<Watch<E>> watchList = new Vector<Watch<E>>();
     boolean                cancelled = false;
 
@@ -64,6 +67,14 @@ public class WatchManager<E>
     }
 
     /**
+     * Returns the current list of watches.
+     */
+    public synchronized List<Watch<E>> getWatches()
+    {
+        return watchList;
+    }
+
+    /**
      * Submits an event for watch processing. This automatically dequeues any
      * matching watch instances and informs the watchers.
      * 
@@ -85,6 +96,11 @@ public class WatchManager<E>
                 watchList.remove(watch);
             else if (watch.offer(event, taskId))
             {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Watch succeeded: taskId=" + taskId
+                            + " watch=" + watch.toString());
+                }
                 // Execute the watch action.
                 WatchAction<E> action = watch.getAction();
                 if (action != null)
@@ -94,7 +110,14 @@ public class WatchManager<E>
 
                 // Dequeue if watch is fulfilled.
                 if (watch.isDone())
+                {
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Watch completed: watch="
+                                + watch.toString());
+                    }
                     watchList.remove(watch);
+                }
             }
         }
     }

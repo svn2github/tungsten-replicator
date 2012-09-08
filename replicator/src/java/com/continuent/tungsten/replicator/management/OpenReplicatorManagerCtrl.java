@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -129,7 +129,8 @@ public class OpenReplicatorManagerCtrl
         println("  restore [-uri uri] [-limit s]  - Restore database");
         println("  setrole -role role [-uri uri]  - Set replicator role");
         println("  start             - Start start replication service");
-        println("  status [-name {tasks|shards|stores|channel-assignments}] - Print replicator status information");
+        println("  status [-name {channel-assignments|services|shards|stages|stores|watches}] ");
+        println("                    - Print replicator status information");
         println("  stop [-y]         - Stop replication service");
         println("  wait -state s [-limit s] - Wait up to s seconds for replicator state s");
         println("  wait -applied n [-limit s] - Wait up to s seconds for seqno to be applied");

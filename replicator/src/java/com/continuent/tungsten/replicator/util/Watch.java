@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2010 Continuent Inc.
+ * Copyright (C) 2009-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -99,6 +99,14 @@ public class Watch<E> implements Future<E>
     public WatchAction<E> getAction()
     {
         return action;
+    }
+
+    /**
+     * Returns the array of matched conditions.
+     */
+    public boolean[] getMatched()
+    {
+        return matched;
     }
 
     /**
@@ -215,5 +223,27 @@ public class Watch<E> implements Future<E>
             throw new IllegalStateException(
                     "Operation submitted after watch completion");
 
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see java.lang.Object#toString()
+     */
+    public String toString()
+    {
+        // Turn the list of matches into a string.
+        StringBuffer matchString = new StringBuffer("[");
+        for (int i = 0; i < matched.length; i++)
+        {
+            if (i > 0)
+                matchString.append(",");
+            matchString.append("[").append(i).append(":").append(matched[i])
+                    .append("]");
+        }
+        matchString.append("]");
+        return this.getClass().getSimpleName() + " predicate="
+                + predicate.toString() + " done=" + done + " cancelled="
+                + cancelled + " matched=" + matchString.toString();
     }
 }

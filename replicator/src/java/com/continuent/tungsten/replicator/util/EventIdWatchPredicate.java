@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2009 Continuent Inc.
+ * Copyright (C) 2009-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -61,6 +61,6 @@ public class EventIdWatchPredicate implements WatchPredicate<ReplDBMSHeader>
      */
     public String toString()
     {
-        return this.getClass().getName() + " eventId=" + eventId;
+        return this.getClass().getSimpleName() + " eventId=" + eventId;
     }
 }

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,11 +23,13 @@
 package com.continuent.tungsten.replicator.plugin;
 
 import java.util.List;
+import java.util.concurrent.Future;
 
 import com.continuent.tungsten.commons.config.TungstenProperties;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.conf.FailurePolicy;
 import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.service.PipelineService;
 import com.continuent.tungsten.replicator.storage.Store;
 
@@ -154,4 +156,13 @@ public interface PluginContext
      * files used in upstream stages.
      */
     public long getCommittedSeqno();
+
+    /**
+     * Returns a future to allow clients to wait until the pipeline has safely
+     * committed the requested seqno.
+     * 
+     * @throws InterruptedException
+     */
+    public Future<ReplDBMSHeader> waitForCommitted(long seqno)
+            throws InterruptedException;
 }

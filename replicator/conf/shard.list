@@ -24,4 +24,4 @@
 
 # Method for channel hash assignments.  Allowed values are round-robin and 
 # string-hash. 
-(hash-method)=string-hash
+(hash-method)=round-robin

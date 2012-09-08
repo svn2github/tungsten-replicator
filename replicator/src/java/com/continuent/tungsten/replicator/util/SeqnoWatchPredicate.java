@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2009 Continuent Inc.
+ * Copyright (C) 2009-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -63,5 +63,15 @@ public class SeqnoWatchPredicate implements WatchPredicate<ReplDBMSHeader>
     public long getSeqno()
     {
         return seqno;
+    }
+
+    /**
+     * Returns the class name and the seqno for which we waiting. 
+     * 
+     * @see java.lang.Object#toString()
+     */
+    public String toString()
+    {
+        return this.getClass().getSimpleName() + " seqno=" + seqno;
     }
 }

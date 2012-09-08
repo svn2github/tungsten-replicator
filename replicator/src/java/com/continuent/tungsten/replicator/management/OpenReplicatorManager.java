@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -650,16 +650,23 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
      */
     class FlushEvent extends Event
     {
-        String eventId;
+        String             eventId;
+        private final long timeout;
 
-        public FlushEvent()
+        public FlushEvent(long timeout)
         {
             super(null);
+            this.timeout = timeout;
         }
 
         public void setEventFuture(String event)
         {
             eventId = event;
+        }
+
+        public long getTimeout()
+        {
+            return timeout;
         }
     }
 
@@ -1474,7 +1481,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 {
                     // Ask the plugin to perform a flush operation.
                     FlushEvent flushEvent = (FlushEvent) event;
-                    String future = openReplicator.flush(0);
+                    long timeout = flushEvent.getTimeout();
+                    String future = openReplicator.flush(timeout);
                     flushEvent.setEventFuture(future);
                 }
                 catch (Exception e)
@@ -2094,7 +2102,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             }
 
             // Enqueue a flush event.
-            FlushEvent flushEvent = new FlushEvent();
+            FlushEvent flushEvent = new FlushEvent(timeout);
             handleEventSynchronous(flushEvent);
 
             // TODO: should return seqno of the waited event

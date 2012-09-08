@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -48,8 +48,9 @@ import com.continuent.tungsten.replicator.util.WatchPredicate;
 /**
  * Tracks the current status of replication and implements event watches. This
  * class maintains a clear distinction between the latest event processed and
- * the latest event committed. The methods for these values are designated
- * "dirty" and "committed" respectively.
+ * the latest event committed. The methods to get these values are designated
+ * "dirty" and "committed" respectively to make this distinction as clear as
+ * possible.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  */
@@ -66,10 +67,8 @@ public class StageProgressTracker
     private final TreeMap<String, ShardProgress> shardInfo           = new TreeMap<String, ShardProgress>();
 
     // Watch lists.
-    private final WatchManager<ReplDBMSHeader>   seqnoWatches        = new WatchManager<ReplDBMSHeader>();
-    private final WatchManager<ReplDBMSHeader>   eventIdWatches      = new WatchManager<ReplDBMSHeader>();
-    private final WatchManager<ReplDBMSHeader>   heartbeatWatches    = new WatchManager<ReplDBMSHeader>();
-    private final WatchManager<ReplDBMSHeader>   timestampWatches    = new WatchManager<ReplDBMSHeader>();
+    private final WatchManager<ReplDBMSHeader>   processingWatches   = new WatchManager<ReplDBMSHeader>();
+    private final WatchManager<ReplDBMSHeader>   commitWatches       = new WatchManager<ReplDBMSHeader>();
 
     // Upstream parallel store for inserting watch events.
     ParallelStore                                upstreamStore       = null;
@@ -86,6 +85,11 @@ public class StageProgressTracker
                                                                          {
                                                                              taskInfo[taskId]
                                                                                      .setCancelled(true);
+                                                                         }
+
+                                                                         public String toString()
+                                                                         {
+                                                                             return "cancel tasks";
                                                                          }
                                                                      };
 
@@ -306,13 +310,10 @@ public class StageProgressTracker
             taskInfo[taskId].setLastProcessedEvent(replEvent);
         }
 
-        // If we have a real event, process watches.
+        // If we have a real event, update watches for processed events.
         if (replEvent instanceof ReplDBMSEvent)
         {
-            seqnoWatches.process(replEvent, taskId);
-            eventIdWatches.process(replEvent, taskId);
-            heartbeatWatches.process(replEvent, taskId);
-            timestampWatches.process(replEvent, taskId);
+            processingWatches.process(replEvent, taskId);
         }
         if (loggingInterval > 0 && eventCount % loggingInterval == 0)
             logger.info("Stage processing counter: event count=" + eventCount);
@@ -326,15 +327,19 @@ public class StageProgressTracker
         ReplDBMSHeader processed = taskInfo[taskId].getLastProcessedEvent();
         if (processed != null)
         {
+            // Note that the event has been committed.
             ReplDBMSHeader committed = new ReplDBMSHeaderData(processed);
+            taskInfo[taskId].setLastCommittedEvent(committed);
             committedSeqno.report(taskId, committed.getSeqno(), committed
                     .getExtractedTstamp().getTime(), committed);
-            taskInfo[taskId].setLastCommittedEvent(committed);
             if (logger.isDebugEnabled())
             {
                 logger.debug("[" + name + "] commit: taskId=" + taskId
                         + " seqno=" + committed.getSeqno());
             }
+
+            // Process watches for committed events.
+            commitWatches.process(committed, taskId);
         }
     }
 
@@ -349,7 +354,7 @@ public class StageProgressTracker
     /**
      * Return true if task has been cancelled.
      */
-    public boolean isCancelled(int taskId)
+    public synchronized boolean isCancelled(int taskId)
     {
         return taskInfo[taskId].isCancelled();
     }
@@ -366,7 +371,7 @@ public class StageProgressTracker
     /**
      * Return true if all task are cancelled.
      */
-    public boolean allCancelled()
+    public synchronized boolean allCancelled()
     {
         for (TaskProgress progress : taskInfo)
         {
@@ -379,7 +384,7 @@ public class StageProgressTracker
     /**
      * Return true if we need to interrupt the task(s) after cancellation.
      */
-    public boolean shouldInterruptTask()
+    public synchronized boolean shouldInterruptTask()
     {
         return shouldInterruptTask;
     }
@@ -389,8 +394,8 @@ public class StageProgressTracker
      */
     public synchronized void release()
     {
-        this.eventIdWatches.cancelAll();
-        this.seqnoWatches.cancelAll();
+        processingWatches.cancelAll();
+        commitWatches.cancelAll();
     }
 
     /**
@@ -405,11 +410,27 @@ public class StageProgressTracker
             long seqno, boolean cancel) throws InterruptedException
     {
         SeqnoWatchPredicate seqnoPredicate = new SeqnoWatchPredicate(seqno);
-        return waitForEvent(seqnoPredicate, seqnoWatches, cancel);
+        return waitForProcessedEvent(seqnoPredicate, cancel);
     }
 
     /**
-     * Sets a watch for a particular event ID to be extracted.
+     * Sets a watch for a particular sequence number to be safely committed on
+     * all channels.
+     * 
+     * @param seqno Sequence number to watch for
+     * @param cancel If true, terminate task when watch is successful
+     * @return Returns a watch on the matching event
+     * @throws InterruptedException
+     */
+    public synchronized Future<ReplDBMSHeader> watchForCommittedSequenceNumber(
+            long seqno, boolean cancel) throws InterruptedException
+    {
+        SeqnoWatchPredicate seqnoPredicate = new SeqnoWatchPredicate(seqno);
+        return waitForCommittedEvent(seqnoPredicate, cancel);
+    }
+
+    /**
+     * Sets a watch for a particular event ID to be processed.
      * 
      * @param eventId Native event ID to watch for
      * @param cancel If true, terminate task when watch is successful
@@ -421,7 +442,7 @@ public class StageProgressTracker
     {
         EventIdWatchPredicate eventPredicate = new EventIdWatchPredicate(
                 eventId);
-        return waitForEvent(eventPredicate, eventIdWatches, cancel);
+        return waitForProcessedEvent(eventPredicate, cancel);
     }
 
     /**
@@ -439,9 +460,10 @@ public class StageProgressTracker
         // there was one before. This prevents confusion in the event that
         // the last event processed happened to be a heartbeat.
         if (cancel)
-            return heartbeatWatches.watch(predicate, threadCount, cancelAction);
+            return processingWatches
+                    .watch(predicate, threadCount, cancelAction);
         else
-            return heartbeatWatches.watch(predicate, threadCount);
+            return processingWatches.watch(predicate, threadCount);
     }
 
     /**
@@ -457,43 +479,102 @@ public class StageProgressTracker
     {
         SourceTimestampWatchPredicate predicate = new SourceTimestampWatchPredicate(
                 timestamp);
-        return waitForEvent(predicate, timestampWatches, cancel);
+        return waitForProcessedEvent(predicate, cancel);
+    }
+
+    /**
+     * Set a watch on a processed (as opposed to a committed event). This is an
+     * event that has been processed completely the task loop but which there
+     * has not been a commit. This must be synchronized to compute the minimum
+     * processed event.
+     */
+    private Future<ReplDBMSHeader> waitForProcessedEvent(
+            WatchPredicate<ReplDBMSHeader> predicate, boolean cancel)
+            throws InterruptedException
+    {
+        // Find the trailing event that has been processed across all
+        // tasks, then request the watch to be added to the processing
+        // watch list.
+        ReplDBMSHeader lastEvent = getDirtyMinLastEvent();
+        return waitForEvent(predicate, cancel, lastEvent, processingWatches,
+                false);
+    }
+
+    /**
+     * Set a watch on a committed event. This is an event that has been
+     * processed completely the task loop *and* committed. This must be
+     * synchronized to compute the minimum committed event.
+     */
+    private Future<ReplDBMSHeader> waitForCommittedEvent(
+            WatchPredicate<ReplDBMSHeader> predicate, boolean cancel)
+            throws InterruptedException
+    {
+        // Find the trailing event that has been committed across all
+        // tasks, then request the watch to be added to the committed
+        // watch list.
+        ReplDBMSHeader lastEvent = getCommittedMinEvent();
+        return waitForEvent(predicate, cancel, lastEvent, commitWatches, true);
     }
 
     /**
      * Private utility to set a watch of arbitrary type. This *must* be
-     * synchronized to ensure we compute minimum events correctly.
+     * synchronized to ensure we compute minimum events correctly. Note the
+     * arguments and the distinction between whether an event is fully committed
+     * or merely processed.
+     * 
+     * @param predicate A predicate that goes to true when watch is fulfilled
+     * @param cancel If true, execute cancelAction on fulfillment
+     * @param lastHeader The most recent event that can satisfy this watch
+     * @param watchManager The correct watch manager for this type of watch
+     * @param committed If true, we are watching for a committed event,
+     *            otherwise a processed event
+     * @return A watch on this condition
+     * @throws InterruptedException
      */
     private Future<ReplDBMSHeader> waitForEvent(
-            WatchPredicate<ReplDBMSHeader> predicate,
-            WatchManager<ReplDBMSHeader> manager, boolean cancel)
+            WatchPredicate<ReplDBMSHeader> predicate, boolean cancel,
+            ReplDBMSHeader lastEvent,
+            WatchManager<ReplDBMSHeader> watchManager, boolean committed)
             throws InterruptedException
     {
-        // Find the trailing event that has been processed across all
-        // tasks.
-        ReplDBMSHeader lastEvent = getDirtyMinLastEvent();
         Watch<ReplDBMSHeader> watch;
         if (lastEvent == null || !predicate.match(lastEvent))
         {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Enqueueing watch for event: predicate="
+                        + predicate.toString() + " cancel=" + cancel
+                        + " committed=" + committed);
+            }
             // We have not reached the requested event, so we have to enqueue
             // a watch.
             if (cancel)
-                watch = manager.watch(predicate, threadCount, cancelAction);
+                watch = watchManager
+                        .watch(predicate, threadCount, cancelAction);
             else
-                watch = manager.watch(predicate, threadCount);
-            offerAll(watch);
+                watch = watchManager.watch(predicate, threadCount);
+            offerAll(watch, committed);
 
             // If there is an upstream parallel store we need to ensure there
-            // are synchronization events on all queues.
+            // are synchronization events on all queues so that we get the
+            // correct state of each queue.
             if (upstreamStore != null)
                 upstreamStore.insertWatchSyncEvent(watch.getPredicate());
         }
         else
         {
-            // We have already reached it, so signal that we are cancelled, post
-            // an interrupt flag, and return the current event.
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Generating watch for already reached event: predicate="
+                        + predicate.toString()
+                        + " cancel="
+                        + cancel
+                        + " committed=" + committed);
+            }
+            // We have already reached it, so signal for cancellation, if
+            // requested, and return the current event.
             watch = new Watch<ReplDBMSHeader>(predicate, threadCount);
-            offerAll(watch);
+            offerAll(watch, committed);
             if (cancel)
             {
                 cancelAll();
@@ -501,21 +582,46 @@ public class StageProgressTracker
             }
         }
 
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Returning watch to caller: watch=" + watch.toString());
+        }
         return watch;
     }
 
     // Offers the watch to each task in succession. This operation ensures
     // watches are correctly initialized in the event that some threads but
     // not others have satisfied the watch predicate.
-    private void offerAll(Watch<ReplDBMSHeader> watch)
+    private void offerAll(Watch<ReplDBMSHeader> watch, boolean committed)
             throws InterruptedException
     {
         for (int i = 0; i < this.taskInfo.length; i++)
         {
-            ReplDBMSHeader event = taskInfo[i].getLastProcessedEvent();
+            ReplDBMSHeader event;
+            if (committed)
+                event = taskInfo[i].getLastCommittedEvent();
+            else
+                event = taskInfo[i].getLastProcessedEvent();
+
             if (event != null)
                 watch.offer(event, i);
         }
+    }
+
+    /**
+     * Returns current watches.
+     * 
+     * @param committed If true returned watches for committed events
+     * @return
+     */
+    public synchronized List<Watch<?>> getWatches(boolean committed)
+    {
+        WatchManager<ReplDBMSHeader> manager;
+        if (committed)
+            manager = commitWatches;
+        else
+            manager = processingWatches;
+        return new ArrayList<Watch<?>>(manager.getWatches());
     }
 
     /**

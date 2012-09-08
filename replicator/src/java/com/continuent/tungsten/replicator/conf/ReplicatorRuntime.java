@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Future;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
@@ -34,6 +35,7 @@ import com.continuent.tungsten.commons.config.PropertyException;
 import com.continuent.tungsten.commons.config.TungstenProperties;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.filter.FilterManualProperties;
 import com.continuent.tungsten.replicator.management.OpenReplicatorContext;
 import com.continuent.tungsten.replicator.pipeline.Pipeline;
@@ -971,6 +973,17 @@ public class ReplicatorRuntime implements PluginContext
     public long getCommittedSeqno()
     {
         return pipeline.getLastAppliedSeqno();
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#blockUntilCommitted(long)
+     */
+    public Future<ReplDBMSHeader> waitForCommitted(long seqno)
+            throws InterruptedException
+    {
+        return pipeline.watchForCommittedSequenceNumber(seqno, false);
     }
 
     /**
