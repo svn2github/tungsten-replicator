@@ -243,7 +243,7 @@ public class THLParallelQueueTest extends TestCase
         // serialized the expected number of times.
         Future<ReplDBMSHeader> committed = pipeline
                 .watchForCommittedSequenceNumber(maxEvents - 1, false);
-        committed.get(10, TimeUnit.SECONDS);
+        committed.get(60, TimeUnit.SECONDS);
 
         int actualSerialized = getSerializationCount(tpq);
         assertEquals("Checking expected serialization count", serialized,
