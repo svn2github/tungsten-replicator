@@ -33,6 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -65,7 +66,7 @@ import com.continuent.tungsten.replicator.thl.log.LogConnection;
 
 /**
  * Implements a test of parallel THL operations. Parallel THL operation requires
- * a pipeline THL coupled with a THLParallelQueue.
+ * a pipeline consisting of a THL coupled with a THLParallelQueue.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
@@ -74,6 +75,10 @@ public class THLParallelQueueTest
 {
     private static Logger             logger = Logger.getLogger(THLParallelQueueTest.class);
     private static TungstenProperties testProperties;
+
+    /** Each test uses this pipeline and runtime. */
+    private Pipeline                  pipeline;
+    private ReplicatorRuntime         runtime;
 
     /**
      * Make sure we have expected test properties.
@@ -103,6 +108,24 @@ public class THLParallelQueueTest
         }
     }
 
+    /**
+     * Shut down pipeline at end of test.
+     */
+    @After
+    public void teardown()
+    {
+        if (pipeline != null)
+        {
+            logger.info("Shutting down pipeline...");
+            pipeline.shutdown(false);
+        }
+        if (runtime != null)
+        {
+            logger.info("Releasing runtime...");
+            runtime.release();
+        }
+    }
+
     /*
      * Verify that we can start and stop a pipeline containing a THL with a
      * THLParallelQueue.
@@ -115,12 +138,11 @@ public class THLParallelQueueTest
         // Set up and start pipelines.
         TungstenProperties conf = this.generateTHLParallelQueueProps(
                 "testPipelineStartStop", 1);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Close down pipeline.
@@ -140,12 +162,11 @@ public class THLParallelQueueTest
         // Set up and start pipelines.
         TungstenProperties conf = this.generateTHLParallelQueueProps(
                 "testSingleChannel", 1);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
@@ -159,10 +180,6 @@ public class THLParallelQueueTest
                 thl.getMinStoredSeqno());
         Assert.assertEquals("Expected 9 as last event", 9,
                 thl.getMaxStoredSeqno());
-
-        // Close down pipeline.
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     /*
@@ -176,13 +193,12 @@ public class THLParallelQueueTest
 
         // Set up and start pipelines.
         TungstenProperties conf = this.generateTHLParallelQueueProps(
-                "testSingleChannel", 1);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+                "testMultipleChannels", 1);
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
@@ -196,10 +212,6 @@ public class THLParallelQueueTest
                 thl.getMinStoredSeqno());
         Assert.assertEquals("Expected 9 as last event", 9,
                 thl.getMaxStoredSeqno());
-
-        // Close down pipeline.
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     /**
@@ -229,12 +241,11 @@ public class THLParallelQueueTest
         // increasing.
         TungstenProperties conf = this.generateTHLParallelPipeline(
                 "testMultiChannelSerialization", 3, 50, 1000, false);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Fetch references to stores.
@@ -288,6 +299,7 @@ public class THLParallelQueueTest
             conn.store(thlEvent, false);
             conn.commit();
         }
+        thl.disconnect(conn);
 
         // Wait for the last event to commit and then ensure we
         // serialized the expected number of times.
@@ -345,11 +357,6 @@ public class THLParallelQueueTest
                 }
             }
         }
-
-        // Close down pipeline.
-        thl.disconnect(conn);
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     /**
@@ -366,12 +373,11 @@ public class THLParallelQueueTest
         // increasing.
         TungstenProperties conf = this.generateTHLParallelPipeline(
                 "testSerialization", 1, 50, 100, false);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Fetch references to stores.
@@ -417,14 +423,10 @@ public class THLParallelQueueTest
                         serializationCount, serializationCount2);
             }
         }
+        thl.disconnect(conn);
 
         // Ensure we serialized 11 (= 33 / 3) events in total.
         Assert.assertEquals("Serialization total", 11, serialized);
-
-        // Close down pipeline.
-        thl.disconnect(conn);
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     /**
@@ -441,12 +443,11 @@ public class THLParallelQueueTest
         // Set up and prepare pipeline.
         TungstenProperties conf = this.generateTHLParallelPipeline(
                 "testMultiChannelBasic", 3, 50, 100, true);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Fetch references to stores.
@@ -480,10 +481,6 @@ public class THLParallelQueueTest
                         rde2.getShardId());
             }
         }
-
-        // Close down pipeline.
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     /**
@@ -501,12 +498,11 @@ public class THLParallelQueueTest
         // 1 as we just want to confirm that watches are working.
         TungstenProperties conf = this.generateTHLParallelPipeline(
                 "testSinglePartitionWatch", 1, 50, 200, true);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Fetch references to stores.
@@ -543,6 +539,7 @@ public class THLParallelQueueTest
                 conn.commit();
         }
         conn.commit();
+        thl.disconnect(conn);
 
         // Read 100 events. Ensure the events follow the expected seqno
         // sequence.
@@ -572,11 +569,6 @@ public class THLParallelQueueTest
                     "Commit watches may fire on equal or greater seqno",
                     seqno >= committed.getSeqno());
         }
-
-        // Close down pipeline.
-        thl.disconnect(conn);
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     /**
@@ -593,12 +585,11 @@ public class THLParallelQueueTest
         // Set up and prepare pipeline.
         TungstenProperties conf = this.generateTHLParallelPipeline(
                 "testLaggingChannels", 3, 50, 100, true);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Fetch references to stores.
@@ -653,10 +644,6 @@ public class THLParallelQueueTest
             if (i % 10000 == 0)
                 logger.info("Current seqno: " + rde3.getSeqno());
         }
-
-        // Close down pipeline.
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     /**
@@ -671,12 +658,11 @@ public class THLParallelQueueTest
         // Set up and prepare pipeline.
         TungstenProperties conf = this.generateTHLParallelPipeline(
                 "testMultiChannelLag", 30, 50, 100, true);
-        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(),
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
-        Pipeline pipeline = runtime.getPipeline();
+        pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
         // Fetch references to stores.
@@ -729,10 +715,6 @@ public class THLParallelQueueTest
                 }
             }
         }
-
-        // Close down pipeline.
-        pipeline.shutdown(false);
-        runtime.release();
     }
 
     // Returns the current serialization count from a parallel queue.
@@ -875,17 +857,26 @@ public class THLParallelQueueTest
 
     // Create an empty log directory or if the directory exists remove
     // any files within it.
-    private File prepareLogDir(String logDirName)
+    private File prepareLogDir(String logDirName) throws Exception
     {
         File logDir = new File(logDirName);
         // Delete old log if present.
         if (logDir.exists())
         {
+            logger.info("Clearing log dir: " + logDir.getAbsolutePath());
             for (File f : logDir.listFiles())
             {
                 f.delete();
             }
             logDir.delete();
+        }
+
+        // If the log directory exists now, we have a problem.
+        if (logDir.exists())
+        {
+            throw new Exception(
+                    "Unable to clear log directory, test cannot start: "
+                            + logDir.getAbsolutePath());
         }
 
         // Create new log directory.

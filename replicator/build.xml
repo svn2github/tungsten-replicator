@@ -169,6 +169,7 @@
         </copy>
         <copy file="samples/conf/replicator.properties.slave"
               toFile="${test.work}/replicator.properties"/>
+        <copy file="test.properties" todir="${test.work}"/>
 
         <junit printsummary="yes" haltonfailure="no" fork="yes"
           dir="${test.work}" failureproperty="tests.failed" timeout="500000">
