@@ -807,7 +807,7 @@ public class MysqlBinlog
                 len = NULL_LENGTH;
                 break;
             case 252 :
-                len = LittleEndianConversion.convert2BytesToInt_2(buffer,
+                len = LittleEndianConversion.convert2BytesToInt(buffer,
                         position + 1);
                 position += 3;
                 break;

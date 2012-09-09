@@ -223,18 +223,4 @@ public class LittleEndianConversion extends GeneralConversion
         }
         return ret;
     }
-
-    public static int convert2BytesToInt_2(byte[] buffer, int offset)
-            throws IOException
-    {
-        ByteArrayInputStream byte_in = new ByteArrayInputStream(buffer);
-        DataInputStream data_in = new DataInputStream(byte_in);
-        /* skip the offset */
-        data_in.skip(offset);
-
-        int value;
-        value = data_in.readUnsignedShort();
-        return value;
-    }
-
 }
