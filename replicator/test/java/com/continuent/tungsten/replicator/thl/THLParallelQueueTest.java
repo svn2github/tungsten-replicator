@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.thl;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,9 +32,10 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.TestCase;
-
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import com.continuent.tungsten.commons.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -68,14 +70,44 @@ import com.continuent.tungsten.replicator.thl.log.LogConnection;
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
  */
-public class THLParallelQueueTest extends TestCase
+public class THLParallelQueueTest
 {
-    private static Logger logger = Logger.getLogger(THLParallelQueueTest.class);
+    private static Logger             logger = Logger.getLogger(THLParallelQueueTest.class);
+    private static TungstenProperties testProperties;
+
+    /**
+     * Make sure we have expected test properties.
+     * 
+     * @throws java.lang.Exception
+     */
+    @BeforeClass
+    public static void setUpBeforeClass() throws Exception
+    {
+        // Set test.properties file name.
+        String testPropertiesName = System.getProperty("test.properties");
+        if (testPropertiesName == null)
+        {
+            testPropertiesName = "test.properties";
+            logger.info("Setting test.properties file name to default: test.properties");
+        }
+
+        // Load properties file.
+        testProperties = new TungstenProperties();
+        File f = new File(testPropertiesName);
+        if (f.canRead())
+        {
+            logger.info("Reading test.properties file: " + testPropertiesName);
+            FileInputStream fis = new FileInputStream(f);
+            testProperties.load(fis);
+            fis.close();
+        }
+    }
 
     /*
      * Verify that we can start and stop a pipeline containing a THL with a
      * THLParallelQueue.
      */
+    @Test
     public void testPipelineStartStop() throws Exception
     {
         logger.info("##### testPipelineStartStop #####");
@@ -100,6 +132,7 @@ public class THLParallelQueueTest extends TestCase
      * Verify that a pipeline with a single channel successfully transmits
      * events from end to end.
      */
+    @Test
     public void testSingleChannel() throws Exception
     {
         logger.info("##### testSingleChannel #####");
@@ -118,11 +151,14 @@ public class THLParallelQueueTest extends TestCase
         // Wait for and verify events.
         Future<ReplDBMSHeader> wait = pipeline.watchForAppliedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
-        assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
+        Assert.assertEquals("Expected 10 server events", 9,
+                lastEvent.getSeqno());
 
         Store thl = pipeline.getStore("thl");
-        assertEquals("Expected 0 as first event", 0, thl.getMinStoredSeqno());
-        assertEquals("Expected 9 as last event", 9, thl.getMaxStoredSeqno());
+        Assert.assertEquals("Expected 0 as first event", 0,
+                thl.getMinStoredSeqno());
+        Assert.assertEquals("Expected 9 as last event", 9,
+                thl.getMaxStoredSeqno());
 
         // Close down pipeline.
         pipeline.shutdown(false);
@@ -133,6 +169,7 @@ public class THLParallelQueueTest extends TestCase
      * Verify that a pipeline with multiple channels successfully transmits
      * events from end to end.
      */
+    @Test
     public void testMultipleChannels() throws Exception
     {
         logger.info("##### testMultipleChannels #####");
@@ -151,11 +188,14 @@ public class THLParallelQueueTest extends TestCase
         // Wait for and verify events.
         Future<ReplDBMSHeader> wait = pipeline.watchForAppliedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
-        assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
+        Assert.assertEquals("Expected 10 server events", 9,
+                lastEvent.getSeqno());
 
         Store thl = pipeline.getStore("thl");
-        assertEquals("Expected 0 as first event", 0, thl.getMinStoredSeqno());
-        assertEquals("Expected 9 as last event", 9, thl.getMaxStoredSeqno());
+        Assert.assertEquals("Expected 0 as first event", 0,
+                thl.getMinStoredSeqno());
+        Assert.assertEquals("Expected 9 as last event", 9,
+                thl.getMaxStoredSeqno());
 
         // Close down pipeline.
         pipeline.shutdown(false);
@@ -169,10 +209,20 @@ public class THLParallelQueueTest extends TestCase
      * which helps make serialization errors easier to see. This simulates a
      * DBMS with slow commits.
      */
+    @Test
     public void testMultiChannelSerialization() throws Exception
     {
         logger.info("##### testMultiChannelSerialization #####");
         int maxEvents = 25;
+
+        // Make sure that this case is enabled.
+        boolean enabled = testProperties
+                .getBoolean("testMultiChannelSerialization");
+        if (!enabled)
+        {
+            logger.info("Test case is not enabled...Skipping it!");
+            return;
+        }
 
         // Set up and prepare pipeline. We set the channel count to
         // 1 as we just want to confirm that serialization counts are
@@ -246,8 +296,8 @@ public class THLParallelQueueTest extends TestCase
         committed.get(60, TimeUnit.SECONDS);
 
         int actualSerialized = getSerializationCount(tpq);
-        assertEquals("Checking expected serialization count", serialized,
-                actualSerialized);
+        Assert.assertEquals("Checking expected serialization count",
+                serialized, actualSerialized);
 
         // Read through the events in the serialized queue and ensure they
         // are properly stratified. Basically the serialized #UNKNOWN
@@ -267,7 +317,7 @@ public class THLParallelQueueTest extends TestCase
                 // in the hash map unless we are on the first iteration.
                 if (i > 0)
                 {
-                    assertEquals(
+                    Assert.assertEquals(
                             "Checking preceding events for serialized seqno="
                                     + seqno, 2, dbHash.size());
                 }
@@ -306,6 +356,7 @@ public class THLParallelQueueTest extends TestCase
      * Verify that on-disk queues increment the serialization count each time a
      * serialized event is processed.
      */
+    @Test
     public void testSerialization() throws Exception
     {
         logger.info("##### testSerialization #####");
@@ -351,24 +402,24 @@ public class THLParallelQueueTest extends TestCase
 
             // Ensure that we got the event back and that the serialization
             // count incremented by one *only* for #UNKNOWN events.
-            assertEquals("Read back same event", rde.getSeqno(),
+            Assert.assertEquals("Read back same event", rde.getSeqno(),
                     rde2.getSeqno());
             int serializationCount2 = getSerializationCount(tpq);
             if ("#UNKNOWN".equals(rde.getShardId()))
             {
                 serialized++;
-                assertEquals("Expect serialization to increment",
+                Assert.assertEquals("Expect serialization to increment",
                         serializationCount + 1, serializationCount2);
             }
             else
             {
-                assertEquals("Expect serialization to remain the same",
+                Assert.assertEquals("Expect serialization to remain the same",
                         serializationCount, serializationCount2);
             }
         }
 
         // Ensure we serialized 11 (= 33 / 3) events in total.
-        assertEquals("Serialization total", 11, serialized);
+        Assert.assertEquals("Serialization total", 11, serialized);
 
         // Close down pipeline.
         thl.disconnect(conn);
@@ -382,6 +433,7 @@ public class THLParallelQueueTest extends TestCase
      * partitioning on shard name. We write and read directly to/from the linked
      * THL and THLParallelQueue to confirm behavior.
      */
+    @Test
     public void testMultiChannelBasic() throws Exception
     {
         logger.info("##### testMultiChannelBasic #####");
@@ -422,9 +474,9 @@ public class THLParallelQueueTest extends TestCase
             for (int i = 0; i < 30; i++)
             {
                 ReplDBMSEvent rde2 = (ReplDBMSEvent) mq.get(q);
-                assertTrue("Seqno increases due to partial order",
+                Assert.assertTrue("Seqno increases due to partial order",
                         rde2.getSeqno() > seqno);
-                assertEquals("Shard ID matches queue", shardId,
+                Assert.assertEquals("Shard ID matches queue", shardId,
                         rde2.getShardId());
             }
         }
@@ -440,6 +492,7 @@ public class THLParallelQueueTest extends TestCase
      * implement this test by inserting watch events on even sequence numbers
      * then picking them out from queues.
      */
+    @Test
     public void testSinglePartitionWatch() throws Exception
     {
         logger.info("##### testSinglePartitionWatch #####");
@@ -496,7 +549,7 @@ public class THLParallelQueueTest extends TestCase
         for (int i = 0; i < 100; i++)
         {
             ReplDBMSEvent rde2 = mq.get(0);
-            assertEquals("Checking sequence number", i, rde2.getSeqno());
+            Assert.assertEquals("Checking sequence number", i, rde2.getSeqno());
         }
 
         // Now check that all watches fired. Processing watches should fire
@@ -510,12 +563,13 @@ public class THLParallelQueueTest extends TestCase
                     TimeUnit.SECONDS);
             logger.info("Processing watch [" + i + "]: watch seqno=" + seqno
                     + " trigger seqno=" + processed.getSeqno());
-            assertEquals("Processing watches must match exact seqno", seqno,
-                    processed.getSeqno());
+            Assert.assertEquals("Processing watches must match exact seqno",
+                    seqno, processed.getSeqno());
             ReplDBMSHeader committed = commits.get(i).get(10, TimeUnit.SECONDS);
             logger.info("Committed watch [" + i + "]: watch seqno=" + seqno
                     + " trigger seqno=" + committed.getSeqno());
-            assertTrue("Commit watches may fire on equal or greater seqno",
+            Assert.assertTrue(
+                    "Commit watches may fire on equal or greater seqno",
                     seqno >= committed.getSeqno());
         }
 
@@ -531,6 +585,7 @@ public class THLParallelQueueTest extends TestCase
      * capacity. This proves that the parallel THL queue can handle a very large
      * gap between the positions of different partitions.
      */
+    @Test
     public void testLaggingChannels() throws Exception
     {
         logger.info("##### testLaggingChannels #####");
@@ -580,9 +635,10 @@ public class THLParallelQueueTest extends TestCase
         for (int i = 100000; i < 100100; i++)
         {
             ReplDBMSEvent rde2 = (ReplDBMSEvent) mq.get(1);
-            assertEquals("Seqno matches expected for this queue", i,
+            Assert.assertEquals("Seqno matches expected for this queue", i,
                     rde2.getSeqno());
-            assertEquals("Shard ID matches queue", "db1", rde2.getShardId());
+            Assert.assertEquals("Shard ID matches queue", "db1",
+                    rde2.getShardId());
         }
 
         // Now read the remaining events on queue 0.
@@ -590,9 +646,10 @@ public class THLParallelQueueTest extends TestCase
         for (int i = 0; i < 100000; i++)
         {
             ReplDBMSEvent rde3 = (ReplDBMSEvent) mq.get(0);
-            assertEquals("Seqno matches expected for this queue", i,
+            Assert.assertEquals("Seqno matches expected for this queue", i,
                     rde3.getSeqno());
-            assertEquals("Shard ID matches queue", "db0", rde3.getShardId());
+            Assert.assertEquals("Shard ID matches queue", "db0",
+                    rde3.getShardId());
             if (i % 10000 == 0)
                 logger.info("Current seqno: " + rde3.getSeqno());
         }
@@ -606,6 +663,7 @@ public class THLParallelQueueTest extends TestCase
      * Verify that the parallel queue correctly transfers data in pipeline where
      * only a few of many channels are actually used.
      */
+    @Test
     public void testMultiChannelLag() throws Exception
     {
         logger.info("##### testMultiChannelLag #####");
