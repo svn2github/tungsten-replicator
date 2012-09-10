@@ -538,6 +538,7 @@ public class StageProgressTracker
             throws InterruptedException
     {
         Watch<ReplDBMSHeader> watch;
+        boolean alreadyReached = false;
         if (lastEvent == null || !predicate.match(lastEvent))
         {
             if (logger.isDebugEnabled())
@@ -573,6 +574,7 @@ public class StageProgressTracker
             }
             // We have already reached it, so signal for cancellation, if
             // requested, and return the current event.
+            alreadyReached = true;
             watch = new Watch<ReplDBMSHeader>(predicate, threadCount);
             offerAll(watch, committed);
             if (cancel)
@@ -582,10 +584,11 @@ public class StageProgressTracker
             }
         }
 
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("Returning watch to caller: watch=" + watch.toString());
-        }
+        // Watches are a sensitive operation and deserve to be placed in the
+        // log.
+        logger.info("Returning watch to caller: watch=" + watch.toString()
+                + " committed=" + committed + " alreadyReached="
+                + alreadyReached);
         return watch;
     }
 
