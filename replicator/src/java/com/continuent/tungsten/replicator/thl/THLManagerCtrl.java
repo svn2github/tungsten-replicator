@@ -25,14 +25,10 @@ package com.continuent.tungsten.replicator.thl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.sql.rowset.serial.SerialBlob;
@@ -46,21 +42,16 @@ import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileFragment;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
-import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
-import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
-import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowIdData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
-import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSFilteredEvent;
 import com.continuent.tungsten.replicator.event.ReplEvent;
 import com.continuent.tungsten.replicator.event.ReplOption;
 import com.continuent.tungsten.replicator.thl.log.DiskLog;
 import com.continuent.tungsten.replicator.thl.log.LogConnection;
-import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * This class defines a THLManagerCtrl that implements a utility to access
@@ -734,229 +725,7 @@ public class THLManagerCtrl
         logger.info("Transactions deleted");
     }
     
-    public void importEvents(String schemaName, String directoryName, String sourceID, String eventID) throws Exception
-    {   
-        DBMSEvent dbmsEvent = null;
-        ReplDBMSEvent replDbmsEvent = null;
-        ArrayList<DBMSData> dbmsEventData = null;
-        RowChangeData rowChangeData = null;
-        THLEvent thlEvent = null;
-        ArrayList<File> importTables = new ArrayList<File>();
-        CSVReader columnReader = null;
-        CSVReader rowReader = null;
-        ColumnSpec cSpec = null;
-        String[] columnDef = null;
-        ArrayList<ColumnSpec> columns = null;
-        String[] rowDef = null;
-        OneRowChange orc = null;
-        OneRowChange specOrc = new OneRowChange();
-        ArrayList<ColumnVal> columnValues = null;
-        ColumnVal cVal = null;
-        
-        logger.info("Import tables from " + directoryName + " to the " + schemaName + " schema");
-        
-        File importDirectory = new File(directoryName);
-        if (!importDirectory.exists())
-        {
-            throw new ReplicatorException("The " + directoryName + " directory does not exist");
-        }
-        
-        for (File f : importDirectory.listFiles())
-        {
-            if (f.getName().endsWith(".def"))
-            {
-                importTables.add(f);
-            }
-        }
-        
-        LogConnection conn = diskLog.connect(false);
-        try
-        {
-            for (Iterator<File> iteratorImportTables = importTables.iterator(); iteratorImportTables.hasNext();)
-            {
-                File f = iteratorImportTables.next();
-                String tableName = f.getName().substring(0, f.getName().length()-4);
-                logger.info("Import data for " + tableName);
-                
-                columns = new ArrayList<ColumnSpec>();
-                columnReader = new CSVReader(new FileReader(f), ',', '"');
-                while ((columnDef = columnReader.readNext()) != null)
-                {
-                    if (columnDef.length < 2)
-                    {
-                        throw new Exception("The column definition is not formatted properly");
-                    }
-                    
-                    cSpec = specOrc.new ColumnSpec();
-                    cSpec.setName(columnDef[0]);
-                    cSpec.setType(new Integer(columnDef[1]));
-                    
-                    if (columnDef.length == 3)
-                    {
-                        cSpec.setLength(new Integer(columnDef[2]));
-                    }
-                    columns.add(cSpec);
-                }
-                
-                dbmsEventData = new ArrayList<DBMSData>();
-                
-                rowChangeData = new RowChangeData();
-
-                orc = new OneRowChange();
-                orc.setAction(ActionType.INSERT);
-                orc.setSchemaName(schemaName);
-                orc.setTableName(tableName);
-                orc.setColumnSpec(columns);
-                
-                int numRows = 0;
-                
-                rowReader = new CSVReader(new FileReader(f.getParent() + "/" + tableName + ".txt"), ',', '"');
-                while ((rowDef = rowReader.readNext()) != null)
-                {   
-                    columnValues = new ArrayList<ColumnVal>();
-                    
-                    for (int i=0; i < rowDef.length; i++)
-                    {
-                        cVal = orc.new ColumnVal();
-                        
-                        switch (columns.get(i).getType())
-                        {
-                            case java.sql.Types.BIT:
-                            case java.sql.Types.BOOLEAN:
-                            {
-                                cVal.setValue(new Boolean(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.CHAR:
-                            case java.sql.Types.VARCHAR:
-                            case java.sql.Types.LONGVARCHAR:
-                            case java.sql.Types.NCHAR:
-                            case java.sql.Types.NVARCHAR:
-                            case java.sql.Types.LONGNVARCHAR:
-                            case java.sql.Types.NCLOB:
-                            case java.sql.Types.CLOB:
-                            {
-                                cVal.setValue(rowDef[i]);
-                                break;
-                            }
-                            
-                            case java.sql.Types.TINYINT:
-                            case java.sql.Types.SMALLINT:
-                            case java.sql.Types.INTEGER:
-                            {
-                                cVal.setValue(new Integer(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.BIGINT:
-                            {
-                                cVal.setValue(new Long(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.FLOAT:
-                            case java.sql.Types.DOUBLE:
-                            {
-                                cVal.setValue(new Double(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.REAL:
-                            {
-                                cVal.setValue(new Float(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.DECIMAL:
-                            case java.sql.Types.NUMERIC:
-                            {
-                                cVal.setValue(new java.math.BigDecimal(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.TIMESTAMP:
-                            {
-                                cVal.setValue(java.sql.Timestamp.valueOf(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.DATE:
-                            {
-                                cVal.setValue(java.sql.Date.valueOf(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.TIME:
-                            {
-                                cVal.setValue(java.sql.Time.valueOf(rowDef[i]));
-                                break;
-                            }
-                            
-                            case java.sql.Types.BINARY:
-                            case java.sql.Types.VARBINARY:
-                            case java.sql.Types.LONGVARBINARY:
-                            case java.sql.Types.BLOB:
-                            {
-                                throw new Exception("THL import does not yet support binary data");
-                            }
-                            
-                            case java.sql.Types.NULL:
-                            case java.sql.Types.OTHER:
-                            case java.sql.Types.JAVA_OBJECT:
-                            case java.sql.Types.DISTINCT:
-                            case java.sql.Types.STRUCT:
-                            case java.sql.Types.ARRAY:
-                            case java.sql.Types.REF:
-                            case java.sql.Types.DATALINK:
-                            case java.sql.Types.ROWID:
-                            case java.sql.Types.SQLXML:
-                            {
-                                throw new Exception("unsupported data type " + columns.get(i).getType());
-                            }
-                            
-                            default :
-                            {
-                                throw new Exception("unknown data type " + columns.get(i).getType());
-                            }
-                        }
-                        
-                        columnValues.add(cVal);
-                    }
-                    orc.getColumnValues().add(columnValues);
-                    
-                    numRows++;
-                }
-                
-                rowChangeData.appendOneRowChange(orc);
-                dbmsEventData.add(rowChangeData);
-                
-                dbmsEvent = new DBMSEvent("import-" + tableName, null, 
-                        dbmsEventData, true, null);
-                replDbmsEvent = new ReplDBMSEvent(diskLog.getMaxSeqno()+1, 
-                        dbmsEvent);
-                thlEvent = new THLEvent("import-" + tableName, replDbmsEvent);
-                conn.store(thlEvent, true);
-                
-                logger.info(numRows + " rows loaded");
-            }
-            
-            replDbmsEvent = new ReplDBMSEvent(diskLog.getMaxSeqno()+1, 
-                    (short) 0, true, sourceID, 0, new Timestamp(
-                    System.currentTimeMillis()), new DBMSEmptyEvent(eventID));
-            thlEvent = new THLEvent(replDbmsEvent.getEventId(), replDbmsEvent);
-            conn.store(thlEvent, true);
-            
-            conn.release();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            logger.warn("Import operation was interrupted!" + e.getMessage());
-        }
-        
-        logger.info("Tables imported");
-    }
+    
 
     /**
      * Main method to run utility.
@@ -980,10 +749,6 @@ public class THLManagerCtrl
             String fileName = null;
             String charsetName = null;
             boolean hex = false;
-            String importSchemaName = null;
-            String importDirectoryName = null;
-            String importSourceID = null;
-            String importEventID = null;
 
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
@@ -1024,22 +789,6 @@ public class THLManagerCtrl
                 else if ("-file".equals(curArg))
                 {
                     fileName = argvIterator.next();
-                }
-                else if ("-import-schema".equals(curArg))
-                {
-                    importSchemaName = argvIterator.next();
-                }
-                else if ("-import-directory".equals(curArg))
-                {
-                    importDirectoryName = argvIterator.next();
-                }
-                else if ("-import-sourceid".equals(curArg))
-                {
-                    importSourceID = argvIterator.next();
-                }
-                else if ("-import-eventid".equals(curArg))
-                {
-                    importEventID = argvIterator.next();
                 }
                 else if (curArg.startsWith("-"))
                     fatal("Unrecognized option: " + curArg, null);
@@ -1165,30 +914,6 @@ public class THLManagerCtrl
                 println("SKIP operation is no longer supported");
                 println("Please use 'trepctl online -skip-seqno N' to skip over a transaction");
                 return;
-            }
-            else if (THLCommands.IMPORT.equals(command))
-            {
-                THLManagerCtrl thlManager = new THLManagerCtrl(configFile);
-                thlManager.prepare(false);
-
-                // Ensure we have a writable log.
-                if (!thlManager.diskLog.isWritable())
-                {
-                    println("Fatal error:  The disk log is not writable and cannot be purged.");
-                    println("If a replication service is currently running, please set the service");
-                    println("offline first using 'trepctl -service svc offline'");
-                    fail();
-                }
-
-                thlManager.importEvents(importSchemaName, importDirectoryName, 
-                        importSourceID, importEventID);
-                
-                InfoHolder info = thlManager.getInfo();
-                println("min seq# = " + info.getMinSeqNo());
-                println("max seq# = " + info.getMaxSeqNo());
-                println("events = " + info.getEventCount());
-                
-                thlManager.release();
             }
             else if (command.equals("index"))
             {

@@ -35,5 +35,4 @@ public class THLCommands
     public static final String SKIP   = "skip";
     public static final String INFO   = "info";
     public static final String HELP   = "help";
-    public static final String IMPORT = "import";
 }

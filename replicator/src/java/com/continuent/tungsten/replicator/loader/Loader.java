@@ -1,0 +1,171 @@
+package com.continuent.tungsten.replicator.loader;
+
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import com.continuent.tungsten.replicator.thl.log.DiskLog;
+
+public abstract class Loader
+{
+    private static Logger         logger             = Logger.getLogger(Loader.class);
+    
+    protected DiskLog thl = null;
+    protected URI uri = null;
+    protected Map<String, List<String>> params = null;
+    
+    public void setURI(URI uri) throws Exception
+    {
+        try
+        {
+            logger.debug("Load from " + uri.toString());
+            
+            this.uri = uri;
+            
+            params = new HashMap<String, List<String>>();
+            if (this.uri.getQuery().length() > 0) {
+                for (String param : this.uri.getQuery().split("&")) {
+                    String pair[] = param.split("=");
+                    String key = URLDecoder.decode(pair[0], "UTF-8");
+                    String value = "";
+                    if (pair.length > 1) {
+                        value = URLDecoder.decode(pair[1], "UTF-8");
+                    }
+                    List<String> values = params.get(key);
+                    if (values == null) {
+                        values = new ArrayList<String>();
+                        params.put(key, values);
+                    }
+                    values.add(value);
+                }
+            }
+        }
+        catch (UnsupportedEncodingException uee)
+        {
+            throw new Exception("Unable to decode a parameter in " + uri.toString());
+        }
+    }
+    
+    public URI getURI()
+    {
+        return this.uri;
+    }
+    
+    public void setTHL(DiskLog thl)
+    {
+        this.thl = thl;
+    }
+    
+    public DiskLog getTHL()
+    {
+        return this.thl;
+    }
+    
+    public abstract String getSourceID() throws Exception;
+    public abstract String getEventID() throws Exception;
+    public abstract void loadEvents() throws Exception;
+    public abstract void prepare() throws Exception;
+    public abstract void release() throws Exception;
+    
+    public Serializable parseStringValue(int type, String value) throws Exception
+    {
+        switch (type)
+        {
+            case java.sql.Types.BIT:
+            case java.sql.Types.BOOLEAN:
+            {
+                return new Boolean(value);
+            }
+            
+            case java.sql.Types.CHAR:
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.LONGVARCHAR:
+            case java.sql.Types.NCHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.LONGNVARCHAR:
+            case java.sql.Types.NCLOB:
+            case java.sql.Types.CLOB:
+            {
+                return value;
+            }
+            
+            case java.sql.Types.TINYINT:
+            case java.sql.Types.SMALLINT:
+            case java.sql.Types.INTEGER:
+            {
+                return new Integer(value);
+            }
+            
+            case java.sql.Types.BIGINT:
+            {
+                return new Long(value);
+            }
+            
+            case java.sql.Types.FLOAT:
+            case java.sql.Types.DOUBLE:
+            {
+                return new Double(value);
+            }
+            
+            case java.sql.Types.REAL:
+            {
+                return new Float(value);
+            }
+            
+            case java.sql.Types.DECIMAL:
+            case java.sql.Types.NUMERIC:
+            {
+                return new java.math.BigDecimal(value);
+            }
+            
+            case java.sql.Types.TIMESTAMP:
+            {
+                return java.sql.Timestamp.valueOf(value);
+            }
+            
+            case java.sql.Types.DATE:
+            {
+                return java.sql.Date.valueOf(value);
+            }
+            
+            case java.sql.Types.TIME:
+            {
+                return java.sql.Time.valueOf(value);
+            }
+            
+            case java.sql.Types.BINARY:
+            case java.sql.Types.VARBINARY:
+            case java.sql.Types.LONGVARBINARY:
+            case java.sql.Types.BLOB:
+            {
+                throw new Exception("THL import does not yet support binary data");
+            }
+            
+            case java.sql.Types.NULL:
+            case java.sql.Types.OTHER:
+            case java.sql.Types.JAVA_OBJECT:
+            case java.sql.Types.DISTINCT:
+            case java.sql.Types.STRUCT:
+            case java.sql.Types.ARRAY:
+            case java.sql.Types.REF:
+            case java.sql.Types.DATALINK:
+            case java.sql.Types.ROWID:
+            case java.sql.Types.SQLXML:
+            {
+                throw new Exception("unsupported data type " + type);
+            }
+            
+            default :
+            {
+                throw new Exception("unknown data type " + type);
+            }
+        }
+    }
+}
