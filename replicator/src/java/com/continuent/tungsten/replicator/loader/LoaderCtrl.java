@@ -6,17 +6,21 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.commons.config.TungstenProperties;
 import com.continuent.tungsten.commons.exec.ArgvIterator;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
+import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
+import com.continuent.tungsten.replicator.management.MockEventDispatcher;
+import com.continuent.tungsten.replicator.management.MockOpenReplicatorContext;
+import com.continuent.tungsten.replicator.pipeline.Pipeline;
 import com.continuent.tungsten.replicator.thl.THLManagerCtrl;
 import com.continuent.tungsten.replicator.thl.THLManagerCtrl.InfoHolder;
-import com.continuent.tungsten.replicator.loader.csv.CSVLoader;
-import com.continuent.tungsten.replicator.thl.log.DiskLog;
 
 public class LoaderCtrl
 {
@@ -29,15 +33,12 @@ public class LoaderCtrl
                                                              + "conf"
                                                              + File.separator
                                                              + "static-default.properties";
+    private static final int DEFAULT_CHUNK_SIZE = 500;
 
     protected static ArgvIterator argvIterator       = null;
 
     protected String              configFile         = null;
-
-    private String                logDir;
-
-    private DiskLog               diskLog;
-
+    
     /**
      * Creates a new <code>THLManagerCtrl</code> object.
      * 
@@ -48,10 +49,6 @@ public class LoaderCtrl
     {
         // Set path to configuration file.
         this.configFile = configFile;
-
-        // Read properties required to connect to database.
-        TungstenProperties properties = readConfig();
-        logDir = properties.getString("replicator.store.thl.log_dir");
     }
 
     /**
@@ -74,6 +71,9 @@ public class LoaderCtrl
         try
         {
             conf.load(new FileInputStream(propsFile));
+            Properties props = conf.getProperties();
+            TungstenProperties.substituteSystemValues(props, 10);
+            conf.load(props);
         }
         catch (IOException e)
         {
@@ -88,9 +88,9 @@ public class LoaderCtrl
     /**
      * TODO: main definition.
      * 
-     * @param args
+     * @param argv
      */
-    public static void main(String[] args)
+    public static void main(String[] argv)
     {
         LoaderCtrl loaderCtrl = null;
         THLManagerCtrl thlManager = null;
@@ -99,9 +99,10 @@ public class LoaderCtrl
             String configFile = null;
             String service = null;
             String loadURI = null;
+            int chunkSize = DEFAULT_CHUNK_SIZE;
             
             // Parse command line arguments.
-            ArgvIterator argvIterator = new ArgvIterator(args);
+            ArgvIterator argvIterator = new ArgvIterator(argv);
             String curArg = null;
             while (argvIterator.hasNext())
             {
@@ -110,6 +111,10 @@ public class LoaderCtrl
                     configFile = argvIterator.next();
                 else if ("-service".equals(curArg))
                     service = argvIterator.next();
+                else if ("-chunk-size".equals(curArg))
+                {
+                    chunkSize = Integer.valueOf(argvIterator.next());
+                }
                 else if ("-uri".equals(curArg))
                 {
                     loadURI = argvIterator.next();
@@ -142,18 +147,7 @@ public class LoaderCtrl
             loaderCtrl = new LoaderCtrl(configFile);
             loaderCtrl.prepare();
     
-            // Ensure we have a writable log.
-            if (!loaderCtrl.diskLog.isWritable())
-            {
-                println("Fatal error:  The disk log is not writable and cannot be purged.");
-                println("If a replication service is currently running, please set the service");
-                println("offline first using 'trepctl -service svc offline'");
-                fail();
-            }
-    
-            loaderCtrl.loadEvents(loadURI);
-            
-            loaderCtrl.release();
+            loaderCtrl.loadEvents(loadURI, chunkSize);
             
             thlManager = new THLManagerCtrl(configFile);
             thlManager.prepare(true);
@@ -162,18 +156,26 @@ public class LoaderCtrl
             println("min seq# = " + info.getMinSeqNo());
             println("max seq# = " + info.getMaxSeqNo());
             println("events = " + info.getEventCount());
-    
-            thlManager.release();
         }
         catch (Throwable t)
         {
+            t.printStackTrace();
             fatal("Fatal error: " + t.getMessage(), t);
         }
         finally
         {
-            loaderCtrl.release();
-            thlManager.release();
+            if (loaderCtrl != null)
+            {
+                loaderCtrl.release();
+            }
+            
+            if (thlManager != null)
+            {
+                thlManager.release();
+            }
         }
+        
+        succeed();
     }
     
     /**
@@ -184,10 +186,6 @@ public class LoaderCtrl
     public void prepare() throws ReplicatorException,
             InterruptedException
     {
-        diskLog = new DiskLog();
-        diskLog.setLogDir(logDir);
-        diskLog.setReadOnly(false);
-        diskLog.prepare();
     }
 
     /**
@@ -195,39 +193,48 @@ public class LoaderCtrl
      */
     public void release()
     {
-        if (diskLog != null)
-        {
-            try
-            {
-                diskLog.release();
-            }
-            catch (ReplicatorException e)
-            {
-                logger.warn("Unable to release log", e);
-            }
-            catch (InterruptedException e)
-            {
-                logger.warn("Unexpected interruption while closing log", e);
-            }
-            diskLog = null;
-        }
     }
     
-    public void loadEvents(String uriString) throws Exception
+    protected TungstenProperties buildLoaderConfig(URI uri, int chunkSize) throws Exception
+    {
+        TungstenProperties conf = this.readConfig();
+
+        for (String key : conf.keyNames("replicator.extractor.dbms"))
+        {
+            conf.remove(key);
+        }
+        conf.setString("replicator.role", "master");
+        conf.setString("replicator.pipeline.master.services", "");
+        conf.setString("replicator.extractor.dbms", uri.getScheme());
+        conf.setString("replicator.extractor.dbms.uri", uri.toString());
+        conf.setInt("replicator.extractor.dbms.chunkSize", chunkSize);
+
+        return conf;
+    }
+    
+    public void loadEvents(String uriString, int chunkSize) throws Exception
     {   
-        Loader loader = null;
+        ReplicatorRuntime runtime = null;
+        Pipeline pipeline = null;
         
         try
         {
             URI uri = new URI(uriString);
             
-            Class<Loader> loaderClass = (Class<Loader>) Class.forName(uri.getScheme());
-            loader = (Loader)loaderClass.newInstance();
-            loader.setURI(uri);
-            loader.setTHL(diskLog);
-            loader.prepare();
+            runtime = new ReplicatorRuntime(this.buildLoaderConfig(uri, chunkSize),
+                    new MockOpenReplicatorContext(),
+                    ReplicatorMonitor.getInstance());
+            runtime.configure();
+            runtime.prepare();
+            pipeline = runtime.getPipeline();
+            pipeline.start(new MockEventDispatcher());
+            pipeline.shutdownAfterHeartbeat("LOAD_COMPLETE");
             
-            loader.loadEvents();
+            while (pipeline.isShutdown() != true)
+            {
+                // Wait for the pipeline to complete
+                Thread.sleep(100);
+            }
         }
         catch (URISyntaxException use)
         {
@@ -240,7 +247,7 @@ public class LoaderCtrl
         }
         finally
         {
-            loader.release();
+            runtime.release();
         }
         
         logger.info("Tables imported");

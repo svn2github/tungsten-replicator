@@ -11,23 +11,29 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.replicator.thl.log.DiskLog;
+import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
+import com.continuent.tungsten.replicator.event.DBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
+import com.continuent.tungsten.replicator.extractor.RawExtractor;
 
-public abstract class Loader
+public abstract class Loader implements RawExtractor
 {
+    private static final int DEFAULT_CHUNK_SIZE = 500;
+
     private static Logger         logger             = Logger.getLogger(Loader.class);
     
-    protected DiskLog thl = null;
     protected URI uri = null;
     protected Map<String, List<String>> params = null;
+    protected int chunkSize = DEFAULT_CHUNK_SIZE;
     
-    public void setURI(URI uri) throws Exception
+    public void setUri(String uri) throws Exception
     {
         try
         {
-            logger.debug("Load from " + uri.toString());
+            logger.debug("Load from " + uri);
             
-            this.uri = uri;
+            this.uri = new URI(uri);
             
             params = new HashMap<String, List<String>>();
             if (this.uri.getQuery().length() > 0) {
@@ -53,26 +59,17 @@ public abstract class Loader
         }
     }
     
-    public URI getURI()
+    public void setChunkSize(int chunkSize)
     {
-        return this.uri;
+        this.chunkSize = chunkSize;
     }
     
-    public void setTHL(DiskLog thl)
+    protected DBMSEvent getFinishLoadEvent() throws ReplicatorException, InterruptedException
     {
-        this.thl = thl;
+        DBMSEmptyEvent heartbeat = new DBMSEmptyEvent(this.getCurrentResourceEventId());
+        heartbeat.setMetaDataOption(ReplOptionParams.HEARTBEAT, "LOAD_COMPLETE");
+        return heartbeat;
     }
-    
-    public DiskLog getTHL()
-    {
-        return this.thl;
-    }
-    
-    public abstract String getSourceID() throws Exception;
-    public abstract String getEventID() throws Exception;
-    public abstract void loadEvents() throws Exception;
-    public abstract void prepare() throws Exception;
-    public abstract void release() throws Exception;
     
     public Serializable parseStringValue(int type, String value) throws Exception
     {

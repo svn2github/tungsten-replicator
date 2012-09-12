@@ -1,93 +1,111 @@
 package com.continuent.tungsten.replicator.loader.csv;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.sql.Timestamp;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
-import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
-import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.loader.Loader;
-import com.continuent.tungsten.replicator.thl.THLEvent;
-import com.continuent.tungsten.replicator.thl.log.LogConnection;
+import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 public class CSVLoader extends Loader
 {
     private static Logger         logger             = Logger.getLogger(CSVLoader.class);
     
-    ArrayList<File> importTables = new ArrayList<File>();
-    LogConnection conn = null;
+    ArrayList<String> tableNames = null;
+    HashMap<String, ArrayList<ColumnSpec>> columnDefinitions = null;
+    String currentTableName = null;
+    int currentTablePosition = 0;
 
-    @Override
-    public String getSourceID() throws Exception
+    CSVParser parser = null;
+    private boolean hasNext = true;
+    private LineNumberReader lineReader = null;
+
+    private ReplicatorRuntime               runtime                 = null;
+    
+    /**
+     * Complete plug-in configuration. This is called after setters are invoked
+     * at the time that the replicator goes through configuration.
+     * 
+     * @throws ReplicatorException Thrown if configuration is incomplete or
+     *             fails
+     */
+    public void configure(PluginContext context) throws ReplicatorException,
+            InterruptedException
     {
-        return this.getURI().getHost();
+        runtime = (ReplicatorRuntime) context;
     }
 
-    @Override
-    public String getEventID() throws Exception
+    /**
+     * Prepare plug-in for use. This method is assumed to allocate all required
+     * resources. It is called before the plug-in performs any operations.
+     * 
+     * @throws ReplicatorException Thrown if resource allocation fails
+     */
+    public void prepare(PluginContext context) throws ReplicatorException,
+            InterruptedException
     {
-        List<String> values = this.params.get("eventid");
-        if (values != null)
+        logger.info("Import tables from " + this.uri.getPath() + " to the " + this.getDefaultSchema() + " schema");
+
+        tableNames = new ArrayList<String>();
+        columnDefinitions = new HashMap<String, ArrayList<ColumnSpec>>();
+        
+        parser = new CSVParser(',', '"');
+        
+        File importDirectory = new File(this.uri.getPath());
+        if (!importDirectory.exists())
         {
-            return values.get(0);
+            throw new ReplicatorException("The " + this.uri.getPath() + " directory does not exist");
         }
-        else
+        
+        for (File f : importDirectory.listFiles())
         {
-            throw new Exception("Unable to determine the final event id");
+            if (f.getName().endsWith(".def"))
+            {
+                this.prepareTableDefinition(f);
+            }
+        }
+        
+        if (this.tableNames.size() == 0)
+        {
+            throw new ReplicatorException("There are no tables to load");
         }
     }
     
-    protected String getDefaultSchema() throws Exception
+    protected void prepareTableDefinition(File f) throws ReplicatorException
     {
-        List<String> values = this.params.get("schema");
-        if (values != null)
-        {
-            return values.get(0);
-        }
-        else
-        {
-            throw new Exception("Unable to determine the schema");
-        }
-    }
-
-    public void loadEvents() throws Exception
-    {
-        DBMSEvent dbmsEvent = null;
-        ReplDBMSEvent replDbmsEvent = null;
-        ArrayList<DBMSData> dbmsEventData = null;
-        RowChangeData rowChangeData = null;
-        THLEvent thlEvent = null;
-        CSVReader columnReader = null;
-        CSVReader rowReader = null;
-        ColumnSpec cSpec = null;
-        String[] columnDef = null;
         ArrayList<ColumnSpec> columns = null;
-        String[] rowDef = null;
-        OneRowChange orc = null;
+        CSVReader columnReader = null;
+        String[] columnDef = null;
+        ColumnSpec cSpec = null;
         OneRowChange specOrc = new OneRowChange();
-        ArrayList<ColumnVal> columnValues = null;
-        ColumnVal cVal = null;
+        String tableName = f.getName().substring(0, f.getName().length()-4);
         
-        for (Iterator<File> iteratorImportTables = importTables.iterator(); iteratorImportTables.hasNext();)
+        try
         {
-            File f = iteratorImportTables.next();
-            String tableName = f.getName().substring(0, f.getName().length()-4);
-            logger.info("Import data for " + tableName);
+            tableNames.add(tableName);
+            logger.info("Parse column definition for " + tableName);
             
             columns = new ArrayList<ColumnSpec>();
             columnReader = new CSVReader(new FileReader(f), ',', '"');
@@ -95,7 +113,7 @@ public class CSVLoader extends Loader
             {
                 if (columnDef.length < 2)
                 {
-                    throw new Exception("The column definition is not formatted properly");
+                    throw new ReplicatorException("The column definition is not formatted properly");
                 }
                 
                 cSpec = specOrc.new ColumnSpec();
@@ -109,81 +127,338 @@ public class CSVLoader extends Loader
                 columns.add(cSpec);
             }
             
-            dbmsEventData = new ArrayList<DBMSData>();
+            columnDefinitions.put(tableName, columns);
+        }
+        catch (FileNotFoundException e)
+        {
+            /*
+             *  Do nothing, we won't import the file if the definition
+             *  is missing.
+             */
+        }
+        catch (NumberFormatException e)
+        {
+            throw new ReplicatorException(e);
+        }
+        catch (IOException e)
+        {
+            // TODO Auto-generated catch block
+        }
+        catch (Exception e)
+        {
+            // TODO Auto-generated catch block
+        }
+        finally
+        {
+            try
+            {
+                columnReader.close();
+            }
+            catch (IOException e)
+            {
+                // TODO Auto-generated catch block
+            }
+        }
+    }
+
+    /**
+     * Release all resources used by plug-in. This is called before the plug-in
+     * is deallocated.
+     * 
+     * @throws ReplicatorException Thrown if resource deallocation fails
+     */
+    public void release(PluginContext context) throws ReplicatorException,
+            InterruptedException
+    {
+        try
+        {
+            if (lineReader != null)
+            {
+                lineReader.close();
+            }
+        }
+        catch (IOException e)
+        {
+            throw new ReplicatorException("Unable to close the CSV reader");
+        }
+    }
+    
+    /**
+     * Set the value of the last event ID we have processed. The extractor is
+     * responsible for returning the next event ID in sequence after this one
+     * the next time extract() is called.
+     * 
+     * @param eventId Event ID at which to begin extracting
+     * @throws ReplicatorException
+     */
+    public void setLastEventId(String eventId) throws ReplicatorException
+    {
+        if (eventId != null)
+        {
+            logger.info("Starting from an explicit event ID: " + eventId);
+            int colonIndex = eventId.indexOf(':');
+
+            currentTableName = eventId.substring(0, colonIndex);
+
+            currentTablePosition = Integer.valueOf(eventId
+                        .substring(colonIndex + 1));
+        }
+        else
+        {
+            if (this.tableNames.size() == 0)
+            {
+                currentTableName = null;
+            }
+            else
+            {
+                currentTableName = this.tableNames.get(0);
+            }
             
+            currentTablePosition = 0;
+        }
+        
+        this.prepareCurrentTable();
+    }
+    
+    protected void nextTable() throws ReplicatorException
+    {
+        if (this.tableNames.size() == 0)
+        {
+            currentTableName = null;
+        }
+        else
+        {
+            currentTableName = this.tableNames.get(0);
+        }
+        
+        currentTablePosition = 0;
+
+        this.prepareCurrentTable();
+    }
+    
+    protected void prepareCurrentTable() throws ReplicatorException
+    {
+        if (currentTableName == null)
+        {
+            hasNext = false;
+            return;
+        }
+        
+        this.tableNames.remove(currentTableName);
+        
+        try
+        {
+            hasNext = true;
+            String fileName = uri.getPath() + "/" + currentTableName + ".txt";
+            lineReader = new LineNumberReader(new InputStreamReader(new FileInputStream(fileName)));
+            
+            for (int i = 0; i < currentTablePosition; i++) {
+                lineReader.readLine();
+            }
+        }
+        catch (FileNotFoundException e)
+        {
+            throw new ReplicatorException("Unable to find import file for " + currentTableName);
+        }
+        catch (IOException e)
+        {
+            throw new ReplicatorException("Unable to skip " + currentTablePosition + " characters in " + currentTableName);
+        }
+    }
+
+    /**
+     * Extract the next available DBMSEvent from the database log.
+     * 
+     * @return next DBMSEvent found in the logs
+     * @throws IOException 
+     */
+    public synchronized DBMSEvent extract() throws ReplicatorException, InterruptedException
+    {
+        String[] rowDef = null;
+        OneRowChange orc = null;
+        ArrayList<ColumnVal> columnValues = null;
+        ColumnSpec cDef = null;
+        ColumnVal cVal = null;
+        DBMSEvent dbmsEvent = null;
+        ArrayList<DBMSData> dataArray = null;
+        RowChangeData rowChangeData = null;
+        
+        // Nothing more to import
+        if (this.currentTableName == null)
+        {
+            return this.getFinishLoadEvent();
+        }
+
+        try
+        {
             rowChangeData = new RowChangeData();
+            dataArray = new ArrayList<DBMSData>();
 
             orc = new OneRowChange();
             orc.setAction(ActionType.INSERT);
             orc.setSchemaName(this.getDefaultSchema());
-            orc.setTableName(tableName);
-            orc.setColumnSpec(columns);
+            orc.setTableName(this.currentTableName);
+            orc.setColumnSpec(this.columnDefinitions.get(this.currentTableName));
             
-            int numRows = 0;
-            
-            rowReader = new CSVReader(new FileReader(f.getParent() + "/" + tableName + ".txt"), ',', '"');
-            while ((rowDef = rowReader.readNext()) != null)
-            {   
-                columnValues = new ArrayList<ColumnVal>();
-                
-                for (int i=0; i < rowDef.length; i++)
+            try
+            {
+                while ((rowDef = this.readNext(lineReader)) != null)
                 {
-                    cVal = orc.new ColumnVal();
-                    cVal.setValue(this.parseStringValue(columns.get(i).getType(), rowDef[i]));
+                    columnValues = new ArrayList<ColumnVal>();
                     
-                    columnValues.add(cVal);
+                    for (int i=0; i < rowDef.length; i++)
+                    {
+                        cDef = this.columnDefinitions.get(this.currentTableName).get(i);
+                        cVal = orc.new ColumnVal();
+                        
+                        try
+                        {
+                            cVal.setValue(this.parseStringValue(cDef.getType(), rowDef[i]));
+                        }
+                        catch (Exception e)
+                        {
+                            throw new ReplicatorException("Unable to parse value for " + cDef.getName() + " from " + rowDef[i]);
+                        }
+                        
+                        columnValues.add(cVal);
+                    }
+                    
+                    orc.getColumnValues().add(columnValues);
+                    
+                    // Limit the size of each INSERT to the chunkSize
+                    if (orc.getColumnValues().size() >= this.chunkSize)
+                    {
+                        break;
+                    }
                 }
-                orc.getColumnValues().add(columnValues);
-                
-                numRows++;
+            }
+            catch (IOException e)
+            {
+                throw new ReplicatorException("Unable to read next line from " + this.currentTableName);
             }
             
             rowChangeData.appendOneRowChange(orc);
-            dbmsEventData.add(rowChangeData);
+            dataArray.add(rowChangeData);
             
-            dbmsEvent = new DBMSEvent("import-" + tableName, null, 
-                    dbmsEventData, true, null);
-            replDbmsEvent = new ReplDBMSEvent(this.thl.getMaxSeqno()+1, 
-                    dbmsEvent);
-            thlEvent = new THLEvent("import-" + tableName, replDbmsEvent);
-            conn.store(thlEvent, true);
+            runtime.getMonitor().incrementEvents(dataArray.size());
+            dbmsEvent = new DBMSEvent(this.currentTableName + ":" + 
+                    lineReader.getLineNumber(), null, 
+                    dataArray, true, null);
+            dbmsEvent.setMetaDataOption(ReplOptionParams.SHARD_ID, dbmsEvent.getEventId());
             
-            logger.info(numRows + " rows loaded");
-        }
-        
-        replDbmsEvent = new ReplDBMSEvent(this.thl.getMaxSeqno()+1, 
-                (short) 0, true, getSourceID(), 0, new Timestamp(
-                System.currentTimeMillis()), new DBMSEmptyEvent(getEventID()));
-        thlEvent = new THLEvent(replDbmsEvent.getEventId(), replDbmsEvent);
-        conn.store(thlEvent, true);
-    }
-    
-    public void prepare() throws Exception
-    {
-        logger.info("Import tables from " + this.uri.getPath() + " to the " + this.uri.getScheme() + " schema");
-
-        File importDirectory = new File(this.uri.getPath());
-        if (!importDirectory.exists())
-        {
-            throw new ReplicatorException("The " + this.uri.getPath() + " directory does not exist");
-        }
-        
-        for (File f : importDirectory.listFiles())
-        {
-            if (f.getName().endsWith(".def"))
+            
+            // Do not return an empty event if there are no column values
+            if (orc.getColumnValues().size() == 0)
             {
-                importTables.add(f);
+                return null;
+            }
+            
+            return dbmsEvent;
+        }
+        finally
+        {
+            if (hasNext == false)
+            {
+                this.nextTable();
             }
         }
-        
-        this.conn = this.thl.connect(false);
     }
     
-    public void release() throws Exception
+    protected String[] readNext(LineNumberReader reader) throws IOException
     {
-        if (this.thl != null)
+        String[] rowDef = null;
+        
+        do
         {
-            this.thl.release();
+            String nextLine = reader.readLine();
+            if (nextLine == null)
+            {
+                hasNext = false;
+                return rowDef;
+            }
+            
+            String[] r = parser.parseLineMulti(nextLine);
+            if (r.length > 0) {
+                if (rowDef == null) {
+                    rowDef = r;
+                } else {
+                    String[] t = new String[rowDef.length+r.length];
+                    System.arraycopy(rowDef, 0, t, 0, rowDef.length);
+                    System.arraycopy(r, 0, t, rowDef.length, r.length);
+                    rowDef = t;
+                }
+            }
+        }
+        while (parser.isPending());
+        
+        return rowDef;
+    }
+
+    /**
+     * Extract starting after the event ID provided as an argument. This is
+     * equivalent to invoking setLastEventId() followed by extract().
+     * 
+     * @param eventId Event ID at which to begin extracting
+     * @return DBMSEvent corresponding to the id
+     * @throws ReplicatorException Thrown if extractor processing fails
+     * @throws InterruptedException Thrown if the applier is interrupted
+     */
+    public DBMSEvent extract(String eventId) throws ReplicatorException,
+            InterruptedException
+    {
+        this.setLastEventId(eventId);
+        return this.extract();
+    }
+
+    /**
+     * Returns the last event ID committed in the database from which we are
+     * extracting. It is used to help synchronize state between the database and
+     * the transaction history log. Values returned from this call must
+     * correspond with the last extracted DBMSEvent.eventId as follows:
+     * <ol>
+     * <li>If the returned value is greater than DBMSEvent.eventId, the database
+     * has more recent updates</li>
+     * <li>If the returned value is equal to DBMSEvent.eventId, all events have
+     * been extracted</li>
+     * </ol>
+     * It should not be possible to receive a value that is less than the last
+     * extracted DBMSEvent.eventId as this implies that the extractor is somehow
+     * ahead of the state of the database, which would be inconsistent.
+     * 
+     * @return A current event ID that can be compared with event IDs in
+     *         DBMSEvent
+     * @throws ReplicatorException
+     * @throws InterruptedException
+     */
+    public String getCurrentResourceEventId() throws ReplicatorException,
+            InterruptedException
+    {
+        List<String> values = this.params.get("eventid");
+        if (values != null)
+        {
+            return values.get(0);
+        }
+        else
+        {
+            throw new ReplicatorException("Unable to determine the final event id");
+        }
+    }
+
+    protected String getSourceID() throws Exception
+    {
+        return this.uri.getHost();
+    }
+    
+    protected String getDefaultSchema() throws ReplicatorException
+    {
+        List<String> values = this.params.get("schema");
+        if (values != null)
+        {
+            return values.get(0);
+        }
+        else
+        {
+            throw new ReplicatorException("Unable to determine the schema");
         }
     }
 }
