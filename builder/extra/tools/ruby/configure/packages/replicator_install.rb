@@ -263,10 +263,6 @@ class ReplicatorInstallPackage < ConfigurePackage
     }
     each_datasource_prompt{
       |prompt|
-      if prompt.is_a?(DatasourceDBHost)
-        next
-      end
-      
       if (av = prompt.get_command_line_argument_value()) != nil
         opts.on("--#{prompt.get_command_line_argument()}") {
           datasource_options.setProperty(prompt.name, av)
@@ -285,6 +281,12 @@ class ReplicatorInstallPackage < ConfigurePackage
       error("You must specify a value for --master-host")
     end
     master_hosts = master_host.to_s().split(",")
+    
+    if datasource_options.getProperty([DATASOURCES, "ds", REPL_DBHOST]) != nil
+      if cluster_hosts.size() > 1
+        error("You may not specify --datasource-host when there are multiple hosts in --cluster-hosts")
+      end
+    end
     
     if service_options.getProperty(DEPLOYMENT_SERVICE) == nil
       error("You must specify a value for --service-name")
@@ -306,7 +308,10 @@ class ReplicatorInstallPackage < ConfigurePackage
       datasource_alias = host_alias
       @config.setProperty([DATASOURCES, datasource_alias],
         datasource_options.getProperty([DATASOURCES, "ds"]).dup)
-      @config.setProperty([DATASOURCES, datasource_alias, REPL_DBHOST], host)
+        
+      if datasource_options.getProperty([DATASOURCES, "ds", REPL_DBHOST]) == nil
+        @config.setProperty([DATASOURCES, datasource_alias, REPL_DBHOST], host)
+      end
       
       service_alias = service_options.getProperty(DEPLOYMENT_SERVICE) + "_" + host_alias
       @config.setProperty([REPL_SERVICES, service_alias], service_options.props.dup)
