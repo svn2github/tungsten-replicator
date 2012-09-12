@@ -492,12 +492,7 @@ public class StageProgressTracker
             WatchPredicate<ReplDBMSHeader> predicate, boolean cancel)
             throws InterruptedException
     {
-        // Find the trailing event that has been processed across all
-        // tasks, then request the watch to be added to the processing
-        // watch list.
-        ReplDBMSHeader lastEvent = getDirtyMinLastEvent();
-        return waitForEvent(predicate, cancel, lastEvent, processingWatches,
-                false);
+        return waitForEvent(predicate, cancel, processingWatches, false);
     }
 
     /**
@@ -509,11 +504,7 @@ public class StageProgressTracker
             WatchPredicate<ReplDBMSHeader> predicate, boolean cancel)
             throws InterruptedException
     {
-        // Find the trailing event that has been committed across all
-        // tasks, then request the watch to be added to the committed
-        // watch list.
-        ReplDBMSHeader lastEvent = getCommittedMinEvent();
-        return waitForEvent(predicate, cancel, lastEvent, commitWatches, true);
+        return waitForEvent(predicate, cancel, commitWatches, true);
     }
 
     /**
@@ -533,71 +524,25 @@ public class StageProgressTracker
      */
     private Future<ReplDBMSHeader> waitForEvent(
             WatchPredicate<ReplDBMSHeader> predicate, boolean cancel,
-            ReplDBMSHeader lastEvent,
             WatchManager<ReplDBMSHeader> watchManager, boolean committed)
             throws InterruptedException
     {
+        // Generate the watch.
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Enqueueing watch for event: predicate="
+                    + predicate.toString() + " cancel=" + cancel
+                    + " committed=" + committed);
+        }
         Watch<ReplDBMSHeader> watch;
-        boolean alreadyReached = false;
-        if (lastEvent == null || !predicate.match(lastEvent))
-        {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Enqueueing watch for event: predicate="
-                        + predicate.toString() + " cancel=" + cancel
-                        + " committed=" + committed);
-            }
-            // We have not reached the requested event, so we have to enqueue
-            // a watch.
-            if (cancel)
-                watch = watchManager
-                        .watch(predicate, threadCount, cancelAction);
-            else
-                watch = watchManager.watch(predicate, threadCount);
-            offerAll(watch, committed);
-
-            // If there is an upstream parallel store we need to ensure there
-            // are synchronization events on all queues so that we get the
-            // correct state of each queue.
-            if (upstreamStore != null)
-                upstreamStore.insertWatchSyncEvent(watch.getPredicate());
-        }
+        if (cancel)
+            watch = watchManager.watch(predicate, threadCount, cancelAction);
         else
-        {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Generating watch for already reached event: predicate="
-                        + predicate.toString()
-                        + " cancel="
-                        + cancel
-                        + " committed=" + committed);
-            }
-            // We have already reached it, so signal for cancellation, if
-            // requested, and return the current event.
-            alreadyReached = true;
-            watch = new Watch<ReplDBMSHeader>(predicate, threadCount);
-            offerAll(watch, committed);
-            if (cancel)
-            {
-                cancelAll();
-                shouldInterruptTask = true;
-            }
-        }
+            watch = watchManager.watch(predicate, threadCount);
 
-        // Watches are a sensitive operation and deserve to be placed in the
-        // log.
-        logger.info("Returning watch to caller: watch=" + watch.toString()
-                + " committed=" + committed + " alreadyReached="
-                + alreadyReached);
-        return watch;
-    }
-
-    // Offers the watch to each task in succession. This operation ensures
-    // watches are correctly initialized in the event that some threads but
-    // not others have satisfied the watch predicate.
-    private void offerAll(Watch<ReplDBMSHeader> watch, boolean committed)
-            throws InterruptedException
-    {
+        // Process watches on each channel. This will cause the watch to
+        // become completed if it is already satisfied and execute any
+        // associated cancel action.
         for (int i = 0; i < this.taskInfo.length; i++)
         {
             ReplDBMSHeader event;
@@ -607,8 +552,32 @@ public class StageProgressTracker
                 event = taskInfo[i].getLastProcessedEvent();
 
             if (event != null)
-                watch.offer(event, i);
+                watchManager.process(event, i);
         }
+
+        // See if we have reached this event.
+        boolean alreadyReached = watch.isDone();
+
+        // If not and there is an upstream parallel store we need to ensure
+        // there are synchronization events on all queues so that we get the
+        // correct state of each queue by encouraging them to commit their
+        // positions once the watch is reached.
+        if (!alreadyReached && upstreamStore != null)
+            upstreamStore.insertWatchSyncEvent(watch.getPredicate());
+
+        // If event is done and we have a cancel action, do it now.
+        if (alreadyReached && cancel)
+        {
+            cancelAll();
+            shouldInterruptTask = true;
+        }
+
+        // Watches are a sensitive operation and deserve to be placed in the
+        // log.
+        logger.info("Returning watch to caller: watch=" + watch.toString()
+                + " committed=" + committed + " alreadyReached="
+                + alreadyReached);
+        return watch;
     }
 
     /**

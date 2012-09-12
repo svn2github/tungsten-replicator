@@ -1,0 +1,237 @@
+/**
+ * Tungsten Scale-Out Stack
+ * Copyright (C) 2007-2012 Continuent Inc.
+ * Contact: tungsten@continuent.org
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Initial developer(s): Teemu Ollakka, Robert Hodges
+ * Contributor(s): 
+ */
+
+package com.continuent.tungsten.replicator.thl;
+
+import java.io.File;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+
+import org.apache.log4j.Logger;
+
+import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.replicator.applier.DummyApplier;
+import com.continuent.tungsten.replicator.conf.ReplicatorConf;
+import com.continuent.tungsten.replicator.dbms.DBMSData;
+import com.continuent.tungsten.replicator.dbms.StatementData;
+import com.continuent.tungsten.replicator.event.DBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
+import com.continuent.tungsten.replicator.extractor.DummyExtractor;
+import com.continuent.tungsten.replicator.pipeline.PipelineConfigBuilder;
+import com.continuent.tungsten.replicator.storage.InMemoryMultiQueue;
+import com.continuent.tungsten.replicator.storage.InMemoryMultiQueueApplier;
+import com.continuent.tungsten.replicator.storage.InMemoryTransactionalQueue;
+import com.continuent.tungsten.replicator.storage.InMemoryTransactionalQueueApplier;
+import com.continuent.tungsten.replicator.storage.parallel.HashPartitioner;
+
+/**
+ * Contains helper functions for parallel queue testing.
+ * 
+ * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
+ * @version 1.0
+ */
+public class THLParallelQueueHelper
+{
+    private static Logger logger = Logger.getLogger(THLParallelQueueHelper.class);
+
+    /**
+     * Generate configuration properties for a three stage-pipeline that loads
+     * events into a THL then loads a parallel queue. Input is from a dummy
+     * extractor.
+     */
+    public TungstenProperties generateTHLParallelQueueProps(String schemaName,
+            int channels) throws Exception
+    {
+        // Clear the THL log directory.
+        prepareLogDir(schemaName);
+
+        // Create pipeline.
+        PipelineConfigBuilder builder = new PipelineConfigBuilder();
+        builder.setProperty(ReplicatorConf.SERVICE_NAME, "test");
+        builder.setRole("master");
+        builder.setProperty(ReplicatorConf.METADATA_SCHEMA, schemaName);
+        builder.addPipeline("master", "extract,feed,apply", "thl,thl-queue");
+        builder.addStage("extract", "dummy", "thl-apply", null);
+        builder.addStage("feed", "thl-extract", "thl-queue-apply", null);
+        builder.addStage("apply", "thl-queue-extract", "dummy", null);
+
+        // Define stores.
+        builder.addComponent("store", "thl", THL.class);
+        builder.addProperty("store", "thl", "logDir", schemaName);
+        builder.addComponent("store", "thl-queue", THLParallelQueue.class);
+        builder.addProperty("store", "thl-queue", "maxSize", "5");
+
+        // Extract stage components.
+        builder.addComponent("extractor", "dummy", DummyExtractor.class);
+        builder.addProperty("extractor", "dummy", "nFrags", "1");
+        builder.addComponent("applier", "thl-apply", THLStoreApplier.class);
+        builder.addProperty("applier", "thl-apply", "storeName", "thl");
+
+        // Feed stage components.
+        builder.addComponent("extractor", "thl-extract",
+                THLStoreExtractor.class);
+        builder.addProperty("extractor", "thl-extract", "storeName", "thl");
+        builder.addComponent("applier", "thl-queue-apply",
+                THLParallelQueueApplier.class);
+        builder.addProperty("applier", "thl-queue-apply", "storeName",
+                "thl-queue");
+
+        // Apply stage components.
+        builder.addComponent("extractor", "thl-queue-extract",
+                THLParallelQueueExtractor.class);
+        builder.addProperty("extractor", "thl-queue-extract", "storeName",
+                "thl-queue");
+        builder.addComponent("applier", "dummy", DummyApplier.class);
+
+        return builder.getConfig();
+    }
+
+    /**
+     * Generate configuration properties for a two-stage pipeline that connects
+     * a THL to a THLParallelQueue to an in-memory multi queue, which can mimic
+     * parallel apply on DBMS instances. Clients use direct calls to the stores
+     * to write to and read from the pipeline.
+     * <p/>
+     * Note that we support two types of parallel queues for testing.
+     * Multi-queues keep transactions in separate queues per channel.
+     * Transactional queues serialize them in a manner analogous to a DBMS.
+     */
+    public TungstenProperties generateTHLParallelPipeline(String schemaName,
+            int partitions, int blockCommit, int mqSize, boolean multiQueue)
+            throws Exception
+    {
+        // Clear the THL log directory.
+        prepareLogDir(schemaName);
+
+        // Convert values to strings so we can use them.
+        String partitionsAsString = new Integer(partitions).toString();
+        String blockCommitAsString = new Integer(blockCommit).toString();
+
+        // Create pipeline.
+        PipelineConfigBuilder builder = new PipelineConfigBuilder();
+        builder.setProperty(ReplicatorConf.SERVICE_NAME, "test");
+        builder.setRole("master");
+        builder.setProperty(ReplicatorConf.METADATA_SCHEMA, schemaName);
+        builder.addPipeline("master", "feed1, feed2",
+                "thl,thl-queue, multi-queue");
+
+        // Define stores.
+        builder.addComponent("store", "thl", THL.class);
+        builder.addProperty("store", "thl", "logDir", schemaName);
+        builder.addComponent("store", "thl-queue", THLParallelQueue.class);
+        builder.addProperty("store", "thl-queue", "maxSize", "100");
+        builder.addProperty("store", "thl-queue", "partitions", new Integer(
+                partitions).toString());
+        builder.addProperty("store", "thl-queue", "partitionerClass",
+                HashPartitioner.class.getName());
+        if (multiQueue)
+            builder.addComponent("store", "multi-queue",
+                    InMemoryMultiQueue.class);
+        else
+            builder.addComponent("store", "multi-queue",
+                    InMemoryTransactionalQueue.class);
+        builder.addProperty("store", "multi-queue", "maxSize", new Integer(
+                mqSize).toString());
+        builder.addProperty("store", "multi-queue", "partitions",
+                partitionsAsString);
+
+        // Feed1 stage components.
+        builder.addStage("feed1", "thl-extract", "thl-queue-apply", null);
+        builder.addProperty("stage", "feed1", "blockCommitRowCount",
+                blockCommitAsString);
+        builder.addComponent("extractor", "thl-extract",
+                THLStoreExtractor.class);
+        builder.addProperty("extractor", "thl-extract", "storeName", "thl");
+        builder.addComponent("applier", "thl-queue-apply",
+                THLParallelQueueApplier.class);
+        builder.addProperty("applier", "thl-queue-apply", "storeName",
+                "thl-queue");
+
+        // Feed2 stage components.
+        builder.addStage("feed2", "thl-queue-extract", "multi-queue-apply",
+                null);
+        builder.addProperty("stage", "feed2", "taskCount", partitionsAsString);
+        builder.addProperty("stage", "feed2", "blockCommitRowCount",
+                blockCommitAsString);
+        builder.addComponent("extractor", "thl-queue-extract",
+                THLParallelQueueExtractor.class);
+        builder.addProperty("extractor", "thl-queue-extract", "storeName",
+                "thl-queue");
+        if (multiQueue)
+            builder.addComponent("applier", "multi-queue-apply",
+                    InMemoryMultiQueueApplier.class);
+        else
+            builder.addComponent("applier", "multi-queue-apply",
+                    InMemoryTransactionalQueueApplier.class);
+        builder.addProperty("applier", "multi-queue-apply", "storeName",
+                "multi-queue");
+
+        return builder.getConfig();
+    }
+
+    /**
+     * Create an empty log directory or if the directory exists remove any files
+     * within it.
+     */
+    private File prepareLogDir(String logDirName) throws Exception
+    {
+        File logDir = new File(logDirName);
+        // Delete old log if present.
+        if (logDir.exists())
+        {
+            logger.info("Clearing log dir: " + logDir.getAbsolutePath());
+            for (File f : logDir.listFiles())
+            {
+                f.delete();
+            }
+            logDir.delete();
+        }
+
+        // If the log directory exists now, we have a problem.
+        if (logDir.exists())
+        {
+            throw new Exception(
+                    "Unable to clear log directory, test cannot start: "
+                            + logDir.getAbsolutePath());
+        }
+
+        // Create new log directory.
+        logDir.mkdirs();
+        return logDir;
+    }
+
+    /**
+     * Returns a well-formed ReplDBMSEvent with a specified shard ID.
+     */
+    public ReplDBMSEvent createEvent(long seqno, String shardId)
+    {
+        ArrayList<DBMSData> t = new ArrayList<DBMSData>();
+        t.add(new StatementData("SELECT 1"));
+        DBMSEvent dbmsEvent = new DBMSEvent(new Long(seqno).toString(), null,
+                t, true, new Timestamp(System.currentTimeMillis()));
+        ReplDBMSEvent replDbmsEvent = new ReplDBMSEvent(seqno, dbmsEvent);
+        replDbmsEvent.getDBMSEvent().addMetadataOption(
+                ReplOptionParams.SHARD_ID, shardId);
+        return replDbmsEvent;
+    }
+}

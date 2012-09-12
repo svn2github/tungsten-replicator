@@ -406,19 +406,7 @@ public class THLParallelQueue implements ParallelStore
         // If we have pending predicate matches, try to fulfill them as well.
         if (event.getLastFrag() && watchPredicates.size() > 0)
         {
-            // Scan for matches and add control events for each.
-            List<WatchPredicate<ReplDBMSHeader>> removeList = new ArrayList<WatchPredicate<ReplDBMSHeader>>();
-            for (WatchPredicate<ReplDBMSHeader> predicate : watchPredicates)
-            {
-                if (predicate.match(event))
-                {
-                    needsSync = true;
-                    removeList.add(predicate);
-                }
-            }
-
-            // Remove matching predicates.
-            watchPredicates.removeAll(removeList);
+            needsSync = checkSync(event);
         }
 
         // Even if we are not waiting for a heartbeat, these should always
@@ -442,6 +430,26 @@ public class THLParallelQueue implements ParallelStore
         }
     }
 
+    // Check to see if we need to synchronize queues. 
+    private boolean checkSync(ReplDBMSHeader event) throws InterruptedException
+    {
+        // Scan for matches and add control events for each.
+        boolean needsSync = false;
+        List<WatchPredicate<ReplDBMSHeader>> removeList = new ArrayList<WatchPredicate<ReplDBMSHeader>>();
+        for (WatchPredicate<ReplDBMSHeader> predicate : watchPredicates)
+        {
+            if (predicate.match(event))
+            {
+                needsSync = true;
+                removeList.add(predicate);
+            }
+        }
+
+        // Remove matching predicates, if any. 
+        watchPredicates.removeAll(removeList);
+        
+        return needsSync;
+    }
     // Block until all queues have committed their current transactions.
     private void blockToZero() throws InterruptedException, ReplicatorException
     {

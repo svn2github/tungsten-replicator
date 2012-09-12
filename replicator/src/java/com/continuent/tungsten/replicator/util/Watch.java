@@ -30,6 +30,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.log4j.Logger;
+
 /**
  * Implements a "watch" operation that waits for a predicate to be fulfilled on
  * a particular event in an event processing queue.
@@ -38,6 +40,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class Watch<E> implements Future<E>
 {
+    private static final Logger              logger        = Logger.getLogger(Watch.class);
     private final WatchPredicate<E>          predicate;
     private final WatchAction<E>             action;
     private final BlockingQueue<EventHolder> responseQueue = new LinkedBlockingQueue<EventHolder>();
@@ -158,7 +161,10 @@ public class Watch<E> implements Future<E>
         if (cancelled)
             throw new CancellationException("This watch was cancelled");
         else if (holder == null)
+        {
+            logger.info("Watch timed out: " + this.toString());
             throw new TimeoutException();
+        }
         else
         {
             done = true;
