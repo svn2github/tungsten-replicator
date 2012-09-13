@@ -74,12 +74,16 @@ public class THLParallelQueueSerializationTest
     /** Define a commit action to introduce delay into commit operations. */
     class RandomCommitAction implements CommitAction
     {
-        volatile long maxWait = -1;
+        private final long maxWait;
+
+        public RandomCommitAction(long maxWait)
+        {
+            this.maxWait = maxWait;
+        }
 
         public void execute(int taskId) throws ReplicatorException
         {
-            // Randomly wait up
-            // to 99ms
+            // Randomly wait.
             long waitMillis = (long) (maxWait * Math.random());
             try
             {
@@ -250,8 +254,7 @@ public class THLParallelQueueSerializationTest
         // Add a commit action to randomize the time to commit. This
         // will stimulate race conditions if there is bad coordination
         // between serialized and non-serialized events.
-        RandomCommitAction ca = new RandomCommitAction();
-        ca.maxWait = 100;
+        RandomCommitAction ca = new RandomCommitAction(100);
         mq.setCommitAction(ca);
 
         // Write events where every channelCount events is #UNKNOWN, thereby
@@ -508,8 +511,7 @@ public class THLParallelQueueSerializationTest
                 .getStore("thl-queue");
         InMemoryTransactionalQueue mq = (InMemoryTransactionalQueue) pipeline
                 .getStore("multi-queue");
-        RandomCommitAction ca = new RandomCommitAction();
-        ca.maxWait = 10;
+        RandomCommitAction ca = new RandomCommitAction(100);
         mq.setCommitAction(ca);
 
         // Distribute transactions as follows: write 100 db0/db1 transactions,

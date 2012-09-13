@@ -130,6 +130,7 @@ public class WatchManager<E>
         assertNotCancelled();
         for (Watch<E> w : watchList)
         {
+            logger.info("Cancelling pending watch: " + w.toString());
             w.cancel(true);
         }
         cancelled = true;
