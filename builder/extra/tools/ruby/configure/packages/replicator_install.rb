@@ -282,7 +282,7 @@ class ReplicatorInstallPackage < ConfigurePackage
     end
     master_hosts = master_host.to_s().split(",")
     
-    if datasource_options.getProperty([DATASOURCES, "ds", REPL_DBHOST]) != nil
+    if datasource_options.getNestedProperty([DATASOURCES, "ds", REPL_DBHOST]) != nil
       if cluster_hosts.size() > 1
         error("You may not specify --datasource-host when there are multiple hosts in --cluster-hosts")
       end
