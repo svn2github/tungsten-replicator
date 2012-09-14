@@ -221,7 +221,7 @@ class MySQLServerID < ConfigurePrompt
         raise ""
       end
       
-      server_id = get_applier_datasource().get_value("SHOW VARIABLES LIKE 'server_id'", "Value")
+      server_id = get_applier_datasource().get_value("select @@server_id as Value for update", "Value")
       if server_id == nil
         raise "Unable to determine server_id"
       end
