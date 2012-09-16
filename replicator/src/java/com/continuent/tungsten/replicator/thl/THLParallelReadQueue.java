@@ -61,11 +61,10 @@ import com.continuent.tungsten.replicator.util.WatchPredicate;
  * <p>
  * Access to this class is highly concurrent. Methods that merge queue contents
  * are synchronized to ensure atomicity of changes across queue structures.
- * Failure to do this could result in ordering violations. Methods that just
- * access the structures, such as adding to watches, or removing from the event
- * queue must <em>not</em> be synchronized, as this will trigger deadlocks
- * between threads. These structures are protected instead by using concurrent
- * collections.
+ * Failure to do this could result in ordering violations. The event queue is
+ * protected by a concurrent collection. Methods that access this as well as
+ * statistical information are not synchronized, as doing so would raise the
+ * risk of deadlocks.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
@@ -79,7 +78,7 @@ public class THLParallelReadQueue
     // Number of transactions between automatic sync events.
     private final int                                  syncInterval;
 
-    // PUBLICLY ACCESSED MEMBERS -- MUST PROVIDE OWN SYCHRONIZATION
+    // PUBLICLY ACCESSED MEMBERS -- MUST PROVIDE INDEPENDENT SYCHRONIZATION
     // Totally ordered queue of merged read task events and control events.
     private BlockingQueue<ReplEvent>                   eventQueue;
 
@@ -89,18 +88,19 @@ public class THLParallelReadQueue
     private volatile boolean                           lastFrag     = true;
     private volatile ReplDBMSHeader                    lastHeader   = null;
 
-    // PRIVATE MEMBERS PROTECTED BY SYNCHRONIZED METHODS
-    // Pending control events to be integrated into the event queue.
-    private LinkedList<ReplControlEvent>               controlQueue;
-
-    // Queue for predicates belonging to pending wait synchronization requests.
-    private LinkedList<WatchPredicate<ReplDBMSHeader>> watchPredicates;
-
     // Statistical counters.
     private AtomicLong                                 acceptCount  = new AtomicLong(
                                                                             0);
     private AtomicLong                                 discardCount = new AtomicLong(
                                                                             0);
+
+    // PRIVATE MEMBERS PROTECTED BY SYNCHRONIZED METHODS
+
+    // Pending control events to be integrated into the event queue.
+    private LinkedList<ReplControlEvent>               controlQueue;
+
+    // Queue for predicates belonging to pending wait synchronization requests.
+    private LinkedList<WatchPredicate<ReplDBMSHeader>> watchPredicates;
 
     /**
      * Instantiates a new read queue.
@@ -114,7 +114,7 @@ public class THLParallelReadQueue
     public THLParallelReadQueue(int maxSize, int maxControlEvents,
             long startingSeqno, int syncInterval, ReplDBMSHeader lastHeader)
     {
-        // Set starting parameterms.
+        // Set starting parameters.
         this.readSeqno = startingSeqno;
         this.syncInterval = syncInterval;
 
@@ -162,6 +162,28 @@ public class THLParallelReadQueue
         return discardCount.get();
     }
 
+    /**
+     * Frees resources including all queues and lists.
+     */
+    public synchronized void release()
+    {
+        if (eventQueue != null)
+        {
+            eventQueue.clear();
+            eventQueue = null;
+        }
+        if (controlQueue != null)
+        {
+            controlQueue.clear();
+            controlQueue = null;
+        }
+        if (watchPredicates != null)
+        {
+            watchPredicates.clear();
+            watchPredicates = null;
+        }
+    }
+
     // UPSTREAM QUEUE INTERFACE. These methods perform operations that
     // affect consistency between data structures and must be synchronized.
     // Callers must ensure they do not hold monitors that would lead to
@@ -196,8 +218,8 @@ public class THLParallelReadQueue
      * Note that if you post a control event whose seqno is <em>prior</em> to
      * the current seqno in the queue, the control event seqno will be altered
      * to use the current seqno. This is required to prevent seqno values from
-     * appearing to move backwards, which could provide bugs in downstream
-     * tasks.
+     * appearing to move backwards, which could provoke bugs in downstream tasks
+     * that expect sequence numbers to increase monotonically.
      * 
      * @param controlEvent Control event to post or buffer
      */
@@ -234,7 +256,8 @@ public class THLParallelReadQueue
 
     /**
      * Post an event which will be enqueued immediately. Synchronize position to
-     * update counters and catch any pending control events as well.
+     * update counters and merge any pending control events or predicates as
+     * well.
      * 
      * @param Replication event to post. Must either be proper event or a
      *            control event for synchronization.
@@ -412,7 +435,7 @@ public class THLParallelReadQueue
     }
 
     /**
-     * Removes the next element from the queue.
+     * Removes the next element from the event queue.
      */
     public ReplEvent take() throws InterruptedException
     {
@@ -426,27 +449,5 @@ public class THLParallelReadQueue
     public ReplEvent peek() throws InterruptedException
     {
         return eventQueue.peek();
-    }
-
-    /**
-     * Frees resources including all queues and lists.
-     */
-    public synchronized void release()
-    {
-        if (eventQueue != null)
-        {
-            eventQueue.clear();
-            eventQueue = null;
-        }
-        if (controlQueue != null)
-        {
-            controlQueue.clear();
-            controlQueue = null;
-        }
-        if (watchPredicates != null)
-        {
-            watchPredicates.clear();
-            watchPredicates = null;
-        }
     }
 }
