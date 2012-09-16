@@ -23,8 +23,6 @@
 package com.continuent.tungsten.replicator.thl;
 
 import java.sql.Timestamp;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
@@ -32,10 +30,7 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.ErrorNotification;
 import com.continuent.tungsten.replicator.ReplicatorException;
-import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
-import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplControlEvent;
-import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeaderData;
 import com.continuent.tungsten.replicator.event.ReplEvent;
@@ -47,6 +42,7 @@ import com.continuent.tungsten.replicator.thl.log.LogEventReadFilter;
 import com.continuent.tungsten.replicator.thl.log.LogEventReplReader;
 import com.continuent.tungsten.replicator.util.AtomicCounter;
 import com.continuent.tungsten.replicator.util.AtomicIntervalGuard;
+import com.continuent.tungsten.replicator.util.WatchPredicate;
 
 /**
  * Performs coordinated reads on the THL on behalf of a particular client (a
@@ -57,56 +53,47 @@ import com.continuent.tungsten.replicator.util.AtomicIntervalGuard;
  */
 public class THLParallelReadTask implements Runnable
 {
-    private static Logger                  logger               = Logger.getLogger(THLParallelReadTask.class);
+    private static Logger          logger               = Logger.getLogger(THLParallelReadTask.class);
 
     // Task number on whose behalf we are reading.
-    private final int                      taskId;
+    private final int              taskId;
+    private final int              maxSize;
+    private final int              syncInterval;
 
     // Partitioner instance.
-    private final Partitioner              partitioner;
+    private final Partitioner      partitioner;
 
     // Counters to coordinate queue operation.
-    private AtomicCounter                  headSeqnoCounter;
-    private AtomicIntervalGuard<?>         intervalGuard;
-    private AtomicLong                     lowWaterMark         = new AtomicLong(
-                                                                        0);
-    private AtomicLong                     acceptCount          = new AtomicLong(
-                                                                        0);
-    private AtomicLong                     discardCount         = new AtomicLong(
-                                                                        0);
-    private AtomicLong                     readCount            = new AtomicLong(
-                                                                        0);
+    private AtomicCounter          headSeqnoCounter;
+    private AtomicIntervalGuard<?> intervalGuard;
+    private AtomicLong             lowWaterMark         = new AtomicLong(0);
+    private AtomicLong             readCount            = new AtomicLong(0);
 
     // Dispatcher to report errors.
-    EventDispatcher                        dispatcher;
-
-    // Ordered queue of events for clients.
-    private final BlockingQueue<ReplEvent> eventQueue;
-
-    // Number of transactions between automatic sync events.
-    private final int                      syncInterval;
+    EventDispatcher                dispatcher;
 
     // Queue parameters.
-    private final int                      maxControlEvents;
-    private long                           restartSeqno         = 0;
-    private long                           restartExtractMillis = Long.MAX_VALUE;
+    private final int              maxControlEvents;
+    private long                   restartSeqno         = 0;
+    private long                   restartExtractMillis = Long.MAX_VALUE;
+    private ReplDBMSHeader         lastHeader;
 
     // Pending control events to be integrated into the event queue and seqno
     // of next event if known.
-    private THLParallelReadQueue           readQueue;
+    private THLParallelReadQueue   readQueue;
 
     // Connection to the log.
-    private THL                            thl;
-    private LogConnection                  connection;
+    private THL                    thl;
+    private LogConnection          connection;
 
     // Throwable trapped from run loop.
-    private volatile Throwable             throwable;
+    private volatile Throwable     throwable;
 
     // Thread ID for this read task.
-    private volatile Thread                taskThread;
+    private volatile Thread        taskThread;
 
     // Flag indicating task is cancelled.
-    private volatile boolean               cancelled            = false;
+    private volatile boolean       cancelled            = false;
 
     /**
      * Instantiate a read task.
@@ -121,8 +108,8 @@ public class THLParallelReadTask implements Runnable
         this.partitioner = partitioner;
         this.headSeqnoCounter = headSeqnoCounter;
         this.intervalGuard = intervalGuard;
+        this.maxSize = maxSize;
         this.maxControlEvents = maxControlEvents;
-        this.eventQueue = new LinkedBlockingQueue<ReplEvent>(maxSize);
         this.syncInterval = syncInterval;
         this.dispatcher = dispatcher;
     }
@@ -134,6 +121,7 @@ public class THLParallelReadTask implements Runnable
     {
         this.restartSeqno = header.getSeqno() + 1;
         this.restartExtractMillis = header.getExtractedTstamp().getTime();
+        this.lastHeader = header;
     }
 
     /**
@@ -144,8 +132,8 @@ public class THLParallelReadTask implements Runnable
             throws ReplicatorException, InterruptedException
     {
         // Set up the read queue.
-        this.readQueue = new THLParallelReadQueue(eventQueue, maxControlEvents,
-                restartSeqno);
+        this.readQueue = new THLParallelReadQueue(maxSize, maxControlEvents,
+                restartSeqno, syncInterval, lastHeader);
 
         // Connect to the log.
         connection = thl.connect(true);
@@ -228,8 +216,8 @@ public class THLParallelReadTask implements Runnable
         {
             connection.release();
             connection = null;
-            eventQueue.clear();
             readQueue.release();
+            readQueue = null;
         }
     }
 
@@ -280,49 +268,14 @@ public class THLParallelReadTask implements Runnable
                 intervalGuard.report(taskId, thlEvent.getSeqno(), thlEvent
                         .getSourceTstamp().getTime());
 
-                // If we do not want it, just go to the next event. This
-                // would be null if the read filter discarded the event due
-                // to it being in another partition.
-                ReplDBMSEvent replDBMSEvent = (ReplDBMSEvent) thlEvent
-                        .getReplEvent();
-                if (replDBMSEvent == null)
-                {
-                    discardCount.incrementAndGet();
-                    checkSync(thlEvent);
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("Discarded null event: seqno="
-                                + thlEvent.getSeqno() + " fragno="
-                                + thlEvent.getFragno());
-                    }
-                    continue;
-                }
-
-                // Discard empty events. These should not be common.
-                DBMSEvent dbmsEvent = replDBMSEvent.getDBMSEvent();
-                if (dbmsEvent == null | dbmsEvent instanceof DBMSEmptyEvent
-                        || dbmsEvent.getData().size() == 0)
-                {
-                    discardCount.incrementAndGet();
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("Discarded empty event: seqno="
-                                + thlEvent.getSeqno() + " fragno="
-                                + thlEvent.getFragno());
-                    }
-                    checkSync(thlEvent);
-                    continue;
-                }
-
-                // Add to queue.
+                // Post to the queue.
                 if (logger.isDebugEnabled())
                 {
                     logger.debug("Adding event to parallel queue:  taskId="
-                            + taskId + " seqno=" + replDBMSEvent.getSeqno()
-                            + " fragno=" + replDBMSEvent.getFragno());
+                            + taskId + " seqno=" + thlEvent.getSeqno()
+                            + " fragno=" + thlEvent.getFragno());
                 }
-                acceptCount.incrementAndGet();
-                readQueue.post(replDBMSEvent);
+                readQueue.post(thlEvent);
             }
         }
         catch (InterruptedException e)
@@ -352,35 +305,6 @@ public class THLParallelReadTask implements Runnable
                 + " store=" + thl.getName() + " taskId=" + taskId);
     }
 
-    // Handle synchronization of the read position in the queue.
-    private void checkSync(THLEvent thlEvent) throws InterruptedException
-    {
-        long seqno = thlEvent.getSeqno();
-        // See if we are over the synchronization interval.
-        if (thlEvent.getLastFrag() && seqno % syncInterval == 0)
-        {
-            // If so, submit a synchronization event.
-            ReplDBMSHeaderData header = new ReplDBMSHeaderData(
-                    thlEvent.getSeqno(), thlEvent.getFragno(),
-                    thlEvent.getLastFrag(), thlEvent.getSourceId(),
-                    thlEvent.getEpochNumber(), thlEvent.getEventId(),
-                    thlEvent.getShardId(), thlEvent.getSourceTstamp());
-            ReplControlEvent ctrl = new ReplControlEvent(ReplControlEvent.SYNC,
-                    seqno, header);
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Inserting sync event: seqno=" + seqno);
-            }
-            readQueue.post(ctrl);
-        }
-        else
-        {
-            // Otherwise, just update the read position.
-            readQueue.sync(thlEvent.getSeqno(), thlEvent.getLastFrag());
-        }
-    }
-
     // QUEUE INTERFACE STARTS HERE.
 
     /**
@@ -388,7 +312,7 @@ public class THLParallelReadTask implements Runnable
      */
     public int size()
     {
-        return eventQueue.size();
+        return readQueue.size();
     }
 
     /**
@@ -415,7 +339,7 @@ public class THLParallelReadTask implements Runnable
         }
 
         // Get the next event and return it.
-        ReplEvent event = eventQueue.take();
+        ReplEvent event = readQueue.take();
         if (logger.isDebugEnabled())
         {
             logger.debug("Returning event from queue: seqno="
@@ -432,7 +356,7 @@ public class THLParallelReadTask implements Runnable
      */
     public ReplEvent peek() throws InterruptedException
     {
-        return eventQueue.peek();
+        return readQueue.peek();
     }
 
     /**
@@ -442,6 +366,15 @@ public class THLParallelReadTask implements Runnable
             throws InterruptedException
     {
         readQueue.postOutOfBand(controlEvent);
+    }
+
+    /**
+     * Adds a watch predicate.
+     */
+    public void addWatchSyncPredicate(WatchPredicate<ReplDBMSHeader> predicate)
+            throws InterruptedException
+    {
+        readQueue.addWatchSyncPredicate(predicate);
     }
 
     /**
@@ -462,9 +395,9 @@ public class THLParallelReadTask implements Runnable
         sb.append(" hi_seqno=").append(this.readQueue.getReadSeqno());
         sb.append(" lo_seqno=").append(lowWaterMark.get());
         sb.append(" read=").append(readCount);
-        sb.append(" accepted=").append(acceptCount);
-        sb.append(" discarded=").append(discardCount);
-        sb.append(" events=").append(eventQueue.size());
+        sb.append(" accepted=").append(readQueue.getAcceptCount());
+        sb.append(" discarded=").append(readQueue.getDiscardCount());
+        sb.append(" events=").append(readQueue.size());
         return sb.toString();
     }
 }

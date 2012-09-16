@@ -193,7 +193,6 @@
                 <fileset dir="${test.src.dir}">
                     <include name="**/*Test*.java"/>
                 	<exclude name="**/*Abstract*.java"/>
-                	<exclude name="**/*THLParallelQueueSerializationTest*.java"/>
                 	<exclude name="**/*TestReplicatorManager.java"/>
                 	<exclude name="**/*TestOpenReplicatorManager.java"/>
                 </fileset>

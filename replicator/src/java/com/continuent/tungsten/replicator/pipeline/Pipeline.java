@@ -47,6 +47,7 @@ import com.continuent.tungsten.replicator.management.events.GoOfflineEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 import com.continuent.tungsten.replicator.plugin.ReplicatorPlugin;
 import com.continuent.tungsten.replicator.service.PipelineService;
+import com.continuent.tungsten.replicator.storage.ParallelStore;
 import com.continuent.tungsten.replicator.storage.Store;
 import com.continuent.tungsten.replicator.util.Watch;
 
@@ -573,7 +574,27 @@ public class Pipeline implements ReplicatorPlugin
     public Future<ReplDBMSHeader> watchForCommittedSequenceNumber(long seqno,
             boolean terminate) throws InterruptedException
     {
-        return stages.getLast().watchForCommittedSequenceNumber(seqno, false);
+        // Schedule the watch.
+        Watch<ReplDBMSHeader> watch = (Watch<ReplDBMSHeader>) stages.getLast()
+                .watchForCommittedSequenceNumber(seqno, false);
+
+        // If the watch is not done yet, and there is an upstream parallel
+        // store we need to ensure there are synchronization events on all
+        // queues so that we get the correct state of each queue by encouraging
+        // them to commit their positions once the watch is reached.
+        if (!watch.isDone())
+        {
+            for (Store store : stores.values())
+            {
+                if (store instanceof ParallelStore)
+                {
+                    ((ParallelStore) store).insertWatchSyncEvent(watch
+                            .getPredicate());
+                }
+            }
+        }
+
+        return watch;
     }
 
     /**

@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 
@@ -94,9 +93,6 @@ public class THLParallelQueue implements ParallelStore
     private long                                                transactionCount    = 0;
     private long                                                serializationCount  = 0;
     private long                                                discardCount        = 0;
-
-    // Queue for predicates belonging to pending wait synchronization requests.
-    private LinkedBlockingQueue<WatchPredicate<ReplDBMSHeader>> watchPredicates;
 
     // Flag to insert stop synchronization event at next transaction boundary.
     private boolean                                             stopRequested       = false;
@@ -403,12 +399,6 @@ public class THLParallelQueue implements ParallelStore
             }
         }
 
-        // If we have pending predicate matches, try to fulfill them as well.
-        if (event.getLastFrag() && watchPredicates.size() > 0)
-        {
-            needsSync = checkSync(event);
-        }
-
         // Even if we are not waiting for a heartbeat, these should always
         // generate a sync control event to ensure all tasks receive it.
         if (event.getDBMSEvent().getMetadataOptionValue(
@@ -430,26 +420,6 @@ public class THLParallelQueue implements ParallelStore
         }
     }
 
-    // Check to see if we need to synchronize queues. 
-    private boolean checkSync(ReplDBMSHeader event) throws InterruptedException
-    {
-        // Scan for matches and add control events for each.
-        boolean needsSync = false;
-        List<WatchPredicate<ReplDBMSHeader>> removeList = new ArrayList<WatchPredicate<ReplDBMSHeader>>();
-        for (WatchPredicate<ReplDBMSHeader> predicate : watchPredicates)
-        {
-            if (predicate.match(event))
-            {
-                needsSync = true;
-                removeList.add(predicate);
-            }
-        }
-
-        // Remove matching predicates, if any. 
-        watchPredicates.removeAll(removeList);
-        
-        return needsSync;
-    }
     // Block until all queues have committed their current transactions.
     private void blockToZero() throws InterruptedException, ReplicatorException
     {
@@ -596,9 +566,6 @@ public class THLParallelQueue implements ParallelStore
                             + partitionerClass);
         }
 
-        // Allocate queue for watch predicates.
-        watchPredicates = new LinkedBlockingQueue<WatchPredicate<ReplDBMSHeader>>();
-
         // Set the sync interval only if sync'ing is enabled.
         if (syncInterval <= 0)
             throw new ReplicatorException(
@@ -723,7 +690,10 @@ public class THLParallelQueue implements ParallelStore
     public void insertWatchSyncEvent(WatchPredicate<ReplDBMSHeader> predicate)
             throws InterruptedException
     {
-        this.watchPredicates.add(predicate);
+        for (THLParallelReadTask readTask : readTasks)
+        {
+            readTask.addWatchSyncPredicate(predicate);
+        }
     }
 
     /**

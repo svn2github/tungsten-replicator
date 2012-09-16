@@ -558,13 +558,6 @@ public class StageProgressTracker
         // See if we have reached this event.
         boolean alreadyReached = watch.isDone();
 
-        // If not and there is an upstream parallel store we need to ensure
-        // there are synchronization events on all queues so that we get the
-        // correct state of each queue by encouraging them to commit their
-        // positions once the watch is reached.
-        if (!alreadyReached && upstreamStore != null)
-            upstreamStore.insertWatchSyncEvent(watch.getPredicate());
-
         // If event is done and we have a cancel action, do it now.
         if (alreadyReached && cancel)
         {
@@ -572,11 +565,13 @@ public class StageProgressTracker
             shouldInterruptTask = true;
         }
 
-        // Watches are a sensitive operation and deserve to be placed in the
-        // log.
-        logger.info("Returning watch to caller: watch=" + watch.toString()
-                + " committed=" + committed + " alreadyReached="
-                + alreadyReached);
+        // Return the watch.
+        if (logger.isDebugEnabled())
+        {
+            logger.info("Returning watch to caller: watch=" + watch.toString()
+                    + " committed=" + committed + " alreadyReached="
+                    + alreadyReached);
+        }
         return watch;
     }
 
