@@ -17,6 +17,14 @@ import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.extractor.RawExtractor;
 
+/**
+ * 
+ * This class defines the base class for all THL Loader extractor classes.  All 
+ * classes that will be used with the loader must extend this.
+ * 
+ * @author <a href="mailto:jeff.mace@continuent.com">Jeff Mace</a>
+ * @version 1.0
+ */
 public abstract class Loader implements RawExtractor
 {
     private static final int DEFAULT_CHUNK_SIZE = 500;
@@ -26,7 +34,14 @@ public abstract class Loader implements RawExtractor
     protected URI uri = null;
     protected Map<String, List<String>> params = null;
     protected int chunkSize = DEFAULT_CHUNK_SIZE;
-    
+
+    /**
+     * 
+     * Parse the URI to extract events from
+     * 
+     * @param uri
+     * @throws Exception
+     */
     public void setUri(String uri) throws Exception
     {
         try
@@ -36,20 +51,24 @@ public abstract class Loader implements RawExtractor
             this.uri = new URI(uri);
             
             params = new HashMap<String, List<String>>();
-            if (this.uri.getQuery().length() > 0) {
-                for (String param : this.uri.getQuery().split("&")) {
-                    String pair[] = param.split("=");
-                    String key = URLDecoder.decode(pair[0], "UTF-8");
-                    String value = "";
-                    if (pair.length > 1) {
-                        value = URLDecoder.decode(pair[1], "UTF-8");
+            
+            if (this.uri.getQuery() != null)
+            {
+                if (this.uri.getQuery().length() > 0) {
+                    for (String param : this.uri.getQuery().split("&")) {
+                        String pair[] = param.split("=");
+                        String key = URLDecoder.decode(pair[0], "UTF-8");
+                        String value = "";
+                        if (pair.length > 1) {
+                            value = URLDecoder.decode(pair[1], "UTF-8");
+                        }
+                        List<String> values = params.get(key);
+                        if (values == null) {
+                            values = new ArrayList<String>();
+                            params.put(key, values);
+                        }
+                        values.add(value);
                     }
-                    List<String> values = params.get(key);
-                    if (values == null) {
-                        values = new ArrayList<String>();
-                        params.put(key, values);
-                    }
-                    values.add(value);
                 }
             }
         }
@@ -59,11 +78,37 @@ public abstract class Loader implements RawExtractor
         }
     }
     
+    /**
+     * 
+     * Set the number of rows to include in each THL event
+     * 
+     * @param chunkSize
+     */
     public void setChunkSize(int chunkSize)
     {
         this.chunkSize = chunkSize;
     }
     
+    /**
+     * 
+     * Get the number of rows to include in each THL event
+     * 
+     * @return
+     */
+    public int getChunkSize()
+    {
+        return this.chunkSize;
+    }
+    
+    /**
+     * 
+     * Build an event that includes the heartbeat name to indicate that all 
+     * data has been extracted
+     * 
+     * @return The DBMSEvent with the heartbeat metadata set
+     * @throws ReplicatorException
+     * @throws InterruptedException
+     */
     protected DBMSEvent getFinishLoadEvent() throws ReplicatorException, InterruptedException
     {
         DBMSEmptyEvent heartbeat = new DBMSEmptyEvent(this.getCurrentResourceEventId());
@@ -71,6 +116,16 @@ public abstract class Loader implements RawExtractor
         return heartbeat;
     }
     
+    /**
+     * 
+     * Take a raw string value and return the proper Java data type for
+     * the java.sql.Types type given
+     * 
+     * @param type
+     * @param value
+     * @return 
+     * @throws Exception
+     */
     public Serializable parseStringValue(int type, String value) throws Exception
     {
         switch (type)
@@ -142,7 +197,7 @@ public abstract class Loader implements RawExtractor
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.BLOB:
             {
-                throw new Exception("THL import does not yet support binary data");
+                throw new Exception("THL loader does not yet support binary data");
             }
             
             case java.sql.Types.NULL:

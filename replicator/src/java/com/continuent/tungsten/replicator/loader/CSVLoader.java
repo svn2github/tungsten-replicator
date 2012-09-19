@@ -1,4 +1,4 @@
-package com.continuent.tungsten.replicator.loader.csv;
+package com.continuent.tungsten.replicator.loader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,9 +26,15 @@ import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplOptionParams;
-import com.continuent.tungsten.replicator.loader.Loader;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
+/**
+ * 
+ * Load THL events from a series of CSV files
+ * 
+ * @author <a href="mailto:jeff.mace@continuent.com">Jeff Mace</a>
+ * @version 1.0
+ */
 public class CSVLoader extends Loader
 {
     private static Logger         logger             = Logger.getLogger(CSVLoader.class);
@@ -93,6 +99,13 @@ public class CSVLoader extends Loader
         }
     }
     
+    /**
+     * 
+     * Parse the table columns and data types from the table definition file
+     * 
+     * @param f
+     * @throws ReplicatorException
+     */
     protected void prepareTableDefinition(File f) throws ReplicatorException
     {
         ArrayList<ColumnSpec> columns = null;
@@ -142,21 +155,24 @@ public class CSVLoader extends Loader
         }
         catch (IOException e)
         {
-            // TODO Auto-generated catch block
+            throw new ReplicatorException(e);
         }
         catch (Exception e)
         {
-            // TODO Auto-generated catch block
+            throw new ReplicatorException(e);
         }
         finally
         {
             try
             {
-                columnReader.close();
+                if (columnReader != null)
+                {
+                    columnReader.close();
+                }
             }
             catch (IOException e)
             {
-                // TODO Auto-generated catch block
+                throw new ReplicatorException(e);
             }
         }
     }
@@ -220,6 +236,12 @@ public class CSVLoader extends Loader
         this.prepareCurrentTable();
     }
     
+    /**
+     * 
+     * Update variables to point to the next table to load values for
+     * 
+     * @throws ReplicatorException
+     */
     protected void nextTable() throws ReplicatorException
     {
         if (this.tableNames.size() == 0)
@@ -236,6 +258,12 @@ public class CSVLoader extends Loader
         this.prepareCurrentTable();
     }
     
+    /**
+     * 
+     * Open the CSV file containing the values for the current table
+     * 
+     * @throws ReplicatorException
+     */
     protected void prepareCurrentTable() throws ReplicatorException
     {
         if (currentTableName == null)
@@ -267,7 +295,7 @@ public class CSVLoader extends Loader
     }
 
     /**
-     * Extract the next available DBMSEvent from the database log.
+     * Extract the next available DBMSEvent from the CSV file
      * 
      * @return next DBMSEvent found in the logs
      * @throws IOException 
@@ -364,6 +392,14 @@ public class CSVLoader extends Loader
         }
     }
     
+    /**
+     * 
+     * Load the next set of CSV values from the file
+     * 
+     * @param reader
+     * @return An array of strings representing the next row
+     * @throws IOException
+     */
     protected String[] readNext(LineNumberReader reader) throws IOException
     {
         String[] rowDef = null;
@@ -444,11 +480,25 @@ public class CSVLoader extends Loader
         }
     }
 
+    /**
+     * 
+     * Return the source ID to use in the THL events
+     * 
+     * @return
+     * @throws Exception
+     */
     protected String getSourceID() throws Exception
     {
         return this.uri.getHost();
     }
     
+    /**
+     * 
+     * Return the schema to use in the THL events
+     * 
+     * @return
+     * @throws ReplicatorException
+     */
     protected String getDefaultSchema() throws ReplicatorException
     {
         List<String> values = this.params.get("schema");
