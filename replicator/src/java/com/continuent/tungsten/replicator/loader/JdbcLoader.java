@@ -522,6 +522,19 @@ public abstract class JdbcLoader extends Loader
                     user);
             throw new ReplicatorException(message, e);
         }
+        
+        if (getLockTables() == true)
+        {
+            try
+            {
+                lockTables();
+            }
+            catch (SQLException e)
+            {
+                String message = "Unable to lock tables : " + e.getMessage();
+                throw new ReplicatorException(message, e);
+            }
+        }
 
         /**
          * Initiate the list of tables to load data from
@@ -577,4 +590,14 @@ public abstract class JdbcLoader extends Loader
         }
     }
 
+    /**
+     * 
+     * A placeholder function for loaders that can lock tables
+     * 
+     * @throws SQLException
+     */
+    public void lockTables() throws SQLException
+    {
+        // Do Nothing
+    }
 }

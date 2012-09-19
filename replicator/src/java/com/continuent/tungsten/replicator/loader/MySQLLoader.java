@@ -14,6 +14,18 @@ public class MySQLLoader extends JdbcLoader
     
     /**
      * 
+     * Creates a new <code>MySQLLoader</code> object
+     *
+     */
+    public MySQLLoader()
+    {
+        super();
+        
+        setLockTables(true);
+    }
+    
+    /**
+     * 
      * Build a MySQL JDBC connection string
      * 
      * {@inheritDoc}
@@ -46,10 +58,10 @@ public class MySQLLoader extends JdbcLoader
         super.configure(context);
     }
     
-    public void prepare(PluginContext context) throws ReplicatorException,
-        InterruptedException
+    public void lockTables() throws SQLException
     {
-        super.prepare(context);
+        logger.info("Run FLUSH TABLES to lock out changes");
+        statement.execute("FLUSH NO_WRITE_TO_BINLOG TABLES WITH READ LOCK");
     }
     
     /**

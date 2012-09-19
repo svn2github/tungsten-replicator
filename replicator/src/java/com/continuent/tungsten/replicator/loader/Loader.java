@@ -34,6 +34,7 @@ public abstract class Loader implements RawExtractor
     protected URI uri = null;
     protected Map<String, List<String>> params = null;
     protected int chunkSize = DEFAULT_CHUNK_SIZE;
+    protected boolean lockTables = false;
 
     /**
      * 
@@ -114,6 +115,28 @@ public abstract class Loader implements RawExtractor
         DBMSEmptyEvent heartbeat = new DBMSEmptyEvent(this.getCurrentResourceEventId());
         heartbeat.setMetaDataOption(ReplOptionParams.HEARTBEAT, "LOAD_COMPLETE");
         return heartbeat;
+    }
+    
+    /**
+     * 
+     * Set if the tables should be locked at runtime
+     * 
+     * @param lockTables
+     */
+    public void setLockTables(boolean lockTables)
+    {
+        this.lockTables = lockTables;
+    }
+    
+    /**
+     * 
+     * Are locks required on the tables during the laod
+     * 
+     * @return
+     */
+    public boolean getLockTables()
+    {
+        return lockTables;
     }
     
     /**

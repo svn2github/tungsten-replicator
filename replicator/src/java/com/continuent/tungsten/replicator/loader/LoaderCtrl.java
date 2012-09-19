@@ -18,6 +18,8 @@ import com.continuent.tungsten.replicator.extractor.ExtractorWrapper;
 import com.continuent.tungsten.replicator.management.MockEventDispatcher;
 import com.continuent.tungsten.replicator.management.MockOpenReplicatorContext;
 import com.continuent.tungsten.replicator.pipeline.Pipeline;
+import com.continuent.tungsten.replicator.storage.Store;
+import com.continuent.tungsten.replicator.thl.THL;
 import com.continuent.tungsten.replicator.thl.THLManagerCtrl;
 import com.continuent.tungsten.replicator.thl.THLManagerCtrl.InfoHolder;
 
@@ -238,6 +240,8 @@ public class LoaderCtrl
     {   
         ReplicatorRuntime runtime = null;
         Pipeline pipeline = null;
+        Class<?> headExtractorClass = null;
+        Class<?> storeClass = null;
         
         try
         {
@@ -248,10 +252,25 @@ public class LoaderCtrl
             pipeline = runtime.getPipeline();
             
             ExtractorWrapper ew = (ExtractorWrapper) pipeline.getHeadExtractor();
-            Class<?> headExtractorClass = ew.getExtractor().getClass();
+            headExtractorClass = ew.getExtractor().getClass();
             if (Loader.class.isAssignableFrom(headExtractorClass) != true)
             {
                 throw new Exception("Unable to start the loader because " + headExtractorClass + " does not extend " + Loader.class);
+            }
+            
+            Loader extractor = (Loader) ew.getExtractor();
+            if (extractor.getLockTables() == true)
+            {
+                for (String storeName : pipeline.getStoreNames())
+                {
+                    Store store = (Store) pipeline.getStore(storeName);
+                    storeClass = store.getClass();
+                    if (THL.class.isAssignableFrom(storeClass) == true)
+                    {
+                        THL thlStore = (THL) store;
+                        thlStore.setUrl(null);
+                    }
+                }
             }
 
             runtime.prepare();
