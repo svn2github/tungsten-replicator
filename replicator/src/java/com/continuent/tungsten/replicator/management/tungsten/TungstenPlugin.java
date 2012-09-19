@@ -714,7 +714,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
     }
 
     /**
-     * Wait for a particular event to be applied on the slave.
+     * Wait for a particular event to be committed on the slave.
      * 
      * @param event Event to wait for
      * @param timeout Number of seconds to wait. 0 is indefinite.
@@ -732,7 +732,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         if (pipeline == null)
             throw new ReplicatorException(
                     "Invalid replicator state for this operation. Cannot wait for event "
-                            + seqno + " to be applied.");
+                            + seqno + " to be committed.");
 
         Future<ReplDBMSHeader> expectedEvent = pipeline
                 .watchForCommittedSequenceNumber(seqno, false);
