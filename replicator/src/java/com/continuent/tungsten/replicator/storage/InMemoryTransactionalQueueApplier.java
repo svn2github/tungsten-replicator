@@ -22,11 +22,14 @@
 
 package com.continuent.tungsten.replicator.storage;
 
+import java.sql.Timestamp;
+
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.applier.ParallelApplier;
 import com.continuent.tungsten.replicator.consistency.ConsistencyException;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeaderData;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
@@ -160,7 +163,11 @@ public class InMemoryTransactionalQueueApplier implements ParallelApplier
     public ReplDBMSHeader getLastEvent() throws ReplicatorException,
             InterruptedException
     {
-        return null;
+        // Create a dummy last event.
+        ReplDBMSHeaderData initHeader = new ReplDBMSHeaderData(-1, (short) 0,
+                true, null, -1, null, null, new Timestamp(
+                        System.currentTimeMillis()));
+        return initHeader;
     }
 
     @Override
