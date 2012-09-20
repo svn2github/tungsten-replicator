@@ -63,8 +63,8 @@ public class TungstenPropertiesTest extends TestCase
 
         props.setString("string1", "mystring");
         props.setString("string2", "");
-        assertEquals("Checking normal string", "mystring", props
-                .getString("string1"));
+        assertEquals("Checking normal string", "mystring",
+                props.getString("string1"));
         assertEquals("Checking empty string", "", props.getString("string2"));
 
         props.setInt("int1", 13);
@@ -83,17 +83,17 @@ public class TungstenPropertiesTest extends TestCase
         props.setFloat("float4", Float.NEGATIVE_INFINITY);
         props.setFloat("float5", Float.NaN);
         props.setFloat("float6", 0);
-        assertEquals("Checking min float", Float.MIN_VALUE, props
-                .getFloat("float1"));
-        assertEquals("Checking max float", Float.MAX_VALUE, props
-                .getFloat("float2"));
-        assertEquals("Checking +inf float", Float.POSITIVE_INFINITY, props
-                .getFloat("float3"));
-        assertEquals("Checking -inf float", Float.NEGATIVE_INFINITY, props
-                .getFloat("float4"));
+        assertEquals("Checking min float", Float.MIN_VALUE,
+                props.getFloat("float1"));
+        assertEquals("Checking max float", Float.MAX_VALUE,
+                props.getFloat("float2"));
+        assertEquals("Checking +inf float", Float.POSITIVE_INFINITY,
+                props.getFloat("float3"));
+        assertEquals("Checking -inf float", Float.NEGATIVE_INFINITY,
+                props.getFloat("float4"));
         assertEquals("Checking NaN float", Float.NaN, props.getFloat("float5"));
-        assertEquals("Checking zero float", new Float(0), props
-                .getFloat("float6"));
+        assertEquals("Checking zero float", new Float(0),
+                props.getFloat("float6"));
 
         props.setDouble("double1", Double.MIN_VALUE);
         props.setDouble("double2", Double.MAX_VALUE);
@@ -101,18 +101,18 @@ public class TungstenPropertiesTest extends TestCase
         props.setDouble("double4", Double.NEGATIVE_INFINITY);
         props.setDouble("double5", Double.NaN);
         props.setDouble("double6", 0);
-        assertEquals("Checking min double", Double.MIN_VALUE, props
-                .getDouble("double1"));
-        assertEquals("Checking max double", Double.MAX_VALUE, props
-                .getDouble("double2"));
-        assertEquals("Checking +inf double", Double.POSITIVE_INFINITY, props
-                .getDouble("double3"));
-        assertEquals("Checking -inf double", Double.NEGATIVE_INFINITY, props
-                .getDouble("double4"));
-        assertEquals("Checking NaN double", Double.NaN, props
-                .getDouble("double5"));
-        assertEquals("Checking zero double", new Double(0), props
-                .getDouble("double6"));
+        assertEquals("Checking min double", Double.MIN_VALUE,
+                props.getDouble("double1"));
+        assertEquals("Checking max double", Double.MAX_VALUE,
+                props.getDouble("double2"));
+        assertEquals("Checking +inf double", Double.POSITIVE_INFINITY,
+                props.getDouble("double3"));
+        assertEquals("Checking -inf double", Double.NEGATIVE_INFINITY,
+                props.getDouble("double4"));
+        assertEquals("Checking NaN double", Double.NaN,
+                props.getDouble("double5"));
+        assertEquals("Checking zero double", new Double(0),
+                props.getDouble("double6"));
 
         Date now = new Date();
         props.setDate("date1", new Date(0));
@@ -121,10 +121,10 @@ public class TungstenPropertiesTest extends TestCase
         props.setDate("date4", new Date(Long.MIN_VALUE));
         assertEquals("Checking Epoch", new Date(0), props.getDate("date1"));
         assertEquals("Checking now", now, props.getDate("date2"));
-        assertEquals("Checking max date", new Date(Long.MAX_VALUE), props
-                .getDate("date3"));
-        assertEquals("Checking min date", new Date(Long.MIN_VALUE), props
-                .getDate("date4"));
+        assertEquals("Checking max date", new Date(Long.MAX_VALUE),
+                props.getDate("date3"));
+        assertEquals("Checking min date", new Date(Long.MIN_VALUE),
+                props.getDate("date4"));
 
         File file1 = new File("/etc/init.d");
         props.setFile("file1", file1);
@@ -132,11 +132,11 @@ public class TungstenPropertiesTest extends TestCase
 
         Interval interval = new Interval(10000);
         props.setInterval("interval1", interval);
-        assertEquals("Checking interval with object", interval, props
-                .getInterval("interval1"));
+        assertEquals("Checking interval with object", interval,
+                props.getInterval("interval1"));
         props.setString("interval2", "3m");
-        assertEquals("Checking string interval", 180000, props.getInterval(
-                "interval2").longValue());
+        assertEquals("Checking string interval", 180000,
+                props.getInterval("interval2").longValue());
     }
 
     /**
@@ -253,15 +253,15 @@ public class TungstenPropertiesTest extends TestCase
         Assert.assertEquals("a${a", props.getProperty("c2"));
         Assert.assertEquals("a${}", props.getProperty("d1"));
         Assert.assertEquals("a${e", props.getProperty("d2"));
-        Assert.assertEquals("_testLoadingWithSubstitutions_", props
-                .getProperty("e1"));
+        Assert.assertEquals("_testLoadingWithSubstitutions_",
+                props.getProperty("e1"));
         Assert.assertEquals("e2", props.getProperty("e2"));
         Assert.assertEquals("${novalue}", props.getProperty("e3"));
         Assert.assertEquals("${no value}", props.getProperty("e4"));
     }
 
     /**
-     * Tests ability to perform multiple substitutions.  
+     * Tests ability to perform multiple substitutions.
      */
     public void testLoadWithMultipleSubtitutions() throws Exception
     {
@@ -305,18 +305,18 @@ public class TungstenPropertiesTest extends TestCase
 
         // Second subset should have one entry with prefixed name.
         Assert.assertEquals("subset 1 has 1 property", 1, subset1.size());
-        Assert.assertEquals("subset 1 key untruncated", "string 1", subset1
-                .getString("a.keep.s1"));
+        Assert.assertEquals("subset 1 key untruncated", "string 1",
+                subset1.getString("a.keep.s1"));
 
         // Third subset should have one entry with unprefixed name.
         Assert.assertEquals("subset 2 has 1 property", 1, subset2.size());
-        Assert.assertEquals("subset 2 key truncated", "string 1", subset2
-                .getString("s1"));
+        Assert.assertEquals("subset 2 key truncated", "string 1",
+                subset2.getString("s1"));
 
         // Last subset should have all entries with truncated prefixes.
         Assert.assertEquals("subset 3 has 4 properties", 4, subset3.size());
-        Assert.assertEquals("subset 3 key truncated", "string 1", subset3
-                .getString("keep.s1"));
+        Assert.assertEquals("subset 3 key truncated", "string 1",
+                subset3.getString("keep.s1"));
 
         // Test property removal flag
         subset3.subset("remove", true, true);
@@ -394,8 +394,8 @@ public class TungstenPropertiesTest extends TestCase
         map.put("mid1", tp1);
         map.put("mid2", tp2);
         tp.setDataSourceMap(map);
-        assertEquals("Did not get inserted data source map", map, tp
-                .getDataSourceMap());
+        assertEquals("Did not get inserted data source map", map,
+                tp.getDataSourceMap());
     }
 
     public void testClusterMap() throws Exception
@@ -420,8 +420,8 @@ public class TungstenPropertiesTest extends TestCase
         clusterMap.put("service2", map2);
 
         tp.setClusterMap(clusterMap);
-        assertEquals("Did not get inserted cluster map", clusterMap, tp
-                .getClusterMap());
+        assertEquals("Did not get inserted cluster map", clusterMap,
+                tp.getClusterMap());
     }
 
     /**
@@ -466,37 +466,31 @@ public class TungstenPropertiesTest extends TestCase
     }
 
     /**
-     * Same as {@link #testPropertyApplication()} using java property-style dots
-     * and extreme values
+     * Test extracting and rereading properties from classes with embedded Java
+     * beans.
      */
-    public void testPropertyApplicationWithDots() throws Exception
+    public void testBeanPropertyApplication() throws Exception
     {
+        // Create sample data with embedded beans, one of which is null.
+        SampleContainingObject sco = new SampleContainingObject();
+        sco.setMyString("aString");
+        SampleObject so1 = new SampleObject();
+        so1.setString("so1");
+        so1.setMyLong(1);
+        sco.setMyObject1(so1);
+
+        // Extract to properties file.
         TungstenProperties tp = new TungstenProperties();
-        tp.setInt("my.int", Integer.MAX_VALUE);
-        tp.setInt("My.Long", Integer.MIN_VALUE);
-        tp.setString("My.float", Float.toString(Float.MAX_VALUE));
-        tp.setString("my.Double", Double.toString(Double.MIN_VALUE));
-        tp.setBoolean("My.Boolean", false);
-        tp.setString("my.Char", "a");
-        Date now = new Date();
-        tp.setDate("my.date", now);
-        BigDecimal bd = new BigDecimal("-2e+1000");
-        tp.setString("my.BigDecimal", bd.toString());
-        SampleObject.SampleEnum e = SampleObject.SampleEnum.TWO;
-        tp.setString("my.enum", e.toString());
+        tp.extractProperties(sco, true);
 
-        SampleObject so = new SampleObject();
-        tp.applyProperties(so);
+        // Apply back and compare.
+        SampleContainingObject sco2 = new SampleContainingObject();
+        tp.applyProperties(sco2);
 
-        Assert.assertEquals("Int value", Integer.MAX_VALUE, so.getMyInt());
-        Assert.assertEquals("Long value", Integer.MIN_VALUE, so.getMyLong());
-        Assert.assertEquals("Float value", Float.MAX_VALUE, so.getMyFloat());
-        Assert.assertEquals("Double value", Double.MIN_VALUE, so.getMyDouble());
-        Assert.assertEquals("Boolean value", false, so.isMyBoolean());
-        Assert.assertEquals("Char value", 'a', so.getMyChar());
-        Assert.assertEquals("Date value", now, so.getMyDate());
-        Assert.assertEquals("BigDecimal value", bd, so.getMyBigDecimal());
-        Assert.assertEquals("Enum value", e, so.getMyEnum());
+        Assert.assertEquals("aString", sco2.getMyString());
+        Assert.assertNotNull("Bean is instantiated", sco2.getMyObject1());
+        Assert.assertNull("Bean is not instantiated", sco2.getMyObject2());
+        Assert.assertEquals("Compare heirarchy", sco, sco2);
     }
 
     /**
@@ -512,8 +506,8 @@ public class TungstenPropertiesTest extends TestCase
         tp1.clear();
         Assert.assertTrue("Cleared new properties are empty", tp1.isEmpty());
 
-        Assert.assertFalse("Properties with values are not empty", tp2
-                .isEmpty());
+        Assert.assertFalse("Properties with values are not empty",
+                tp2.isEmpty());
         tp2.clear();
         Assert.assertTrue("Cleared new properties are empty", tp1.isEmpty());
     }
@@ -554,8 +548,8 @@ public class TungstenPropertiesTest extends TestCase
         tp1.putAllWithPrefix(tp2, "b.");
         Assert.assertEquals("Added 1 property", oldTp1Size + 1, tp1.size());
         Assert.assertEquals("a is 1", 1, tp1.getInt("a"));
-        Assert.assertEquals("tp2's a has become a.a", "tp2's a", tp1
-                .getString("b.a"));
+        Assert.assertEquals("tp2's a has become a.a", "tp2's a",
+                tp1.getString("b.a"));
         Assert.assertEquals("tp1's b.b has become tp2's b.b", tp2.getInt("b"),
                 tp1.getInt("b.b"));
 

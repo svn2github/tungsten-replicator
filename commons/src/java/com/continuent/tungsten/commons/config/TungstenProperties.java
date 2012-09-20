@@ -414,7 +414,7 @@ public class TungstenProperties implements Serializable
     }
 
     /**
-     * Applies the current proterties to the given object, stopping and throwing
+     * Applies the current properties to the given object, stopping and throwing
      * errors if a property has no matching setter in the given object. This is
      * equivalent to <code>applyProperties(o, false)</code>
      * 
@@ -432,9 +432,8 @@ public class TungstenProperties implements Serializable
      * <ol>
      * <li>The first letter of the property is capitalized, so foo_bar becomes
      * Foo_bar.</li>
-     * <li>If an underscore ("_") or a dot(".") occurs in the property name, it
-     * is omitted and the following character, if any, is capitalized. Foo_bar
-     * becomes FooBar.</li>
+     * <li>If an underscore ("_") occurs in the property name, it is omitted and
+     * the following character, if any, is capitalized. Foo_bar becomes FooBar.</li>
      * <li>The prefix "set" is added to the result. FooBar becomes setFooBar.
      * </ol>
      * The setter method, if found, must have a single argument and must be
@@ -452,9 +451,44 @@ public class TungstenProperties implements Serializable
         // Find methods on this instance.
         Method[] methods = o.getClass().getMethods();
 
+        // Allocated maps to hold data for Java bean classes (i.e., embedded
+        // objects).
+        Map<String, TungstenProperties> beanMaps = new HashMap<String, TungstenProperties>();
+
+        // Extract all property names that have "." in them. These are
+        // properties that apply to embedded Java Beans. The values need to go
+        // into a map for each bean.
+        for (String key : keyNames())
+        {
+            // If key has a period in it followed by a suffix, it is a bean
+            // property.
+            int period = key.indexOf('.');
+            if (period == -1 || (period + 1) >= key.length())
+                continue;
+
+            // Determine the prefix and find the corresponding value map. Make
+            // a new one if it is not there.
+            String prefix = key.substring(0, period);
+            TungstenProperties beanProps = beanMaps.get(prefix);
+            if (beanProps == null)
+            {
+                beanProps = new TungstenProperties();
+                beanMaps.put(prefix, beanProps);
+            }
+
+            // Add the property value to the bean properties.
+            beanProps.put(key.substring(period + 1), getString(key));
+        }
+
         // Try to find and invoke setter method corresponding to each property.
         for (String key : keyNames())
         {
+            // Skip keys for embedded beans, i.e, those with dots. They will be
+            // addressed later.
+            int period = key.indexOf('.');
+            if (period > 1 && (period + 1) < key.length())
+                continue;
+
             // Construct setter name.
             StringBuffer setterNameBuffer = new StringBuffer();
             setterNameBuffer.append("set");
@@ -469,9 +503,8 @@ public class TungstenProperties implements Serializable
                 }
                 else if (prev == '\0')
                 {
-                    // Append ordinary character unless it's an underscore or a
-                    // dot.
-                    if (c == '_' || c == '.')
+                    // Append ordinary character unless it's an underscore.
+                    if (c == '_')
                         prev = c;
                     else
                         setterNameBuffer.append(c);
@@ -581,48 +614,32 @@ public class TungstenProperties implements Serializable
             }
             else
             {
-                // For other types, try two methods:
-                // 1. Try to call Constructor(String)
-                try
+                // For other types, try three methods:
+                // 1. Try to treat it as a bean.
+                arg = constructBean(arg0Type, beanMaps.get(key),
+                        ignoreIfMissing);
+
+                // 2. Try to call Constructor(String)
+                if (arg == null)
+                    arg = constructFromString(arg0Type, value);
+
+                // 3. Try to call <Type>.valueOf(String)
+                if (arg == null)
+                    arg = constructUsingValueOf(arg0Type, value);
+
+                // At this point we are done and need to give up.
+                if (arg == null)
                 {
-                    arg = arg0Type.getConstructor(String.class).newInstance(
-                            value);
-                    if (logger.isTraceEnabled())
-                        logger.trace("String constructor for arg type "
-                                + arg0Type + " found. arg value is " + arg);
-                }
-                catch (Exception e)
-                {
-                    // 2. Try to call <Type>.valueOf(String)
-                    if (logger.isDebugEnabled())
-                        logger.debug("No String constructor for arg type "
-                                + arg0Type + ", trying valueOf(String) method");
-                    try
+                    if (ignoreIfMissing)
                     {
-                        arg = arg0Type.getMethod("valueOf",
-                                new Class[]{String.class}).invoke(arg0Type,
-                                value);
-                        if (logger.isTraceEnabled())
-                            logger.trace("Method valueOf(String) for arg type "
-                                    + arg0Type + " found. arg value is " + arg);
+                        continue;
                     }
-                    catch (Exception e1)
-                    {
-                        if (logger.isDebugEnabled())
-                            logger.debug("No valueOf(String) method found for arg type "
-                                    + arg0Type + " - Giving up");
-                        if (ignoreIfMissing)
-                        {
-                            continue;
-                        }
-                        logger.warn("Could not instantiate arg of type "
-                                + arg0Type
-                                + ". No Constructor(String) nor valueOf(String) found in this class");
-                        throw new PropertyException(
-                                "Unsupported property type: key=" + key
-                                        + " type=" + arg0Type + " value="
-                                        + value);
-                    }
+                    logger.warn("Could not instantiate non-bean arg of type "
+                            + arg0Type
+                            + ". No Constructor(String) nor valueOf(String) found in this class");
+                    throw new PropertyException(
+                            "Unsupported property type: key=" + key + " type="
+                                    + arg0Type + " value=" + value);
                 }
             }
 
@@ -642,9 +659,86 @@ public class TungstenProperties implements Serializable
                 throw new PropertyException("Unable to set property: key="
                         + key + " value = " + value, e);
             }
+        }
+    }
 
+    // Try to instantiate and configure a bean.
+    private Object constructBean(Class<?> type, TungstenProperties beanProps,
+            boolean ignoreIfMissing)
+    {
+        // If this does not look like a bean, just return.
+        if (!isBean(type))
+            return null;
+
+        // Try to instantiate.
+        Object arg = null;
+        try
+        {
+            arg = type.newInstance();
+        }
+        catch (Exception e)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                        "Unable to instantiate class using default constructor: name="
+                                + type.getName(), e);
+            }
+            return null;
         }
 
+        // Assign values.
+        if (beanProps != null)
+            beanProps.applyProperties(arg, ignoreIfMissing);
+
+        return arg;
+    }
+
+    // Try to instantiate a type using the String constructor.
+    private Object constructFromString(Class<?> type, String value)
+    {
+        try
+        {
+            Object arg = type.getConstructor(String.class).newInstance(value);
+            if (logger.isTraceEnabled())
+                logger.trace("String constructor for arg type " + type
+                        + " found. arg value is " + value);
+            return arg;
+
+        }
+        catch (Exception e)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                        "Unable to instantiate class using string constructor: name="
+                                + type.getName() + " value=" + value, e);
+            }
+            return null;
+        }
+    }
+
+    // Try to instantiate a type using valueOf() method.
+    private Object constructUsingValueOf(Class<?> type, String value)
+    {
+        try
+        {
+            Object arg = type.getMethod("valueOf", new Class[]{String.class})
+                    .invoke(type, value);
+            if (logger.isTraceEnabled())
+                logger.trace("Method valueOf(String) for arg type " + type
+                        + " found. arg value is " + arg);
+            return arg;
+        }
+        catch (Exception e)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("No valueOf(String) method found for arg type "
+                        + type, e);
+            }
+            return null;
+        }
     }
 
     /**
@@ -657,7 +751,6 @@ public class TungstenProperties implements Serializable
     @SuppressWarnings("unchecked")
     public void extractProperties(Object o, boolean ignoreIfUnsupported)
     {
-
         if (logger.isDebugEnabled())
             logger.debug("Extracting properties from object="
                     + o.getClass().getName());
@@ -700,11 +793,37 @@ public class TungstenProperties implements Serializable
                 }
                 else if (field.getType() == List.class)
                 {
-                    this.setStringList(field.getName(), (List) field.get(o));
+                    this.setStringList(field.getName(),
+                            (List<String>) field.get(o));
                 }
                 else
                 {
-                    if (ignoreIfUnsupported)
+                    // If we have a type that follows bean conventions, try to
+                    // extract its properties.
+                    Object bean = field.get(o);
+                    if (bean == null)
+                    {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Skipping property with null value, prop="
+                                    + field.getName());
+                        }
+                    }
+                    else if (isBean(bean.getClass()))
+                    {
+                        // Extract bean properties.
+                        TungstenProperties beanProps = new TungstenProperties();
+                        beanProps.extractProperties(bean, ignoreIfUnsupported);
+
+                        // Write the bean class name.
+                        String beanKey = field.getName();
+                        setString(beanKey, bean.getClass().getName());
+
+                        // Write the properties of the bean adding the bean key
+                        // as a prefix.
+                        this.putAllWithPrefix(beanProps, beanKey + ".");
+                    }
+                    else if (ignoreIfUnsupported)
                     {
                         if (logger.isDebugEnabled())
                         {
@@ -713,9 +832,11 @@ public class TungstenProperties implements Serializable
                         }
                         continue;
                     }
-
-                    throw new PropertyException("Unsupported property type:"
-                            + field.getType());
+                    else
+                    {
+                        throw new PropertyException(
+                                "Unsupported property type:" + field.getType());
+                    }
                 }
             }
             catch (IllegalAccessException i)
@@ -726,7 +847,6 @@ public class TungstenProperties implements Serializable
                         + o.getClass().getName());
             }
         }
-
     }
 
     /**
@@ -927,7 +1047,8 @@ public class TungstenProperties implements Serializable
      */
     public void setDate(String key, Date value)
     {
-        setLong(key, value.getTime());
+        if (value != null)
+            setLong(key, value.getTime());
     }
 
     /**
@@ -1526,5 +1647,63 @@ public class TungstenProperties implements Serializable
             }
         }
         out.println(ENDOFPROPERTIES_TAG);
+    }
+
+    /**
+     * Returns true if the class in question is supports JavaBean conventions by
+     * having a default constructor and setters/getters for properties.
+     */
+    public boolean isBean(Class<?> clazz)
+    {
+        // Check for a default constructor.
+        boolean hasDefaultConstructor = false;
+        for (Constructor<?> constructor : clazz.getConstructors())
+        {
+            if (constructor.getParameterTypes().length == 0)
+            {
+                hasDefaultConstructor = true;
+                break;
+            }
+        }
+        if (!hasDefaultConstructor)
+            return false;
+
+        // Check that we have at least one setter.
+        Map<String, Method> setters = getMethods(clazz, "set");
+        if (setters.size() == 0)
+            return false;
+
+        // Check that each setter has a matching getter.
+        Map<String, Method> getters = getMethods(clazz, "get");
+        Map<String, Method> booleanGetters = getMethods(clazz, "is");
+        for (String name : setters.keySet())
+        {
+            String getterName = "get" + name.substring(3);
+            String booleanGetterName = "is" + name.substring(3);
+
+            if (getters.containsKey(getterName)
+                    || booleanGetters.containsKey(booleanGetterName))
+                continue;
+            else
+                return false;
+        }
+
+        // Looks like a bean.
+        return true;
+    }
+
+    // Returns all methods that start with a particular prefix and have
+    // at least one additional character beyond to represent the property
+    // name.
+    private Map<String, Method> getMethods(Class<?> clazz, String prefix)
+    {
+        Map<String, Method> methodMap = new HashMap<String, Method>();
+        for (Method method : clazz.getMethods())
+        {
+            String name = method.getName();
+            if (name.startsWith(prefix) && name.length() > prefix.length())
+                methodMap.put(method.getName(), method);
+        }
+        return methodMap;
     }
 }
