@@ -341,6 +341,11 @@ public class StageProgressTracker
             // Process watches for committed events.
             commitWatches.process(committed, taskId);
         }
+        else
+        {
+            logger.warn("Attemp to commit task before marking processed event: stage="
+                    + this.name + " taskId=" + taskId);
+        }
     }
 
     /**
@@ -568,7 +573,7 @@ public class StageProgressTracker
         // Return the watch.
         if (logger.isDebugEnabled())
         {
-            logger.info("Returning watch to caller: watch=" + watch.toString()
+            logger.debug("Returning watch to caller: watch=" + watch.toString()
                     + " committed=" + committed + " alreadyReached="
                     + alreadyReached);
         }
