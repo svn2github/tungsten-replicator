@@ -192,6 +192,7 @@
             <batchtest fork="yes" todir="${test.reports}">
                 <fileset dir="${test.src.dir}">
                     <include name="**/*Test*.java"/>
+                	<exclude name="**/*THLParallelReadQueueTest*.java"/>
                 	<exclude name="**/*Abstract*.java"/>
                 	<exclude name="**/*TestReplicatorManager.java"/>
                 	<exclude name="**/*TestOpenReplicatorManager.java"/>
