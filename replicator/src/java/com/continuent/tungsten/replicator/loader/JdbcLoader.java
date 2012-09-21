@@ -21,6 +21,7 @@ import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
+import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
@@ -41,7 +42,10 @@ public abstract class JdbcLoader extends Loader
     protected ResultSet             importTables      = null;
     protected List<String>          includeSchemas    = null;
     protected ArrayList<ColumnSpec> columnDefinitions = null;
+    protected String                tungstenServiceSchema = null;
+    protected String                tungstenServiceSchemaPosition = null;
     int currentTablePosition = 0;
+    boolean extractCreateTableStatement = false;
 
     /**
      * 
@@ -63,6 +67,16 @@ public abstract class JdbcLoader extends Loader
     public void setPassword(String password)
     {
         this.password = password;
+    }
+    
+    public void setTungstenServiceSchema(String schemaName)
+    {
+        this.tungstenServiceSchema = schemaName;
+    }
+    
+    public String getTungstenServiceSchema()
+    {
+        return this.tungstenServiceSchema;
     }
 
     /**
@@ -119,6 +133,7 @@ public abstract class JdbcLoader extends Loader
             if (includeImportTable() == true)
             {
                 currentTablePosition = 0;
+                extractCreateTableStatement = true;
                 prepareImportTable();
                 break;
             }
@@ -351,14 +366,12 @@ public abstract class JdbcLoader extends Loader
     public synchronized DBMSEvent extract() throws ReplicatorException,
             InterruptedException
     {
-        OneRowChange orc = null;
-        ArrayList<ColumnVal> columnValues = null;
-        ColumnSpec cDef = null;
-        ColumnVal cVal = null;
         DBMSEvent dbmsEvent = null;
         ArrayList<DBMSData> dataArray = null;
         RowChangeData rowChangeData = null;
-        ResultSet extractedRows = null;
+        StatementData statementData = null;
+        String createSchemaStatement = null;
+        String createTableStatement = null;
 
         try
         {
@@ -377,77 +390,45 @@ public abstract class JdbcLoader extends Loader
             }
             else
             {
-                rowChangeData = new RowChangeData();
                 dataArray = new ArrayList<DBMSData>();
-
-                orc = new OneRowChange();
-                orc.setAction(ActionType.INSERT);
-                orc.setSchemaName(importTables.getString("TABLE_SCHEM"));
-                orc.setTableName(importTables.getString("TABLE_NAME"));
-                orc.setColumnSpec(columnDefinitions);
-
-                rowChangeData.appendOneRowChange(orc);
-
-                extractedRows = statement.executeQuery("SELECT * FROM "
-                        + importTables.getString("TABLE_SCHEM") + "."
-                        + importTables.getString("TABLE_NAME") + " LIMIT " + 
-                        currentTablePosition + " , " + getChunkSize());
-                while (extractedRows.next())
+                
+                if (extractCreateTableStatement == true)
                 {
-                    columnValues = new ArrayList<ColumnVal>();
-
-                    for (int i = 0; i < columnDefinitions.size(); i++)
+                    extractCreateTableStatement = false;
+                    createSchemaStatement = buildCreateSchemaStatement();
+                    createTableStatement = buildCreateTableStatement();
+                }
+                
+                /**
+                 * Add the CREATE SCHEMA/TABLE statements to the top of 
+                 * the event
+                 */
+                if (createTableStatement != null)
+                {
+                    if (createSchemaStatement != null)
                     {
-                        cDef = columnDefinitions.get(i);
-                        cVal = orc.new ColumnVal();
-
-                        try
-                        {
-                            logger.debug(
-                                    orc.getSchemaName() + "."
-                                    + orc.getTableName() + "." + cDef.getName()
-                                    + " = " + extractedRows.getString(cDef.getName())
-                                    );
-                            cVal.setValue(extractRowValue(cDef.getType(),
-                                    extractedRows, cDef.getName()));
-                            if (cVal.getValue() != null)
-                            {
-                                logger.debug("Extracted value is " + cVal.getValue().toString());
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            e.printStackTrace();
-                            cVal.setValue(null);
-                            logger.error("Unable to extract value of " + 
-                                    extractedRows.getString(cDef.getName()) + 
-                                    " for "
-                                    + orc.getSchemaName() + "."
-                                    + orc.getTableName() + "." + cDef.getName()
-                                    + " of Type " + cDef.getType());
-                        }
-
-                        columnValues.add(cVal);
+                        statementData = new StatementData(createSchemaStatement);
+                        dataArray.add(statementData);
                     }
-                    currentTablePosition++;
-
-                    orc.getColumnValues().add(columnValues);
+                    
+                    statementData = new StatementData(createTableStatement);
+                    statementData.setDefaultSchema(importTables.getString("TABLE_SCHEM"));
+                    dataArray.add(statementData);
                 }
 
-                dataArray.add(rowChangeData);
-
-                runtime.getMonitor().incrementEvents(dataArray.size());
-                dbmsEvent = new DBMSEvent(importTables.getString("TABLE_SCHEM")
-                        + "." + importTables.getString("TABLE_NAME") + ":" +
-                        currentTablePosition, null,
-                        dataArray, true, null);
-                dbmsEvent.setMetaDataOption(ReplOptionParams.SHARD_ID,
-                        dbmsEvent.getEventId());
-
                 /**
-                 * Do not return an empty event if there are no column values
+                 * Build this list of rows to insert
                  */
-                if (orc.getColumnValues().size() == 0)
+                rowChangeData = extractRowChangeData();
+                if (rowChangeData != null)
+                {
+                    dataArray.add(rowChangeData);
+                }
+                
+                /**
+                 * Nothing to do for this table so we need to move on
+                 */
+                if (dataArray.size() == 0)
                 {
                     try
                     {
@@ -461,6 +442,13 @@ public abstract class JdbcLoader extends Loader
                     return null;
                 }
 
+                runtime.getMonitor().incrementEvents(dataArray.size());
+                dbmsEvent = new DBMSEvent(importTables.getString("TABLE_SCHEM")
+                        + "." + importTables.getString("TABLE_NAME"), null,
+                        dataArray, true, null);
+                dbmsEvent.setMetaDataOption(ReplOptionParams.SHARD_ID,
+                        dbmsEvent.getEventId());
+                
                 return dbmsEvent;
             }
         }
@@ -471,6 +459,113 @@ public abstract class JdbcLoader extends Loader
         finally
         {
         }
+    }
+    
+    /**
+     * 
+     * Return a statement that will create the schema, null if no 
+     * create schema can be given
+     * 
+     * @return
+     */
+    protected String buildCreateSchemaStatement() throws ReplicatorException
+    {
+        return null;
+    }
+    
+    /**
+     * 
+     * Return a statement that will create the table structure, null if no 
+     * create table can be given
+     * 
+     * @return
+     */
+    protected String buildCreateTableStatement() throws ReplicatorException
+    {
+        return null;
+    }
+
+    /**
+     * 
+     * Extract the actual rows from the database and build the change set
+     * 
+     * @return
+     * @throws SQLException
+     */
+    protected RowChangeData extractRowChangeData() throws SQLException
+    {
+        OneRowChange orc = null;
+        ArrayList<ColumnVal> columnValues = null;
+        ColumnSpec cDef = null;
+        ColumnVal cVal = null;
+        RowChangeData rowChangeData = null;
+        ResultSet extractedRows = null;
+        
+        rowChangeData = new RowChangeData();
+
+        orc = new OneRowChange();
+        orc.setAction(ActionType.INSERT);
+        orc.setSchemaName(importTables.getString("TABLE_SCHEM"));
+        orc.setTableName(importTables.getString("TABLE_NAME"));
+        orc.setColumnSpec(columnDefinitions);
+
+        rowChangeData.appendOneRowChange(orc);
+
+        extractedRows = statement.executeQuery("SELECT * FROM "
+                + importTables.getString("TABLE_SCHEM") + "."
+                + importTables.getString("TABLE_NAME") + " LIMIT " + 
+                currentTablePosition + " , " + getChunkSize());
+        while (extractedRows.next())
+        {
+            columnValues = new ArrayList<ColumnVal>();
+
+            for (int i = 0; i < columnDefinitions.size(); i++)
+            {
+                cDef = columnDefinitions.get(i);
+                cVal = orc.new ColumnVal();
+
+                try
+                {
+                    logger.debug(
+                            orc.getSchemaName() + "."
+                            + orc.getTableName() + "." + cDef.getName()
+                            + " = " + extractedRows.getString(cDef.getName())
+                            );
+                    cVal.setValue(extractRowValue(cDef.getType(),
+                            extractedRows, cDef.getName()));
+                    if (cVal.getValue() != null)
+                    {
+                        logger.debug("Extracted value is " + cVal.getValue().toString());
+                    }
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                    cVal.setValue(null);
+                    logger.error("Unable to extract value of " + 
+                            extractedRows.getString(cDef.getName()) + 
+                            " for "
+                            + orc.getSchemaName() + "."
+                            + orc.getTableName() + "." + cDef.getName()
+                            + " of Type " + cDef.getType());
+                }
+
+                columnValues.add(cVal);
+            }
+            currentTablePosition++;
+
+            orc.getColumnValues().add(columnValues);
+        }
+        
+        /**
+         * Do not return an empty event if there are no column values
+         */
+        if (orc.getColumnValues().size() == 0)
+        {
+            return null;
+        }
+        
+        return rowChangeData;
     }
 
     @Override
@@ -492,6 +587,9 @@ public abstract class JdbcLoader extends Loader
     public void prepare(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
+        ResultSet tungstenSchemaTables = null;
+        ResultSet trepCommitRows = null;
+        
         /**
          * Initiate the JDBC connection
          */
@@ -535,14 +633,98 @@ public abstract class JdbcLoader extends Loader
                 throw new ReplicatorException(message, e);
             }
         }
+        
+        try
+        {
+            metadata = conn.getDatabaseMetaData();
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(e);
+        }
+        
+        /**
+         * If we are using a Tungsten service, make sure it exists and has a 
+         * single row in trep_commit_seqno
+         */
+        if (getTungstenServiceSchema() != null)
+        {
+            try
+            {
+                tungstenSchemaTables = metadata.getTables(null, 
+                        getTungstenServiceSchema(), null, null);
+                while (tungstenSchemaTables.next())
+                {
+                    if ("trep_commit_seqno".equalsIgnoreCase(tungstenSchemaTables.getString("TABLE_NAME")) == true)
+                    {
+                        logger.info("Get eventid from " +
+                                tungstenSchemaTables.getString("TABLE_SCHEM") + "." +
+                                tungstenSchemaTables.getString("TABLE_NAME"));
+                        
+                        trepCommitRows = statement.executeQuery(
+                                "SELECT COUNT(*) as `cnt` FROM " +
+                                tungstenSchemaTables.getString("TABLE_SCHEM") + "." +
+                                tungstenSchemaTables.getString("TABLE_NAME"));
+                        if (trepCommitRows.first() != true)
+                        {
+                            throw new ReplicatorException("Unable to determine the number of rows in " +
+                                    tungstenSchemaTables.getString("TABLE_SCHEM") + "." +
+                                    tungstenSchemaTables.getString("TABLE_NAME"));
+                        }
+                        
+                        if (trepCommitRows.getInt("cnt") != 1)
+                        {
+                            throw new ReplicatorException("There are more than 1 row in " +
+                                    tungstenSchemaTables.getString("TABLE_SCHEM") + "." +
+                                    tungstenSchemaTables.getString("TABLE_NAME"));
+                        }
+                        
+                        trepCommitRows.close();
+                        trepCommitRows = statement.executeQuery(
+                                "SELECT * FROM " +
+                                tungstenSchemaTables.getString("TABLE_SCHEM") + "." +
+                                tungstenSchemaTables.getString("TABLE_NAME"));
+                        if (trepCommitRows.first() != true)
+                        {
+                            throw new ReplicatorException("Unable to determine the eventid from " +
+                                    tungstenSchemaTables.getString("TABLE_SCHEM") + "." +
+                                    tungstenSchemaTables.getString("TABLE_NAME"));
+                        }
+                        
+                        this.tungstenServiceSchemaPosition = trepCommitRows.getString("eventid");
+                    }
+                }
+            }
+            catch (SQLException e)
+            {
+                throw new ReplicatorException(e);
+            }
+            finally
+            {
+                try
+                {
+                    if (tungstenSchemaTables != null)
+                    {
+                        tungstenSchemaTables.close();
+                    }
+                    
+                    if (trepCommitRows != null)
+                    {
+                        trepCommitRows.close();
+                    }
+                }
+                catch (SQLException e)
+                {
+                    throw new ReplicatorException(e);
+                }
+            }
+        }
 
         /**
          * Initiate the list of tables to load data from
          */
         try
         {
-            metadata = conn.getDatabaseMetaData();
-
             importTables = metadata.getTables(null, null, null, null);
             while (importTables.next())
             {
@@ -587,6 +769,42 @@ public abstract class JdbcLoader extends Loader
         {
             conn.close();
             conn = null;
+        }
+    }
+    
+    /**
+     * 
+     * Parse the value of tungstenServiceSchemaPosition for the current eventId
+     * 
+     * @return
+     * @throws ReplicatorException
+     * @throws InterruptedException
+     */
+    public String getCurrentResourceEventId() throws ReplicatorException,
+            InterruptedException
+    {
+        if (getTungstenServiceSchema() != null)
+        {
+            int dotIndex = this.tungstenServiceSchemaPosition.indexOf('.');
+            int semiIndex = this.tungstenServiceSchemaPosition.indexOf(';');
+            
+            if (dotIndex == -1)
+            {
+                throw new ReplicatorException("Unable to find '.' separator in Tungsten service position " + this.tungstenServiceSchemaPosition);
+            }
+            
+            if (semiIndex == -1)
+            {
+                return this.tungstenServiceSchemaPosition.substring(dotIndex+1);
+            }
+            else
+            {
+                return this.tungstenServiceSchemaPosition.substring(dotIndex+1, semiIndex);
+            }
+        }
+        else
+        {
+            return null;
         }
     }
 

@@ -58,10 +58,101 @@ public class MySQLLoader extends JdbcLoader
         super.configure(context);
     }
     
+    /**
+     * 
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.loader.JdbcLoader#lockTables()
+     */
     public void lockTables() throws SQLException
     {
         logger.info("Run FLUSH TABLES to lock out changes");
         statement.execute("FLUSH NO_WRITE_TO_BINLOG TABLES WITH READ LOCK");
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @throws SQLException 
+     * @see com.continuent.tungsten.replicator.loader.JdbcLoader#buildCreateSchemaStatement()
+     */
+    protected String buildCreateSchemaStatement() throws ReplicatorException
+    {
+        ResultSet createSchemaResult = null;
+        
+        try
+        {
+            createSchemaResult = statement.executeQuery("SHOW CREATE DATABASE IF NOT EXISTS `" + 
+                    importTables.getString("TABLE_SCHEM") + "`");
+            if (createSchemaResult.first() != true)
+            {
+                throw new ReplicatorException("Unable to extract the CREATE DATABASE statement for " + 
+                        importTables.getString("TABLE_SCHEM"));
+            }
+            
+            return createSchemaResult.getString("Create Database");
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(e);
+        }
+        finally
+        {
+            if (createSchemaResult != null)
+            {
+                try
+                {
+                    createSchemaResult.close();
+                }
+                catch (SQLException e)
+                {
+                    throw new ReplicatorException(e);
+                }
+            }
+        }
+    }
+    
+    /**
+     * 
+     * {@inheritDoc}
+     * @throws SQLException 
+     * @see com.continuent.tungsten.replicator.loader.JdbcLoader#buildCreateTableStatement()
+     */
+    protected String buildCreateTableStatement() throws ReplicatorException
+    {
+        ResultSet createTableResult = null;
+        
+        try
+        {
+            createTableResult = statement.executeQuery("SHOW CREATE TABLE `" + 
+                    importTables.getString("TABLE_SCHEM") + "`.`" +
+                    importTables.getString("TABLE_NAME") + "`");
+            if (createTableResult.first() != true)
+            {
+                throw new ReplicatorException("Unable to extract the CREATE TABLE statement for " + 
+                        importTables.getString("TABLE_SCHEM") + "." +
+                        importTables.getString("TABLE_NAME"));
+            }
+            
+            return createTableResult.getString("Create Table");
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(e);
+        }
+        finally
+        {
+            if (createTableResult != null)
+            {
+                try
+                {
+                    createTableResult.close();
+                }
+                catch (SQLException e)
+                {
+                    throw new ReplicatorException(e);
+                }
+            }
+        }
     }
     
     /**
@@ -76,41 +167,48 @@ public class MySQLLoader extends JdbcLoader
             InterruptedException
     {
         ResultSet masterStatus = null;
-        
-        try
-        {
-            masterStatus = statement.executeQuery("SHOW MASTER STATUS");
-            
-            if (masterStatus.next())
-            {
-                String fileName = masterStatus.getString("File");
-                int dotIndex = fileName.indexOf('.');
-                if (dotIndex == -1)
-                {
-                    throw new ReplicatorException("There was a problem parsing the MASTER STATUS filename");
-                }
+        String currentResourceEventId = super.getCurrentResourceEventId();
                 
-                return fileName.substring(dotIndex+1) + ":" + masterStatus.getString("Position");
-            }
-            else
-            {
-                throw new ReplicatorException("Unable to determine the current event id");
-            }
-        }
-        catch (SQLException e)
-        {
-            throw new ReplicatorException(e);
-        }
-        finally
+        if (currentResourceEventId == null)
         {
             try
             {
-                masterStatus.close();
+                masterStatus = statement.executeQuery("SHOW MASTER STATUS");
+                
+                if (masterStatus.next())
+                {
+                    String fileName = masterStatus.getString("File");
+                    int dotIndex = fileName.indexOf('.');
+                    if (dotIndex == -1)
+                    {
+                        throw new ReplicatorException("There was a problem parsing the MASTER STATUS filename");
+                    }
+                    
+                    currentResourceEventId = fileName.substring(dotIndex+1) + 
+                        ":" + masterStatus.getString("Position");
+                }
+                else
+                {
+                    throw new ReplicatorException("Unable to determine the current event id");
+                }
             }
             catch (SQLException e)
             {
                 throw new ReplicatorException(e);
             }
+            finally
+            {
+                try
+                {
+                    masterStatus.close();
+                }
+                catch (SQLException e)
+                {
+                    throw new ReplicatorException(e);
+                }
+            }
         }
+        
+        return currentResourceEventId;
     }
 }
