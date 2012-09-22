@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -132,8 +132,8 @@ public class THLParallelReadTask implements Runnable
             throws ReplicatorException, InterruptedException
     {
         // Set up the read queue.
-        this.readQueue = new THLParallelReadQueue(maxSize, maxControlEvents,
-                restartSeqno, syncInterval, lastHeader);
+        this.readQueue = new THLParallelReadQueue(taskId, maxSize,
+                maxControlEvents, restartSeqno, syncInterval, lastHeader);
 
         // Connect to the log.
         connection = thl.connect(true);

@@ -978,7 +978,7 @@ public class ReplicatorRuntime implements PluginContext
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.plugin.PluginContext#blockUntilCommitted(long)
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#waitForCommitted(long)
      */
     public Future<ReplDBMSHeader> waitForCommitted(long seqno)
             throws InterruptedException

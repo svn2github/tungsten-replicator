@@ -74,6 +74,7 @@ public class THLParallelReadQueue
     private static final Logger                        logger       = Logger.getLogger(THLParallelReadQueue.class);
 
     // PARAMETERS
+    private final int                                  taskId;
 
     // Number of transactions between automatic sync events.
     private final int                                  syncInterval;
@@ -105,16 +106,18 @@ public class THLParallelReadQueue
     /**
      * Instantiates a new read queue.
      * 
-     * @param eventQueue Queue into which we feed events
+     * @param taskId Task to which this queue belongs
+     * @param maxSize Maximum number of all events to buffer
      * @param maxControlEvents Maximum number of control events to buffer
      * @param startingSeqno Sequence number of next transaction
      * @param syncInterval Interval at which to generate synchronization events
      * @param lastHeader Header of last transaction processed before start
      */
-    public THLParallelReadQueue(int maxSize, int maxControlEvents,
+    public THLParallelReadQueue(int taskId, int maxSize, int maxControlEvents,
             long startingSeqno, int syncInterval, ReplDBMSHeader lastHeader)
     {
         // Set starting parameters.
+        this.taskId = taskId;
         this.readSeqno = startingSeqno;
         this.syncInterval = syncInterval;
 
@@ -124,8 +127,8 @@ public class THLParallelReadQueue
         this.controlQueue = new LinkedList<ReplControlEvent>();
 
         // If required create a "fake" header in case we need to fulfill
-        // predicates or
-        // process control events before the first new transaction arrives.
+        // predicates or process control events before the first new transaction
+        // arrives.
         if (lastHeader == null)
         {
             this.lastHeader = new ReplDBMSHeaderData(startingSeqno - 1,
@@ -200,6 +203,11 @@ public class THLParallelReadQueue
             WatchPredicate<ReplDBMSHeader> predicate)
             throws InterruptedException
     {
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Adding watch sync predicate: taskId=" + taskId
+                    + " predicate=" + predicate.toString());
+        }
         // Add to the predicate list and evaluate said list if we are
         // at the end of the list.
         watchPredicates.add(predicate);
@@ -229,8 +237,8 @@ public class THLParallelReadQueue
         // Add event to the control queue.
         if (logger.isDebugEnabled())
         {
-            logger.debug("Inserting out-of-band control event:  seqno="
-                    + controlEvent.getSeqno() + " type="
+            logger.debug("Inserting out-of-band control event: taskId="
+                    + taskId + " seqno=" + controlEvent.getSeqno() + " type="
                     + controlEvent.getEventType() + " readSeqno=" + readSeqno
                     + " lastFrag=" + lastFrag);
         }
@@ -255,12 +263,11 @@ public class THLParallelReadQueue
     }
 
     /**
-     * Post an event which will be enqueued immediately. Synchronize position to
-     * update counters and merge any pending control events or predicates as
-     * well.
+     * Post a normal event which will be enqueued immediately. Synchronize
+     * position to update counters and merge any pending control events or
+     * predicates as well.
      * 
-     * @param Replication event to post. Must either be proper event or a
-     *            control event for synchronization.
+     * @param thlEvent Event to post.
      */
     public synchronized void post(THLEvent thlEvent)
             throws InterruptedException
@@ -275,7 +282,7 @@ public class THLParallelReadQueue
             mergeSync(thlEvent);
             if (logger.isDebugEnabled())
             {
-                logger.debug("Discarded null event: seqno="
+                logger.debug("Discarded null event: taskId=" + " seqno="
                         + thlEvent.getSeqno() + " fragno="
                         + thlEvent.getFragno());
             }
@@ -290,8 +297,8 @@ public class THLParallelReadQueue
             discardCount.incrementAndGet();
             if (logger.isDebugEnabled())
             {
-                logger.debug("Discarded empty event: seqno="
-                        + thlEvent.getSeqno() + " fragno="
+                logger.debug("Discarded empty event: taskId=" + taskId
+                        + " seqno=" + thlEvent.getSeqno() + " fragno="
                         + thlEvent.getFragno());
             }
             mergeSync(thlEvent);
@@ -301,8 +308,8 @@ public class THLParallelReadQueue
         // Post into the event queue.
         if (logger.isDebugEnabled())
         {
-            logger.debug("Adding event to parallel queue:  seqno="
-                    + replDBMSEvent.getSeqno());
+            logger.debug("Adding event to parallel queue: taskId=" + taskId
+                    + " seqno=" + replDBMSEvent.getSeqno());
         }
         eventQueue.put(replDBMSEvent);
         acceptCount.incrementAndGet();
@@ -338,7 +345,8 @@ public class THLParallelReadQueue
 
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug("Inserting sync event: seqno=" + readSeqno);
+                    logger.debug("Inserting sync event: taskId=" + taskId
+                            + " seqno=" + readSeqno);
                 }
                 eventQueue.put(ctrl);
             }
@@ -363,10 +371,11 @@ public class THLParallelReadQueue
         {
             if (logger.isDebugEnabled())
             {
-                logger.debug("Dequeueing buffered control event and enqueueing to parallel queue:  seqno="
+                logger.debug("Dequeueing buffered control event and enqueueing to parallel queue: taskId="
+                        + taskId
+                        + " seqno="
                         + controlEvent.getSeqno()
-                        + " type="
-                        + controlEvent.getEventType());
+                        + " type=" + controlEvent.getEventType());
             }
 
             // Test for the seqno being less than the current read seqno. If so,
@@ -377,8 +386,8 @@ public class THLParallelReadQueue
             {
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug("Rewriting control event to use current seqno:  seqno="
-                            + readSeqno);
+                    logger.debug("Rewriting control event to use current seqno: taskId="
+                            + taskId + " seqno=" + readSeqno);
                 }
                 controlEvent = new ReplControlEvent(
                         controlEvent.getEventType(), readSeqno, lastHeader);
@@ -391,7 +400,7 @@ public class THLParallelReadQueue
     // sync events. This must be called only on a transaction boundary.
     private void processPredicates() throws InterruptedException
     {
-        // Scan for matches and add control events for each.
+        // Scan for matches and record them.
         boolean needsSync = false;
         List<WatchPredicate<ReplDBMSHeader>> removeList = new ArrayList<WatchPredicate<ReplDBMSHeader>>();
         for (WatchPredicate<ReplDBMSHeader> predicate : watchPredicates)
@@ -402,8 +411,8 @@ public class THLParallelReadQueue
                 removeList.add(predicate);
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug("Found and matched watch predicate: "
-                            + predicate.toString());
+                    logger.debug("Found and matched watch predicate:  taskId="
+                            + taskId + " predicate=" + predicate.toString());
                 }
             }
         }
@@ -416,7 +425,8 @@ public class THLParallelReadQueue
                     readSeqno, lastHeader);
             if (logger.isDebugEnabled())
             {
-                logger.debug("Inserting sync event: seqno=" + readSeqno);
+                logger.debug("Inserting sync event: taskId=" + taskId
+                        + " seqno=" + readSeqno);
             }
             eventQueue.put(ctrl);
             watchPredicates.removeAll(removeList);

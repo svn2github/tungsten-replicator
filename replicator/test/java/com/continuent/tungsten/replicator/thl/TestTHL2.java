@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -85,7 +85,7 @@ public class TestTHL2 extends TestCase
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForAppliedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
 
@@ -180,9 +180,9 @@ public class TestTHL2 extends TestCase
 
         // Wait for both pipelines to finish.
         Future<ReplDBMSHeader> waitServer = serverPipeline
-                .watchForAppliedSequenceNumber(9);
+                .watchForProcessedSequenceNumber(9);
         Future<ReplDBMSHeader> waitClient = clientPipeline
-                .watchForAppliedSequenceNumber(9);
+                .watchForProcessedSequenceNumber(9);
 
         logger.info("Waiting for server pipeline to clear");
         ReplDBMSHeader lastMasterEvent = waitServer.get(5, TimeUnit.SECONDS);
@@ -268,9 +268,9 @@ public class TestTHL2 extends TestCase
 
         // Wait for both pipelines to finish.
         Future<ReplDBMSHeader> waitServer = serverPipeline
-                .watchForAppliedSequenceNumber(9);
+                .watchForProcessedSequenceNumber(9);
         Future<ReplDBMSHeader> waitClient = clientPipeline
-                .watchForAppliedSequenceNumber(9);
+                .watchForProcessedSequenceNumber(9);
 
         logger.info("Waiting for server pipeline to clear");
         ReplDBMSHeader lastMasterEvent = waitServer.get(5, TimeUnit.SECONDS);
@@ -334,7 +334,7 @@ public class TestTHL2 extends TestCase
 
         // Wait for pipeline to finish.
         Future<ReplDBMSHeader> wait1 = pipeline1
-                .watchForAppliedSequenceNumber(9);
+                .watchForProcessedSequenceNumber(9);
         logger.info("Waiting for pipeline #1 to clear");
         ReplDBMSHeader lastEvent1 = wait1.get(5, TimeUnit.SECONDS);
         assertEquals("Expected 10 events", 9, lastEvent1.getSeqno());
@@ -354,7 +354,7 @@ public class TestTHL2 extends TestCase
 
         // Wait for pipeline to finish. It should get to event #19.
         Future<ReplDBMSHeader> wait2 = pipeline2
-                .watchForAppliedSequenceNumber(19);
+                .watchForProcessedSequenceNumber(19);
         logger.info("Waiting for pipeline #2 to clear");
         ReplDBMSHeader lastEvent2 = wait2.get(5, TimeUnit.SECONDS);
         assertEquals("Expected 20 events", 19, lastEvent2.getSeqno());
@@ -420,7 +420,7 @@ public class TestTHL2 extends TestCase
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForAppliedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
 
@@ -477,7 +477,7 @@ public class TestTHL2 extends TestCase
 
             // Now wait for it.
             Future<ReplDBMSHeader> wait = pipeline
-                    .watchForAppliedSequenceNumber(i);
+                    .watchForProcessedSequenceNumber(i);
             ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
             assertEquals("Expected event we put in", i, lastEvent.getSeqno());
         }
@@ -510,7 +510,7 @@ public class TestTHL2 extends TestCase
 
             // Now wait for it.
             Future<ReplDBMSHeader> wait = pipeline
-                    .watchForAppliedSequenceNumber(i);
+                    .watchForProcessedSequenceNumber(i);
             ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
             assertEquals("Expected event we put in", i, lastEvent.getSeqno());
         }

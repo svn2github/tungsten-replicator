@@ -180,7 +180,7 @@ public class THLParallelQueueBasicTest
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForAppliedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         Assert.assertEquals("Expected 10 server events", 9,
                 lastEvent.getSeqno());
@@ -212,7 +212,7 @@ public class THLParallelQueueBasicTest
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForAppliedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         Assert.assertEquals("Expected 10 server events", 9,
                 lastEvent.getSeqno());
@@ -315,8 +315,8 @@ public class THLParallelQueueBasicTest
         {
             // Seqno is every 10 positions.
             long seqno = i * 10;
-            processing.add(pipeline.watchForAppliedSequenceNumber(seqno));
-            commits.add(pipeline.watchForAppliedSequenceNumber(seqno));
+            processing.add(pipeline.watchForProcessedSequenceNumber(seqno));
+            commits.add(pipeline.watchForProcessedSequenceNumber(seqno));
         }
 
         // Write 100 events, which should trigger the watches. Commit

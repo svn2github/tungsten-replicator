@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -122,7 +122,7 @@ public class PipelineProgressTest extends TestCase
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForAppliedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(10, TimeUnit.SECONDS);
         assertEquals("Expected 10 sequence numbers", 9, lastEvent.getSeqno());
 

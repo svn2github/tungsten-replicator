@@ -95,9 +95,7 @@ public class SingleThreadStageTask implements Runnable
     }
 
     /**
-     * Sets the event dispatcher
-     * 
-     * @see com.continuent.tungsten.replicator.pipeline.StageTask#setEventDispatcher(com.continuent.tungsten.replicator.EventDispatcher)
+     * Sets the event dispatcher.
      */
     public void setEventDispatcher(EventDispatcher eventDispatcher)
     {

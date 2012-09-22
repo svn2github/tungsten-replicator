@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -71,7 +71,7 @@ public class SimpleSchedule implements Schedule
         }
         else if (replEvent instanceof ReplControlEvent)
         {
-            // For control events decide whether to sync or stop. 
+            // For control events decide whether to sync or stop.
             ReplControlEvent controlEvent = (ReplControlEvent) replEvent;
             if (controlEvent.getEventType() == ReplControlEvent.STOP)
                 return QUIT;
@@ -104,9 +104,9 @@ public class SimpleSchedule implements Schedule
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.pipeline.Schedule#setLastProcessedEvent(com.continuent.tungsten.replicator.event.ReplDBMSEvent)
+     * @see com.continuent.tungsten.replicator.pipeline.Schedule#setLastProcessedEvent(com.continuent.tungsten.replicator.event.ReplDBMSHeader)
      */
-    public synchronized void setLastProcessedEvent(ReplDBMSEvent event)
+    public synchronized void setLastProcessedEvent(ReplDBMSHeader event)
             throws InterruptedException
     {
         stage.getProgressTracker().setLastProcessedEvent(task.getTaskId(),

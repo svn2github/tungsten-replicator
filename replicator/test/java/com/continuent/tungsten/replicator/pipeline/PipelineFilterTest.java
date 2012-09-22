@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -394,7 +394,7 @@ public class PipelineFilterTest extends TestCase
     {
         // Ensure 5 events are applied.
         Future<ReplDBMSHeader> future = pipeline
-                .watchForAppliedSequenceNumber(seqno);
+                .watchForProcessedSequenceNumber(seqno);
         ReplDBMSHeader matchingEvent = future.get(2, TimeUnit.SECONDS);
         assertEquals("Applied sequence number matches", seqno,
                 matchingEvent.getSeqno());

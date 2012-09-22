@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 
 package com.continuent.tungsten.replicator.pipeline;
 
-import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.event.ReplEvent;
 
 /**
@@ -55,7 +55,7 @@ public interface Schedule
      * 
      * @throws InterruptedException Thrown if thread is interrupted.
      */
-    public void setLastProcessedEvent(ReplDBMSEvent event)
+    public void setLastProcessedEvent(ReplDBMSHeader event)
             throws InterruptedException;
 
     /**

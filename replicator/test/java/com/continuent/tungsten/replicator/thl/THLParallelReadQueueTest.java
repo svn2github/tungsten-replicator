@@ -50,7 +50,7 @@ public class THLParallelReadQueueTest
     public void testInit() throws Exception
     {
         logger.info("##### testInit #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(10, 10, 0, 100,
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 10, 10, 0, 100,
                 null);
         Assert.assertEquals(0, prq.getAcceptCount());
         Assert.assertEquals(0, prq.getDiscardCount());
@@ -65,8 +65,8 @@ public class THLParallelReadQueueTest
     public void testPost() throws Exception
     {
         logger.info("##### testPost #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 100,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                100, null);
 
         // Enqueue 50 events.
         this.genEvents(prq, 50, -1, -1);
@@ -83,8 +83,8 @@ public class THLParallelReadQueueTest
     public void testControlEvents() throws Exception
     {
         logger.info("##### testControlEvents #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 100,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                100, null);
 
         // Enqueue 5 control events in advance.
         for (int i = 0; i < 5; i++)
@@ -113,8 +113,8 @@ public class THLParallelReadQueueTest
         logger.info("##### testAutoSyncEvents #####");
 
         // Initialize queue with synchronization set for every 10 events.
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 10,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                10, null);
 
         // Enqueue 50 events with no additional embedded control events. With
         // sync every 10 events, we should get 5 control events.
@@ -133,8 +133,8 @@ public class THLParallelReadQueueTest
     public void testPredicates() throws Exception
     {
         logger.info("##### testPredicates #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 100,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                100, null);
 
         // Declare a predicate to find seqno's at beginning, middle, and end
         // of events in queue.
@@ -158,8 +158,8 @@ public class THLParallelReadQueueTest
     public void testOutOfOrderControlEvent() throws Exception
     {
         logger.info("##### testPredicates #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 100,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                100, null);
 
         // Enqueue 5 events with no embedded control events.
         this.genEvents(prq, 5, -1, -1);
@@ -186,8 +186,8 @@ public class THLParallelReadQueueTest
     public void testOutOfOrderPredicate() throws Exception
     {
         logger.info("##### testOutOfOrderPredicate #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 100,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                100, null);
 
         // Enqueue 5 events with no embedded control events.
         this.genEvents(prq, 5, -1, -1);
@@ -210,8 +210,8 @@ public class THLParallelReadQueueTest
     public void testPredicatesPlusCtrl() throws Exception
     {
         logger.info("##### testPredicatesPlusCtrl #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 100,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                100, null);
 
         // Declare a predicate to find seqnos 4 and 49. This will
         // generate 2 extra control events, one of which should overlap
@@ -234,8 +234,8 @@ public class THLParallelReadQueueTest
     public void testFragmentsAndControlEvents() throws Exception
     {
         logger.info("##### testFragmentsAndControlEvents #####");
-        THLParallelReadQueue prq = new THLParallelReadQueue(100, 100, -1, 100,
-                null);
+        THLParallelReadQueue prq = new THLParallelReadQueue(0, 100, 100, -1,
+                100, null);
 
         // Enqueue 5 fragmented transactions with a predicate and a control
         // event inserted after fragment.

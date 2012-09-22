@@ -598,26 +598,26 @@ public class Pipeline implements ReplicatorPlugin
     }
 
     /**
-     * Sets a watch for a particular sequence number to be applied.
+     * Sets a watch for a particular sequence number to be processed.
      * 
      * @param seqno Sequence number to watch for
      * @return Returns a future on the event that meets criterion
      * @throws InterruptedException if cancelled
      */
-    public Future<ReplDBMSHeader> watchForAppliedSequenceNumber(long seqno)
+    public Future<ReplDBMSHeader> watchForProcessedSequenceNumber(long seqno)
             throws InterruptedException
     {
         return stages.getLast().watchForProcessedSequenceNumber(seqno, false);
     }
 
     /**
-     * Sets a watch for a particular event ID to be applied.
+     * Sets a watch for a particular event ID to be processed.
      * 
      * @param eventId Native event ID to watch for
      * @return Returns a watch on a corresponding event
      * @throws InterruptedException if canceled
      */
-    public Future<ReplDBMSHeader> watchForAppliedEventId(String eventId)
+    public Future<ReplDBMSHeader> watchForProcessedEventId(String eventId)
             throws InterruptedException
     {
         return stages.getLast().watchForProcessedEventId(eventId, false);
@@ -647,7 +647,7 @@ public class Pipeline implements ReplicatorPlugin
         String currentEventId = extractor.getCurrentResourceEventId();
         logger.info("Scheduling pipeline flush on current event ID: "
                 + currentEventId);
-        return watchForAppliedEventId(currentEventId);
+        return watchForProcessedEventId(currentEventId);
     }
 
     public void setSyncTHLWithExtractor(boolean syncTHLWithExtractor)
