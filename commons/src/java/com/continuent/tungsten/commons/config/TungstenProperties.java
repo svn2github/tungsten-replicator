@@ -616,8 +616,7 @@ public class TungstenProperties implements Serializable
             {
                 // For other types, try three methods:
                 // 1. Try to treat it as a bean.
-                arg = constructBean(arg0Type, beanMaps.get(key),
-                        ignoreIfMissing);
+                arg = constructBean(value, beanMaps.get(key), ignoreIfMissing);
 
                 // 2. Try to call Constructor(String)
                 if (arg == null)
@@ -663,12 +662,34 @@ public class TungstenProperties implements Serializable
     }
 
     // Try to instantiate and configure a bean.
-    private Object constructBean(Class<?> type, TungstenProperties beanProps,
-            boolean ignoreIfMissing)
+    private Object constructBean(String className,
+            TungstenProperties beanProps, boolean ignoreIfMissing)
     {
+        // Load the class.
+        Class<?> type = null;
+        try
+        {
+            type = Class.forName(className);
+        }
+        catch (Exception e)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Unable to load bean class: name=" + className, e);
+            }
+            return null;
+        }
+
         // If this does not look like a bean, just return.
         if (!isBean(type))
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Class does not meet bean qualifications: name="
+                        + className);
+            }
             return null;
+        }
 
         // Try to instantiate.
         Object arg = null;
