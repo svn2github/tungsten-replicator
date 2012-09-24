@@ -60,7 +60,7 @@ public class VerticaStreamBatchApplier extends SimpleBatchApplier
         if (loadCommands == null)
         {
             // If we do not have load commands yet, generate them.
-            Map<String, String> parameters = getSqlParameters(info);
+            Map<String, String> parameters = info.getSqlParameters();
             loadCommands = loadScriptGenerator
                     .getParameterizedScript(parameters);
             loadScripts.put(base.fullyQualifiedName(), loadCommands);
@@ -83,7 +83,7 @@ public class VerticaStreamBatchApplier extends SimpleBatchApplier
                 // directly to Vertica.
                 File file = new File(info.file.getAbsolutePath());
                 fis = new FileInputStream(file);
-                
+
                 // Throws java.sql.SQLException if a query execution fails.
                 ((com.vertica.PGStatement) statement).executeCopyIn(
                         loadCommand, fis);
