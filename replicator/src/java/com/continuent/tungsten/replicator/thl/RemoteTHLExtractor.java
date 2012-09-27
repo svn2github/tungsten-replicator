@@ -200,7 +200,7 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                         // avoid breaks and return that first. Otherwise
                         // downstream stages will break due to sequence number
                         // gaps.
-                        if (lastEvent != null && replEvent.getSeqno() > seqno)
+                        if (replEvent.getSeqno() > seqno)
                         {
                             pendingEvent = replEvent;
                             replEvent = new ReplDBMSFilteredEvent(lastEventId,

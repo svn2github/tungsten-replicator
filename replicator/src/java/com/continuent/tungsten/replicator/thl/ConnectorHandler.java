@@ -92,8 +92,11 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
             // Vet the epoch number and sequence number.
             long clientLastEpochNumber = handshakeResponse.getLastEpochNumber();
             long clientLastSeqno = handshakeResponse.getLastSeqno();
+            String eventIdString = handshakeResponse
+                    .getOption(ProtocolParams.INIT_EVENT_ID);
 
-            if (clientLastEpochNumber < 0 || clientLastSeqno < 0)
+            if ((clientLastEpochNumber < 0 || clientLastSeqno < 0)
+                    && eventIdString == null)
             {
                 logger.info("Client log checking disabled; not checking for diverging histories");
             }
@@ -159,8 +162,6 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
 
                     // If we have an event ID, we need to search forward to find
                     // it.
-                    String eventIdString = handshakeResponse
-                            .getOption(ProtocolParams.INIT_EVENT_ID);
                     if (eventIdString != null)
                     {
                         // Parse the event ID.
@@ -321,6 +322,7 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                         logger.info("Seeking alternate sequence number: seqno="
                                 + altSeqno);
                         seqno = altSeqno;
+                        altSeqno = -1;
                     }
 
                     // Establish the connection.
