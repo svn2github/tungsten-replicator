@@ -45,7 +45,7 @@ public interface EventId extends Comparable<EventId>
      * 
      * @see java.lang.Comparable#compareTo(java.lang.Object)
      */
-    public int compareTo(MySQLEventId eventId);
+    public int compareTo(EventId eventId);
 
     /**
      * Prints event ID in standard format for this DBMS type.
