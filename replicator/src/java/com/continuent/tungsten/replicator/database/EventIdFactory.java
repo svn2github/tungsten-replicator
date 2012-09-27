@@ -49,6 +49,8 @@ public class EventIdFactory
      */
     public EventId createEventId(String rawEventId)
     {
+        if (rawEventId.toLowerCase().startsWith("ora:"))
+            return new OracleEventId(rawEventId);
         if (rawEventId.startsWith("mysql") || rawEventId.indexOf(":") > -1)
             return new MySQLEventId(rawEventId);
         else
