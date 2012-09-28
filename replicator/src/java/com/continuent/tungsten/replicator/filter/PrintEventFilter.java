@@ -22,20 +22,15 @@
 package com.continuent.tungsten.replicator.filter;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.cache.IndexedLRUCache;
 import com.continuent.tungsten.replicator.ReplicatorException;
-import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
-import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 

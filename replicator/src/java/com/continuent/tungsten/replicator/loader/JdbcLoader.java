@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
@@ -44,6 +45,7 @@ public abstract class JdbcLoader extends Loader
     protected ArrayList<ColumnSpec> columnDefinitions = null;
     protected String                tungstenServiceSchema = null;
     protected String                tungstenServiceSchemaPosition = null;
+    protected boolean               includeStructure = true;
     int currentTablePosition = 0;
     boolean extractCreateTableStatement = false;
 
@@ -90,6 +92,17 @@ public abstract class JdbcLoader extends Loader
     {
         this.includeSchemas = Arrays.asList(includeSchemas.split(","));
     }
+    
+    public void setIncludeStructure(boolean includeStructure)
+    {
+        this.includeStructure = includeStructure;
+    }
+    
+    public String getTungstenSchema()
+    {
+        return runtime.getReplicatorProperties().getString(
+                ReplicatorConf.METADATA_SCHEMA);
+    }
 
     /**
      * 
@@ -133,7 +146,7 @@ public abstract class JdbcLoader extends Loader
             if (includeImportTable() == true)
             {
                 currentTablePosition = 0;
-                extractCreateTableStatement = true;
+                extractCreateTableStatement = this.includeStructure;
                 prepareImportTable();
                 break;
             }
@@ -191,7 +204,7 @@ public abstract class JdbcLoader extends Loader
                 cSpec.setLength(columnList.getInt("COLUMN_SIZE"));
                 columnDefinitions.add(cSpec);
                 
-                logger.info(
+                logger.debug(
                         "Import column " +
                         columnList.getString("TABLE_SCHEM") + ":" +
                         columnList.getString("TABLE_NAME") + ":" +
@@ -377,12 +390,12 @@ public abstract class JdbcLoader extends Loader
         {
             if (importTables.isClosed() == true)
             {
-                throw new ReplicatorException(
-                        "The import tables result set closed unexpectedly");
+                return null;
             }
 
             if (importTables.isAfterLast() == true)
             {
+                importTables.close();
                 /**
                  * There are no more tables to import
                  */
@@ -492,6 +505,7 @@ public abstract class JdbcLoader extends Loader
      * @return
      * @throws SQLException
      */
+    @SuppressWarnings("unchecked")
     protected RowChangeData extractRowChangeData() throws SQLException
     {
         OneRowChange orc = null;
@@ -507,10 +521,14 @@ public abstract class JdbcLoader extends Loader
         orc.setAction(ActionType.INSERT);
         orc.setSchemaName(importTables.getString("TABLE_SCHEM"));
         orc.setTableName(importTables.getString("TABLE_NAME"));
-        orc.setColumnSpec(columnDefinitions);
+        orc.setColumnSpec((ArrayList<ColumnSpec>) columnDefinitions.clone());
 
         rowChangeData.appendOneRowChange(orc);
 
+        logger.debug("SELECT * FROM "
+                + importTables.getString("TABLE_SCHEM") + "."
+                + importTables.getString("TABLE_NAME") + " LIMIT " + 
+                currentTablePosition + " , " + getChunkSize());
         extractedRows = statement.executeQuery("SELECT * FROM "
                 + importTables.getString("TABLE_SCHEM") + "."
                 + importTables.getString("TABLE_NAME") + " LIMIT " + 
@@ -657,7 +675,7 @@ public abstract class JdbcLoader extends Loader
                 {
                     if ("trep_commit_seqno".equalsIgnoreCase(tungstenSchemaTables.getString("TABLE_NAME")) == true)
                     {
-                        logger.info("Get eventid from " +
+                        logger.debug("Get eventid from " +
                                 tungstenSchemaTables.getString("TABLE_SCHEM") + "." +
                                 tungstenSchemaTables.getString("TABLE_NAME"));
                         

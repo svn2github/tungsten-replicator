@@ -21,7 +21,6 @@ import com.continuent.tungsten.replicator.pipeline.Pipeline;
 import com.continuent.tungsten.replicator.storage.Store;
 import com.continuent.tungsten.replicator.thl.THL;
 import com.continuent.tungsten.replicator.thl.THLManagerCtrl;
-import com.continuent.tungsten.replicator.thl.THLManagerCtrl.InfoHolder;
 
 public class LoaderCtrl
 {
@@ -124,25 +123,11 @@ public class LoaderCtrl
                     
                     if ("extractor".equals(key))
                     {
-                        tempProperties.setProperty(
-                                "replicator.stage.binlog-to-q.extractor",
-                                "loader");
                         key = "replicator.extractor.loader";
                     }
                     else if (key.startsWith("extractor."))
                     {
                         key = "replicator.extractor.loader." + key.substring(10);
-                    }
-                    else if ("applier".equals(key))
-                    {
-                        tempProperties.setProperty(
-                                "replicator.stage.q-to-thl.applier",
-                                "loader");
-                        key = "replicator.applier.loader";
-                    }
-                    else if (key.startsWith("applier."))
-                    {
-                        key = "replicator.applier.loader." + key.substring(10);
                     }
                     
                     tempProperties.setProperty(key, curValue);
@@ -176,14 +161,6 @@ public class LoaderCtrl
             loaderCtrl.prepare();
     
             loaderCtrl.loadEvents();
-            
-            thlManager = new THLManagerCtrl(configFile);
-            thlManager.prepare(true);
-            
-            InfoHolder info = thlManager.getInfo();
-            println("min seq# = " + info.getMinSeqNo());
-            println("max seq# = " + info.getMaxSeqNo());
-            println("events = " + info.getEventCount());
         }
         catch (Throwable t)
         {
@@ -228,6 +205,32 @@ public class LoaderCtrl
         TungstenProperties conf = this.readConfig();
         conf.putAll(loaderProperties);
         
+        String role = conf.getProperty("replicator.role");
+        
+        if (role == "master")
+        {
+            conf.setProperty(
+                    "replicator.stage.binlog-to-q.extractor",
+                    "loader");
+        }
+        else if (role.equals("slave"))
+        {
+            conf.setProperty("replicator.pipeline.slave", "loader-to-q,q-to-dbms");
+            conf.setProperty("replicator.pipeline.slave.stores", "queue");
+        }
+        else if (role == "direct")
+        {
+            conf.setProperty("replicator.pipeline.direct", "loader-to-q,q-to-dbms");
+            conf.setProperty("replicator.pipeline.direct.stores", "queue");
+        }
+        
+        conf.setProperty("replicator.stage.loader-to-q", "com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask");
+        conf.setProperty("replicator.stage.loader-to-q.extractor", "loader");
+        conf.setProperty("replicator.stage.loader-to-q.applier", "queue");
+        conf.setProperty("replicator.stage.loader-to-q.blockCommitRowCount", "${replicator.global.buffer.size}");
+        conf.setProperty("replicator.stage.q-to-dbms.extractor", "queue");
+        
+
         // Substitute ${..} values
         Properties props = conf.getProperties();
         TungstenProperties.substituteSystemValues(props, 10);
@@ -276,7 +279,6 @@ public class LoaderCtrl
             runtime.prepare();
             pipeline.start(new MockEventDispatcher());
             pipeline.shutdownAfterHeartbeat("LOAD_COMPLETE");
-            
             while (pipeline.isShutdown() != true)
             {
                 // Wait for the pipeline to complete
@@ -312,25 +314,6 @@ public class LoaderCtrl
             return propertyFiles[0].getAbsolutePath();
         else
             return null;
-    }
-    
-    private static void printHelp()
-    {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /**
-     * Appends a message to a given stringBuilder, adds a newline character at
-     * the end.
-     * 
-     * @param msg String to print.
-     * @param stringBuilder StringBuilder object to add a message to.
-     */
-    private static void println(StringBuilder stringBuilder, String msg)
-    {
-        stringBuilder.append(msg);
-        stringBuilder.append("\n");
     }
 
     /**

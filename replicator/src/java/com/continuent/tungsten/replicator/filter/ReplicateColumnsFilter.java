@@ -132,11 +132,11 @@ public class ReplicateColumnsFilter implements Filter
                         ColumnSpec keySpec = keys.get(k);
                         
                         if (filterColumn(orc.getSchemaName(), orc.getTableName(), keySpec.getName())) {
-                            logger.info("Drop data for " + orc.getTableName() + "." + keySpec.getName());
+                            logger.debug("Drop data for " + orc.getTableName() + "." + keySpec.getName());
                             
                             keysToRemove.add(keySpec);
                         } else {
-                            logger.info("Replicate data for " + orc.getTableName() + "." + keySpec.getName());
+                            logger.debug("Replicate data for " + orc.getTableName() + "." + keySpec.getName());
                         }
                     }
                     
@@ -167,11 +167,11 @@ public class ReplicateColumnsFilter implements Filter
                         ColumnSpec colSpec = columns.get(c);
                         
                         if (filterColumn(orc.getSchemaName(), orc.getTableName(), colSpec.getName())) {
-                            logger.info("Drop data for " + orc.getTableName() + "." + colSpec.getName());
+                            logger.debug("Drop data for " + orc.getTableName() + "." + colSpec.getName());
                             
                             columnsToRemove.add(colSpec);
                         } else {
-                            logger.info("Replicate data for " + orc.getTableName() + "." + colSpec.getName());
+                            logger.debug("Replicate data for " + orc.getTableName() + "." + colSpec.getName());
                         }
                     }
                     
@@ -194,7 +194,7 @@ public class ReplicateColumnsFilter implements Filter
                         columns.remove(idx);
 
                         // Now we actually changed the event.
-                        logger.info("Col " + columnToRemoveSpec.getIndex() + " removed at " + idx);
+                        logger.debug("Col " + columnToRemoveSpec.getIndex() + " removed at " + idx);
                     }
                 }
             }

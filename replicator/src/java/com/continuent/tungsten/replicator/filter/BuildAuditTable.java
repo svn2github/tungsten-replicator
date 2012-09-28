@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
-import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
 import com.continuent.tungsten.replicator.dbms.StatementData;
@@ -49,11 +48,11 @@ public class BuildAuditTable implements Filter
 {    
     private static Logger            logger = Logger.getLogger(BuildAuditTable.class);
     
-    private String        targetSchemaName;
+    private String        targetTableName = null;
     
-    public void setTargetSchemaName(String schemaName)
+    public void setTargetTableName(String tableName)
     {
-        this.targetSchemaName = schemaName;
+        this.targetTableName = tableName;
     }
 
     /**
@@ -63,6 +62,7 @@ public class BuildAuditTable implements Filter
      */
     public ReplDBMSEvent filter(ReplDBMSEvent event) throws ReplicatorException
     {
+        logger.debug("Modify RowChangeData in " + event.getSeqno());
         ArrayList<DBMSData> data = event.getData();
         
         if (data == null)
@@ -87,12 +87,7 @@ public class BuildAuditTable implements Filter
                         continue;
                     }
                     
-                    if (orc.getTableName().equalsIgnoreCase("names") != true) {
-                        logger.debug("Drop change not on the names table");
-                        oneRowIterator.remove();
-                        continue;
-                    }
-                    orc.setTableName("names_log");
+                    orc.setTableName(this.targetTableName);
                     
                     if (orc.getAction() == ActionType.UPDATE) {
                         orc.setAction(ActionType.INSERT);
@@ -129,6 +124,10 @@ public class BuildAuditTable implements Filter
      */
     public void configure(PluginContext context) throws ReplicatorException
     {
+        if (this.targetTableName == null)
+        {
+            throw new ReplicatorException("Unable to configure filter because targetTableName is not given");
+        }
     }
 
     /**

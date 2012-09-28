@@ -22,7 +22,7 @@
 package com.continuent.tungsten.replicator.filter;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.ListIterator;
 
 import org.apache.log4j.Logger;
 
@@ -34,7 +34,6 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
-import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
@@ -69,6 +68,7 @@ public class BuildIndexTable implements Filter
      */
     public ReplDBMSEvent filter(ReplDBMSEvent event) throws ReplicatorException
     {
+        logger.debug("Modify RowChangeData in " + event.getSeqno());
         ArrayList<DBMSData> data = event.getData();
         for (DBMSData dataElem : data)
         {
@@ -106,6 +106,22 @@ public class BuildIndexTable implements Filter
                     for (ArrayList<OneRowChange.ColumnVal> kValues : keyValues)
                     {
                         kValues.add(v);
+                    }
+                    
+                    ListIterator<OneRowChange.ColumnSpec> litr = null;
+                    litr = orc.getColumnSpec()
+                        .listIterator();
+                    for (; litr.hasNext();)
+                    {
+                        OneRowChange.ColumnSpec cv = litr.next();
+                        cv.setIndex(0);
+                    }
+        
+                    litr = orc.getKeySpec().listIterator();
+                    for (; litr.hasNext();)
+                    {
+                        OneRowChange.ColumnSpec cv = litr.next();
+                        cv.setIndex(0);
                     }
                     
                     orc.setSchemaName(this.targetSchemaName);
