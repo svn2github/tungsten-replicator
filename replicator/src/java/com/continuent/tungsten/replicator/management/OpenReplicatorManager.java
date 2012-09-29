@@ -2116,6 +2116,32 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     }
 
     /**
+     * Invokes purge on underlying replicator plugin. {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean#purge(java.util.Map)
+     */
+    @MethodDesc(description = "Kill non-replication connections", usage = "purge")
+    public int purge(
+            @ParamDesc(name = "controlParams", description = "Control parameters for purge operation") Map<String, String> controlParams)
+            throws Exception
+    {
+        TungstenProperties params = new TungstenProperties(controlParams);
+
+        try
+        {
+            logger.info("Received connection purge request");
+            // TODO: return openReplicator.purge(params);
+            return 0;
+        }
+        catch (Exception e)
+        {
+            logger.error("Purge request failed", e);
+            throw new Exception("Purge request failed: " + e.getMessage());
+        }
+    }
+
+    
+    /**
      * Inserts a heartbeat event. {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean#heartbeat(Map)

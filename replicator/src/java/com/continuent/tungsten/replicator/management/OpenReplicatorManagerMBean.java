@@ -252,6 +252,26 @@ public interface OpenReplicatorManagerMBean
     public String flush(long timeout) throws Exception;
 
     /**
+     * Attempts to kill all non-replication logins on the DBMS server. May be
+     * called prior to flush() to ensure that all application activity stops
+     * prior to a failover. This avoids problems with blocked or long-running
+     * transactions that commit after failover starts. This operation works in
+     * both ONLINE and OFFLINE states so that it can be used to clear
+     * transactions during unplanned as well as planned failover.
+     * <p/>
+     * The following control parameters are accepted:
+     * <ul>
+     * <li>timeout - Number of seconds to wait for kill operations to complete</li>
+     * </ul>
+     * 
+     * @param controlParams 0 or more control parameters expressed as name-value
+     *            pairs
+     * @return Number of sessions killed
+     * @throws Exception Thrown if we timeout or are canceled
+     */
+    public int purge(Map<String, String> controlParams) throws Exception;
+
+    /**
      * @deprecated Use
      *             {@link com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean#getStatus()}
      */
@@ -394,8 +414,8 @@ public interface OpenReplicatorManagerMBean
     /**
      * Starts the replicator service, which spawns all threads and underlying
      * components necessary to perform replication. It is the first call to a
-     * new replication service.  It also issues a call to put the replicator 
-     * online if auto_enable is set. 
+     * new replication service. It also issues a call to put the replicator
+     * online if auto_enable is set.
      * 
      * @throws Exception Thrown if start-up fails. This includes failure to go
      *             online if the replicator is auto-enabled.
