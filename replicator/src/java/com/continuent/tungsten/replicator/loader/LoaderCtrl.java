@@ -207,7 +207,7 @@ public class LoaderCtrl
         
         String role = conf.getProperty("replicator.role");
         
-        if (role == "master")
+        if (role.equals("master"))
         {
             conf.setProperty(
                     "replicator.stage.binlog-to-q.extractor",

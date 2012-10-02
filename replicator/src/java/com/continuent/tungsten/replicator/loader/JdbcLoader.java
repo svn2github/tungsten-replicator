@@ -712,6 +712,12 @@ public abstract class JdbcLoader extends Loader
                         this.tungstenServiceSchemaPosition = trepCommitRows.getString("eventid");
                     }
                 }
+                
+                if (this.tungstenServiceSchemaPosition == null)
+                {
+                    throw new ReplicatorException("Unable to determine the eventid from " +
+                            getTungstenServiceSchema());
+                }
             }
             catch (SQLException e)
             {
