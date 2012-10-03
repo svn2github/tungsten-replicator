@@ -43,9 +43,11 @@ import java.util.regex.Matcher;
 import javax.management.Notification;
 import javax.management.NotificationBroadcasterSupport;
 
+import org.apache.log4j.Logger;
+
 import com.continuent.tungsten.commons.cluster.resource.OpenReplicatorParams;
-import com.continuent.tungsten.commons.cluster.resource.Replicator;
-import com.continuent.tungsten.commons.cluster.resource.ReplicatorCapabilities;
+import com.continuent.tungsten.commons.cluster.resource.physical.Replicator;
+import com.continuent.tungsten.commons.cluster.resource.physical.ReplicatorCapabilities;
 import com.continuent.tungsten.commons.config.PropertyException;
 import com.continuent.tungsten.commons.config.TungstenProperties;
 import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
