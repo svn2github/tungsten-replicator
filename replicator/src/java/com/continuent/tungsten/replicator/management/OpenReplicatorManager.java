@@ -1752,6 +1752,41 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     }
 
     /**
+     * Return a copy of current properties. {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean#getProperties()
+     */
+    @MethodDesc(description = "Gets the current properties.", usage = "properties [<key>]")
+    public Map<String, String> properties(
+            @ParamDesc(name = "key", description = "optional key of a single property") String key)
+            throws Exception
+    {
+        Map<String, String> returnProps = propertiesManager.getProperties()
+                .map();
+
+        // First, anonymize any 'password' type properties
+        for (String currentKey : returnProps.keySet())
+        {
+            if (currentKey.toLowerCase().contains("password"))
+                returnProps.put(currentKey, "**********");
+        }
+
+        if (key != null)
+        {
+            Map<String, String> matchingItems = new HashMap<String, String>();
+
+            for (String currentKey : returnProps.keySet())
+            {
+                if (currentKey.contains(key))
+                    matchingItems.put(currentKey, returnProps.get(currentKey));
+            }
+            return matchingItems;
+        }
+
+        return returnProps;
+    }
+ 
+    /**
      * Return a copy of current dynamic properties. {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean#getDynamicProperties()

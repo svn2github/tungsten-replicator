@@ -422,7 +422,16 @@ public interface OpenReplicatorManagerMBean
      */
     public void start() throws Exception;
 
-    /*
+    /**
+     * Returns a map instance containing currently set properties, if any. This
+     * call can be issued in any replicator state.
+     * 
+     * @param key optional key of a single property
+     * @return the current property(ies)
+     */
+    public Map<String, String> properties(String key) throws Exception;
+
+    /**
      * Returns a map instance containing currently set dynamic properties, if
      * any. This call can be issued in any replicator state.
      */
