@@ -85,51 +85,69 @@ import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
  */
 public class SimpleBatchApplier implements RawApplier
 {
-    private static Logger               logger               = Logger.getLogger(SimpleBatchApplier.class);
+    private static Logger  logger            = Logger.getLogger(SimpleBatchApplier.class);
 
     /**
      * Denotes an insert operation.
      */
-    public static String                INSERT               = "I";
+    public static String   INSERT            = "I";
 
     /**
      * Denotes a delete operation.
      */
-    public static String                DELETE               = "D";
+    public static String   DELETE            = "D";
 
     // Task management information.
-    private int                         taskId;
+    private int            taskId;
 
     // Properties.
-    protected String                    driver;
-    protected String                    url;
-    protected String                    user;
-    protected String                    password;
-    protected String                    stageDirectory;
-    protected String                    startupScript;
-    protected String                    stageMergeScript;
-    protected String                    stageSchemaPrefix;
-    protected String                    stageTablePrefix;
-    protected String                    stageColumnPrefix    = "tungsten_";
-    protected String                    stagePkeyColumn;
-    protected boolean                   cleanUpFiles         = true;
-    protected String                    charset              = "UTF-8";
-    protected String                    timezone             = "GMT-0:00";
-    protected LoadMismatch              onLoadMismatch       = LoadMismatch.fail;
-    protected CsvLoader                 csvLoader;
+    protected String       driver;
+    protected String       url;
+    protected String       user;
+    protected String       password;
+    protected String       stageDirectory;
+    protected String       startupScript;
+    protected String       stageLoadScript;
+    protected String       stageMergeScript;
+    protected String       stageSchemaPrefix;
+    protected String       stageTablePrefix;
+    protected String       stageColumnPrefix = "tungsten_";
+    protected String       stagePkeyColumn;
+    protected boolean      cleanUpFiles      = true;
+    protected String       charset           = "UTF-8";
+    protected String       timezone          = "GMT-0:00";
+    protected LoadMismatch onLoadMismatch    = LoadMismatch.fail;
 
     // Load file directory for this task.
-    private File                        stageDir;
+    private File           stageDir;
 
     // Character set for writing CSV files.
-    private Charset                     outputCharset;
+    private Charset        outputCharset;
+
+    // Enum to set load mismatch policy.
+    enum LoadMismatch
+    {
+        fail, warn
+    };
+
+    // Batch CSV file information. When using staging the
+    // stage table metadata field is filled in. Otherwise it is null.
+    class CsvInfo
+    {
+        String    schema;
+        String    table;
+        Table     baseTableMetadata;
+        Table     stageTableMetadata;
+        File      file;
+        CsvWriter writer;
+    }
 
     // Open CVS files in current transaction.
     private Map<String, CsvInfo>        openCsvFiles         = new TreeMap<String, CsvInfo>();
 
     // Cached load commands.
-    protected SqlScriptGenerator        loadScriptGenerator  = new SqlScriptGenerator();
-    protected Map<String, List<String>> loadScripts          = new HashMap<String, List<String>>();
+    protected SqlScriptGenerator          loadScriptGenerator  = new SqlScriptGenerator();
+    protected Map<String, List<String>>   loadScripts          = new HashMap<String, List<String>>();
 
     // Cached merge commands.
     private SqlScriptGenerator          mergeScriptGenerator = new SqlScriptGenerator();
@@ -158,84 +176,84 @@ public class SimpleBatchApplier implements RawApplier
     // Data formatter.
     protected volatile SimpleDateFormat dateFormatter;
 
-    public void setDriver(String driver)
+    public synchronized void setDriver(String driver)
     {
         this.driver = driver;
     }
 
-    public void setUrl(String url)
+    public synchronized void setUrl(String url)
     {
         this.url = url;
     }
 
-    public void setUser(String user)
+    public synchronized void setUser(String user)
     {
         this.user = user;
     }
 
-    public void setPassword(String password)
+    public synchronized void setPassword(String password)
     {
         this.password = password;
     }
 
-    public void setStartupScript(String startupScript)
+    public synchronized void setStartupScript(String startupScript)
     {
         this.startupScript = startupScript;
     }
 
-    public void setStageMergeScript(String stageMergeScript)
+    public synchronized void setStageLoadScript(String stageLoadScript)
+    {
+        this.stageLoadScript = stageLoadScript;
+    }
+
+    public synchronized void setStageMergeScript(String stageMergeScript)
     {
         this.stageMergeScript = stageMergeScript;
     }
 
-    public void setStageSchemaPrefix(String stageSchemaPrefix)
+    public synchronized void setStageSchemaPrefix(String stageSchemaPrefix)
     {
         this.stageSchemaPrefix = stageSchemaPrefix;
     }
 
-    public void setStageTablePrefix(String stageTablePrefix)
+    public synchronized void setStageTablePrefix(String stageTablePrefix)
     {
         this.stageTablePrefix = stageTablePrefix;
     }
 
-    public void setStagePkeyColumn(String stagePkeyColumn)
+    public synchronized void setStagePkeyColumn(String stagePkeyColumn)
     {
         this.stagePkeyColumn = stagePkeyColumn;
     }
 
-    public void setStageColumnPrefix(String stageColumnPrefix)
+    public synchronized void setStageColumnPrefix(String stageColumnPrefix)
     {
         this.stageColumnPrefix = stageColumnPrefix;
     }
 
-    public void setStageDirectory(String stageDirectory)
+    public synchronized void setStageDirectory(String stageDirectory)
     {
         this.stageDirectory = stageDirectory;
     }
 
-    public void setCleanUpFiles(boolean cleanUpFiles)
+    public synchronized void setCleanUpFiles(boolean cleanUpFiles)
     {
         this.cleanUpFiles = cleanUpFiles;
     }
 
-    public void setCharset(String charset)
+    public synchronized void setCharset(String charset)
     {
         this.charset = charset;
     }
 
-    public void setTimezone(String timezone)
+    public synchronized void setTimezone(String timezone)
     {
         this.timezone = timezone;
     }
 
-    public void setOnLoadMismatch(String onLoadMismatchString)
+    public synchronized void setOnLoadMismatch(String onLoadMismatchString)
     {
         this.onLoadMismatch = LoadMismatch.valueOf(onLoadMismatchString);
-    }
-
-    public void setCsvLoader(CsvLoader csvLoader)
-    {
-        this.csvLoader = csvLoader;
     }
 
     /**
@@ -510,6 +528,7 @@ public class SimpleBatchApplier implements RawApplier
         assertNotNull(stageDirectory, "stageDirectory");
         assertNotNull(stageTablePrefix, "stageTablePrefix");
         assertNotNull(stageColumnPrefix, "stageRowIdColumn");
+        assertNotNull(stageLoadScript, "stageLoadScript");
         assertNotNull(stageMergeScript, "stageMergeScript");
 
         // Get metadata schema.
@@ -567,7 +586,8 @@ public class SimpleBatchApplier implements RawApplier
                     + outputCharset.toString());
         }
 
-        // Initialize script generator for merge operations.
+        // Initialize script generators for load and merge operations.
+        loadScriptGenerator = initializeGenerator(stageLoadScript);
         mergeScriptGenerator = initializeGenerator(stageMergeScript);
 
         // Set up the staging directory.
@@ -671,7 +691,7 @@ public class SimpleBatchApplier implements RawApplier
     }
 
     // Initializes a SqlScriptGenerator.
-    public static SqlScriptGenerator initializeGenerator(String script)
+    private SqlScriptGenerator initializeGenerator(String script)
             throws ReplicatorException
     {
         FileReader fileReader = null;
@@ -847,7 +867,7 @@ public class SimpleBatchApplier implements RawApplier
                 }
 
                 // Create and cache writer information.
-                info = new CsvInfo(this.stagePkeyColumn);
+                info = new CsvInfo();
                 info.schema = tableMetadata.getSchema();
                 info.table = tableMetadata.getName();
                 info.baseTableMetadata = tableMetadata;
@@ -960,6 +980,8 @@ public class SimpleBatchApplier implements RawApplier
 
     /**
      * Load an open CSV file.
+     * 
+     * @see {@link VerticaStreamBatchApplier#load(CsvInfo)}
      */
     protected void load(CsvInfo info) throws ReplicatorException
     {
@@ -967,9 +989,88 @@ public class SimpleBatchApplier implements RawApplier
         {
             logger.debug("Loading CSV file: " + info.file.getAbsolutePath());
         }
+        int rowsToLoad = info.writer.getRowCount();
 
-        // Invoke the CSV loader.
-        csvLoader.load(conn, info, onLoadMismatch);
+        // Generate the load command(s).
+        Table base = info.baseTableMetadata;
+        List<String> loadCommands = loadScripts.get(base.fullyQualifiedName());
+        if (loadCommands == null)
+        {
+            // If we do not have load commands yet, generate them.
+            Map<String, String> parameters = getSqlParameters(info);
+            loadCommands = loadScriptGenerator
+                    .getParameterizedScript(parameters);
+            loadScripts.put(base.fullyQualifiedName(), loadCommands);
+        }
+
+        // Execute aforesaid load commands.
+        int commandCount = 0;
+        for (String loadCommand : loadCommands)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Executing load command: " + loadCommand);
+            }
+            try
+            {
+                long start = System.currentTimeMillis();
+                int rows = statement.executeUpdate(loadCommand);
+                commandCount++;
+                double interval = (System.currentTimeMillis() - start) / 1000.0;
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Execution completed: rows updated=" + rows
+                            + " duration=" + interval + "s");
+                }
+
+                // Check for load mismatches on last command in list.
+                // (Allows earlier commands to do things like set time zone.
+                if (commandCount == loadCommands.size() && rows != rowsToLoad)
+                {
+                    if (onLoadMismatch == LoadMismatch.warn)
+                    {
+                        // If there are several load commands, we may just warn
+                        // if there are
+                        // differences.
+                        logger.warn("Difference between CSV file size and rows loaded: rowsInFile="
+                                + rowsToLoad
+                                + " rowsLoaded="
+                                + rows
+                                + " loadCommand=" + loadCommand);
+                    }
+                    else if (onLoadMismatch == LoadMismatch.fail)
+                    {
+                        // For single commands, this is what you want.
+                        // Differences in rows loaded usually indicate a bug.
+                        ReplicatorException re = new ReplicatorException(
+                                "Difference between CSV file size and rows loaded: rowsInFile="
+                                        + rowsToLoad + " rowsLoaded=" + rows);
+                        re.setExtraData(loadCommand);
+                        throw re;
+                    }
+                    else
+                    {
+                        // Otherwise we just ignore the mismatch. For
+                        // experts only.
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Ignoring CSV load mismatch: rowsInFile="
+                                    + rowsToLoad
+                                    + " rowsLoaded="
+                                    + rows
+                                    + " loadCommand=" + loadCommand);
+                        }
+                    }
+                }
+            }
+            catch (SQLException e)
+            {
+                ReplicatorException re = new ReplicatorException(
+                        "Unable to execute load command", e);
+                re.setExtraData(loadCommand);
+                throw re;
+            }
+        }
 
         // Delete the load file if we are done with it.
         if (cleanUpFiles && !info.file.delete())
@@ -1012,6 +1113,45 @@ public class SimpleBatchApplier implements RawApplier
         }
     }
 
+    /**
+     * Determines primary key name for the given CsvInfo object. If underlying
+     * meta data table contains a primary key, it is used. If not, user's
+     * configured default one is taken.<br/>
+     * Currently, only single-column primary keys are supported.
+     * 
+     * @return Primary key column name.
+     * @throws ReplicatorException Thrown if primary key cannot be found
+     */
+    private String getPKColumn(CsvInfo info) throws ReplicatorException
+    {
+        String pkey = stagePkeyColumn;
+
+        // If THL event contains PK, use it.
+        if (info.baseTableMetadata.getPrimaryKey() != null
+                && info.baseTableMetadata.getPrimaryKey().getColumns() != null
+                && info.baseTableMetadata.getPrimaryKey().getColumns().size() > 0
+                && info.baseTableMetadata.getPrimaryKey().getColumns().get(0)
+                        .getName() != null
+                && !info.baseTableMetadata.getPrimaryKey().getColumns().get(0)
+                        .getName().equals(""))
+        {
+            pkey = info.baseTableMetadata.getPrimaryKey().getColumns().get(0)
+                    .getName();
+        }
+
+        // If the primary key is still null that means we don't have a key
+        // from metadata and nothing was set in the configuration properties.
+        if (pkey == null)
+        {
+            String msg = String
+                    .format("Unable to find a primary key for %s and there is no default from property stagePkeyColumn",
+                            info.baseTableMetadata.fullyQualifiedName());
+            throw new ReplicatorException(msg);
+        }
+
+        return pkey;
+    }
+
     // Load an open CSV file.
     private void mergeFromStageTable(CsvInfo info) throws ReplicatorException
     {
@@ -1028,7 +1168,7 @@ public class SimpleBatchApplier implements RawApplier
         if (commands == null)
         {
             // If we do not have commands yet, generate them.
-            Map<String, String> parameters = info.getSqlParameters();
+            Map<String, String> parameters = getSqlParameters(info);
             commands = mergeScriptGenerator.getParameterizedScript(parameters);
             mergeScripts.put(base.fullyQualifiedName(), commands);
         }
@@ -1060,6 +1200,39 @@ public class SimpleBatchApplier implements RawApplier
                 throw re;
             }
         }
+    }
+
+    // Generate parameters required by SQL load scripts.
+    protected Map<String, String> getSqlParameters(CsvInfo info)
+            throws ReplicatorException
+    {
+        // Generate data for base and staging tables.
+        Table base = info.baseTableMetadata;
+        Table stage = info.stageTableMetadata;
+        String pkey = getPKColumn(info);
+        String basePkey = base.getName() + "." + pkey;
+        String stagePkey = stage.getName() + "." + pkey;
+        StringBuffer colNames = new StringBuffer();
+        for (Column col : base.getAllColumns())
+        {
+            if (colNames.length() > 0)
+                colNames.append(",");
+            colNames.append(col.getName());
+        }
+        File csvFile = info.file;
+
+        // Create map containing parameters.
+        Map<String, String> parameters = new HashMap<String, String>();
+        parameters.put("%%CSV_FILE%%", csvFile.getAbsolutePath());
+        parameters.put("%%BASE_TABLE%%", base.fullyQualifiedName());
+        parameters.put("%%BASE_COLUMNS%%", colNames.toString());
+        parameters.put("%%STAGE_TABLE%%", stage.fullyQualifiedName());
+        parameters.put("%%PKEY%%", pkey);
+        parameters.put("%%BASE_PKEY%%", basePkey);
+        parameters.put("%%STAGE_PKEY%%", stagePkey);
+
+        // Return parameters.
+        return parameters;
     }
 
     // Get full table metadata. Cache for table metadata is populated
@@ -1133,7 +1306,7 @@ public class SimpleBatchApplier implements RawApplier
      * Converts a column value to a suitable String for CSV loading. This can be
      * overloaded for particular DBMS types.
      * 
-     * @param columnVal Column value
+     * @param value Column value
      * @param columnSpec Column metadata
      * @return String for loading
      * @throws CsvException

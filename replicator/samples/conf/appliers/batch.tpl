@@ -13,12 +13,9 @@ replicator.applier.dbms.timezone=GMT+0:00
 replicator.applier.dbms.stageColumnPrefix=tungsten_
 replicator.applier.dbms.stageTablePrefix=stage_xxx_
 replicator.applier.dbms.stageDirectory=/tmp/staging
+replicator.applier.dbms.stageLoadScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-load.sql
 replicator.applier.dbms.stageMergeScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-merge.sql
 replicator.applier.dbms.cleanUpFiles=false
-
-# Parameters for CSV Loader bean. 
-replicator.applier.dbms.csvLoader=com.continuent.tungsten.replicator.applier.batch.SqlCsvLoader
-replicator.applier.dbms.csvLoader.stageLoadScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-load.sql
 
 # Included to provide default pkey for tables that omit such.  This is not 
 # a good practice in general. 
