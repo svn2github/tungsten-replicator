@@ -4,3 +4,4 @@ replicator.applier.dbms.port=${replicator.global.db.port}
 replicator.applier.dbms.user=${replicator.global.db.user}
 replicator.applier.dbms.password=${replicator.global.db.password}
 replicator.applier.dbms.ignoreSessionVars=autocommit
+replicator.applier.dbms.getColumnMetadataFromDB=true
