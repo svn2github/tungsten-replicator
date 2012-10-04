@@ -86,56 +86,58 @@ import com.continuent.tungsten.replicator.thl.THLManagerCtrl;
  */
 public class JdbcApplier implements RawApplier
 {
-    static Logger                     logger               = Logger.getLogger(JdbcApplier.class);
+    static Logger                     logger                     = Logger.getLogger(JdbcApplier.class);
 
-    protected int                     taskId               = 0;
-    protected ReplicatorRuntime       runtime              = null;
-    protected String                  driver               = null;
-    protected String                  url                  = null;
-    protected String                  user                 = "root";
-    protected String                  password             = "rootpass";
-    protected String                  ignoreSessionVars    = null;
+    protected int                     taskId                     = 0;
+    protected ReplicatorRuntime       runtime                    = null;
+    protected String                  driver                     = null;
+    protected String                  url                        = null;
+    protected String                  user                       = "root";
+    protected String                  password                   = "rootpass";
+    protected String                  ignoreSessionVars          = null;
 
-    protected String                  metadataSchema       = null;
-    protected String                  consistencyTable     = null;
-    protected String                  consistencySelect    = null;
-    protected Database                conn                 = null;
-    protected Statement               statement            = null;
-    protected Pattern                 ignoreSessionPattern = null;
+    protected String                  metadataSchema             = null;
+    protected String                  consistencyTable           = null;
+    protected String                  consistencySelect          = null;
+    protected Database                conn                       = null;
+    protected Statement               statement                  = null;
+    protected Pattern                 ignoreSessionPattern       = null;
 
-    protected CommitSeqnoTable        commitSeqnoTable     = null;
-    protected HeartbeatTable          heartbeatTable       = null;
+    protected CommitSeqnoTable        commitSeqnoTable           = null;
+    protected HeartbeatTable          heartbeatTable             = null;
 
-    protected String                  lastSessionId        = "";
+    protected String                  lastSessionId              = "";
 
     // Values of schema and timestamp which are buffered to avoid
     // unnecessary commands on the SQL connection.
-    protected String                  currentSchema        = null;
-    protected long                    currentTimestamp     = -1;
+    protected String                  currentSchema              = null;
+    protected long                    currentTimestamp           = -1;
 
     // Statistics.
-    protected long                    eventCount           = 0;
-    protected long                    commitCount          = 0;
+    protected long                    eventCount                 = 0;
+    protected long                    commitCount                = 0;
 
     /**
      * Maximum length of SQL string to log in case of an error. This is needed
      * because some statements may be very large. TODO: make this configurable
      * via replicator.properties
      */
-    protected int                     maxSQLLogLength      = 1000;
+    protected int                     maxSQLLogLength            = 1000;
 
     private TableMetadataCache        tableMetadataCache;
 
-    private boolean                   transactionStarted   = false;
+    private boolean                   transactionStarted         = false;
 
-    private ReplDBMSHeader            lastProcessedEvent   = null;
+    private ReplDBMSHeader            lastProcessedEvent         = null;
 
     private Hashtable<Integer, File>  fileTable;
 
     protected HashMap<String, String> currentOptions;
 
     // SQL parser.
-    SqlOperationMatcher               sqlMatcher           = new MySQLOperationMatcher();
+    SqlOperationMatcher               sqlMatcher                 = new MySQLOperationMatcher();
+
+    private boolean                   getColumnInformationFromDB = true;
 
     // Setters.
 
@@ -179,6 +181,15 @@ public class JdbcApplier implements RawApplier
     public void setIgnoreSessionVars(String ignoreSessionVars)
     {
         this.ignoreSessionVars = ignoreSessionVars;
+    }
+
+    public void setGetColumnMetadataFromDB(String getMetadataFromDB)
+    {
+        getColumnInformationFromDB = getMetadataFromDB.toLowerCase().compareTo(
+                "false")!=0;
+        if (!getColumnInformationFromDB)
+            logger.info("Using event column metadata. Not fetching information from underlying database.");
+
     }
 
     /**
@@ -922,12 +933,15 @@ public class JdbcApplier implements RawApplier
 
         try
         {
-            int colCount = fillColumnNames(oneRowChange);
-            if (colCount <= 0)
-                logger.warn("No column information found for table (perhaps table is missing?): "
-                        + oneRowChange.getSchemaName()
-                        + "."
-                        + oneRowChange.getTableName());
+            if (getColumnInformationFromDB)
+            {
+                int colCount = fillColumnNames(oneRowChange);
+                if (colCount <= 0)
+                    logger.warn("No column information found for table (perhaps table is missing?): "
+                            + oneRowChange.getSchemaName()
+                            + "."
+                            + oneRowChange.getTableName());
+            }
         }
         catch (SQLException e1)
         {
