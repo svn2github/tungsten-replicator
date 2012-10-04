@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009 Continuent Inc.
+ * Copyright (C) 2009-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -95,7 +95,7 @@ public class CLUtils implements Serializable
 
     /**
      * Does a generic format of a TungstenProperties instance.
-     *
+     * 
      * @param name - a name to be associated with the properties
      * @param props - the TungstenProperties instance
      * @param header - an optional header that can be pre-pended to each
@@ -131,7 +131,7 @@ public class CLUtils implements Serializable
 
     /**
      * Does a generic format of a TungstenProperties instance.
-     *
+     * 
      * @param name - a name to be associated with the properties
      * @param props - the TungstenProperties instance
      * @param header - an optional header that can be pre-pended to each
@@ -244,7 +244,6 @@ public class CLUtils implements Serializable
         StringBuilder builder = new StringBuilder();
         builder.append(header);
         String progressInformation = "";
-        String additionalInfo = "";
 
         if (replProps != null)
         {
@@ -253,14 +252,13 @@ public class CLUtils implements Serializable
 
             if (dsProps.getString(Replicator.ROLE).equals("slave"))
             {
-                additionalInfo = String.format(", %s, latency=%s",
-                        progressInformation,
+                String.format(", %s, latency=%s", progressInformation,
                         replProps.getString(DataSource.APPLIED_LATENCY));
 
             }
             else
             {
-                additionalInfo = String.format(", %s", progressInformation);
+                String.format(", %s", progressInformation);
             }
         }
 

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -264,7 +264,7 @@ public class BufferedFileDataInput
     /**
      * Reads a full byte array completely.
      * 
-     * @param buf Buffer into which to read
+     * @param bytes Buffer into which to read
      * @param start Starting byte position
      * @param len Number of bytes to read
      * @throws IOException Thrown if data cannot be read

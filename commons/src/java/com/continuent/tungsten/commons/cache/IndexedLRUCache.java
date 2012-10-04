@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -58,8 +58,9 @@ public class IndexedLRUCache<T>
     /**
      * Creates a new prepared statement cache.
      * 
-     * @param Maximum capacity of the cache, after which nodes are removed in
-     *            LRU order
+     * @param capacity Maximum capacity of the cache, after which nodes are
+     *            removed in LRU order
+     * @param resourceManager Name of the cache manager
      */
     public IndexedLRUCache(int capacity, CacheResourceManager<T> resourceManager)
     {
@@ -148,8 +149,8 @@ public class IndexedLRUCache<T>
     }
 
     /**
-     * Invalidate all values that start with the given key prefix, returning number
-     * deleted.
+     * Invalidate all values that start with the given key prefix, returning
+     * number deleted.
      */
     public int invalidateByPrefix(String prefix)
     {

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -226,8 +226,6 @@ public class ManifestParser
 
     /**
      * Returns Hudson's build number from the manifest.
-     * 
-     * @return
      */
     public Number getHudsonBuildNumber()
     {
@@ -281,8 +279,6 @@ public class ManifestParser
     /**
      * Convenience method for a single line call to get a representative string
      * of release name, version and build number.
-     * 
-     * @param logger Logger to log into.
      */
     public static String parseReleaseWithBuildNumber()
     {

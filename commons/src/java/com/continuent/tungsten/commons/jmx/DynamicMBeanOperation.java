@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,7 +31,6 @@ import java.util.Vector;
 
 import javax.management.MBeanOperationInfo;
 
-import com.continuent.tungsten.commons.utils.CLUtils;
 import com.continuent.tungsten.commons.utils.ReflectUtils;
 
 /**
@@ -149,7 +148,6 @@ public class DynamicMBeanOperation implements Serializable
      * @param paramMap
      * @return an array of objects in param order
      */
-    @SuppressWarnings("unchecked")
     public Object[] validateAndGetNamedParams(Map<String, Object> paramMap)
             throws Exception
     {
@@ -158,10 +156,9 @@ public class DynamicMBeanOperation implements Serializable
             if (params.size() > 0)
             {
                 throw new Exception(
-                        String
-                                .format(
-                                        "No parameters passed ivalidateAndGetParamsn but %d were required",
-                                        params.size()));
+                        String.format(
+                                "No parameters passed ivalidateAndGetParamsn but %d were required",
+                                params.size()));
             }
         }
 
@@ -183,8 +180,8 @@ public class DynamicMBeanOperation implements Serializable
 
             if (mbeanParam == null)
             {
-                throw new Exception(String
-                        .format("No parameter %s found for method %s.",
+                throw new Exception(
+                        String.format("No parameter %s found for method %s.",
                                 paramName, name));
             }
 
@@ -201,7 +198,7 @@ public class DynamicMBeanOperation implements Serializable
                         // exception.
                         if (mbeanParam.getType().isPrimitive())
                         {
-                            Class wrapperClass = ReflectUtils
+                            Class<?> wrapperClass = ReflectUtils
                                     .primitiveToWrapper(mbeanParam.getType());
                             paramValue = wrapperClass.getConstructor(
                                     String.class).newInstance(paramValue);
@@ -224,10 +221,9 @@ public class DynamicMBeanOperation implements Serializable
         if (!copyParams.isEmpty())
         {
             throw new Exception(
-                    String
-                            .format(
-                                    "Parameters passed in were missing required parameters.\n%s%s\nUsage: %s",
-                                    formatParams(copyParams, true), usage()));
+                    String.format(
+                            "Parameters passed in were missing required parameters.\n%s%s\nUsage: %s",
+                            formatParams(copyParams, true), usage()));
         }
 
         return mbeanParams;
@@ -242,8 +238,8 @@ public class DynamicMBeanOperation implements Serializable
             if (params.size() > 0)
             {
                 throw new Exception(String.format(
-                        "No parameters passed but %d were required", params
-                                .size()));
+                        "No parameters passed but %d were required",
+                        params.size()));
             }
         }
 
@@ -306,15 +302,7 @@ public class DynamicMBeanOperation implements Serializable
     public String toString()
     {
         StringBuilder builder = new StringBuilder();
-        if (params.size() > 0 && false)
-        {
-            builder.append(String.format("%s(%s)", name, formatParams(params,
-                    false)));
-        }
-        else
-        {
-            builder.append(String.format("%s", name));
-        }
+        builder.append(String.format("%s", name));
         return builder.toString();
     }
 
@@ -354,12 +342,12 @@ public class DynamicMBeanOperation implements Serializable
                 {
                     if (linePrefix != null)
                         builder.append(linePrefix);
-                    builder.append(String.format("%-25s : %s", param, param
-                            .getDescription()));
+                    builder.append(String.format("%-25s : %s", param,
+                            param.getDescription()));
                 }
                 else
-                    builder.append(String.format("%20s : %s", param, param
-                            .getDescription()));
+                    builder.append(String.format("%20s : %s", param,
+                            param.getDescription()));
             }
             else
             {

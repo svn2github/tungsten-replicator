@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -43,18 +43,22 @@ public class ReflectUtils
         Field[] fields = clazz.getDeclaredFields();
         Method[] methods = clazz.getDeclaredMethods();
 
-        builder.append("Description for class: " + clazz.getName()).append(NEWLINE);
+        builder.append("Description for class: " + clazz.getName()).append(
+                NEWLINE);
         builder.append(NEWLINE).append(NEWLINE);
         builder.append("Summary").append(NEWLINE);
-        builder.append("-----------------------------------------").append(NEWLINE);
-        builder.append("Constructors: " + (constructors.length)).append(NEWLINE);
+        builder.append("-----------------------------------------").append(
+                NEWLINE);
+        builder.append("Constructors: " + (constructors.length))
+                .append(NEWLINE);
         builder.append("Fields: " + (fields.length)).append(NEWLINE);
         builder.append("Methods: " + (methods.length)).append(NEWLINE);
 
         builder.append(NEWLINE).append(NEWLINE);
         builder.append(NEWLINE).append(NEWLINE);
         builder.append("Details").append(NEWLINE);
-        builder.append("-----------------------------------------").append(NEWLINE);
+        builder.append("-----------------------------------------").append(
+                NEWLINE);
 
         if (constructors.length > 0)
         {
@@ -99,8 +103,8 @@ public class ReflectUtils
 
         if (fields.length > 0)
         {
-            builder.append(NEWLINE).append(
-                    "-----------------------------------------")
+            builder.append(NEWLINE)
+                    .append("-----------------------------------------")
                     .append(NEWLINE);
             for (Field field : fields)
             {
@@ -162,8 +166,7 @@ public class ReflectUtils
         }
         return clone;
     }
-    
-    
+
     public static Object copy(Object source, Object destination)
     {
         // Walk up the superclass hierarchy
@@ -194,6 +197,7 @@ public class ReflectUtils
     /**
      * Maps primitive types to their corresponding wrapper classes.
      */
+    @SuppressWarnings("rawtypes")
     private static Map primitiveWrapperMap = new HashMap();
     static
     {
@@ -217,12 +221,13 @@ public class ReflectUtils
      *         <code>cls</code> is not a primitive. <code>null</code> if null
      *         input.
      */
-    public static Class primitiveToWrapper(Class clazz)
+
+    public static Class<?> primitiveToWrapper(Class<?> clazz)
     {
-        Class convertedClass = clazz;
+        Class<?> convertedClass = clazz;
         if (clazz != null && clazz.isPrimitive())
         {
-            convertedClass = (Class) primitiveWrapperMap.get(clazz);
+            convertedClass = (Class<?>) primitiveWrapperMap.get(clazz);
         }
         return convertedClass;
     }
