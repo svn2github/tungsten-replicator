@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -172,9 +172,7 @@ public class ChannelAssignmentService implements PipelineService
     }
 
     /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.service.Service#status()
+     * Return a list of current channel assignments.
      */
     public synchronized List<Map<String, String>> listChannelAssignments()
     {
@@ -277,7 +275,7 @@ public class ChannelAssignmentService implements PipelineService
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.service.Service#status()
+     * @see com.continuent.tungsten.replicator.service.PipelineService#status()
      */
     public TungstenProperties status()
     {

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -48,8 +48,7 @@ public interface ShardManagerMBean
      * of name-value parameters, for example, name -> my_shard, channel -> 2.
      * 
      * @param params a list of shards to be inserted
-     * @return 
-     * @throws SQLException 
+     * @throws SQLException
      */
     public int insert(List<Map<String, String>> params) throws SQLException;
 
@@ -59,8 +58,7 @@ public interface ShardManagerMBean
      * the key to be used to update being the shard name.
      * 
      * @param params a list of shards to be updated
-     * @return 
-     * @throws SQLException 
+     * @throws SQLException
      */
     public int update(List<Map<String, String>> params) throws SQLException;
 
@@ -69,24 +67,25 @@ public interface ShardManagerMBean
      * will only contain shard ids.
      * 
      * @param params
-     * @throws SQLException 
+     * @throws SQLException
      */
     public int delete(List<Map<String, String>> params) throws SQLException;
 
     /**
      * Deletes all shards from the shard table.
-     * @throws SQLException 
+     * 
+     * @throws SQLException
      */
     public int deleteAll() throws SQLException;
 
     /**
      * List all shards definitions
-     * @throws SQLException 
      * 
-     * @returns A list of shards represented by maps of name-value.
+     * @throws SQLException
+     * @return A list of shards represented by maps of name-value.
      */
     public List<Map<String, String>> list() throws SQLException;
-    
+
     /**
      * Returns a helper that supplies MBean metadata.
      */

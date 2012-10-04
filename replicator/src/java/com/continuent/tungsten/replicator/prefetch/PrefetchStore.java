@@ -129,7 +129,7 @@ public class PrefetchStore extends InMemoryQueueStore
      * Sets the minimum number of seconds ahead of slave in order to accept an
      * event for prefetch. If an event is under this number we discard it.
      * 
-     * @param maxTimeAhead Time in seconds
+     * @param aheadMinTime Minimum lead time in seconds
      */
     public void setMinTimeAhead(int aheadMinTime)
     {
@@ -141,7 +141,7 @@ public class PrefetchStore extends InMemoryQueueStore
      * event applied by the slave. If we exceed this we sleep to let the slave
      * catch up.
      * 
-     * @param maxTimeAhead Time in seconds
+     * @param aheadMaxTime Maximum lead time in seconds
      */
     public void setMaxTimeAhead(int aheadMaxTime)
     {

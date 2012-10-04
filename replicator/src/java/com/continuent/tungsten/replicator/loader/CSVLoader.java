@@ -1,3 +1,24 @@
+/**
+ * Tungsten Scale-Out Stack
+ * Copyright (C) 2012 Continuent Inc.
+ * Contact: tungsten@continuent.org
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Initial developer(s): Jeff Mace
+ */
+
 package com.continuent.tungsten.replicator.loader;
 
 import java.io.File;
@@ -29,7 +50,6 @@ import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
- * 
  * Load THL events from a series of CSV files
  * 
  * @author <a href="mailto:jeff.mace@continuent.com">Jeff Mace</a>
@@ -37,19 +57,19 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class CSVLoader extends Loader
 {
-    private static Logger         logger             = Logger.getLogger(CSVLoader.class);
-    
-    ArrayList<String> tableNames = null;
-    HashMap<String, ArrayList<ColumnSpec>> columnDefinitions = null;
-    String currentTableName = null;
-    int currentTablePosition = 0;
+    private static Logger                  logger               = Logger.getLogger(CSVLoader.class);
 
-    CSVParser parser = null;
-    private boolean hasNext = true;
-    private LineNumberReader lineReader = null;
+    ArrayList<String>                      tableNames           = null;
+    HashMap<String, ArrayList<ColumnSpec>> columnDefinitions    = null;
+    String                                 currentTableName     = null;
+    int                                    currentTablePosition = 0;
 
-    private ReplicatorRuntime               runtime                 = null;
-    
+    CSVParser                              parser               = null;
+    private boolean                        hasNext              = true;
+    private LineNumberReader               lineReader           = null;
+
+    private ReplicatorRuntime              runtime              = null;
+
     /**
      * Complete plug-in configuration. This is called after setters are invoked
      * at the time that the replicator goes through configuration.
@@ -72,19 +92,21 @@ public class CSVLoader extends Loader
     public void prepare(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
-        logger.info("Import tables from " + this.uri.getPath() + " to the " + this.getDefaultSchema() + " schema");
+        logger.info("Import tables from " + this.uri.getPath() + " to the "
+                + this.getDefaultSchema() + " schema");
 
         tableNames = new ArrayList<String>();
         columnDefinitions = new HashMap<String, ArrayList<ColumnSpec>>();
-        
+
         parser = new CSVParser(',', '"');
-        
+
         File importDirectory = new File(this.uri.getPath());
         if (!importDirectory.exists())
         {
-            throw new ReplicatorException("The " + this.uri.getPath() + " directory does not exist");
+            throw new ReplicatorException("The " + this.uri.getPath()
+                    + " directory does not exist");
         }
-        
+
         for (File f : importDirectory.listFiles())
         {
             if (f.getName().endsWith(".def"))
@@ -92,15 +114,14 @@ public class CSVLoader extends Loader
                 this.prepareTableDefinition(f);
             }
         }
-        
+
         if (this.tableNames.size() == 0)
         {
             throw new ReplicatorException("There are no tables to load");
         }
     }
-    
+
     /**
-     * 
      * Parse the table columns and data types from the table definition file
      * 
      * @param f
@@ -113,40 +134,41 @@ public class CSVLoader extends Loader
         String[] columnDef = null;
         ColumnSpec cSpec = null;
         OneRowChange specOrc = new OneRowChange();
-        String tableName = f.getName().substring(0, f.getName().length()-4);
-        
+        String tableName = f.getName().substring(0, f.getName().length() - 4);
+
         try
         {
             tableNames.add(tableName);
             logger.info("Parse column definition for " + tableName);
-            
+
             columns = new ArrayList<ColumnSpec>();
             columnReader = new CSVReader(new FileReader(f), ',', '"');
             while ((columnDef = columnReader.readNext()) != null)
             {
                 if (columnDef.length < 2)
                 {
-                    throw new ReplicatorException("The column definition is not formatted properly");
+                    throw new ReplicatorException(
+                            "The column definition is not formatted properly");
                 }
-                
+
                 cSpec = specOrc.new ColumnSpec();
                 cSpec.setName(columnDef[0]);
                 cSpec.setType(new Integer(columnDef[1]));
-                
+
                 if (columnDef.length == 3)
                 {
                     cSpec.setLength(new Integer(columnDef[2]));
                 }
                 columns.add(cSpec);
             }
-            
+
             columnDefinitions.put(tableName, columns);
         }
         catch (FileNotFoundException e)
         {
             /*
-             *  Do nothing, we won't import the file if the definition
-             *  is missing.
+             * Do nothing, we won't import the file if the definition is
+             * missing.
              */
         }
         catch (NumberFormatException e)
@@ -198,7 +220,7 @@ public class CSVLoader extends Loader
             throw new ReplicatorException("Unable to close the CSV reader");
         }
     }
-    
+
     /**
      * Set the value of the last event ID we have processed. The extractor is
      * responsible for returning the next event ID in sequence after this one
@@ -217,7 +239,7 @@ public class CSVLoader extends Loader
             currentTableName = eventId.substring(0, colonIndex);
 
             currentTablePosition = Integer.valueOf(eventId
-                        .substring(colonIndex + 1));
+                    .substring(colonIndex + 1));
         }
         else
         {
@@ -229,15 +251,14 @@ public class CSVLoader extends Loader
             {
                 currentTableName = this.tableNames.get(0);
             }
-            
+
             currentTablePosition = 0;
         }
-        
+
         this.prepareCurrentTable();
     }
-    
+
     /**
-     * 
      * Update variables to point to the next table to load values for
      * 
      * @throws ReplicatorException
@@ -252,14 +273,13 @@ public class CSVLoader extends Loader
         {
             currentTableName = this.tableNames.get(0);
         }
-        
+
         currentTablePosition = 0;
 
         this.prepareCurrentTable();
     }
-    
+
     /**
-     * 
      * Open the CSV file containing the values for the current table
      * 
      * @throws ReplicatorException
@@ -271,26 +291,31 @@ public class CSVLoader extends Loader
             hasNext = false;
             return;
         }
-        
+
         this.tableNames.remove(currentTableName);
-        
+
         try
         {
             hasNext = true;
             String fileName = uri.getPath() + "/" + currentTableName + ".txt";
-            lineReader = new LineNumberReader(new InputStreamReader(new FileInputStream(fileName)));
-            
-            for (int i = 0; i < currentTablePosition; i++) {
+            lineReader = new LineNumberReader(new InputStreamReader(
+                    new FileInputStream(fileName)));
+
+            for (int i = 0; i < currentTablePosition; i++)
+            {
                 lineReader.readLine();
             }
         }
         catch (FileNotFoundException e)
         {
-            throw new ReplicatorException("Unable to find import file for " + currentTableName);
+            throw new ReplicatorException("Unable to find import file for "
+                    + currentTableName);
         }
         catch (IOException e)
         {
-            throw new ReplicatorException("Unable to skip " + currentTablePosition + " characters in " + currentTableName);
+            throw new ReplicatorException("Unable to skip "
+                    + currentTablePosition + " characters in "
+                    + currentTableName);
         }
     }
 
@@ -298,9 +323,10 @@ public class CSVLoader extends Loader
      * Extract the next available DBMSEvent from the CSV file
      * 
      * @return next DBMSEvent found in the logs
-     * @throws IOException 
+     * @throws IOException
      */
-    public synchronized DBMSEvent extract() throws ReplicatorException, InterruptedException
+    public synchronized DBMSEvent extract() throws ReplicatorException,
+            InterruptedException
     {
         String[] rowDef = null;
         OneRowChange orc = null;
@@ -310,7 +336,7 @@ public class CSVLoader extends Loader
         DBMSEvent dbmsEvent = null;
         ArrayList<DBMSData> dataArray = null;
         RowChangeData rowChangeData = null;
-        
+
         // Nothing more to import
         if (this.currentTableName == null)
         {
@@ -327,32 +353,37 @@ public class CSVLoader extends Loader
             orc.setSchemaName(this.getDefaultSchema());
             orc.setTableName(this.currentTableName);
             orc.setColumnSpec(this.columnDefinitions.get(this.currentTableName));
-            
+
             try
             {
                 while ((rowDef = this.readNext(lineReader)) != null)
                 {
                     columnValues = new ArrayList<ColumnVal>();
-                    
-                    for (int i=0; i < rowDef.length; i++)
+
+                    for (int i = 0; i < rowDef.length; i++)
                     {
-                        cDef = this.columnDefinitions.get(this.currentTableName).get(i);
+                        cDef = this.columnDefinitions
+                                .get(this.currentTableName).get(i);
                         cVal = orc.new ColumnVal();
-                        
+
                         try
                         {
-                            cVal.setValue(this.parseStringValue(cDef.getType(), rowDef[i]));
+                            cVal.setValue(this.parseStringValue(cDef.getType(),
+                                    rowDef[i]));
                         }
                         catch (Exception e)
                         {
-                            throw new ReplicatorException("Unable to parse value for " + cDef.getName() + " from " + rowDef[i]);
+                            throw new ReplicatorException(
+                                    "Unable to parse value for "
+                                            + cDef.getName() + " from "
+                                            + rowDef[i]);
                         }
-                        
+
                         columnValues.add(cVal);
                     }
-                    
+
                     orc.getColumnValues().add(columnValues);
-                    
+
                     // Limit the size of each INSERT to the chunkSize
                     if (orc.getColumnValues().size() >= this.chunkSize)
                     {
@@ -362,25 +393,25 @@ public class CSVLoader extends Loader
             }
             catch (IOException e)
             {
-                throw new ReplicatorException("Unable to read next line from " + this.currentTableName);
+                throw new ReplicatorException("Unable to read next line from "
+                        + this.currentTableName);
             }
-            
+
             rowChangeData.appendOneRowChange(orc);
             dataArray.add(rowChangeData);
-            
+
             runtime.getMonitor().incrementEvents(dataArray.size());
-            dbmsEvent = new DBMSEvent(this.currentTableName + ":" + 
-                    lineReader.getLineNumber(), null, 
-                    dataArray, true, null);
-            dbmsEvent.setMetaDataOption(ReplOptionParams.SHARD_ID, dbmsEvent.getEventId());
-            
-            
+            dbmsEvent = new DBMSEvent(this.currentTableName + ":"
+                    + lineReader.getLineNumber(), null, dataArray, true, null);
+            dbmsEvent.setMetaDataOption(ReplOptionParams.SHARD_ID,
+                    dbmsEvent.getEventId());
+
             // Do not return an empty event if there are no column values
             if (orc.getColumnValues().size() == 0)
             {
                 return null;
             }
-            
+
             return dbmsEvent;
         }
         finally
@@ -391,9 +422,8 @@ public class CSVLoader extends Loader
             }
         }
     }
-    
+
     /**
-     * 
      * Load the next set of CSV values from the file
      * 
      * @param reader
@@ -403,7 +433,7 @@ public class CSVLoader extends Loader
     protected String[] readNext(LineNumberReader reader) throws IOException
     {
         String[] rowDef = null;
-        
+
         do
         {
             String nextLine = reader.readLine();
@@ -412,13 +442,17 @@ public class CSVLoader extends Loader
                 hasNext = false;
                 return rowDef;
             }
-            
+
             String[] r = parser.parseLineMulti(nextLine);
-            if (r.length > 0) {
-                if (rowDef == null) {
+            if (r.length > 0)
+            {
+                if (rowDef == null)
+                {
                     rowDef = r;
-                } else {
-                    String[] t = new String[rowDef.length+r.length];
+                }
+                else
+                {
+                    String[] t = new String[rowDef.length + r.length];
                     System.arraycopy(rowDef, 0, t, 0, rowDef.length);
                     System.arraycopy(r, 0, t, rowDef.length, r.length);
                     rowDef = t;
@@ -426,7 +460,7 @@ public class CSVLoader extends Loader
             }
         }
         while (parser.isPending());
-        
+
         return rowDef;
     }
 
@@ -476,28 +510,21 @@ public class CSVLoader extends Loader
         }
         else
         {
-            throw new ReplicatorException("Unable to determine the final event id");
+            throw new ReplicatorException(
+                    "Unable to determine the final event id");
         }
     }
 
     /**
-     * 
      * Return the source ID to use in the THL events
-     * 
-     * @return
-     * @throws Exception
      */
     protected String getSourceID() throws Exception
     {
         return this.uri.getHost();
     }
-    
+
     /**
-     * 
      * Return the schema to use in the THL events
-     * 
-     * @return
-     * @throws ReplicatorException
      */
     protected String getDefaultSchema() throws ReplicatorException
     {

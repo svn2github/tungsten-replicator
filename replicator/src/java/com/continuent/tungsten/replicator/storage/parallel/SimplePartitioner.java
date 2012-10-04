@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -58,11 +58,11 @@ public class SimplePartitioner implements Partitioner
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#partition(com.continuent.tungsten.replicator.event.ReplDBMSEvent,
-     *      int, int)
+     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#partition(com.continuent.tungsten.replicator.event.ReplDBMSHeader,
+     *      int)
      */
-    public synchronized PartitionerResponse partition(ReplDBMSHeader event, int taskId)
-            throws ReplicatorException
+    public synchronized PartitionerResponse partition(ReplDBMSHeader event,
+            int taskId) throws ReplicatorException
     {
         if (taskId > availablePartitions)
             throw new ReplicatorException(

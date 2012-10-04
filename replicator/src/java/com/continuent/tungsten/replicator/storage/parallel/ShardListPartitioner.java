@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -123,11 +123,11 @@ public class ShardListPartitioner implements Partitioner
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#partition(com.continuent.tungsten.replicator.event.ReplDBMSEvent,
-     *      int, int)
+     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#partition(com.continuent.tungsten.replicator.event.ReplDBMSHeader,
+     *      int)
      */
-    public synchronized PartitionerResponse partition(ReplDBMSHeader event, int taskId)
-            throws ReplicatorException
+    public synchronized PartitionerResponse partition(ReplDBMSHeader event,
+            int taskId) throws ReplicatorException
     {
         // Initialize on first call.
         if (shardTable == null)
@@ -275,7 +275,8 @@ public class ShardListPartitioner implements Partitioner
             else
             {
                 channelAssignmentService = (ChannelAssignmentService) svc;
-                logger.info("Channel assignment service loaded: " + svc.getName());
+                logger.info("Channel assignment service loaded: "
+                        + svc.getName());
             }
         }
 

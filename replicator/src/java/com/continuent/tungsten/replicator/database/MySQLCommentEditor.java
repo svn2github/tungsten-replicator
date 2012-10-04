@@ -105,6 +105,7 @@ public class MySQLCommentEditor implements SqlCommentEditor
      * @param comment Comment string to be added.
      * @return
      */
+    @SuppressWarnings("fallthrough")
     private String processCreateProcedure(String statement, String comment)
     {
         // Processing for CREATE PROCEDURE/FUNCTION -- add a COMMENT.

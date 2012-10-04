@@ -584,7 +584,6 @@ public class StageProgressTracker
      * Returns current watches.
      * 
      * @param committed If true returned watches for committed events
-     * @return
      */
     public synchronized List<Watch<?>> getWatches(boolean committed)
     {

@@ -65,7 +65,7 @@ public class MySQLEventId implements EventId
             fileName = rawEventId.substring(0, colonIndex);
             if (dotIndex > -1)
             {
-                
+
                 filePrefix = rawEventId.substring(0, dotIndex);
                 fileIndex = getLong(rawEventId, dotIndex + 1, colonIndex);
             }
@@ -176,8 +176,6 @@ public class MySQLEventId implements EventId
     /**
      * Compares two event IDs using the file index and offset as determinants
      * for collation.
-     * 
-     * @see com.continuent.tungsten.replicator.database.EventId#compareTo(com.continuent.tungsten.replicator.database.MySQLEventId)
      */
     public int compareTo(MySQLEventId eventId)
     {

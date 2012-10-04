@@ -1,3 +1,24 @@
+/**
+ * Tungsten Scale-Out Stack
+ * Copyright (C) 2012 Continuent Inc.
+ * Contact: tungsten@continuent.org
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Initial developer(s): Jeff Mace
+ */
+
 package com.continuent.tungsten.replicator.loader;
 
 import java.io.File;
@@ -24,29 +45,30 @@ import com.continuent.tungsten.replicator.thl.THLManagerCtrl;
 
 public class LoaderCtrl
 {
-    private static Logger         logger             = Logger.getLogger(LoaderCtrl.class);
+    private static Logger         logger            = Logger.getLogger(LoaderCtrl.class);
     /**
      * Default path to replicator.properties if user not specified other.
      */
-    protected static final String defaultConfigPath  = ".."
-                                                             + File.separator
-                                                             + "conf"
-                                                             + File.separator
-                                                             + "static-default.properties";
+    protected static final String defaultConfigPath = ".."
+                                                            + File.separator
+                                                            + "conf"
+                                                            + File.separator
+                                                            + "static-default.properties";
 
-    protected static ArgvIterator argvIterator       = null;
+    protected static ArgvIterator argvIterator      = null;
 
-    protected String              configFile         = null;
-    
-    protected TungstenProperties loaderProperties = null;
-    
+    protected String              configFile        = null;
+
+    protected TungstenProperties  loaderProperties  = null;
+
     /**
      * Creates a new <code>THLManagerCtrl</code> object.
      * 
      * @param configFile Path to the Tungsten properties file.
      * @throws Exception
      */
-    public LoaderCtrl(String configFile, TungstenProperties loaderProperties) throws Exception
+    public LoaderCtrl(String configFile, TungstenProperties loaderProperties)
+            throws Exception
     {
         // Set path to configuration file.
         this.configFile = configFile;
@@ -83,9 +105,8 @@ public class LoaderCtrl
         }
         return conf;
     }
-    
+
     /**
-     * 
      * Read command line arguments in run the Loader process
      * 
      * @param argv
@@ -94,12 +115,13 @@ public class LoaderCtrl
     {
         LoaderCtrl loaderCtrl = null;
         THLManagerCtrl thlManager = null;
-        
-        try {
+
+        try
+        {
             String configFile = null;
             String service = null;
             TungstenProperties tempProperties = new TungstenProperties();
-            
+
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
             String curArg = null;
@@ -113,29 +135,30 @@ public class LoaderCtrl
                 else if ("-chunk-size".equals(curArg))
                 {
                     tempProperties.setProperty(
-                            "replicator.extractor.loader.chunkSize", 
+                            "replicator.extractor.loader.chunkSize",
                             argvIterator.next());
                 }
                 else if (curArg.startsWith("-"))
                 {
                     String key = curArg.substring(1);
                     String curValue = argvIterator.next();
-                    
+
                     if ("extractor".equals(key))
                     {
                         key = "replicator.extractor.loader";
                     }
                     else if (key.startsWith("extractor."))
                     {
-                        key = "replicator.extractor.loader." + key.substring(10);
+                        key = "replicator.extractor.loader."
+                                + key.substring(10);
                     }
-                    
+
                     tempProperties.setProperty(key, curValue);
                 }
                 else
                     fatal("Unrecognized option: " + curArg, null);
             }
-    
+
             // Use default configuration file in case user didn't specify one.
             if (configFile == null)
             {
@@ -156,10 +179,10 @@ public class LoaderCtrl
                             .getAbsolutePath();
                 }
             }
-            
+
             loaderCtrl = new LoaderCtrl(configFile, tempProperties);
             loaderCtrl.prepare();
-    
+
             loaderCtrl.loadEvents();
         }
         catch (Throwable t)
@@ -173,23 +196,22 @@ public class LoaderCtrl
             {
                 loaderCtrl.release();
             }
-            
+
             if (thlManager != null)
             {
                 thlManager.release();
             }
         }
-        
+
         succeed();
     }
-    
+
     /**
      * Connect to the underlying database containing THL.
      * 
      * @throws ReplicatorException
      */
-    public void prepare() throws ReplicatorException,
-            InterruptedException
+    public void prepare() throws ReplicatorException, InterruptedException
     {
     }
 
@@ -199,53 +221,54 @@ public class LoaderCtrl
     public void release()
     {
     }
-    
+
     protected TungstenProperties buildLoaderConfig() throws Exception
     {
         TungstenProperties conf = this.readConfig();
         conf.putAll(loaderProperties);
-        
+
         String role = conf.getProperty("replicator.role");
-        
+
         if (role.equals("master"))
         {
-            conf.setProperty(
-                    "replicator.stage.binlog-to-q.extractor",
-                    "loader");
+            conf.setProperty("replicator.stage.binlog-to-q.extractor", "loader");
         }
         else if (role.equals("slave"))
         {
-            conf.setProperty("replicator.pipeline.slave", "loader-to-q,q-to-dbms");
+            conf.setProperty("replicator.pipeline.slave",
+                    "loader-to-q,q-to-dbms");
             conf.setProperty("replicator.pipeline.slave.stores", "queue");
         }
         else if (role == "direct")
         {
-            conf.setProperty("replicator.pipeline.direct", "loader-to-q,q-to-dbms");
+            conf.setProperty("replicator.pipeline.direct",
+                    "loader-to-q,q-to-dbms");
             conf.setProperty("replicator.pipeline.direct.stores", "queue");
         }
-        
-        conf.setProperty("replicator.stage.loader-to-q", "com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask");
+
+        conf.setProperty("replicator.stage.loader-to-q",
+                "com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask");
         conf.setProperty("replicator.stage.loader-to-q.extractor", "loader");
         conf.setProperty("replicator.stage.loader-to-q.applier", "queue");
-        conf.setProperty("replicator.stage.loader-to-q.blockCommitRowCount", "${replicator.global.buffer.size}");
+        conf.setProperty("replicator.stage.loader-to-q.blockCommitRowCount",
+                "${replicator.global.buffer.size}");
         conf.setProperty("replicator.stage.q-to-dbms.extractor", "queue");
-        
 
         // Substitute ${..} values
         Properties props = conf.getProperties();
         TungstenProperties.substituteSystemValues(props, 10);
         conf.load(props);
-        
+
         return conf;
     }
-    
+
     public void loadEvents() throws Exception
-    {   
+    {
         ReplicatorRuntime runtime = null;
         Pipeline pipeline = null;
         Class<?> headExtractorClass = null;
         Class<?> storeClass = null;
-        
+
         try
         {
             runtime = new ReplicatorRuntime(this.buildLoaderConfig(),
@@ -253,20 +276,23 @@ public class LoaderCtrl
                     ReplicatorMonitor.getInstance());
             runtime.configure();
             pipeline = runtime.getPipeline();
-            
-            ExtractorWrapper ew = (ExtractorWrapper) pipeline.getHeadExtractor();
+
+            ExtractorWrapper ew = (ExtractorWrapper) pipeline
+                    .getHeadExtractor();
             headExtractorClass = ew.getExtractor().getClass();
             if (Loader.class.isAssignableFrom(headExtractorClass) != true)
             {
-                throw new Exception("Unable to start the loader because " + headExtractorClass + " does not extend " + Loader.class);
+                throw new Exception("Unable to start the loader because "
+                        + headExtractorClass + " does not extend "
+                        + Loader.class);
             }
-            
+
             Loader extractor = (Loader) ew.getExtractor();
             if (extractor.getLockTables() == true)
             {
                 for (String storeName : pipeline.getStoreNames())
                 {
-                    Store store = (Store) pipeline.getStore(storeName);
+                    Store store = pipeline.getStore(storeName);
                     storeClass = store.getClass();
                     if (THL.class.isAssignableFrom(storeClass) == true)
                     {
@@ -284,7 +310,7 @@ public class LoaderCtrl
                 // Wait for the pipeline to complete
                 Thread.sleep(100);
             }
-            
+
             logger.info("Tables imported");
         }
         finally
@@ -292,7 +318,7 @@ public class LoaderCtrl
             runtime.release();
         }
     }
-    
+
     // Return the service configuration file if there is one
     // and only one file that matches the static-svcname.properties pattern.
     private static String lookForConfigFile()

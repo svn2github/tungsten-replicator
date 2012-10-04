@@ -146,8 +146,8 @@ public class SimpleBatchApplier implements RawApplier
     private Map<String, CsvInfo>        openCsvFiles         = new TreeMap<String, CsvInfo>();
 
     // Cached load commands.
-    protected SqlScriptGenerator          loadScriptGenerator  = new SqlScriptGenerator();
-    protected Map<String, List<String>>   loadScripts          = new HashMap<String, List<String>>();
+    protected SqlScriptGenerator        loadScriptGenerator  = new SqlScriptGenerator();
+    protected Map<String, List<String>> loadScripts          = new HashMap<String, List<String>>();
 
     // Cached merge commands.
     private SqlScriptGenerator          mergeScriptGenerator = new SqlScriptGenerator();
@@ -980,8 +980,6 @@ public class SimpleBatchApplier implements RawApplier
 
     /**
      * Load an open CSV file.
-     * 
-     * @see {@link VerticaStreamBatchApplier#load(CsvInfo)}
      */
     protected void load(CsvInfo info) throws ReplicatorException
     {
@@ -1306,7 +1304,7 @@ public class SimpleBatchApplier implements RawApplier
      * Converts a column value to a suitable String for CSV loading. This can be
      * overloaded for particular DBMS types.
      * 
-     * @param value Column value
+     * @param columnVal Column value
      * @param columnSpec Column metadata
      * @return String for loading
      * @throws CsvException

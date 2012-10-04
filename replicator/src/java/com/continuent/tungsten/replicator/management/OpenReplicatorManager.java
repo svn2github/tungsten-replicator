@@ -432,10 +432,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
 
     /**
      * Log state changes coming from the state machine. {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.commons.patterns.fsm.StateChangeListener#stateChanged(com.continuent.tungsten.commons.patterns.fsm.Entity,
-     *      com.continuent.tungsten.commons.patterns.fsm.State,
-     *      com.continuent.tungsten.commons.patterns.fsm.State)
      */
     public void stateChanged(Entity entity, State oldState, State newState)
     {
@@ -455,8 +451,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
 
     /**
      * Log events as they are processed in the replicator state machine.
-     * 
-     * @see com.continuent.tungsten.commons.patterns.event.EventCompletionListener#onCompletion(com.continuent.tungsten.commons.patterns.event.EventRequest)
      */
     public Object onCompletion(Event event, EventStatus status)
             throws InterruptedException
@@ -1753,8 +1747,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
 
     /**
      * Return a copy of current properties. {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean#getProperties()
      */
     @MethodDesc(description = "Gets the current properties.", usage = "properties [<key>]")
     public Map<String, String> properties(
@@ -1785,7 +1777,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
 
         return returnProps;
     }
- 
+
     /**
      * Return a copy of current dynamic properties. {@inheritDoc}
      * 

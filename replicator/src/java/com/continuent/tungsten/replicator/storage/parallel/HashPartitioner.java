@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -60,8 +60,8 @@ public class HashPartitioner implements Partitioner
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#partition(com.continuent.tungsten.replicator.event.ReplDBMSEvent,
-     *      int, int)
+     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#partition(com.continuent.tungsten.replicator.event.ReplDBMSHeader,
+     *      int)
      */
     public PartitionerResponse partition(ReplDBMSHeader event, int taskId)
             throws ReplicatorException

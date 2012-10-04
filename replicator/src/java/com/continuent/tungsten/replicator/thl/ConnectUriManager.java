@@ -39,7 +39,7 @@ public class ConnectUriManager
     /**
      * Creates a new instance with a list of URIs.
      * 
-     * @param uriList List of one or more URIs
+     * @param connectUri List of one or more URIs
      * @throws THLException Thrown if array is 0 length
      */
     public ConnectUriManager(List<String> connectUri) throws THLException

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -47,7 +47,6 @@ import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndia
  * is quite different.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
- * @see {@link com.continuent.tungsten.commons.io.BufferedFileDataInput}
  */
 public class BinlogReader implements FilenameFilter, Cloneable
 {
@@ -80,9 +79,10 @@ public class BinlogReader implements FilenameFilter, Cloneable
     private int                   binlogFlushDelayMillis = 5000;
 
     /**
-     * @brief defines only binlog directory and binlog files' base name
-     * @param directory directory path where binlog files should reside
-     * @param baseName file name pattern for binlog files: basenName001.bin
+     * Defines only binlog directory and binlog file base name.
+     * 
+     * @param directory Directory path where binlog files should reside
+     * @param baseName File name pattern for binlog files: basenName001.bin
      */
     public BinlogReader(String directory, String baseName, int bufferSize)
     {
@@ -92,10 +92,10 @@ public class BinlogReader implements FilenameFilter, Cloneable
     /**
      * Defines all possible binlog parameters .
      * 
-     * @param position start location in the file, will skip until that
-     * @param fileName full file path name to open
-     * @param directory directory path where binlog files should reside
-     * @param baseName file name pattern for binlog files: baseName-000001.bin
+     * @param start Start location in the file, will skip until that
+     * @param fileName Full file path name to open
+     * @param directory Directory path where binlog files should reside
+     * @param baseName File name pattern for binlog files: baseName-000001.bin
      * @param bufferSize Size of buffer to read
      */
     public BinlogReader(long start, String fileName, String directory,
@@ -318,7 +318,6 @@ public class BinlogReader implements FilenameFilter, Cloneable
      * a network if necessary.
      * 
      * @throws IOException Thrown if call fails
-     * @see waitAvailable()
      */
     public long available() throws IOException
     {

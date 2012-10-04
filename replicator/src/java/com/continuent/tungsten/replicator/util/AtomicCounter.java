@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -50,8 +50,6 @@ public class AtomicCounter
 
     /**
      * Get value of current seqno.
-     * 
-     * @return Seqno
      */
     public synchronized long getSeqno()
     {
@@ -111,7 +109,7 @@ public class AtomicCounter
      * 
      * @param waitSeqno Sequence number to wait for
      * @param millis Number of milliseconds to wait
-     * @returns True if wait was successful, otherwise false
+     * @return True if wait was successful, otherwise false
      * @throws InterruptedException if somebody cancels the wait
      */
     public synchronized boolean waitSeqnoGreaterEqual(long waitSeqno,

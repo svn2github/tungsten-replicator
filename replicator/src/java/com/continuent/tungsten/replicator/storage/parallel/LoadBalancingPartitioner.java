@@ -49,7 +49,7 @@ public class LoadBalancingPartitioner implements StatefulPartitioner
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#setPartitionMetadata(java.util.List)
+     * @see com.continuent.tungsten.replicator.storage.parallel.StatefulPartitioner#setPartitionMetadata(java.util.List)
      */
     public void setPartitionMetadata(List<PartitionMetadata> partitions)
     {
@@ -68,9 +68,6 @@ public class LoadBalancingPartitioner implements StatefulPartitioner
     /**
      * Returns the partition with the smallest current size or the first
      * partition that has a current size of zero.
-     * 
-     * @see com.continuent.tungsten.replicator.storage.parallel.Partitioner#partition(com.continuent.tungsten.replicator.event.ReplDBMSEvent,
-     *      int, int)
      */
     public synchronized PartitionerResponse partition(ReplDBMSHeader event,
             int taskId)

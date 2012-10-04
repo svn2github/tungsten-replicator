@@ -1614,8 +1614,7 @@ public class OpenReplicatorManagerCtrl
                     for (Iterator<Map<String, String>> iterator = list
                             .iterator(); iterator.hasNext();)
                     {
-                        Map<String, String> map = (Map<String, String>) iterator
-                                .next();
+                        Map<String, String> map = iterator.next();
                         csvWriter.put(ShardTable.SHARD_ID_COL,
                                 map.get(ShardTable.SHARD_ID_COL));
                         csvWriter.put(ShardTable.SHARD_MASTER_COL,

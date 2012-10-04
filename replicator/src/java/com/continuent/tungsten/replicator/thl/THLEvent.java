@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -99,8 +99,8 @@ public class THLEvent implements Serializable
      * @param type Event type
      * @param localEnqueueTstamp Local enqueue timestamp
      * @param sourceTstamp Source timestamp
-     * @param processedTstamp Processed timestamp
      * @param eventId Event identifier
+     * @param shardId Shard ID of this transaction
      * @param event Event
      */
     public THLEvent(long seqno, short fragno, boolean lastFrag,

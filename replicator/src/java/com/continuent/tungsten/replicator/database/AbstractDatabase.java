@@ -533,7 +533,6 @@ public abstract class AbstractDatabase implements Database
     /**
      * {@inheritDoc}
      * 
-     * @return
      * @see com.continuent.tungsten.replicator.database.Database#insert(com.continuent.tungsten.replicator.database.Table)
      */
     public int insert(Table table) throws SQLException
@@ -561,7 +560,6 @@ public abstract class AbstractDatabase implements Database
     /**
      * {@inheritDoc}
      * 
-     * @return
      * @see com.continuent.tungsten.replicator.database.Database#update(com.continuent.tungsten.replicator.database.Table,
      *      java.util.ArrayList, java.util.ArrayList)
      */
@@ -627,7 +625,6 @@ public abstract class AbstractDatabase implements Database
     /**
      * {@inheritDoc}
      * 
-     * @return
      * @see com.continuent.tungsten.replicator.database.Database#delete(com.continuent.tungsten.replicator.database.Table,
      *      boolean)
      */
