@@ -244,28 +244,34 @@ public abstract class JdbcLoader extends Loader
     protected int extractColumnType(ResultSet columnList) throws SQLException
     {
         int columnType = columnList.getInt("DATA_TYPE");
+        int returnType = java.sql.Types.NULL;
 
         switch (columnType)
         {
             case java.sql.Types.BIGINT :
-                return java.sql.Types.NUMERIC;
+                returnType = java.sql.Types.NUMERIC;
+                break;
             case 0 :
                 String typeName = columnList.getString("TYPE_NAME");
                 if (typeName.startsWith("char") == true)
                 {
-                    return java.sql.Types.CHAR;
+                    returnType = java.sql.Types.CHAR;
                 }
                 else if ("float".equals(typeName) == true)
                 {
-                    return java.sql.Types.FLOAT;
+                    returnType = java.sql.Types.FLOAT;
                 }
                 else if (typeName.startsWith("decimal"))
                 {
-                    return java.sql.Types.DECIMAL;
+                    returnType = java.sql.Types.DECIMAL;
                 }
+                break;
             default :
-                return columnType;
+                returnType = columnType;
+                break;
         }
+        
+        return returnType;
     }
 
     /**
