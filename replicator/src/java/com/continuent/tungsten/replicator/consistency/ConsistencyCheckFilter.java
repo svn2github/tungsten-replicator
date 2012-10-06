@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -262,13 +262,13 @@ public class ConsistencyCheckFilter implements Filter
         {
             dbName = (String) keyValues.get(ConsistencyTable.dbColumnIdx)
                     .getValue();
-            where.append(dbName);
         }
         else
         {
-            where.append(new String((byte[]) keyValues.get(
-                    ConsistencyTable.dbColumnIdx).getValue()));
+            dbName = new String((byte[]) keyValues.get(
+                    ConsistencyTable.dbColumnIdx).getValue());
         }
+        where.append(dbName);
 
         where.append("' AND ");
         where.append(ConsistencyTable.tblColumnName);
