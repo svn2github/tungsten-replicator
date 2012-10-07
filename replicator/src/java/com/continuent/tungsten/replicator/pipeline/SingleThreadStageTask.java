@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -530,11 +530,19 @@ public class SingleThreadStageTask implements Runnable
             header = (ReplDBMSEvent) replEvent;
         }
 
-        // Bail if the event we found is null.
         if (header == null)
         {
+            // Bail if the event we found is null.
             if (logger.isDebugEnabled())
                 logger.debug("Unable to update position due to null event value");
+            return;
+        }
+        else if (header.getSeqno() < 0)
+        {
+            // Or if the seqno is less than 0, which indicates an uninitialized
+            // position.
+            if (logger.isDebugEnabled())
+                logger.debug("Skipping update as position is less than 0");
             return;
         }
 

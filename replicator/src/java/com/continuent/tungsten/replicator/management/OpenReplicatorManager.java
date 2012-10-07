@@ -2155,7 +2155,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             @ParamDesc(name = "controlParams", description = "Control parameters for purge operation") Map<String, String> controlParams)
             throws Exception
     {
-        TungstenProperties params = new TungstenProperties(controlParams);
+        // TungstenProperties params = new TungstenProperties(controlParams);
 
         try
         {
