@@ -588,8 +588,13 @@ public abstract class RowsLogEvent extends LogEvent
                 long i32 = LittleEndianConversion.convertNBytesToLong_2(row,
                         rowPos, 4);
 
-                // convert sec based timestamp to millisecond precision
-                value.setValue(new java.sql.Timestamp(i32 * 1000));
+                if (i32 == 0)
+                {
+                    value.setValue(Integer.valueOf(0));
+                }
+                else
+                    // convert sec based timestamp to millisecond precision
+                    value.setValue(new java.sql.Timestamp(i32 * 1000));
                 if (spec != null)
                     spec.setType(java.sql.Types.TIMESTAMP);
                 return 4;
