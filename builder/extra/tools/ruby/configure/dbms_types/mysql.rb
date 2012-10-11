@@ -307,7 +307,12 @@ class MySQLXtrabackupDirectory < ConfigurePrompt
   end
   
   def get_default_value
-    @config.getProperty(get_member_key(REPL_BACKUP_DUMP_DIR)) + "/innobackup"
+    dir = @config.getProperty(get_member_key(REPL_BACKUP_STORAGE_DIR))
+    if dir.to_s != ""
+      @default = dir + "/xtrabackup"
+    else
+      @default = nil
+    end
   end
 end
 
@@ -729,15 +734,15 @@ class XtrabackupSettingsCheck < ConfigureValidationCheck
   end
   
   def enabled?
-    super() && @config.getProperty(get_member_key(REPL_BACKUP_METHOD)) == "xtrabackup"
+    super() && ["xtrabackup", "xtrabackup-incremental"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD)))
   end
 end
 
 module ConfigureDeploymentStepMySQL
   include DatabaseTypeDeploymentStep
   
-  def get_backup_config
-    if @config.getProperty(REPL_BACKUP_METHOD) == "xtrabackup"
+  def deploy_replication_dataservice()
+    if ["xtrabackup", "xtrabackup-incremental"].include?(@config.getProperty(REPL_BACKUP_METHOD))
       mkdir_if_absent(@config.getProperty(REPL_MYSQL_XTRABACKUP_DIR))
     end
     

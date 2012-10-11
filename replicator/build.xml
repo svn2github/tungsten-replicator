@@ -287,6 +287,7 @@
             </fileset>
         </copy>
 	<chmod dir="${dist.dir}/samples" perm="ugoa+rx" includes="**/*.sh"/>
+	<chmod dir="${dist.dir}/samples/scripts/backup" perm="ugoa+rx" includes="*.rb"/>
         <mkdir dir="${dist.dir}/log"/>
         <mkdir dir="${dist.dir}/var"/>
     </target>
