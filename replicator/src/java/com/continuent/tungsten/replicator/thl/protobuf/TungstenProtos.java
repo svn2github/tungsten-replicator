@@ -4446,6 +4446,7 @@ public final class TungstenProtos {
         com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder(
             this.getUnknownFields());
+        input.setSizeLimit(0x7FFFFFFF);
         while (true) {
           int tag = input.readTag();
           switch (tag) {
