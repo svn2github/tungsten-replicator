@@ -62,8 +62,8 @@ public class BufferedFileDataInput
      * @param file File from which to read
      * @param size Size of buffer for buffered I/O
      */
-    public BufferedFileDataInput(File file, int size) throws FileNotFoundException,
-            IOException, InterruptedException
+    public BufferedFileDataInput(File file, int size)
+            throws FileNotFoundException, IOException, InterruptedException
     {
         this.file = file;
         this.size = size;
@@ -122,12 +122,17 @@ public class BufferedFileDataInput
         // Since there is not enough, wait until we see enough data to do a read
         // or exceed the timeout.
         long timeoutMillis = System.currentTimeMillis() + waitMillis;
+        long nextReportMillis = System.currentTimeMillis() + 1000;
         while (available() < requested
                 && System.currentTimeMillis() < timeoutMillis)
         {
-            Thread.sleep(500);
-            if (logger.isDebugEnabled())
-                logger.debug("Sleeping for 500 ms");
+            Thread.sleep(50);
+            if (System.currentTimeMillis() > nextReportMillis)
+            {
+                if (logger.isDebugEnabled())
+                    logger.debug("Waited 1000ms for input to appear");
+                nextReportMillis = System.currentTimeMillis() + 1000;
+            }
         }
 
         // Return true or false depending on whether we found the data.
