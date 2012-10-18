@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -91,15 +91,11 @@ public class EventMetadataFilter implements Filter
     private PluginContext       context;
     private SqlOperationMatcher opMatcher;
     private SqlCommentEditor    commentEditor;
+    private boolean             sqlCommentsEnabled      = true;
     private String              serviceCommentRegex     = "___SERVICE___ = \\[([a-zA-Z0-9-_]+)\\]";
     private Pattern             serviceCommentPattern   = Pattern
                                                                 .compile(
                                                                         serviceCommentRegex,
-                                                                        Pattern.CASE_INSENSITIVE);
-
-    private Pattern             ifExistsPattern         = Pattern
-                                                                .compile(
-                                                                        "^.*if\\s+exists\\s+.*",
                                                                         Pattern.CASE_INSENSITIVE);
 
     private Pattern             dropTablePattern        = Pattern
@@ -495,41 +491,9 @@ public class EventMetadataFilter implements Filter
 
                 if (op.dropTable())
                 {
-                    // This is a DROP TABLE that does not contain Tungsten
-                    // metadata. We need to modify it in order to include
-                    // metadata
-                    if (op.getSqlCommand() != null)
-                    {
-                        Matcher m = ifExistsPattern.matcher(op.getSqlCommand());
-
-                        boolean foundIfExists = m.find();
-                        if (logger.isDebugEnabled())
-                        {
-                            logger.debug("Query is : " + query);
-                            logger.debug("Checking for IF EXISTS in command "
-                                    + op.getSqlCommand() + " : "
-                                    + foundIfExists);
-                        }
-
-                        String tableName = (op.getSchema() != null ? op
-                                .getSchema() : op.getName());
-                        int pos = query.indexOf(tableName, op.getSqlCommand()
-                                .length());
-
-                        pos = query.substring(0, pos).lastIndexOf(" ");
-
-                        String newQuery = query.substring(0, pos)
-                                + (foundIfExists ? " " : " IF EXISTS ")
-                                + "TUNGSTEN_INFO."
-                                + tags.get(ReplOptionParams.SERVICE) + ", "
-                                + query.substring(pos + 1);
-
-                        if (logger.isDebugEnabled())
-                            logger.debug("Query transformed into : " + newQuery);
-                        sd.setQuery(newQuery);
-                    }
-                    else if (logger.isDebugEnabled())
-                        logger.debug("No match for command");
+                    String queryCommented = this.commentEditor.addComment(
+                            query, op, tags.get(ReplOptionParams.SERVICE));
+                    sd.setQuery(queryCommented);
                 }
                 else
                 {
@@ -590,6 +554,11 @@ public class EventMetadataFilter implements Filter
 
         logger.info("Use default schema for unknown SQL statements: "
                 + unknownSqlUsesDefaultDb);
+
+        // Check to see if SQL commenting is enabled.
+        sqlCommentsEnabled = replProps.getBoolean(
+                ReplicatorConf.SERVICE_COMMENTS_ENABLED,
+                ReplicatorConf.SERVICE_COMMENTS_ENABLED_DEFAULT, true);
     }
 
     /**
@@ -610,6 +579,7 @@ public class EventMetadataFilter implements Filter
             opMatcher = db.getSqlNameMatcher();
             // TODO: Encapsulate editor properly.
             commentEditor = new MySQLCommentEditor();
+            commentEditor.setCommentEditingEnabled(sqlCommentsEnabled);
             commentEditor.setCommentRegex(serviceCommentRegex);
         }
         catch (SQLException e)

@@ -51,8 +51,33 @@ public class MySQLCommentEditor implements SqlCommentEditor
         }
     }
 
+    // Flag to enable comment editing.
+    protected boolean commentEditingEnabled = true;
+
+    // Patterns to pull out metadata.
     protected Pattern standardPattern;
     protected Pattern sprocPattern;
+    protected Pattern dropTablePattern;
+
+    // Patterns used to add comments to DROP TABLE.
+    protected Pattern ifExistsPattern       = Pattern
+                                                    .compile(
+                                                            "^(.*if\\s+exists\\s+)(.*)",
+                                                            Pattern.CASE_INSENSITIVE);
+    protected Pattern dropTable             = Pattern
+                                                    .compile(
+                                                            "^(\\s*drop.*\\s+table\\s+)(.*)",
+                                                            Pattern.CASE_INSENSITIVE);
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.SqlCommentEditor#setCommentEditingEnabled(boolean)
+     */
+    public void setCommentEditingEnabled(boolean enabled)
+    {
+        this.commentEditingEnabled = enabled;
+    }
 
     /**
      * {@inheritDoc}
@@ -64,6 +89,10 @@ public class MySQLCommentEditor implements SqlCommentEditor
     public String addComment(String statement, SqlOperation sqlOp,
             String comment)
     {
+        // If editing is enabled, return now.
+        if (!this.commentEditingEnabled)
+            return statement;
+
         // Look for a stored procedure or function creation.
         if (sqlOp.getOperation() == SqlOperation.CREATE)
         {
@@ -73,6 +102,10 @@ public class MySQLCommentEditor implements SqlCommentEditor
             {
                 return processCreateProcedure(statement, comment);
             }
+        }
+        else if (sqlOp.dropTable())
+        {
+            return processDropTable(statement, comment);
         }
 
         // For any others just append the comment.
@@ -187,6 +220,59 @@ public class MySQLCommentEditor implements SqlCommentEditor
     }
 
     /**
+     * Handles DROP TABLE. Drop table suppresses comments so we instead add a
+     * fake table with the comment in the following form:
+     * 
+     * <pre><code>
+     *    DROP TABLE, TUNGSTEN_INFO.`comment text`, othertable1, othertable2,...
+     * </code></pre>
+     * 
+     * This requires special handling to ensure we deal with multiple tables,
+     * comments in the DROP TABLE command, and extra syntax like IF EXISTS.
+     * 
+     * @param statement DROP TABLE statement that requires a comment to be
+     *            inserted.
+     * @param comment Comment string to be added.
+     * @return
+     */
+    private String processDropTable(String statement, String comment)
+    {
+        Matcher m = ifExistsPattern.matcher(statement);
+        boolean foundIfExists = m.find();
+        if (foundIfExists)
+        {
+            // This is the easy case. Split the DROP table and put our
+            // comment in between.
+            String before = m.group(1);
+            String after = m.group(2);
+            String newStatement = before + " TUNGSTEN_INFO.`" + comment + "`, "
+                    + after;
+            return newStatement;
+        }
+        else
+        {
+            // This is trickier. We need to split the statement before the
+            // first table name and add our comment preceded by IF EXISTS.
+            // Another regex to the rescue. This regex much split properly even
+            // there are comments embedded in the DROP TABLE or multiple
+            // tables.
+            Matcher m2 = dropTable.matcher(statement);
+            if (m2.find())
+            {
+                String before = m2.group(1);
+                String after = m2.group(2);
+                String newStatement = before + " IF EXISTS TUNGSTEN_INFO.`"
+                        + comment + "`, " + after;
+                return newStatement;
+            }
+        }
+
+        // We didn't succeed in matching. We'll hand back the original statement
+        // and hope for the best.
+        return statement;
+    }
+
+    /**
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.database.SqlCommentEditor#formatAppendableComment(SqlOperation,
@@ -194,6 +280,10 @@ public class MySQLCommentEditor implements SqlCommentEditor
      */
     public String formatAppendableComment(SqlOperation sqlOp, String comment)
     {
+        // If editing is enabled, return now.
+        if (!this.commentEditingEnabled)
+            return null;
+
         // Look for a stored procedure or function and return null. They are not
         // safe for appending.
         if (sqlOp.getOperation() == SqlOperation.CREATE)
@@ -204,6 +294,12 @@ public class MySQLCommentEditor implements SqlCommentEditor
             {
                 return null;
             }
+        }
+        else if (sqlOp.dropTable())
+        {
+            // Drop table requires special handling as MySQL 5.5+ drops
+            // comments.
+            return null;
         }
 
         // For any others return a properly formatted comment.
@@ -228,6 +324,10 @@ public class MySQLCommentEditor implements SqlCommentEditor
             else if (objectType == SqlOperation.FUNCTION)
                 commentPattern = sprocPattern;
         }
+        else if (sqlOp.dropTable())
+        {
+            commentPattern = dropTablePattern;
+        }
 
         // Look for pattern match and return value if found.
         Matcher m = commentPattern.matcher(statement);
@@ -246,7 +346,10 @@ public class MySQLCommentEditor implements SqlCommentEditor
     {
         String standardRegex = "\\/\\* (" + regex + ") \\*\\/";
         String sprocRegex = "COMMENT\\s*'(" + regex + ").*'";
+        // This is a hack to handle DROP TABLE.
+        String dropTableRegex = "TUNGSTEN_INFO.`([a-zA-Z0-9-_]+)`";
         standardPattern = Pattern.compile(standardRegex);
         sprocPattern = Pattern.compile(sprocRegex);
+        dropTablePattern = Pattern.compile(dropTableRegex);
     }
 }

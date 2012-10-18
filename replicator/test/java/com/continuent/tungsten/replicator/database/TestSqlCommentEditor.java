@@ -139,6 +139,34 @@ public class TestSqlCommentEditor
     }
 
     /**
+     * Test adding and recognizing comments on stored procedure definitions.
+     */
+    @Test
+    public void testDropTable() throws Exception
+    {
+        String[] cmds = {"DROP TABLE foo", "DROP TABLE IF EXISTS foo",
+                "drop table if exists `bar`.`foo`",
+                "DROP /*!40005 TEMPORARY */ TABLE IF EXISTS `T`,`pertinent_bugs`"};
+        String comment = "mysvc";
+        String commentRegex = "TUNGSTEN_INFO.`[([a-zA-Z0-9-_]+)]`";
+        editor.setCommentRegex(commentRegex);
+
+        for (String cmd : cmds)
+        {
+            SqlOperation op = matcher.match(cmd);
+            String newCmd = editor.addComment(cmd, op, comment);
+            String foundComment = editor.fetchComment(newCmd, op);
+            System.out.println("Command\n" + cmd + "\nwas changed into\n"
+                    + newCmd + "\n");
+            Assert.assertTrue(
+                    "Comment must be added",
+                    newCmd.length() > cmd.length()
+                            || newCmd.indexOf("TUNGSTEN_INFO") > 0);
+            Assert.assertEquals("Found original comment", comment, foundComment);
+        }
+    }
+
+    /**
      * Verify that we return appendable comments when safe to do so, otherwise
      * null.
      */
@@ -182,4 +210,34 @@ public class TestSqlCommentEditor
             Assert.assertNull("Must not have comment", formattedComment);
         }
     }
+
+    /**
+     * Confirm that comment editing is turned off if we disable comment editing.
+     */
+    @Test
+    public void testEditingDisabled() throws Exception
+    {
+        String[] cmds = {
+                "create database foo",
+                "create table if not exists `test`.`foo`",
+                "drop table test.foo",
+                "CREATE DEFINER=`root`@`localhost` procedure `simpleproc2`(OUT param1 INT)\n"
+                        + "    comment 'this is a comment'\n"
+                        + "begin SELECT 1 INTO param1;end"};
+        String comment = "___SERVICE = [mysvc]___";
+        String commentRegex = "___SERVICE = \\[([a-zA-Z0-9-_]+)\\]___";
+        editor.setCommentRegex(commentRegex);
+        editor.setCommentEditingEnabled(false);
+
+        for (String cmd : cmds)
+        {
+            SqlOperation op = matcher.match(cmd);
+            String formattedComment = editor.formatAppendableComment(op,
+                    comment);
+            Assert.assertNull("Must not have comment", formattedComment);
+            String newCmd = editor.addComment(cmd, op, comment);
+            Assert.assertEquals("No comment added", cmd, newCmd);
+        }
+    }
+
 }

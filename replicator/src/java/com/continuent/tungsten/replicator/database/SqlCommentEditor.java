@@ -1,6 +1,6 @@
 /**
  * Tungsten Clustering and Replication
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-12 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,6 +30,12 @@ package com.continuent.tungsten.replicator.database;
  */
 public interface SqlCommentEditor
 {
+    /**
+     * If true, comment editing is enabled.  If false, comment editing
+     * is ignored and we just return the current statement. 
+     */
+    public void setCommentEditingEnabled(boolean enabled);
+    
     /**
      * Inserts a comment safely into a SQL statement.
      * 

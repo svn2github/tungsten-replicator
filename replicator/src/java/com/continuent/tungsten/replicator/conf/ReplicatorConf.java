@@ -116,6 +116,13 @@ public class ReplicatorConf
     static public final String   LOG_SLAVE_UPDATES                     = "replicator.log.slave.updates";
     static public final String   LOG_SLAVE_UPDATES_DEFAULT             = "false";
 
+    /**
+     * Whether to allow SQL comments to distinguish services for multi-master
+     * replication.
+     */
+    static public final String   SERVICE_COMMENTS_ENABLED              = "replicator.service.comments";
+    static public final String   SERVICE_COMMENTS_ENABLED_DEFAULT      = "true";
+
     /** RMI port */
     static public final String   RMI_PORT                              = "replicator.rmi_port";
     static public final String   RMI_HOST                              = "replicator.rmi_host";
