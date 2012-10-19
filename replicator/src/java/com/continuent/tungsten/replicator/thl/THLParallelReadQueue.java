@@ -291,8 +291,11 @@ public class THLParallelReadQueue
 
         // Discard empty events. These should not be common.
         DBMSEvent dbmsEvent = replDBMSEvent.getDBMSEvent();
-        if (dbmsEvent == null | dbmsEvent instanceof DBMSEmptyEvent
-                || dbmsEvent.getData().size() == 0)
+        if (dbmsEvent == null
+                || dbmsEvent instanceof DBMSEmptyEvent
+                || (dbmsEvent.getData().size() == 0
+                        && replDBMSEvent.getFragno() == 0 && replDBMSEvent
+                        .getLastFrag()))
         {
             discardCount.incrementAndGet();
             if (logger.isDebugEnabled())
