@@ -20,7 +20,7 @@
     Contributor(s): Csaba Simon, Robert Hodges
 -->
 
-<project name="tungsten_commons" default="all">
+<project name="tungsten_common" default="all">
     <description>
         Tungsten Scale-Out Stack
     	Commons Component
@@ -41,10 +41,10 @@
     <property name="test.reports" value="${build.dir}/reports"/>
     <property name="test.work" value="${build.dir}/work"/>
     <property name="jars.dir" value="${build.dir}/jars"/>
-    <property name="dist.dir" value="${build.dir}/tungsten-commons"/>
-    <property name="dist.src.dir" value="${build.dir}/tungsten-commons-src"/>
-    <property name="tungsten-commons.jar" value="${jars.dir}/tungsten-commons.jar"/>
-    <property name="tungsten-commons-src.jar" value="${jars.dir}/tungsten-commons-src.jar"/>
+    <property name="dist.dir" value="${build.dir}/tungsten-common"/>
+    <property name="dist.src.dir" value="${build.dir}/tungsten-common-src"/>
+    <property name="tungsten-common.jar" value="${jars.dir}/tungsten-common.jar"/>
+    <property name="tungsten-common-src.jar" value="${jars.dir}/tungsten-common-src.jar"/>
 
     <property name="deploy.host" value="localhost"/>
     <property name="deploy.dir" value="${user.home}/tungsten"/>
@@ -81,10 +81,10 @@
 
 
 	<target name="zipdoc">
-		<zip destfile="${build.dir}/tungsten-commons_javadoc.zip">
+		<zip destfile="${build.dir}/tungsten-common_javadoc.zip">
 			<fileset dir="${dist.dir}/docs/javadoc"/>
 		</zip>
-		<tar compression="gzip" destfile="${build.dir}/tungsten-commons_javadoc.tar.gz" longfile="gnu">
+		<tar compression="gzip" destfile="${build.dir}/tungsten-common_javadoc.tar.gz" longfile="gnu">
 			<fileset dir="${dist.dir}/docs/javadoc"/>
 		</tar>
 	</target>
@@ -109,7 +109,7 @@
 
     <target name="jar" depends="compile">
         <mkdir dir="${jars.dir}"/>
-        <jar destfile="${tungsten-commons.jar}">
+        <jar destfile="${tungsten-common.jar}">
             <manifest>
                 <attribute name="Specification-Title"
                            value="${specification.title}"/>
@@ -133,7 +133,7 @@
                 <include name="**/*.class"/>
             </fileset>
         </jar>
-        <jar destfile="${tungsten-commons-src.jar}">
+        <jar destfile="${tungsten-common-src.jar}">
             <manifest>
                 <attribute name="Specification-Title"
                            value="${specification.title}"/>
@@ -283,29 +283,29 @@
     	<available property="has.license" file="README"/>
         <copy file="LICENSE" tofile="${dist.dir}/LICENSE" failonerror="${has.license}"/>
         <tar destfile="${dist.dir}-${version}.tgz" compression="gzip" basedir="${dist.dir}" includes="none" longfile="gnu">
-            <tarfileset dir="${dist.dir}" mode="755" prefix="tungsten-commons-${version}">
+            <tarfileset dir="${dist.dir}" mode="755" prefix="tungsten-common-${version}">
                 <include name="bin/tungsten.sh"/>
             </tarfileset>
-            <tarfileset dir="${dist.dir}" prefix="tungsten-commons-${version}">
+            <tarfileset dir="${dist.dir}" prefix="tungsten-common-${version}">
                 <exclude name="bin/**"/>
             </tarfileset>
         </tar>
         <tar destfile="${dist.dir}-src-${version}.tgz" compression="gzip" basedir="${dist.src.dir}" includes="none" longfile="gnu">
-            <tarfileset dir="${dist.src.dir}" prefix="tungsten-commons-src-${version}">
+            <tarfileset dir="${dist.src.dir}" prefix="tungsten-common-src-${version}">
                 <include name="*/**"/>
             </tarfileset>
         </tar>
 
         <zip destfile="${dist.dir}-${version}.zip" basedir="${dist.dir}" includes="none">
-            <zipfileset dir="${dist.dir}" filemode="755" prefix="tungsten-commons-${version}">
+            <zipfileset dir="${dist.dir}" filemode="755" prefix="tungsten-common-${version}">
                 <include name="bin/tungsten.sh"/>
             </zipfileset>
-            <zipfileset dir="${dist.dir}" prefix="tungsten-commons-${version}">
+            <zipfileset dir="${dist.dir}" prefix="tungsten-common-${version}">
                 <exclude name="bin/**cd "/>
             </zipfileset>
         </zip>
         <zip destfile="${dist.dir}-src-${version}.zip" basedir="${dist.src.dir}" includes="none">
-            <zipfileset dir="${dist.src.dir}" prefix="tungsten-commons-src-${version}">
+            <zipfileset dir="${dist.src.dir}" prefix="tungsten-common-src-${version}">
                 <include name="*/**"/>
             </zipfileset>
         </zip>
