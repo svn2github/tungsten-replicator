@@ -127,9 +127,9 @@ class BooleanValidator < PropertyValidator
   end
   
   def validate(value)
-    if value =~ /true|y|yes/i
+    if value =~ /^true|y|yes$/i
       value = "true"
-    elsif value =~ /false|n|no/i
+    elsif value =~ /^false|n|no$/i
       value = "false"
     else
       raise PropertyValidatorException, @message, caller
