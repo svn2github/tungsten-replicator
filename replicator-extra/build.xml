@@ -43,17 +43,17 @@
     <property name="jars.dir" value="${build.dir}/jars"/>
     <property name="dist.dir" value="${build.dir}/${build.name}"/>
     <property name="build.jar" value="${jars.dir}/${build.name}.jar"/>
-    <property name="commons.build.dir" value="${project.commons}/build"/>
-    <property name="commons.classes.dir" value="${commons.build.dir}/java/classes"/>
+    <property name="common.build.dir" value="${project.common}/build"/>
+    <property name="common.classes.dir" value="${common.build.dir}/java/classes"/>
     <property name="replicator.build.dir" value="${project.replicator}/build"/>
     <property name="replicator.classes.dir" value="${replicator.build.dir}/java/classes"/>
     <property name="replicator.test.classes.dir" value="${replicator.build.dir}/test/classes"/>
     <property name="replicator.dist.dir" value="${replicator.build.dir}/tungsten-replicator"/>
 
     <path id="compile.classpath">
-    	<path location="${commons.classes.dir}"/>
+    	<path location="${common.classes.dir}"/>
     	<path location="${replicator.classes.dir}"/>
-        <fileset dir="${project.commons}/lib/">
+        <fileset dir="${project.common}/lib/">
             <include name="*.jar"/>
         	<exclude name="protobuf-java-2.2.0.jar"/>
         </fileset>
@@ -69,7 +69,7 @@
         <path refid="compile.classpath"/>
         <path location="${classes.dir}"/>
     	<path location="${replicator.test.classes.dir}"/>
-        <fileset dir="${project.commons}/lib-test/">
+        <fileset dir="${project.common}/lib-test/">
                 <include name="*.jar"/>
         </fileset>
     </path>
