@@ -36,8 +36,8 @@ import junit.framework.TestCase;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.jmx.JmxManager;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.management.OpenReplicatorManager;
 import com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean;

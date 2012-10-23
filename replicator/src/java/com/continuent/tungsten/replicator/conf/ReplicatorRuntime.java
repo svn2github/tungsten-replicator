@@ -31,8 +31,8 @@ import java.util.concurrent.Future;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
-import com.continuent.tungsten.commons.config.PropertyException;
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.PropertyException;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;

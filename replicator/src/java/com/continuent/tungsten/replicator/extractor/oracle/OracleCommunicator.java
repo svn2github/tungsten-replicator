@@ -34,7 +34,7 @@ import java.nio.channels.SocketChannel;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.extractor.ExtractorException;
-import com.continuent.tungsten.commons.exec.ProcessExecutor;
+import com.continuent.tungsten.common.exec.ProcessExecutor;
 
 /**
  * This class defines a OracleCommunicator. This is the interface to the Oracle

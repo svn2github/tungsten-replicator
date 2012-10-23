@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.backup.AbstractBackupAgent;
 import com.continuent.tungsten.replicator.backup.BackupCapabilities;
 import com.continuent.tungsten.replicator.backup.BackupException;

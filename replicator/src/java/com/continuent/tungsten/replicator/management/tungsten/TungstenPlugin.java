@@ -45,11 +45,11 @@ import javax.management.NotificationBroadcasterSupport;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.cluster.resource.OpenReplicatorParams;
-import com.continuent.tungsten.commons.cluster.resource.physical.Replicator;
-import com.continuent.tungsten.commons.cluster.resource.physical.ReplicatorCapabilities;
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.config.WildcardPattern;
+import com.continuent.tungsten.common.cluster.resource.OpenReplicatorParams;
+import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
+import com.continuent.tungsten.common.cluster.resource.physical.ReplicatorCapabilities;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.config.WildcardPattern;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.channel.ChannelAssignmentService;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
@@ -287,7 +287,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#configure(com.continuent.tungsten.commons.config.TungstenProperties)
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#configure(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public void configure(TungstenProperties properties)
             throws ReplicatorException
@@ -563,7 +563,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
      * Performs a deferred shutdown. All deferred operations then enqueue a
      * GoOfflineEvent to do a hard shutdown.
      * 
-     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#offlineDeferred(com.continuent.tungsten.commons.config.TungstenProperties)
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#offlineDeferred(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public void offlineDeferred(TungstenProperties params) throws Exception
     {
@@ -645,7 +645,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
     /**
      * Starts a heartbeat event. {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#heartbeat(com.continuent.tungsten.commons.config.TungstenProperties)
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#heartbeat(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public boolean heartbeat(TungstenProperties params) throws Exception
     {

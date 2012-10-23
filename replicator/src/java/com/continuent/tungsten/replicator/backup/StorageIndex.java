@@ -21,7 +21,7 @@
  */
 package com.continuent.tungsten.replicator.backup;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 
 /**
  * Contains index to storage files.  The index is used to generate new

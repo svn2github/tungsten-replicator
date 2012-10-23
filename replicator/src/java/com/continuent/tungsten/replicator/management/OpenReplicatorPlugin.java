@@ -26,8 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.continuent.tungsten.commons.cluster.resource.physical.ReplicatorCapabilities;
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.cluster.resource.physical.ReplicatorCapabilities;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 

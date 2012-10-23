@@ -26,7 +26,7 @@ import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.patterns.order.HighWaterResource;
+import com.continuent.tungsten.common.patterns.order.HighWaterResource;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.StatementData;

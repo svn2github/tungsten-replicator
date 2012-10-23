@@ -22,8 +22,8 @@
 
 package com.continuent.tungsten.replicator.database;
 
-import com.continuent.tungsten.commons.cache.CacheResourceManager;
-import com.continuent.tungsten.commons.cache.IndexedLRUCache;
+import com.continuent.tungsten.common.cache.CacheResourceManager;
+import com.continuent.tungsten.common.cache.IndexedLRUCache;
 
 /**
  * Implements a cache for table metadata. The cache organizes Table metadata by
@@ -47,7 +47,7 @@ public class TableMetadataCache implements CacheResourceManager<Table>
      * Call back to release a table metadata instance that is dropped from the
      * cache.
      * 
-     * @see com.continuent.tungsten.commons.cache.CacheResourceManager#release(java.lang.Object)
+     * @see com.continuent.tungsten.common.cache.CacheResourceManager#release(java.lang.Object)
      */
     public void release(Table metadata)
     {

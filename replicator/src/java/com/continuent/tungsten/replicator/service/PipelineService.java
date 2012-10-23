@@ -22,7 +22,7 @@
 
 package com.continuent.tungsten.replicator.service;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.plugin.ReplicatorPlugin;
 
 /**

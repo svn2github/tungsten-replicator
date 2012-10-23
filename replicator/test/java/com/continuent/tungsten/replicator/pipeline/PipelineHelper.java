@@ -25,7 +25,7 @@ package com.continuent.tungsten.replicator.pipeline;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.applier.DummyApplier;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.dbms.DBMSData;

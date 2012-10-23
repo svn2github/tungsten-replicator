@@ -38,16 +38,16 @@ import javax.management.remote.JMXConnector;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.cluster.resource.ResourceState;
-import com.continuent.tungsten.commons.cluster.resource.physical.Replicator;
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.exec.ProcessExecutor;
-import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
-import com.continuent.tungsten.commons.jmx.JmxManager;
-import com.continuent.tungsten.commons.jmx.MethodDesc;
-import com.continuent.tungsten.commons.jmx.ParamDesc;
-import com.continuent.tungsten.commons.utils.CLUtils;
-import com.continuent.tungsten.commons.utils.ManifestParser;
+import com.continuent.tungsten.common.cluster.resource.ResourceState;
+import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.exec.ProcessExecutor;
+import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
+import com.continuent.tungsten.common.jmx.JmxManager;
+import com.continuent.tungsten.common.jmx.MethodDesc;
+import com.continuent.tungsten.common.jmx.ParamDesc;
+import com.continuent.tungsten.common.utils.CLUtils;
+import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.PropertiesManager;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;

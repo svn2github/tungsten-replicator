@@ -45,21 +45,21 @@
     <property name="jars.dir" value="${build.dir}/jars"/>
     <property name="dist.dir" value="${build.dir}/${build.name}"/>
     <property name="build.jar" value="${jars.dir}/${build.name}.jar"/>
-    <property name="commons.build.dir" value="${project.commons}/build"/>
-    <property name="commons.classes.dir" value="${commons.build.dir}/java/classes"/>
+    <property name="common.build.dir" value="${project.common}/build"/>
+    <property name="common.classes.dir" value="${common.build.dir}/java/classes"/>
 
     <property name="deploy.host" value="localhost"/>
     <property name="deploy.dir" value="${user.home}/tungsten"/>
 
     <path id="compile.classpath">
-    	<path location="${commons.classes.dir}"/>
+    	<path location="${common.classes.dir}"/>
 	<fileset dir="lib/">
 		<include name="*.jar"/>
 	</fileset>
-        <fileset dir="${project.commons}/lib/">
+        <fileset dir="${project.common}/lib/">
             <include name="*.jar"/>
         </fileset>
-        <fileset dir="${project.commons}/lib.tools/">
+        <fileset dir="${project.common}/lib.tools/">
             <include name="*.jar"/>
         </fileset>
     </path>
@@ -67,13 +67,13 @@
     <path id="test.classpath">
         <path refid="compile.classpath"/>
         <path location="${classes.dir}"/>
-	<fileset dir="${project.commons}/lib-test/">
+	<fileset dir="${project.common}/lib-test/">
 		<include name="*.jar"/>
 	</fileset>
     </path>
 
     <path id="javadoc.src.path">
-        <path location="${project.commons}/src/java"/>
+        <path location="${project.common}/src/java"/>
         <path location="${java.src.dir}"/>
     </path>
 
@@ -87,7 +87,7 @@
     </target>
 
     <target name="build-dependencies">
-	<ant antfile="${project.commons}/build.xml" inheritall="false" target="all"/>
+	<ant antfile="${project.common}/build.xml" inheritall="false" target="all"/>
     </target>
 
     <target name="compile">
@@ -245,7 +245,7 @@
                 <filter token="VERSION" value="${version}"/>
             </filterset>
         </copy>
-        <copy todir="${dist.dir}/samples/conf" file="${project.commons}/conf/sample.jmx.properties" />
+        <copy todir="${dist.dir}/samples/conf" file="${project.common}/conf/sample.jmx.properties" />
         <mkdir dir="${dist.dir}/doc/licenses"/>
         <copy todir="${dist.dir}/doc/licenses">
             <fileset dir="doc/licenses"/>
@@ -254,12 +254,12 @@
             <fileset dir="${jars.dir}"/>
         </copy>
         <copy todir="${dist.dir}/lib">
-            <fileset dir="${project.commons}/lib">
+            <fileset dir="${project.common}/lib">
             	<include name="*.jar"/>
             </fileset>
         </copy>
         <copy todir="${dist.dir}/lib">
-            <fileset dir="${commons.build.dir}/jars"/>
+            <fileset dir="${common.build.dir}/jars"/>
         </copy>
         <copy todir="${dist.dir}/lib">
              <fileset dir="lib/">
@@ -294,12 +294,12 @@
 
     <target name="refresh-services" description="--> refresh JWS scripts and libraries">
         <property name="services.build.xml"
-            value="${project.commons.services}/build.xml"/>
+            value="${project.common.services}/build.xml"/>
         <available file="${services.build.xml}" type="file"
             property="services.build.xml.exists"/>
-        <fail message="commons-services/build.xml not found"
+        <fail message="common-services/build.xml not found"
             unless="services.build.xml.exists"/>
-		<ant antfile="${project.commons.services}/build.xml" inheritall="false" target="deploy">
+		<ant antfile="${project.common.services}/build.xml" inheritall="false" target="deploy">
             <property name="build.dir" value="${basedir}"/>
             <property name="remote.build.properties" value="${basedir}/build.properties"/>
         </ant>

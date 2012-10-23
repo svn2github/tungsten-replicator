@@ -26,7 +26,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
-import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
+import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
 
 /**
  * Defines API for shard management extensions.

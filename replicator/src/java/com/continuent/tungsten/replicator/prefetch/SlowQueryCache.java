@@ -26,7 +26,7 @@ import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.cache.IndexedLRUCache;
+import com.continuent.tungsten.common.cache.IndexedLRUCache;
 
 /**
  * Implements a shared cache for slow prefetch queries. The cache supports

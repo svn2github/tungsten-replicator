@@ -45,16 +45,16 @@ import javax.management.remote.JMXConnector;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.cluster.resource.OpenReplicatorParams;
-import com.continuent.tungsten.commons.cluster.resource.physical.Replicator;
-import com.continuent.tungsten.commons.cluster.resource.physical.ReplicatorCapabilities;
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.csv.CsvReader;
-import com.continuent.tungsten.commons.csv.CsvWriter;
-import com.continuent.tungsten.commons.exec.ArgvIterator;
-import com.continuent.tungsten.commons.jmx.JmxManager;
-import com.continuent.tungsten.commons.jmx.ServerRuntimeException;
-import com.continuent.tungsten.commons.utils.ManifestParser;
+import com.continuent.tungsten.common.cluster.resource.OpenReplicatorParams;
+import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
+import com.continuent.tungsten.common.cluster.resource.physical.ReplicatorCapabilities;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.csv.CsvReader;
+import com.continuent.tungsten.common.csv.CsvWriter;
+import com.continuent.tungsten.common.exec.ArgvIterator;
+import com.continuent.tungsten.common.jmx.JmxManager;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.shard.ShardManager;

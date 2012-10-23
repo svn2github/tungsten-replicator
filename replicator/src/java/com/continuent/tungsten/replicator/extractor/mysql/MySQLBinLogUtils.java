@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.utils.StatisticsMap;
+import com.continuent.tungsten.common.utils.StatisticsMap;
 
 public class MySQLBinLogUtils
 {

@@ -45,15 +45,15 @@ import javax.management.NotificationBroadcasterSupport;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.cluster.resource.OpenReplicatorParams;
-import com.continuent.tungsten.commons.cluster.resource.physical.Replicator;
-import com.continuent.tungsten.commons.cluster.resource.physical.ReplicatorCapabilities;
-import com.continuent.tungsten.commons.config.PropertyException;
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
-import com.continuent.tungsten.commons.jmx.JmxManager;
-import com.continuent.tungsten.commons.jmx.MethodDesc;
-import com.continuent.tungsten.commons.jmx.ParamDesc;
+import com.continuent.tungsten.common.cluster.resource.OpenReplicatorParams;
+import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
+import com.continuent.tungsten.common.cluster.resource.physical.ReplicatorCapabilities;
+import com.continuent.tungsten.common.config.PropertyException;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
+import com.continuent.tungsten.common.jmx.JmxManager;
+import com.continuent.tungsten.common.jmx.MethodDesc;
+import com.continuent.tungsten.common.jmx.ParamDesc;
 import com.continuent.tungsten.fsm.core.Action;
 import com.continuent.tungsten.fsm.core.Entity;
 import com.continuent.tungsten.fsm.core.EntityAdapter;

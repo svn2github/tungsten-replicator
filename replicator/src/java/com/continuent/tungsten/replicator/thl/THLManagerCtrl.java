@@ -35,8 +35,8 @@ import javax.sql.rowset.serial.SerialBlob;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.exec.ArgvIterator;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.exec.ArgvIterator;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.dbms.DBMSData;

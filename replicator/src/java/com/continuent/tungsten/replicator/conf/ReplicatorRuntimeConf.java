@@ -24,7 +24,7 @@ package com.continuent.tungsten.replicator.conf;
 
 import java.io.File;
 
-import com.continuent.tungsten.commons.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 
 /**
  * This class defines configuration values that are set at runtime through

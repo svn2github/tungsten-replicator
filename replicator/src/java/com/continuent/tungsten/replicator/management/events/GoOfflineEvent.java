@@ -21,7 +21,7 @@
  */
 package com.continuent.tungsten.replicator.management.events;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.fsm.core.Event;
 
 /**

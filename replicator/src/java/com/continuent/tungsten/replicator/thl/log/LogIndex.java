@@ -32,8 +32,8 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.commands.FileCommands;
-import com.continuent.tungsten.commons.config.Interval;
+import com.continuent.tungsten.common.commands.FileCommands;
+import com.continuent.tungsten.common.config.Interval;
 import com.continuent.tungsten.replicator.ReplicatorException;
 
 /**

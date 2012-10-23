@@ -27,7 +27,7 @@ import java.io.*;
 import org.apache.log4j.Logger;
 import org.mozilla.javascript.*;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
@@ -58,10 +58,10 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * Also there are the following variables exported via JavaScript reflection for
  * user's usage:<br/>
  * properties -
- * {@link com.continuent.tungsten.commons.config.TungstenProperties} of the
+ * {@link com.continuent.tungsten.common.config.TungstenProperties} of the
  * current replicator instance;<br/>
  * filterProperties -
- * {@link com.continuent.tungsten.commons.config.TungstenProperties} subset with
+ * {@link com.continuent.tungsten.common.config.TungstenProperties} subset with
  * the current filter's properties (eg. "script");<br/>
  * logger - this classes {@link org.apache.log4j.Logger}. Eg. of usage:
  * <code>logger.info("I'm a script!");</code><br/>

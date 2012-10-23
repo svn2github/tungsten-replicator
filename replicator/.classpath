@@ -3,19 +3,19 @@
 	<classpathentry kind="src" path="test/java"/>
 	<classpathentry excluding="com/continuent/tungsten/replicator/sqlParser/grammars/test.java|com/continuent/tungsten/replicator/sqlParser/parsers/" kind="src" path="src/java"/>
 	<classpathentry kind="lib" path="lib-ext/derby.jar"/>
-	<classpathentry kind="lib" path="/commons/lib-test/junit-4.4.jar" sourcepath="/commons/lib-test/junit-4.4-src.zip"/>
 	<classpathentry kind="lib" path="conf"/>
 	<classpathentry kind="lib" path="lib/classes12.jar"/>
 	<classpathentry kind="lib" path="lib/js.jar"/>
 	<classpathentry kind="lib" path="lib/mongo-2.5.3.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/commons"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.6WithEscapeProcessingFix-bin.jar"/>
 	<classpathentry kind="lib" path="lib/protobuf-java-2.3.0.jar"/>
-	<classpathentry kind="lib" path="/commons/lib/log4j-1.2.16.jar" sourcepath="/commons/lib/log4j-1.2.16-sources.jar"/>
 	<classpathentry kind="lib" path="lib/vertica_4.1.13_jdk_5.jar"/>
 	<classpathentry kind="lib" path="lib/drizzle-jdbc-1.2-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="lib/tungsten-fsm.jar" sourcepath="lib/tungsten-fsm-src.jar"/>
 	<classpathentry kind="lib" path="lib/opencsv-2.3.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/oss-commons"/>
+	<classpathentry kind="lib" path="/oss-commons/lib/log4j-1.2.16.jar" sourcepath="/oss-commons/lib/log4j-1.2.16-sources.jar"/>
+	<classpathentry kind="lib" path="/oss-commons/lib-test/junit-4.4.jar" sourcepath="/oss-commons/lib-test/junit-4.4-src.zip"/>
 	<classpathentry kind="output" path="build/java/classes"/>
 </classpath>

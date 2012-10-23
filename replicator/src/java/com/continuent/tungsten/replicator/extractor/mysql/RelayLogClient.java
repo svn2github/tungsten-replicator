@@ -37,9 +37,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.mysql.MySQLConstants;
-import com.continuent.tungsten.commons.mysql.MySQLIOs;
-import com.continuent.tungsten.commons.mysql.MySQLPacket;
+import com.continuent.tungsten.common.mysql.MySQLConstants;
+import com.continuent.tungsten.common.mysql.MySQLIOs;
+import com.continuent.tungsten.common.mysql.MySQLPacket;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.extractor.ExtractorException;
 

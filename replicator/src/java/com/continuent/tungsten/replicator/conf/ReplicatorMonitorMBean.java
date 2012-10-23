@@ -25,7 +25,7 @@ package com.continuent.tungsten.replicator.conf;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
+import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
 
 /**
  * Replicator monitoring interface.  This interface contains in memory counters

@@ -31,7 +31,7 @@ import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.parsing.bytes.MySQLStatementTranslator;
+import com.continuent.tungsten.common.parsing.bytes.MySQLStatementTranslator;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 

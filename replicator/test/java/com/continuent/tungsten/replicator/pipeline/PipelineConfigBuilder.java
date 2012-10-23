@@ -26,7 +26,7 @@ import java.util.Arrays;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 
 /**

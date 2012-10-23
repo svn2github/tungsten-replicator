@@ -25,8 +25,8 @@ package com.continuent.tungsten.replicator.database;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import com.continuent.tungsten.commons.cache.CacheResourceManager;
-import com.continuent.tungsten.commons.cache.IndexedLRUCache;
+import com.continuent.tungsten.common.cache.CacheResourceManager;
+import com.continuent.tungsten.common.cache.IndexedLRUCache;
 
 /**
  * Implements a cache for prepared statements, which are identified by a single

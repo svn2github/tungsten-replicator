@@ -34,9 +34,9 @@ import javax.management.NotificationBroadcasterSupport;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.cluster.resource.physical.ReplicatorCapabilities;
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.exec.ProcessExecutor;
+import com.continuent.tungsten.common.cluster.resource.physical.ReplicatorCapabilities;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.exec.ProcessExecutor;
 import com.continuent.tungsten.replicator.InSequenceNotification;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.backup.RestoreCompletionNotification;
@@ -280,7 +280,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
     /**
      * {@inheritDoc}
      *
-     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#configure(com.continuent.tungsten.commons.config.TungstenProperties)
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#configure(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public synchronized void configure(TungstenProperties properties)
             throws ReplicatorException
@@ -327,7 +327,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
     /**
      * {@inheritDoc}
      *
-     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#offlineDeferred(com.continuent.tungsten.commons.config.TungstenProperties)
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#offlineDeferred(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public void offlineDeferred(TungstenProperties params) throws Exception
     {
@@ -343,7 +343,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
     /**
      * {@inheritDoc}
      *
-     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#heartbeat(com.continuent.tungsten.commons.config.TungstenProperties)
+     * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#heartbeat(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public boolean heartbeat(TungstenProperties params) throws Exception
     {

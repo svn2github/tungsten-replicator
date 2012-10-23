@@ -22,7 +22,7 @@
 
 package com.continuent.tungsten.replicator.management;
 
-import com.continuent.tungsten.commons.jmx.JmxManager;
+import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 
 /**

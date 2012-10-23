@@ -34,7 +34,7 @@ import java.util.zip.CRC32;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
+import com.continuent.tungsten.common.config.TungstenProperties;
 
 /**
  * Implements a storage agent to store files in a directory on the file system.

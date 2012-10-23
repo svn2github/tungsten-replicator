@@ -29,9 +29,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
-import com.continuent.tungsten.commons.jmx.JmxManager;
-import com.continuent.tungsten.commons.jmx.MethodDesc;
+import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
+import com.continuent.tungsten.common.jmx.JmxManager;
+import com.continuent.tungsten.common.jmx.MethodDesc;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
 

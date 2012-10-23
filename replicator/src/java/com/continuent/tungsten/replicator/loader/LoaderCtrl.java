@@ -29,8 +29,8 @@ import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.exec.ArgvIterator;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.exec.ArgvIterator;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;

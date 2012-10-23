@@ -29,9 +29,9 @@ import java.rmi.RemoteException;
 
 import javax.management.remote.JMXConnector;
 
-import com.continuent.tungsten.commons.exec.ArgvIterator;
-import com.continuent.tungsten.commons.jmx.JmxManager;
-import com.continuent.tungsten.commons.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.exec.ArgvIterator;
+import com.continuent.tungsten.common.jmx.JmxManager;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 
 /**

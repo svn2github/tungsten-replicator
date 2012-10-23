@@ -42,7 +42,7 @@ public interface FilterManualProperties extends Filter
      * </code>
      * 
      * @param configPrefix Configuration prefix.
-     * @see com.continuent.tungsten.commons.config.TungstenProperties#subset(String, boolean)
+     * @see com.continuent.tungsten.common.config.TungstenProperties#subset(String, boolean)
      */
     public void setConfigPrefix(String configPrefix);
 }

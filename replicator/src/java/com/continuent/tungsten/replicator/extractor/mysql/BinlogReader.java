@@ -30,7 +30,7 @@ import java.util.Arrays;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.io.BufferedFileDataInput;
+import com.continuent.tungsten.common.io.BufferedFileDataInput;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 

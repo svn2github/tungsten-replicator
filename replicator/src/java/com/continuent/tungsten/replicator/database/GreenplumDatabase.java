@@ -33,7 +33,7 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.commons.csv.CsvWriter;
+import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 

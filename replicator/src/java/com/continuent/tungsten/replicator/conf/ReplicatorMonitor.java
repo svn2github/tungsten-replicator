@@ -28,9 +28,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
-import com.continuent.tungsten.commons.jmx.JmxManager;
-import com.continuent.tungsten.commons.jmx.MethodDesc;
+import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
+import com.continuent.tungsten.common.jmx.JmxManager;
+import com.continuent.tungsten.common.jmx.MethodDesc;
 
 /**
  * This class implements JMX monitoring statistics for the replicator.  

@@ -25,8 +25,8 @@ package com.continuent.tungsten.replicator.management;
 import java.util.List;
 import java.util.Map;
 
-import com.continuent.tungsten.commons.config.TungstenProperties;
-import com.continuent.tungsten.commons.jmx.DynamicMBeanHelper;
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
 
 /**
  * Replicator Manager MBean interface definition. This contains all replicator
