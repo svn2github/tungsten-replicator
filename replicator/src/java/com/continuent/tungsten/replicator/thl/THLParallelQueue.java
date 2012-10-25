@@ -57,57 +57,56 @@ import com.continuent.tungsten.replicator.util.WatchPredicate;
  */
 public class THLParallelQueue implements ParallelStore
 {
-    private static Logger                                       logger              = Logger.getLogger(THLParallelQueue.class);
+    private static Logger             logger              = Logger.getLogger(THLParallelQueue.class);
 
     // Queue parameters.
-    private String                                              name;
-    private int                                                 maxSize             = 100;
-    private int                                                 maxControlEvents    = 1000;
-    private int                                                 partitions          = 1;
-    private int                                                 syncInterval        = 5000;
-    private int                                                 maxOfflineInterval  = 300;
-    private String                                              thlStoreName        = "thl";
+    private String                    name;
+    private int                       maxSize             = 100;
+    private int                       maxControlEvents    = 1000;
+    private int                       partitions          = 1;
+    private int                       syncInterval        = 5000;
+    private int                       maxOfflineInterval  = 300;
+    private String                    thlStoreName        = "thl";
 
     // Plugin context in case we need to make inquiries.
-    private PluginContext                                       context;
+    private PluginContext             context;
 
     // THL for which we are implementing a parallel queue.
-    private THL                                                 thl;
+    private THL                       thl;
 
     // Read task control information.
-    private List<THLParallelReadTask>                           readTasks;
-    private ReplDBMSEvent                                       lastInsertedEvent;
+    private List<THLParallelReadTask> readTasks;
+    private ReplDBMSEvent             lastInsertedEvent;
 
     // Headers used to track the restart position from downstream tasks.
-    private ReplDBMSHeader[]                                    lastHeaders;
-    private int                                                 partitionsReporting = 0;
+    private ReplDBMSHeader[]          lastHeaders;
+    private int                       partitionsReporting = 0;
 
     // Counter of head sequence number.
-    private AtomicCounter                                       headSeqnoCounter    = new AtomicCounter(
-                                                                                            -1);
+    private AtomicCounter             headSeqnoCounter    = new AtomicCounter(
+                                                                  -1);
 
     // Partitioner configuration variables.
-    private Partitioner                                         partitioner;
-    private String                                              partitionerClass    = SimplePartitioner.class
-                                                                                            .getName();
-    private long                                                transactionCount    = 0;
-    private long                                                serializationCount  = 0;
-    private long                                                discardCount        = 0;
+    private Partitioner               partitioner;
+    private String                    partitionerClass    = SimplePartitioner.class
+                                                                  .getName();
+    private long                      transactionCount    = 0;
+    private long                      serializationCount  = 0;
+    private long                      discardCount        = 0;
 
     // Flag to insert stop synchronization event at next transaction boundary.
-    private boolean                                             stopRequested       = false;
+    private boolean                   stopRequested       = false;
 
     // Control information for event serialization to support shard processing.
-    private int                                                 criticalPartition   = -1;
-    private AtomicCounter                                       activeSize          = new AtomicCounter(
-                                                                                            0);
+    private int                       criticalPartition   = -1;
+    private AtomicCounter             activeSize          = new AtomicCounter(0);
 
     // Control data to enforce maximum offline interval. These variables limit
     // the time interval between most and least advanced read threads.
-    private AtomicIntervalGuard<?>                              intervalGuard;
-    private long                                                lastTimestampMillis = -1;
-    private long                                                intervalCheckMillis;
-    private long                                                maxOfflineMillis;
+    private AtomicIntervalGuard<?>    intervalGuard;
+    private long                      lastTimestampMillis = -1;
+    private long                      intervalCheckMillis;
+    private long                      maxOfflineMillis;
 
     public String getName()
     {
@@ -340,10 +339,17 @@ public class THLParallelQueue implements ParallelStore
         }
 
         // Check the thread read interval once per second of elapsed
-        // time. This check ropes in threads that have exceeded the
-        // maximum online interval between highest and lowest threads.
+        // time between complete transactions. This check ropes in threads that
+        // have exceeded the maximum online interval between highest and lowest
+        // threads.  
+        //
+        // (BEWARE:  If you do this check on fragmented events within
+        // long transactions it can lead to deadlocks if the timestamps on 
+        // fragmented events deviate more than maxOfflineMillis from the last 
+        // reported transaction.)
         long currentTimeMillis = System.currentTimeMillis();
-        if (currentTimeMillis - intervalCheckMillis >= 1000)
+        if (currentTimeMillis - intervalCheckMillis >= 1000
+                && event.getLastFrag())
         {
             // If we have a previously recorded event timestamp, it is
             // now time to see how our threads are doing and ensure nobody
@@ -368,9 +374,10 @@ public class THLParallelQueue implements ParallelStore
 
             // Remember the time of this check.
             intervalCheckMillis = currentTimeMillis;
+
+            // Update the event timestamp so we are ready for the next check.
+            lastTimestampMillis = event.getExtractedTstamp().getTime();
         }
-        // Update the event timestamp so we are ready for the next check.
-        lastTimestampMillis = event.getExtractedTstamp().getTime();
 
         // Advance the head seqno counter. This allows all eligible threads
         // to move forward. Update the active size to show how many events are
