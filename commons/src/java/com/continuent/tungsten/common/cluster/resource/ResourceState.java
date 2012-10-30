@@ -1,0 +1,8 @@
+
+package com.continuent.tungsten.common.cluster.resource;
+
+public enum ResourceState
+{
+    ONLINE, OFFLINE, SYNCHRONIZING, JOINING, SUSPECT, STOPPED, UNKNOWN, TIMEOUT, DEGRADED, SHUNNED, CONSISTENT, MODIFIED, FAILED, BACKUP, UNREACHABLE, EXTENSION, RESTORING,
+
+}
