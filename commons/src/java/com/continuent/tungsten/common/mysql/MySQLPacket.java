@@ -47,22 +47,40 @@ import org.apache.log4j.Logger;
 public class MySQLPacket
 {
     /** Length of the packet header */
-    public static final int     HEADER_LENGTH = 4;
-    /** Maximum packet length */
-    public static final int     MAX_LENGTH    = 0x00ffffff;
+    public static final int     HEADER_LENGTH            = 4;
+    /** Maximum packet length (16M) */
+    public static final int     MAX_LENGTH               = 0x00ffffff;
 
-    private static final long   NULL_LENGTH   = -1;
+    /** Packet type is a single byte at this offset */
+    public static final int     PACKET_TYPE_OFFSET       = HEADER_LENGTH;
 
-    private static final Logger logger        = Logger.getLogger(MySQLPacket.class);
+    /** EOF warning count appears as a short starting at this offset */
+    public static final int     EOF_WARNING_COUNT_OFFSET = PACKET_TYPE_OFFSET + 1;
+
+    /** EOF packet server status appears as a short at this offset */
+    public static final int     EOF_SERVER_STATUS_OFFSET = EOF_WARNING_COUNT_OFFSET + 2;
+
+    /** MySQL Errorno appears as a short at this offset */
+    public static final int     ERROR_NUMBER_OFFSET      = PACKET_TYPE_OFFSET + 1;
+
+    /** ODBC/JDBC SQL state appears as a byte at this offset */
+    public static final int     ERROR_SQL_STATE_OFFSET   = ERROR_NUMBER_OFFSET + 2;
+
+    /** ODBC/JDBC SQL state appears as a byte at this offset */
+    public static final int     ERROR_MESSAGE_OFFSET     = ERROR_SQL_STATE_OFFSET + 1;
+
+    private static final long   NULL_LENGTH              = -1;
+    private static final Logger logger                   = Logger.getLogger(MySQLPacket.class);
+
     /** Header + data buffer */
     private byte[]              byteBuffer;
 
     /** Cursor position */
     private int                 position;
     /** Data size */
-    private int                 dataLength    = 0;
+    private int                 dataLength               = 0;
     /** The input stream used to read this packet */
-    InputStream                 inputStream   = null;
+    InputStream                 inputStream              = null;
 
     /**
      * Creates a new <code>MySQLPacket</code> object
@@ -99,6 +117,90 @@ public class MySQLPacket
     }
 
     /**
+     * Reads a MySQL packet from the input stream.
+     * 
+     * @param in the data input stream from where we read the MySQL packet
+     * @param dropLargePackets whether or not to return null when a packet of
+     *            16Mb is read
+     * @return a MySQLPacket object or null if the MySQL packet cannot be read
+     */
+    public static MySQLPacket readPacket(InputStream in,
+            boolean dropLargePackets)
+    {
+        try
+        {
+            return mysqlReadPacket(in, dropLargePackets);
+        }
+        catch (SocketTimeoutException e)
+        {
+            logger.warn("Socket timeout expired, closing connection");
+        }
+        catch (IOException e)
+        {
+            logger.error("I/O error while reading from client socket", e);
+        }
+
+        return null;
+    }
+
+    public static MySQLPacket mysqlReadPacket(InputStream in,
+            boolean dropLargePackets) throws IOException, EOFException
+    {
+        int mask = 0xff;
+        int packetLen1 = in.read();
+        int packetLen2 = in.read();
+        int packetLen3 = in.read();
+        int packetLen = (packetLen1 & mask) | (packetLen2 & mask) << 8
+                | (packetLen3 & mask) << 16;
+        int packetNumber = in.read();
+        // This is ok, no more packet on the line
+        if (packetLen1 == -1)
+        {
+            logger.debug("Reached end of input stream while reading packet");
+            return null;
+        }
+        // This is bad, client went away
+        if (packetLen2 == -1 || packetLen3 == -1 || packetNumber == -1)
+        {
+            throw new EOFException("Reached end of input stream.");
+        }
+        if (dropLargePackets && (packetLen == MAX_LENGTH || packetLen == 0))
+        {
+            logger.error("Received packet of size " + packetLen
+                    + ", but packets bigger than 16 MB are not supported yet!");
+            return null;
+        }
+
+        // read the body of the packet
+        byte[] packetData = new byte[packetLen + HEADER_LENGTH];
+        // copy header
+        packetData[0] = (byte) packetLen1;
+        packetData[1] = (byte) packetLen2;
+        packetData[2] = (byte) packetLen3;
+        packetData[3] = (byte) packetNumber;
+
+        // read() returns the number of actual bytes read, which might be
+        // less that the desired length this loop ensures that the whole
+        // packet is read
+        int n = 0;
+        while (n < packetLen)
+        {
+            int count = in.read(packetData, HEADER_LENGTH + n, packetLen - n);
+
+            if (count < 0)
+            {
+                throw new EOFException("Reached end of input stream.");
+            }
+
+            n += count;
+        }
+        MySQLPacket p = new MySQLPacket(packetLen, packetData,
+                (byte) packetNumber);
+        p.setInputStream(in);
+        return p;
+    }
+    
+     /**
      * Reads a MySQL packet from the input stream.
      * 
      * @param in the data input stream from where we read the MySQL packet
@@ -215,8 +317,8 @@ public class MySQLPacket
 
         return null;
     }
-
-    /**
+    
+      /**
      * Reads a MySQL packet from the input stream using a default partial read
      * timeout of 5 seconds.
      * 
@@ -227,6 +329,7 @@ public class MySQLPacket
     {
         return readPacket(in, 10000);
     }
+    
 
     /**
      * Returns the raw byte buffer.
@@ -274,6 +377,70 @@ public class MySQLPacket
     public void setPacketPosition(int pos)
     {
         this.position = pos;
+    }
+
+    /**
+     * Returns the MySQL error number from the MySQL "ERROR" packet without
+     * modifying the packet
+     * 
+     * @return int as value of error
+     */
+    public int peekErrorErrno()
+    {
+        return (byteBuffer[ERROR_NUMBER_OFFSET] & 0xff)
+                | ((byteBuffer[ERROR_NUMBER_OFFSET + 1] & 0xff) << 8);
+    }
+
+    /**
+     * Returns the MySQL error number from the MySQL "ERROR" packet without
+     * modifying the packet
+     * 
+     * @return int as value of error
+     */
+    public int peekErrorSQLState()
+    {
+        return byteBuffer[ERROR_SQL_STATE_OFFSET];
+    }
+
+    /**
+     * Returns the MySQL error message from the MySQL "ERROR" packet without
+     * modifying the packet
+     * 
+     * @return String with error message
+     */
+    public String peekErrorErrorMessage()
+    {
+        return peekStringAtOffset(ERROR_MESSAGE_OFFSET);
+    }
+
+    /**
+     * Returns the bit mask for the server status from the MySQL "EOF" packet
+     * 
+     * @return int as value of EOF server status
+     */
+    public int peekEOFServerStatus()
+    {
+        if (isEOF() && getDataLength() >= 5)
+        {
+            return (byteBuffer[EOF_SERVER_STATUS_OFFSET] & 0xff)
+                    | ((byteBuffer[EOF_SERVER_STATUS_OFFSET + 1] & 0xff) << 8);
+        }
+        return -1;
+    }
+
+    /**
+     * Returns the warning count from the MySQL "EOF" packet
+     * 
+     * @return int as value of EOF warning count
+     */
+    public int peekEOFWarningCount()
+    {
+        if (isEOF() && getDataLength() >= 3)
+        {
+            return (byteBuffer[EOF_WARNING_COUNT_OFFSET] & 0xff)
+                    | ((byteBuffer[EOF_WARNING_COUNT_OFFSET + 1] & 0xff) << 8);
+        }
+        return -1;
     }
 
     /**
@@ -590,6 +757,43 @@ public class MySQLPacket
         }
 
         return getString(len);
+    }
+
+    /**
+     * Returns a string from the buffer.
+     * 
+     * @return a string from the buffer
+     */
+    public String peekStringAtOffset(int startPosition)
+    {
+        int i = startPosition;
+        int len = 0;
+        int maxLen = this.byteBuffer.length;
+
+        while ((i < maxLen) && (this.byteBuffer[i] != 0))
+        {
+            len++;
+            i++;
+        }
+
+        return peekString(startPosition, len);
+    }
+
+    /**
+     * Returns a len length string from the buffer.
+     * 
+     * @param len the length of the string
+     * @return a len length string from the buffer
+     */
+    public String peekString(int offset, int len)
+    {
+        int maxLen = this.byteBuffer.length - this.position;
+
+        String s = new String(this.byteBuffer, offset, len < maxLen
+                ? len
+                : maxLen);
+
+        return s;
     }
 
     /**
@@ -1223,7 +1427,10 @@ public class MySQLPacket
             sb.append(" text data=");
             for (int i = 0; i < this.byteBuffer.length; i++)
             {
-                sb.append((char) this.byteBuffer[i]);
+                if (this.byteBuffer[i] != 0)
+                    sb.append((char) this.byteBuffer[i]);
+                else
+                    sb.append(' ');
                 sb.append(" ");
             }
         }

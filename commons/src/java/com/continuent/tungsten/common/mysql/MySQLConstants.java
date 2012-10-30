@@ -288,6 +288,8 @@ public class MySQLConstants
     public static final int    ER_LOST_CONNECTION              = 2013;
 
     public static final int    ER_SERVER_GONE_AWAY             = 2006;
+    
+    public static final int    ER_CON_COUNT_ERROR              = 1040;
 
     /* Misc constants */
     /** size of the long data header */

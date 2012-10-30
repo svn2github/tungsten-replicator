@@ -1727,4 +1727,77 @@ public class TungstenProperties implements Serializable
         }
         return methodMap;
     }
+
+    /**
+     * TODO: listToString definition.
+     * 
+     * @param list
+     * @return
+     */
+    static public String listToString(List<String> list)
+    {
+        StringBuilder builder = new StringBuilder();
+        int itemCount = 0;
+        for (String value : list)
+        {
+            itemCount++;
+            if (itemCount > 1)
+            {
+                builder.append(",");
+            }
+            builder.append(value);
+        }
+
+        return builder.toString();
+    }
+
+    /**
+     * Loads values from Java properties file format with variable
+     * substitutions.
+     */
+    public void add(InputStream is) throws IOException
+    {
+        add(is, true);
+    }
+
+    /**
+     * Adds values from Java properties file format. Current values are kept
+     * except if it exists in the stream, in which case it is overwritten.
+     * 
+     * @param is InputStream containing properties.
+     * @param doSubstitutions If true perform variable substitutions
+     */
+    public void add(InputStream is, boolean doSubstitutions) throws IOException
+    {
+        // Load the properties file.
+        Properties props = new Properties();
+        props.load(is);
+        if (doSubstitutions)
+            substituteSystemValues(props);
+        add(props);
+    }
+
+    /**
+     * Load values from a Properties instance. Current values are replaced only
+     * if they are in the source map.
+     */
+    public void add(Properties props)
+    {
+        Enumeration<?> keys = props.propertyNames();
+        while (keys.hasMoreElements())
+        {
+            String key = (String) keys.nextElement();
+            String value = props.getProperty(key).toString();
+            if (properties.get(key) != null)
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug(String.format("Replacing %s=%s with %s=%s",
+                            key, properties.get(key), key, value));
+                }
+            }
+
+            properties.put(key, value);
+        }
+    }
 }
