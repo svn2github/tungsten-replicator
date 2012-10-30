@@ -481,6 +481,7 @@ public class TungstenPropertiesTest extends TestCase
 
         // Extract to properties file.
         TungstenProperties tp = new TungstenProperties();
+        tp.setBeanSupportEnabled(true);
         tp.extractProperties(sco, true);
 
         // Apply back and compare.

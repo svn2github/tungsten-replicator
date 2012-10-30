@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -75,6 +75,7 @@ public class TungstenProperties implements Serializable
 
     protected Map<String, Object> properties;
     private boolean               sorted;
+    private boolean               beanSupportEnabled = false;
 
     /**
      * Creates a new instance.
@@ -93,12 +94,32 @@ public class TungstenProperties implements Serializable
     }
 
     /**
-     * Creates a new instance from an existing map.
+     * Creates a new instance with sorting.
      */
     public TungstenProperties(boolean sorted)
     {
         properties = new HashMap<String, Object>();
         this.sorted = sorted;
+    }
+
+    /**
+     * Returns true if this instance supports extracting/setting bean
+     * properties.
+     */
+    public boolean isBeanSupportEnabled()
+    {
+        return beanSupportEnabled;
+    }
+
+    /**
+     * If set to true this instance will support extracting/setting bean
+     * properties.
+     * 
+     * @param beanSupportEnabled
+     */
+    public void setBeanSupportEnabled(boolean beanSupportEnabled)
+    {
+        this.beanSupportEnabled = beanSupportEnabled;
     }
 
     /**
@@ -665,6 +686,10 @@ public class TungstenProperties implements Serializable
     private Object constructBean(String className,
             TungstenProperties beanProps, boolean ignoreIfMissing)
     {
+        // Return null if we don't support beans.
+        if (!this.isBeanSupportEnabled())
+            return null;
+
         // Load the class.
         Class<?> type = null;
         try
@@ -1676,6 +1701,10 @@ public class TungstenProperties implements Serializable
      */
     public boolean isBean(Class<?> clazz)
     {
+        // Return false if we don't support beans.
+        if (!this.isBeanSupportEnabled())
+            return false;
+
         // Check for a default constructor.
         boolean hasDefaultConstructor = false;
         for (Constructor<?> constructor : clazz.getConstructors())
