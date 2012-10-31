@@ -1404,8 +1404,14 @@ public class TungstenProperties implements Serializable
         while (!keys.isEmpty())
         {
             String key = keys.iterator().next();
-            String serviceKey = key
-                    .substring(0, key.indexOf(MAP_KEY_SEPARATOR));
+            int mapKeyIdx = key.indexOf(MAP_KEY_SEPARATOR);
+            if (mapKeyIdx <= 0)
+            {
+                // not a cluster map entry, ignore it
+                keys.remove(key);
+                continue;
+            }
+            String serviceKey = key.substring(0, mapKeyIdx);
             Map<String, TungstenProperties> result = fullResult.get(serviceKey);
             if (result == null)
             {
@@ -1601,6 +1607,15 @@ public class TungstenProperties implements Serializable
             valueClass = in.readLine();
             if (valueClass == null)
             {
+                throw new IOException(
+                        "Cannot create properties from stream: "
+                                + "reached end of stream before end of properties tag\n"
+                                + "Properties received till now:\n" + tp + "\n"
+                                + "last property key=" + key + " value class="
+                                + valueClass + " value=" + valueLine);
+            }
+            else if ("null".equals(valueClass))
+            {
                 tp.put(key, null);
             }
             else
@@ -1652,7 +1667,7 @@ public class TungstenProperties implements Serializable
             key = in.readLine();
         }
         // Data consistency check: the last key received must be the end of
-        // properties tag, otherwise an error has occured and we must throw an
+        // properties tag, otherwise an error has occurred and we must throw an
         // exception
         if (!ENDOFPROPERTIES_TAG.equals(key))
             throw new IOException("Cannot create properties from stream: "
@@ -1693,6 +1708,7 @@ public class TungstenProperties implements Serializable
             }
         }
         out.println(ENDOFPROPERTIES_TAG);
+        out.flush();
     }
 
     /**
