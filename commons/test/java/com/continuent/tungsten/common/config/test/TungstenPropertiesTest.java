@@ -30,6 +30,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -422,6 +424,12 @@ public class TungstenPropertiesTest extends TestCase
         tp.setClusterMap(clusterMap);
         assertEquals("Did not get inserted cluster map", clusterMap,
                 tp.getClusterMap());
+
+        // What if another key/value (that's not a cluster map) is present?
+        tp.setClusterMap(clusterMap);
+        tp.setString("Another", "Argument");
+        assertEquals("Did not get inserted cluster map", clusterMap,
+                tp.getClusterMap());
     }
 
     /**
@@ -661,122 +669,268 @@ public class TungstenPropertiesTest extends TestCase
         return props;
     }
 
+    /**
+     * Exercises the code for sending and receiving TungstenProperties over a
+     * stream (network or so)
+     * 
+     * @throws IOException upon error
+     */
     public void testSendReceive() throws IOException
     {
         // Test with empty properties
         TungstenProperties props = new TungstenProperties();
         sendRecvAndCompareProps(props);
+
+        // Try different nulls
+        props.put("null", null);
+        props.put("key", null);
+        props.put("null2", "val");
+        props.put("key2", "");
+        TungstenProperties props2 = new TungstenProperties();
+        props2.put("otherPropsKey2", "val");
+        props.put("key3", props2);
+        TungstenProperties props3 = new TungstenProperties();
+        props.put("key4", props3);
+        sendRecvAndCompareProps(props2);
+        sendRecvAndCompareProps(props);
+        TungstenProperties props4 = new TungstenProperties();
+        props4.put("router.id", "324323-stdb1.worldcompany.com");
+        sendRecvAndCompareProps(props4);
+        // Don't go over 499 since pipes won't do more than 1024 bytes because
+        // of their circular buffer size
+        int largeStringSize = 256;
+        props4 = new TungstenProperties();
+        StringBuffer hugeString = new StringBuffer(largeStringSize);
+        for (int i = 0; i < largeStringSize; i++)
+        {
+            hugeString.append('a');
+        }
+        props4.put(hugeString.toString(), hugeString.toString());
+        sendRecvAndCompareProps(props4);
         // do another run with filled in properties
         props = makeProperties();
         sendRecvAndCompareProps(props);
     }
 
+    /**
+     * Sends and receives properties in two different ways: using pipedIOs (thus
+     * a buffer) and using a file. Compares both send and received properties to
+     * check that the transfer went OK
+     * 
+     * @param props properties to test
+     * @throws IOException upon error
+     */
     private void sendRecvAndCompareProps(TungstenProperties props)
             throws IOException, FileNotFoundException
+    {
+        TungstenProperties propsReceived = sendRecvOverPipedIO(props);
+        // Check values.
+        Assert.assertEquals(
+                "Received properties differ from sent ones using PipedIOs",
+                props, propsReceived);
+        propsReceived = sendRecvOverFile(props);
+        // Check values.
+        Assert.assertEquals(
+                "Received properties differ from sent ones using file", props,
+                propsReceived);
+    }
+
+    private TungstenProperties sendRecvOverPipedIO(TungstenProperties props)
+            throws IOException
+    {
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream out = new PipedOutputStream(in);
+
+        PrintWriter pw = new PrintWriter(out);
+        props.send(pw);
+
+        // Read into Tungsten properties instance.
+        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        TungstenProperties propsReceived = TungstenProperties
+                .createFromStream(br);
+        br.close();
+        pw.close();
+        return propsReceived;
+    }
+
+    private TungstenProperties sendRecvOverFile(TungstenProperties props)
+            throws IOException
     {
         File propFile = File.createTempFile("propertySendReceiveTest",
                 ".properties");
         PrintWriter pw = new PrintWriter(propFile);
         props.send(pw);
-        pw.flush();
-
         // Read into Tungsten properties instance.
         BufferedReader br = new BufferedReader(new InputStreamReader(
                 new FileInputStream(propFile)));
         TungstenProperties props2 = TungstenProperties.createFromStream(br);
-        // Check values. These conventions are from Java property files.
-        Assert.assertEquals("Received properties differ from sent ones", props,
-                props2);
         br.close();
+        pw.close();
+        return props2;
+    }
 
+    public void testSendReceiveNegative() throws IOException
+    {
+        PipedInputStream in = new PipedInputStream();
+        PipedOutputStream out = new PipedOutputStream(in);
+        PrintWriter pw = new PrintWriter(out);
+        BufferedReader br = null;
         // Negative test: make sure we get an exception if:
         // 1/ nothing is send
-        pw = new PrintWriter(propFile);
-        pw.flush();
+        pw.close();
         try
         {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(
-                    propFile)));
+            br = new BufferedReader(new InputStreamReader(in));
             TungstenProperties.createFromStream(br);
             fail("Did not get an exception when receiving incomplete properties");
         }
-        catch (IOException expected)
+        catch (IOException excpt)
         {
-            assertEquals(
-                    "Cannot create properties from stream: reached end of stream before end of properties tag",
-                    expected.getLocalizedMessage());
-
+            assertTrue(
+                    "Exception text did not match expected one. "
+                            + "Expected message to start with: \"Cannot create properties "
+                            + "from stream reached end of stream before end of properties "
+                            + "tag - Actual: " + excpt.getLocalizedMessage(),
+                    excpt.getLocalizedMessage()
+                            .startsWith(
+                                    "Cannot create properties from stream: "
+                                            + "reached end of stream before end of properties tag"));
         }
         // 2/ the end of stream is reached before the properties are fully
-        // received (at different steps
+        // received (at each step of the protocol)
+        in = new PipedInputStream();
+        out = new PipedOutputStream(in);
+        pw = new PrintWriter(out);
         pw.println("testKey");
         pw.flush();
+        pw.close();
         try
         {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(
-                    propFile)));
+            br = new BufferedReader(new InputStreamReader(in));
             TungstenProperties.createFromStream(br);
             fail("Did not get an exception when receiving incomplete properties");
         }
-        catch (IOException expected)
+        catch (IOException excpt)
         {
-            assertEquals(
-                    "Cannot create properties from stream: reached end of stream before end of properties tag",
-                    expected.getLocalizedMessage());
-
+            assertTrue(
+                    "Exception text did not match expected one. "
+                            + "Expected message to start with: \"Cannot create properties "
+                            + "from stream reached end of stream before end of properties "
+                            + "tag - Actual: " + excpt.getLocalizedMessage(),
+                    excpt.getLocalizedMessage()
+                            .startsWith(
+                                    "Cannot create properties from stream: "
+                                            + "reached end of stream before end of properties tag"));
         }
+        in = new PipedInputStream();
+        out = new PipedOutputStream(in);
+        pw = new PrintWriter(out);
+        pw.println("testKey");
         pw.println("java.lang.String");
         pw.flush();
+        pw.close();
         try
         {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(
-                    propFile)));
+            br = new BufferedReader(new InputStreamReader(in));
             TungstenProperties.createFromStream(br);
             fail("Did not get an exception when receiving incomplete properties");
         }
-        catch (IOException expected)
+        catch (IOException excpt)
         {
-            assertEquals(
-                    "Cannot create properties from stream: reached end of stream before end of properties tag",
-                    expected.getLocalizedMessage());
+            assertTrue(
+                    "Exception text did not match expected one. "
+                            + "Expected message to start with: \"Cannot create properties "
+                            + "from stream reached end of stream before end of properties "
+                            + "tag - Actual: " + excpt.getLocalizedMessage(),
+                    excpt.getLocalizedMessage()
+                            .startsWith(
+                                    "Cannot create properties from stream: "
+                                            + "reached end of stream before end of properties tag"));
         }
+        in = new PipedInputStream();
+        out = new PipedOutputStream(in);
+        pw = new PrintWriter(out);
+        pw.println("testKey");
+        pw.println("java.lang.String");
         pw.println("testVal");
         pw.flush();
+        pw.close();
         try
         {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(
-                    propFile)));
+            br = new BufferedReader(new InputStreamReader(in));
             TungstenProperties.createFromStream(br);
             fail("Did not get an exception when receiving incomplete properties");
         }
-        catch (IOException expected)
+        catch (IOException excpt)
         {
-            assertEquals(
-                    "Cannot create properties from stream: reached end of stream before end of properties tag",
-                    expected.getLocalizedMessage());
+            assertTrue(
+                    "Exception text did not match expected one. "
+                            + "Expected message to start with: \"Cannot create properties "
+                            + "from stream reached end of stream before end of properties "
+                            + "tag - Actual: " + excpt.getLocalizedMessage(),
+                    excpt.getLocalizedMessage()
+                            .startsWith(
+                                    "Cannot create properties from stream: "
+                                            + "reached end of stream before end of properties tag"));
         }
+        in = new PipedInputStream();
+        out = new PipedOutputStream(in);
+        pw = new PrintWriter(out);
+        pw.println("testKey");
+        pw.println("java.lang.String");
+        pw.println("testVal");
         pw.println(TungstenProperties.ENDOFLINE_TAG);
         pw.flush();
+        pw.close();
         try
         {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(
-                    propFile)));
+            br = new BufferedReader(new InputStreamReader(in));
             TungstenProperties.createFromStream(br);
             fail("Did not get an exception when receiving incomplete properties");
         }
-        catch (IOException expected)
+        catch (IOException excpt)
         {
-            assertEquals(
-                    "Cannot create properties from stream: reached end of stream before end of properties tag",
-                    expected.getLocalizedMessage());
+            assertTrue(
+                    "Exception text did not match expected one. "
+                            + "Expected message to start with: \"Cannot create properties "
+                            + "from stream reached end of stream before end of properties "
+                            + "tag - Actual: " + excpt.getLocalizedMessage(),
+                    excpt.getLocalizedMessage()
+                            .startsWith(
+                                    "Cannot create properties from stream: "
+                                            + "reached end of stream before end of properties tag"));
         }
+
+        // 3/ Try a manual full send
+        in = new PipedInputStream();
+        out = new PipedOutputStream(in);
+        pw = new PrintWriter(out);
+        pw.println("testKey");
+        pw.println("java.lang.String");
+        pw.println("testVal");
+        pw.println(TungstenProperties.ENDOFLINE_TAG);
         pw.println(TungstenProperties.ENDOFPROPERTIES_TAG);
         pw.flush();
-        br = new BufferedReader(new InputStreamReader(new FileInputStream(
-                propFile)));
+        br = new BufferedReader(new InputStreamReader(in));
         TungstenProperties valid = TungstenProperties.createFromStream(br);
         assertEquals("Didn't get expected testval String value in properties",
                 "testVal\n", valid.getString("testKey"));
+
+        // 4/ Try a full send followed by a close
+        in = new PipedInputStream();
+        out = new PipedOutputStream(in);
+        pw = new PrintWriter(out);
+        pw.println("testKey");
+        pw.println("java.lang.String");
+        pw.println("testVal");
+        pw.println(TungstenProperties.ENDOFLINE_TAG);
+        pw.println(TungstenProperties.ENDOFPROPERTIES_TAG);
+        pw.flush();
+        pw.close();
+        br = new BufferedReader(new InputStreamReader(in));
+        TungstenProperties valid2 = TungstenProperties.createFromStream(br);
+        assertEquals("Didn't get expected testval String value in properties",
+                "testVal\n", valid2.getString("testKey"));
 
         pw.close();
         br.close();

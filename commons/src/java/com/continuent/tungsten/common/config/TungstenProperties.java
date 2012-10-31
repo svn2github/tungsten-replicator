@@ -1525,7 +1525,7 @@ public class TungstenProperties implements Serializable
         if (!(o instanceof TungstenProperties))
             return false;
 
-        Map<String, String> tp2 = ((TungstenProperties) o).map();
+        Map<String, Object> tp2 = ((TungstenProperties) o).properties;
         return properties.equals(tp2);
     }
 
