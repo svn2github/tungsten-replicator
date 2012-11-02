@@ -8,7 +8,7 @@ class Ifconfig
   # Can manually specify the platform (should be output of the 'uname' command)
   # and the ifconfig input
   # 
-  def initialize(ifconfig=nil,netstat=nil,verbose=nil)
+  def initialize(input=nil,netstat=nil,verbose=nil)
     if input.nil?
       cmd = IO.popen('which ifconfig 2>/dev/null'){ |f| f.readlines[0].chomp }
       if cmd.nil?
