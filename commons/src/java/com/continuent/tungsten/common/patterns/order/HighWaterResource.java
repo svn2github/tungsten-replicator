@@ -1,6 +1,8 @@
 
 package com.continuent.tungsten.common.patterns.order;
 
+import java.io.Serializable;
+
 /**
  * A HighWater resource allows to represent and compare replicators applied
  * event IDs. It is especially used by session consistency/smart-scale to
@@ -10,8 +12,12 @@ package com.continuent.tungsten.common.patterns.order;
  * 
  * @author <a href="mailto:edward.archibald@continuent.com">Edward Archibald</a>
  */
-public class HighWaterResource implements Comparable<HighWaterResource>
+public class HighWaterResource implements Serializable, Comparable<HighWaterResource>
 {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
     private long                highWaterEpoch    = -1;
     private String              highWaterEventId  = "";
 
