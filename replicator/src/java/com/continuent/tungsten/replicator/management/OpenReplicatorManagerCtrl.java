@@ -125,6 +125,7 @@ public class OpenReplicatorManagerCtrl
         println("                    - Set replicator OFFLINE at future point");
         println("  online [-force] [-from-event event] [-base-seqno x] [-skip-seqno x,y,z] [-until-seqno seqno] [-until-event event] [-until-heartbeat [name]] [-until-time YYYY-MM-DD_hh:mm:ss]");
         println("                    - Set Replicator to ONLINE with start and stop points");
+        println("  purge [-y] [-limit s] - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
         println("  reset [-y]        - Deletes the replicator service");
         println("  restore [-uri uri] [-limit s]  - Restore database");
         println("  setrole -role role [-uri uri]  - Set replicator role");
@@ -275,6 +276,8 @@ public class OpenReplicatorManagerCtrl
                 doHeartbeat();
             else if (command.equals(Commands.FLUSH))
                 doFlush();
+            else if (command.equals(Commands.PURGE))
+                doPurge();
             else if (command.equals(Commands.CONFIGURE))
                 doConfigure();
             else if (command.equals(Commands.SETROLE))
@@ -1020,6 +1023,42 @@ public class OpenReplicatorManagerCtrl
                 + seqno);
     }
 
+    // Handle a purge operation, which kills non-Tungsten DBMS sessions.
+    private void doPurge() throws Exception
+    {
+        // Check for options.
+        boolean yes = false;
+        long seconds = 0;
+        while (argvIterator.hasNext())
+        {
+            String curArg = argvIterator.next();
+            if ("-y".equals(curArg))
+                yes = true;
+            else if ("-limit".equals(curArg))
+                seconds = Long.parseLong(argvIterator.next());
+            else
+                fatal("Unrecognized option: " + curArg, null);
+        }
+
+        // Prompt if user did not enter -yes.
+        if (!yes)
+        {
+            String answer = readline("Do you really want to purge non-Tungsten DBMS sessions? [yes/NO] ");
+            yes = "yes".equals(answer);
+        }
+
+        // If the user really wants to purge user sessions, do it.
+        if (yes)
+        {
+            println("Directing replicator to purge non-Tungsten sessions");
+            TungstenProperties paramProps = new TungstenProperties();
+            if (seconds > 0)
+                paramProps.setLong(OpenReplicatorParams.TIMEOUT, seconds);
+            int count = getOpenReplicator().purge(paramProps.map());
+            println("Number of sessions purged: " + count);
+        }
+    }
+
     // Handle a configure operation.
     private void doConfigure() throws Exception
     {
@@ -1647,6 +1686,7 @@ public class OpenReplicatorManagerCtrl
         public static final String OFFLINE          = "offline";
         public static final String OFFLINE_DEFERRED = "offline-deferred";
         public static final String FLUSH            = "flush";
+        public static final String PURGE            = "purge";
         public static final String HEARTBEAT        = "heartbeat";
         public static final String CONFIGURE        = "configure";
         public static final String SETROLE          = "setrole";

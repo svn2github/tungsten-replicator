@@ -30,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -203,6 +204,38 @@ public interface Database
      * @throws SQLException Thrown if getting variable is unsuccessful
      */
     public String getSessionVariable(String name) throws SQLException;
+
+    /**
+     * Returns true if this implementation supports user management commands.
+     */
+    public boolean supportsUserManagement();
+
+    /**
+     * Creates a user. Works only if the database type supports user management.
+     * This call is intended for testing.
+     * 
+     * @param user User definition
+     */
+    public void createUser(User user) throws SQLException;
+
+    /**
+     * Deletes a user. Works only if the database type supports user management.
+     * This call is intended for testing.
+     * 
+     * @param user User definition
+     * @param ignore If true, ignore error
+     */
+    public void dropUser(User user, boolean ignore) throws SQLException;
+
+    /**
+     * Lists user sessions in the DBMS server.
+     */
+    public List<Session> listSessions() throws SQLException;
+
+    /**
+     * Kills a particular session.
+     */
+    public void kill(Session session) throws SQLException;
 
     /**
      * Return the Table with all its current accompanying Columns that matches

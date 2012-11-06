@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -50,7 +50,7 @@ import com.continuent.tungsten.replicator.management.events.OfflineNotification;
 /**
  * This class defines an OpenReplicatorPlugin that invokes an external program
  * to control replication.
- *
+ * 
  * @author <a href="mailto:seppo.jaakola@continuent.com">Seppo Jaakola</a>
  * @version 1.0
  */
@@ -258,7 +258,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#prepare(OpenReplicatorContext)
      */
     public void prepare(OpenReplicatorContext context)
@@ -269,7 +269,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#release()
      */
     public void release() throws ReplicatorException
@@ -279,7 +279,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#configure(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public synchronized void configure(TungstenProperties properties)
@@ -326,7 +326,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#offlineDeferred(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public void offlineDeferred(TungstenProperties params) throws Exception
@@ -342,7 +342,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#heartbeat(com.continuent.tungsten.common.config.TungstenProperties)
      */
     public boolean heartbeat(TungstenProperties params) throws Exception
@@ -355,7 +355,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
      * Implements a flush operation to synchronize the state of the database
      * with the replication log and return a comparable event ID that can be
      * used in a wait operation on a slave.
-     *
+     * 
      * @param timeout Number of seconds to wait. 0 is indefinite.
      * @return The event ID at which the log is synchronized
      */
@@ -367,8 +367,27 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
     }
 
     /**
+     * Kill logins other than the connection(s) used for replication. @ *
+     * <p/>
+     * The following control parameters are accepted:
+     * <ul>
+     * <li>timeout - Number of seconds to wait for kill operations to complete</li>
+     * </ul>
+     * 
+     * @param params 0 or more control parameters expressed as name-value pairs
+     * @return Number of sessions terminated
+     * @throws Exception Thrown if we timeout or are canceled
+     */
+    public int purge(TungstenProperties params) throws Exception
+    {
+        // For now, just return false.
+        logger.warn("Purge is unsupported for this replicator plugin");
+        return -1;
+    }
+
+    /**
      * Wait for a particular event to be applied on the slave.
-     *
+     * 
      * @param event Event to wait for
      * @param timeout Number of seconds to wait. 0 is indefinite.
      * @return true if requested sequence number or greater applied, else false
@@ -397,7 +416,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#statusList(java.lang.String)
      */
     public List<Map<String, String>> statusList(String name) throws Exception
@@ -408,7 +427,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * Calls the provision method on the script. {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#provision(java.lang.String)
      */
     public void provision(String uri) throws Exception
@@ -436,7 +455,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
 
     /**
      * Sets the replicator role. {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#setRole(java.lang.String,
      *      java.lang.String)
      */

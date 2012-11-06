@@ -374,6 +374,61 @@ public abstract class AbstractDatabase implements Database
     /**
      * {@inheritDoc}
      * 
+     * @see com.continuent.tungsten.replicator.database.Database#supportsUserManagement()
+     */
+    public boolean supportsUserManagement()
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#createUser(com.continuent.tungsten.replicator.database.User)
+     */
+    public void createUser(User user) throws SQLException
+    {
+        throw new UnsupportedOperationException(
+                "User management is not supported");
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#dropUser(com.continuent.tungsten.replicator.database.User,
+     *      boolean)
+     */
+    public void dropUser(User user, boolean ignore) throws SQLException
+    {
+        throw new UnsupportedOperationException(
+                "User management is not supported");
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#listSessions()
+     */
+    public List<Session> listSessions() throws SQLException
+    {
+        throw new UnsupportedOperationException(
+                "User management is not supported");
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#kill(com.continuent.tungsten.replicator.database.Session)
+     */
+    public void kill(Session session) throws SQLException
+    {
+        throw new UnsupportedOperationException(
+                "User management is not supported");
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.database.Database#execute(java.lang.String)
      */
     public void execute(String SQL) throws SQLException

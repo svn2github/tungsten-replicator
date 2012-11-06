@@ -30,6 +30,8 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -539,5 +541,109 @@ public class MySQLDatabase extends AbstractDatabase
         csv.setNullValue("\\N");
         csv.setWriteHeaders(false);
         return csv;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#supportsUserManagement()
+     */
+    public boolean supportsUserManagement()
+    {
+        return true;
+    }
+
+    /**
+     * Creates a user that can connect from any location. If the user is a
+     * superuser, grant all on *.*, otherwise just grant select.
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#createUser(com.continuent.tungsten.replicator.database.User)
+     */
+    @Override
+    public void createUser(User user) throws SQLException
+    {
+        String skeleton;
+        if (user.isPrivileged())
+            skeleton = "grant all on *.* to %s@'%%' identified by '%s' with grant option";
+        else
+            skeleton = "grant select on *.* to %s@'%%' identified by '%s' with grant option";
+        String sql = String.format(skeleton, user.getLogin(),
+                user.getPassword());
+        execute(sql);
+    }
+
+    /**
+     * Drops user, ignoring errors if desired by caller.
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropUser(com.continuent.tungsten.replicator.database.User,
+     *      boolean)
+     */
+    @Override
+    public void dropUser(User user, boolean ignore) throws SQLException
+    {
+        String sql = String.format("drop user %s", user.getLogin());
+        try
+        {
+            execute(sql);
+        }
+        catch (SQLException e)
+        {
+            if (!ignore)
+            {
+                throw e;
+            }
+            else if (logger.isDebugEnabled())
+            {
+                logger.debug("Drop user failed: " + sql, e);
+            }
+        }
+    }
+
+    /**
+     * Issue SHOW PROCESSLIST command to get a list of all currently available
+     * sessions.
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#listSessions()
+     */
+    @Override
+    public List<Session> listSessions() throws SQLException
+    {
+        String sql = "show processlist";
+        Statement stmt = null;
+        ResultSet rs = null;
+        LinkedList<Session> sessions = new LinkedList<Session>();
+        try
+        {
+            stmt = dbConn.createStatement();
+            rs = stmt.executeQuery(sql);
+            while (rs.next())
+            {
+                Session session = new Session();
+                session.setIdentifier(rs.getString("Id"));
+                session.setLogin(rs.getString("User"));
+                sessions.add(session);
+            }
+        }
+        finally
+        {
+            if (rs != null)
+                rs.close();
+            if (stmt != null)
+                stmt.close();
+        }
+
+        return sessions;
+    }
+
+    /**
+     * Issue a KILL command to remove a particular session.
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#kill(com.continuent.tungsten.replicator.database.Session)
+     */
+    @Override
+    public void kill(Session session) throws SQLException
+    {
+        String sql = String.format("kill %s", session.getIdentifier());
+        execute(sql);
     }
 }

@@ -2146,7 +2146,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     }
 
     /**
-     * Invokes purge on underlying replicator plugin. {@inheritDoc}
+     * Invoke purge on underlying replicator plugin. {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean#purge(java.util.Map)
      */
@@ -2155,13 +2155,12 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             @ParamDesc(name = "controlParams", description = "Control parameters for purge operation") Map<String, String> controlParams)
             throws Exception
     {
-        // TungstenProperties params = new TungstenProperties(controlParams);
+        TungstenProperties params = new TungstenProperties(controlParams);
 
         try
         {
             logger.info("Received connection purge request");
-            // TODO: return openReplicator.purge(params);
-            return 0;
+            return openReplicator.purge(params);
         }
         catch (Exception e)
         {
