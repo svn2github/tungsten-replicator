@@ -22,8 +22,6 @@
 
 package com.continuent.tungsten.common.cluster.resource.notification;
 
-import java.sql.SQLException;
-
 import com.continuent.tungsten.common.cluster.resource.DataServer;
 import com.continuent.tungsten.common.cluster.resource.ResourceState;
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
