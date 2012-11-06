@@ -24,6 +24,10 @@ package com.continuent.tungsten.common.cluster.resource;
 
 import java.io.Serializable;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import com.continuent.tungsten.common.config.TungstenProperties;
 
 /**
@@ -31,6 +35,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
  * definitive reference to names that replicators must use for monitoring
  * properties.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Replicator extends Resource implements Serializable
 {
     /**
@@ -173,6 +178,7 @@ public class Replicator extends Resource implements Serializable
     private String             resourceJdbcDriver             = null;
     private String             resourceJdbcUrl                = null;
     private String             role                           = null;
+    private String             state                          = null;
     private boolean            isStandbyDataSource            = false;
     private long               latestEpochNumber              = -1L;
     private String             appliedLastEventId             = null;
@@ -193,7 +199,10 @@ public class Replicator extends Resource implements Serializable
     public static final long   DEFAULT_LATEST_EPOCH_NUMBER    = -1;
     public static final String DEFAULT_LAST_EVENT_ID          = "0:0";
 
-    public Replicator(String key, String clusterName, String host)
+    @JsonCreator
+    public Replicator(@JsonProperty("name") String key,
+            @JsonProperty("dataServiceName") String clusterName,
+            @JsonProperty("host") String host)
     {
         super(ResourceType.REPLICATOR, key);
         this.dataServiceName = clusterName;
@@ -208,17 +217,9 @@ public class Replicator extends Resource implements Serializable
                 replicatorProps.getString(Replicator.CLUSTERNAME),
                 replicatorProps.getString(Replicator.SOURCEID));
 
-        newReplicator.setVendor(replicatorProps
-                .getString(Replicator.RESOURCE_VENDOR));
-        newReplicator.setResourceJdbcDriver(replicatorProps.getString(
-                Replicator.RESOURCE_JDBC_URL).trim());
-        newReplicator.setResourceJdbcDriver(replicatorProps.getString(
-                Replicator.RESOURCE_JDBC_DRIVER).trim());
-        newReplicator.setRole(replicatorProps.getString(Replicator.ROLE)
-                .toLowerCase());
+        newReplicator.setRole(replicatorProps.getString(Replicator.ROLE));
 
-        newReplicator.setStandbyDataSource(replicatorProps
-                .getBoolean(Replicator.RESOURCE_IS_STANDBY_DATASOURCE));
+        newReplicator.setState(replicatorProps.getString(Replicator.STATE));
 
         newReplicator.setLatestEpochNumber(replicatorProps.getLong(
                 Replicator.LATEST_EPOCH_NUMBER, "0", false));
@@ -227,12 +228,6 @@ public class Replicator extends Resource implements Serializable
                 .getString(Replicator.APPLIED_LAST_EVENT_ID));
         newReplicator.setAppliedLatency(replicatorProps
                 .getDouble(Replicator.APPLIED_LATENCY));
-
-        newReplicator.setVipInterface(replicatorProps.getString(
-                Replicator.RESOURCE_VIP_INTERFACE, null, true));
-
-        newReplicator.setVipAddress(replicatorProps.getString(
-                Replicator.RESOURCE_VIP_ADDRESS, null, true));
 
         newReplicator.setMasterConnectUri(replicatorProps
                 .getString(Replicator.MASTER_CONNECT_URI));
@@ -540,6 +535,26 @@ public class Replicator extends Resource implements Serializable
     public void setMasterListenUri(String masterListenUri)
     {
         this.masterListenUri = masterListenUri;
+    }
+
+    /**
+     * Returns the state value.
+     * 
+     * @return Returns the state.
+     */
+    public String getState()
+    {
+        return state;
+    }
+
+    /**
+     * Sets the state value.
+     * 
+     * @param state The state to set.
+     */
+    public void setState(String state)
+    {
+        this.state = state;
     }
 
 }

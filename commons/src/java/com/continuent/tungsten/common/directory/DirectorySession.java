@@ -3,7 +3,6 @@ package com.continuent.tungsten.common.directory;
 
 import java.io.Serializable;
 
-@org.jboss.cache.pojo.annotation.Replicable
 public class DirectorySession implements Serializable
 {
     /**

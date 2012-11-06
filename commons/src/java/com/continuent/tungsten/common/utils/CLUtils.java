@@ -445,40 +445,15 @@ public class CLUtils implements Serializable
             }
         }
 
-        long activeConnections = -1;
-        long connectionsCreated = -1;
-
-        // The following properties may not be set, so ignore exceptions.
-        try
-        {
-            activeConnections = dsProps
-                    .getLong(DataSource.ACTIVE_CONNECTION_COUNT);
-
-            connectionsCreated = dsProps
-                    .getLong(DataSource.CONNECTIONS_CREATED_COUNT);
-        }
-        catch (Exception ignored)
-        {
-        }
-
         String connectionStats = "";
         boolean isComposite = dsProps.getBoolean(DataSource.ISCOMPOSITE,
                 "false", false);
-        //
-        // if ((activeConnections != 0 || connectionsCreated != 0) &&
-        // !isComposite)
-        // {
-        // connectionStats = String.format("[created=%d, active=%d]",
-        // connectionsCreated, activeConnections);
-        // }
 
         String dsHeader = String.format("%s%s(%s:%s%s%s) %s", dsProps
                 .getString("name"), modifiedSign(wasModified), String.format(
                 "%s%s", (isComposite ? "composite " : ""),
                 dsProps.getString("role")), dsProps.getString("state"),
                 failureInfo, additionalInfo, connectionStats);
-
-        long alertTime = 0;
 
         String alertMessage = dsProps.getString(DataSource.ALERT_MESSAGE, "",
                 false);

@@ -25,7 +25,6 @@ package com.continuent.tungsten.manager.resource.physical;
 import com.continuent.tungsten.common.cluster.resource.Resource;
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
 
-@org.jboss.cache.pojo.annotation.Replicable
 public class Cluster extends Resource
 {
     /**

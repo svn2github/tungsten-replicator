@@ -63,6 +63,7 @@ class DiagSignalHandler implements SignalHandler
     }
 
     // Signal handler method
+    @SuppressWarnings("unused")
     public void handle(Signal sig)
     {
         System.out

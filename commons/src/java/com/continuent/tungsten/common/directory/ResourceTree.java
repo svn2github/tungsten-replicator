@@ -32,7 +32,6 @@ import com.continuent.tungsten.common.cluster.resource.Resource;
  * @author <a href="mailto:edward.archibald@continuent.com">Ed Archibald</a>
  * @version 1.0
  */
-@org.jboss.cache.pojo.annotation.Replicable
 public class ResourceTree extends Resource implements Serializable
 {
     /**

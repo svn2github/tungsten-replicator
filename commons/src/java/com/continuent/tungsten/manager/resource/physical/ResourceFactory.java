@@ -25,7 +25,6 @@ package com.continuent.tungsten.manager.resource.physical;
 import com.continuent.tungsten.common.cluster.resource.Queue;
 import com.continuent.tungsten.common.cluster.resource.Resource;
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
-import com.continuent.tungsten.common.cluster.resource.notification.ClusterResourceNotification;
 import com.continuent.tungsten.common.directory.Directory;
 import com.continuent.tungsten.common.directory.ResourceNode;
 import com.continuent.tungsten.common.exception.ResourceException;

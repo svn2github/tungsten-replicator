@@ -1,6 +1,7 @@
 
 package com.continuent.tungsten.common.utils;
 
+@SuppressWarnings("rawtypes")
 public class TraceVector implements Comparable
 {
     private TraceVectorComponent component;

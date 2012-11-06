@@ -197,6 +197,7 @@ public class ReflectUtils
     /**
      * Maps primitive types to their corresponding wrapper classes.
      */
+    @SuppressWarnings("rawtypes")
     private static Map primitiveWrapperMap = new HashMap();
     static
     {
@@ -220,6 +221,7 @@ public class ReflectUtils
      *         <code>cls</code> is not a primitive. <code>null</code> if null
      *         input.
      */
+    @SuppressWarnings("rawtypes")
     public static Class primitiveToWrapper(Class clazz)
     {
         Class convertedClass = clazz;

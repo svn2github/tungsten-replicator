@@ -22,7 +22,7 @@ public class BindPort
 
             try
             {
-                ServerSocket s = new ServerSocket(port);
+                new ServerSocket(port);
                 System.out.println("listening on port " + port);
                 sleep(Long.MAX_VALUE);
 

@@ -10,7 +10,6 @@ import com.continuent.tungsten.common.utils.ResultFormatter;
 /**
  * @author edward
  */
-@org.jboss.cache.pojo.annotation.Replicable
 public abstract class Resource implements Serializable
 {
     /**

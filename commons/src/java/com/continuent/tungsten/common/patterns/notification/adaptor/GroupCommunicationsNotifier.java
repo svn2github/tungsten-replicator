@@ -276,8 +276,7 @@ public class GroupCommunicationsNotifier
 
     }
 
-    @SuppressWarnings("unchecked")
-    public void networkPartition(GroupIdentifier arg0, List arg1)
+    public void networkPartition(GroupIdentifier arg0, @SuppressWarnings("rawtypes") List arg1)
     {
         // TODO Auto-generated method stub
 
@@ -311,5 +310,25 @@ public class GroupCommunicationsNotifier
     {
         // TODO Auto-generated method stub
 
+    }
+
+    /**
+     * Returns the lastState value.
+     * 
+     * @return Returns the lastState.
+     */
+    public String getLastState()
+    {
+        return lastState;
+    }
+
+    /**
+     * Sets the lastState value.
+     * 
+     * @param lastState The lastState to set.
+     */
+    public void setLastState(String lastState)
+    {
+        this.lastState = lastState;
     }
 }

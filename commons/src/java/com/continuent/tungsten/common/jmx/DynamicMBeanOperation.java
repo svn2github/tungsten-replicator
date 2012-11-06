@@ -154,7 +154,6 @@ public class DynamicMBeanOperation implements Serializable
      * @param paramMap
      * @return an array of objects in param order
      */
-    @SuppressWarnings("unchecked")
     public Object[] validateAndGetNamedParams(Map<String, Object> paramMap)
             throws Exception
     {
@@ -205,7 +204,7 @@ public class DynamicMBeanOperation implements Serializable
                         // exception.
                         if (mbeanParam.getType().isPrimitive())
                         {
-                            Class wrapperClass = ReflectUtils
+                            Class<?> wrapperClass = ReflectUtils
                                     .primitiveToWrapper(mbeanParam.getType());
                             paramValue = wrapperClass.getConstructor(
                                     String.class).newInstance(paramValue);
@@ -344,7 +343,7 @@ public class DynamicMBeanOperation implements Serializable
     /**
      * Single line representation of parameters.
      */
-    private String formatParams(Map<String, DynamicMBeanParam> params,
+    public String formatParams(Map<String, DynamicMBeanParam> params,
             boolean includeDescription)
     {
         return formatParams(params, includeDescription, false, null);

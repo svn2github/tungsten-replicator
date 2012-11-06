@@ -1476,6 +1476,7 @@ public class Directory extends ResourceTree
      * @param detailed
      * @return string representation of the entries
      */
+    @SuppressWarnings("unchecked")
     public static String formatEntries(List<ResourceNode> entries,
             ResourceNode startNode, boolean detailed, boolean absolute)
     {

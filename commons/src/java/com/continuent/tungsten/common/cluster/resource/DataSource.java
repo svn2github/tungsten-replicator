@@ -11,11 +11,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.patterns.order.HighWaterResource;
 import com.continuent.tungsten.common.patterns.order.Sequence;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DataSource extends Resource implements Serializable
 {
     private static final long              serialVersionUID               = 8153881753668230575L;
@@ -42,7 +47,7 @@ public class DataSource extends Resource implements Serializable
     public static final String             VIPINTERFACE                   = "vipInterface";
     public static final String             VIPADDRESS                     = "vipAddress";
     public static final String             VIPISBOUND                     = "vipIsBound";
-    public static final String             ACTIVE_CONNECTION_COUNT        = "activeConnectionCount";
+    public static final String             ACTIVE_CONNECTION_COUNT        = "activeConnectionsCount";
     public static final String             CONNECTIONS_CREATED_COUNT      = "connectionsCreatedCount";
     public static final String             TYPE                           = "type";
 
@@ -64,7 +69,7 @@ public class DataSource extends Resource implements Serializable
     private String                         url                            = "";
     private boolean                        isComposite                    = false;
     private int                            precedence                     = 0;
-    private boolean                        isAvailable                    = false;
+    private boolean                        available                      = false;
 
     private ResourceState                  state                          = ResourceState.UNKNOWN;
 
@@ -79,12 +84,13 @@ public class DataSource extends Resource implements Serializable
     private Date                           updateTimestamp                = new Date();
     private Date                           lastUpdate                     = new Date();
 
+    @SuppressWarnings("unused")
     private boolean                        isStandby                      = false;
 
     private HighWaterResource              highWater                      = new HighWaterResource();
 
     // Statistics.
-    private AtomicLong                     activeConnectionCount          = new AtomicLong(
+    private AtomicLong                     activeConnectionsCount         = new AtomicLong(
                                                                                   0);
     private AtomicLong                     connectionsCreatedCount        = new AtomicLong(
                                                                                   0);
@@ -168,7 +174,10 @@ public class DataSource extends Resource implements Serializable
         }
     }
 
-    public DataSource(String key, String clusterName, String host)
+    @JsonCreator
+    public DataSource(@JsonProperty("name") String key,
+            @JsonProperty("dataServiceName") String clusterName,
+            @JsonProperty("host") String host)
     {
         super(ResourceType.DATASOURCE, key);
         this.dataServiceName = clusterName;
@@ -198,6 +207,7 @@ public class DataSource extends Resource implements Serializable
      * 
      * @return the active connections set
      */
+    @JsonIgnore
     public Set<DatabaseConnection> getActiveConnections()
     {
         return activeConnections;
@@ -209,7 +219,8 @@ public class DataSource extends Resource implements Serializable
         dsProps.setString(NAME, replicatorProps.getString(Replicator.SOURCEID));
         dsProps.setString(CLUSTERNAME,
                 replicatorProps.getString(Replicator.CLUSTERNAME));
-        dsProps.setString(HOST, replicatorProps.getString(Replicator.DATASERVERHOST));
+        dsProps.setString(HOST,
+                replicatorProps.getString(Replicator.DATASERVERHOST));
 
         dsProps.setString(VENDOR,
                 replicatorProps.getString(Replicator.RESOURCE_VENDOR));
@@ -359,7 +370,7 @@ public class DataSource extends Resource implements Serializable
      */
     public boolean isAvailable()
     {
-        return isAvailable;
+        return available;
     }
 
     /**
@@ -367,7 +378,7 @@ public class DataSource extends Resource implements Serializable
      */
     public boolean getIsAvailable()
     {
-        return isAvailable;
+        return available;
     }
 
     public void setCritical(String message)
@@ -380,7 +391,7 @@ public class DataSource extends Resource implements Serializable
      */
     public void setIsAvailable(boolean isAvailable)
     {
-        this.isAvailable = isAvailable;
+        this.available = isAvailable;
 
         if (isAvailable)
         {
@@ -471,7 +482,7 @@ public class DataSource extends Resource implements Serializable
         props.setString(LASTERROR, getLastError());
         props.setString(LASTSHUNREASON, getLastShunReason());
         props.setDouble(APPLIED_LATENCY, appliedLatency);
-        props.setLong(ACTIVE_CONNECTION_COUNT, activeConnectionCount.get());
+        props.setLong(ACTIVE_CONNECTION_COUNT, activeConnectionsCount.get());
         props.setLong(CONNECTIONS_CREATED_COUNT, connectionsCreatedCount.get());
         props.setLong("statementsCreatedCount", statementsCreatedCount.get());
         props.setLong("preparedStatementsCreatedCount",
@@ -520,6 +531,7 @@ public class DataSource extends Resource implements Serializable
      * 
      * @return Returns the sequence.
      */
+    @JsonIgnore
     public Sequence getSequence()
     {
         return sequence;
@@ -528,7 +540,7 @@ public class DataSource extends Resource implements Serializable
     public void incrementActiveConnections()
     {
 
-        long count = activeConnectionCount.incrementAndGet();
+        long count = activeConnectionsCount.incrementAndGet();
         logger.debug("Incremented connections for datasource: name="
                 + this.getName() + " count=" + count);
 
@@ -537,7 +549,7 @@ public class DataSource extends Resource implements Serializable
     public void decrementActiveConnections()
     {
 
-        long count = activeConnectionCount.decrementAndGet();
+        long count = activeConnectionsCount.decrementAndGet();
         logger.debug("Decremented connections for datasource: name="
                 + this.getName() + " count=" + count);
 
@@ -546,6 +558,7 @@ public class DataSource extends Resource implements Serializable
     /**
      * Returns the number of connections created on this datasource.
      */
+    @JsonProperty()
     public long getConnectionsCreated()
     {
         return connectionsCreatedCount.get();
@@ -691,6 +704,7 @@ public class DataSource extends Resource implements Serializable
         this.host = host;
     }
 
+    @JsonIgnore
     public HighWaterResource getHighWater()
     {
         return highWater;
@@ -893,9 +907,9 @@ public class DataSource extends Resource implements Serializable
     }
 
     /**
-     * Returns the isStandby value.
+     * Returns the standby value.
      * 
-     * @return Returns the isStandby.
+     * @return Returns the standby.
      */
     public boolean isStandby()
     {
@@ -903,9 +917,9 @@ public class DataSource extends Resource implements Serializable
     }
 
     /**
-     * Sets the isStandby value.
+     * Sets the standby value.
      * 
-     * @param isStandby The isStandby to set.
+     * @param standby The standby to set.
      */
     public void setStandby(boolean isStandby)
     {

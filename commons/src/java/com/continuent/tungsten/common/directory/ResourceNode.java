@@ -23,10 +23,8 @@
 package com.continuent.tungsten.common.directory;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.continuent.tungsten.common.cluster.resource.Resource;
@@ -36,7 +34,7 @@ import com.continuent.tungsten.common.cluster.resource.ResourceType;
  * @author <a href="mailto:edward.archibald@continuent.com">Ed Archibald</a>
  * @version 1.0
  */
-@org.jboss.cache.pojo.annotation.Replicable
+@SuppressWarnings("rawtypes")
 public class ResourceNode implements Comparable, Serializable
 {
     /**

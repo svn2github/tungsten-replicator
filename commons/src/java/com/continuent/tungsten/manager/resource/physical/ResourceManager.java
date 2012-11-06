@@ -31,7 +31,6 @@ import com.continuent.tungsten.common.directory.ResourceNode;
 import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
 import com.continuent.tungsten.common.jmx.DynamicMBeanOperation;
 
-@org.jboss.cache.pojo.annotation.Replicable
 public class ResourceManager extends Resource
 {
     /**
