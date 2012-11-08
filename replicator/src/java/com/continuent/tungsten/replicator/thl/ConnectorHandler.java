@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,6 +28,7 @@ import java.nio.channels.SocketChannel;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.EventId;
 import com.continuent.tungsten.replicator.database.EventIdFactory;
@@ -59,6 +60,8 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
     private volatile boolean cancelled = false;
     private volatile boolean finished  = false;
 
+    private volatile boolean checkFirstSeqno = true;
+
     private static Logger    logger    = Logger.getLogger(ConnectorHandler.class);
 
     // Implements call-back to check log consistency between client and
@@ -82,8 +85,12 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
             // Get the heartbeat interval and check it.
             heartbeatMillis = handshakeResponse.getHeartbeatMillis();
             logger.info("New THL client connection: sourceID="
-                    + handshakeResponse.getSourceId() + " heartbeatMillis="
-                    + heartbeatMillis);
+                    + handshakeResponse.getSourceId()
+                    + " heartbeatMillis="
+                    + heartbeatMillis
+                    + " options="
+                    + new TungstenProperties(handshakeResponse.getOptions())
+                            .toString());
             if (heartbeatMillis <= 0)
                 throw new THLException(
                         "Client heartbeat requests must be greater than zero: "
@@ -92,6 +99,9 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
             // Vet the epoch number and sequence number.
             long clientLastEpochNumber = handshakeResponse.getLastEpochNumber();
             long clientLastSeqno = handshakeResponse.getLastSeqno();
+            long masterMaxSeqno = thl.getMaxStoredSeqno();
+            long masterMinSeqno = thl.getMinStoredSeqno();
+
             String eventIdString = handshakeResponse
                     .getOption(ProtocolParams.INIT_EVENT_ID);
 
@@ -99,6 +109,13 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                     && eventIdString == null)
             {
                 logger.info("Client log checking disabled; not checking for diverging histories");
+            }
+            else if (masterMaxSeqno == -1 && masterMinSeqno == -1)
+            {
+                // If the master log is empty, we cannot check anything. Defer
+                // the log consistency check until later.
+                checkFirstSeqno = true;
+                logger.info("Server log is empty; deferring log consistency checking until first transaction");
             }
             else
             {
@@ -125,11 +142,13 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                         if (event == null)
                         {
                             throw new THLException(
-                                    "Client requested non-existent transaction: client source ID="
+                                "Master log does not contain requested transaction: client source ID="
                                             + handshakeResponse.getSourceId()
                                             + " seqno=" + clientLastSeqno
-                                            + " client epoch number="
-                                            + clientLastEpochNumber);
+                                        + " epoch number="
+                                        + clientLastEpochNumber
+                                        + " master min seqno=" + masterMinSeqno
+                                        + " master max seqno=" + masterMaxSeqno);
                         }
                         else
                         {
@@ -357,6 +376,26 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                         continue;
                     }
 
+                    // If we could not check the first event back to confirm log
+                    // consistency, do that now.
+                    if (checkFirstSeqno)
+                    {
+                        logger.info("Checking first seqno returned by THL for consistency: client expected seqno="
+                                + seqno
+                                + " server returned seqno="
+                                + event.getSeqno());
+
+                        if (event.getSeqno() != seqno)
+                        {
+                            THLException e = new THLException(
+                                    "Server does not have seqno expected by the client: client requested seqno="
+                                            + seqno + " server seqno returned="
+                                            + event.getSeqno());
+                            protocol.sendError(e.getMessage());
+                            throw e;
+                        }
+                        checkFirstSeqno = false;
+                    }
                     // Peel off and process the underlying replication event.
                     ReplEvent revent = event.getReplEvent();
                     if (revent instanceof ReplDBMSEvent

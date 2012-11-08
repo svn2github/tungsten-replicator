@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -32,6 +32,8 @@ import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
@@ -48,6 +50,13 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 public class Protocol
 {
     private static Logger        logger                   = Logger.getLogger(Protocol.class);
+
+    // Constants used for options and capabilities.
+    private static String        SOURCE_ID                = "source_id";
+    private static String        ROLE                     = "role";
+    private static String        VERSION                  = "version";
+    private static String        MIN_SEQNO                = "min_seqno";
+    private static String        MAX_SEQNO                = "max_seqno";
 
     protected PluginContext      pluginContext            = null;
     protected SocketChannel      channel                  = null;
@@ -108,8 +117,8 @@ public class Protocol
         this.bufferSize = context.getReplicatorProperties().getInt(
                 ReplicatorConf.THL_PROTOCOL_BUFFER_SIZE);
         buffering = bufferSize > 0;
-        if (buffering)
-            logger.info("THL protocol buffering enabled: size=" + bufferSize);
+        if (buffering && logger.isDebugEnabled())
+            logger.debug("THL protocol buffering enabled: size=" + bufferSize);
     }
 
     /**
@@ -199,7 +208,14 @@ public class Protocol
             long minSeqNo, long maxSeqNo) throws ReplicatorException,
             IOException, InterruptedException
     {
-        writeMessage(new ProtocolHandshake());
+        ProtocolHandshake handshake = new ProtocolHandshake();
+        handshake.setCapability(SOURCE_ID, pluginContext.getSourceId());
+        handshake.setCapability(ROLE, pluginContext.getRoleName());
+        handshake.setCapability(VERSION,
+                ManifestParser.parseReleaseWithBuildNumber());
+        handshake.setCapability(MIN_SEQNO, new Long(minSeqNo).toString());
+        handshake.setCapability(MAX_SEQNO, new Long(maxSeqNo).toString());
+        writeMessage(handshake);
         ProtocolMessage response = readMessage();
         if (response instanceof ProtocolHandshakeResponse)
         {
@@ -242,9 +258,15 @@ public class Protocol
         ProtocolMessage handshake = readMessage();
         if (handshake instanceof ProtocolHandshake == false)
             throw new THLException("Invalid handshake");
+        ProtocolHandshake protocolHandshake = (ProtocolHandshake) handshake;
+        logger.info("Received master handshake: options="
+                + new TungstenProperties(protocolHandshake.getCapabilities())
+                        .toString());
         ProtocolHandshakeResponse response = new ProtocolHandshakeResponse(
                 pluginContext.getSourceId(), lastEpochNumber, lastSeqno,
                 heartbeatMillis);
+        response.setOption(VERSION,
+                ManifestParser.parseReleaseWithBuildNumber());
         if (lastEventId != null)
             response.setOption(ProtocolParams.INIT_EVENT_ID, lastEventId);
         writeMessage(response);
