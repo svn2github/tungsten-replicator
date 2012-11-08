@@ -120,6 +120,16 @@ public class DataSource extends Resource implements Serializable
     private static Set<DatabaseConnection> activeConnections              = Collections
                                                                                   .synchronizedSet(new HashSet<DatabaseConnection>());
 
+    /**
+     * 
+     * Creates a new <code>DataSource</code> object
+     *
+     */
+    public DataSource()
+    {
+        super(ResourceType.DATASOURCE, "unknown");
+    }
+    
     public DataSource(TungstenProperties props)
     {
         super(ResourceType.DATASOURCE, props.getString(DataSource.NAME,

@@ -199,6 +199,18 @@ public class Replicator extends Resource implements Serializable
     public static final long   DEFAULT_LATEST_EPOCH_NUMBER    = -1;
     public static final String DEFAULT_LAST_EVENT_ID          = "0:0";
 
+    /**
+     * 
+     * Creates a new <code>Replicator</code> object
+     *
+     */
+    public Replicator()
+    {
+        super(ResourceType.REPLICATOR, "unknown");
+        this.dataServiceName = "unknown";
+        this.host = "unknown";
+    }
+
     @JsonCreator
     public Replicator(@JsonProperty("name") String key,
             @JsonProperty("dataServiceName") String clusterName,
