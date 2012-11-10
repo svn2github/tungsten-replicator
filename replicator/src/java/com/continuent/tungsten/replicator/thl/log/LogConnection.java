@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -178,6 +178,24 @@ public class LogConnection
      * event in question may be past the end of the current log, in which case
      * we position at the end. It is not possible to seek on an event that is
      * before the beginning of the log.
+     * <p/>
+     * The current log seek semantics are slightly ambiguous due to the presence
+     * of filtered events, which introduce gaps in the log. The log seek may
+     * <em>falsely report</em> that it has found an event in the log if it hits a log
+     * rotate event at the end before finding a non-existent event. In this case
+     * it will place the cursor at the last event in the log, if it exists. This
+     * ambiguous case <em>only</em> occurs under the following circumstances:
+     * <ol>
+     * <li>The log file is still open for writing when the seek starts.</li>
+     * <li>The log rotates while the seek operation is being processed.</li>
+     * <li>The sought-for event ends up being written to the next log file.</li>
+     * </ol>
+     * </p>
+     * Conversely, seek may <em>fail</em> to find a filtered event if that event
+     * is the last event in the last log file and the filtered event includes a
+     * span of more than one sequence number. 
+     * <p/>
+     * These ambiguities will be addressed in a future version of the log.
      * 
      * @param seqno Desired sequence number
      * @param fragno Desired fragment
@@ -236,6 +254,10 @@ public class LogConnection
             return true;
         }
 
+        // Track the previous event log record. This enables us to return
+        // filtered events, which skip sequence numbers.
+        LogRecord previousLogRecord = null;
+
         // Look for the sequence number we are trying to find.
         long lastSeqno = logFile.getBaseSeqno();
         while (true)
@@ -285,24 +307,35 @@ public class LogConnection
                     if (eventReader.getSeqno() == seqno
                             && eventReader.getFragno() == fragno)
                     {
+                        // We found the event we are looking for.
                         if (logger.isDebugEnabled())
                             logger.debug("Found requested event (" + seqno
                                     + "/" + fragno + ")");
-                        // We found the event we are looking for.
                         pendingEvent = deserialize(logRecord);
+                        break;
+                    }
+                    else if (eventReader.getSeqno() > seqno
+                            && previousLogRecord != null)
+                    {
+                        // We have filtered events, i.e., a gap in the
+                        // number sequence. Return the previous event.
+                        if (logger.isDebugEnabled())
+                            logger.debug("Found filtered event (" + seqno + "/"
+                                    + fragno + ")");
+                        pendingEvent = deserialize(previousLogRecord);
                         break;
                     }
                     else if (eventReader.getSeqno() > seqno
                             || (eventReader.getSeqno() == seqno && eventReader
                                     .getFragno() > fragno))
                     {
+                        // Our event is simply not in the log.
                         if (logger.isDebugEnabled())
                             logger.debug("Requested event (" + seqno + "/"
                                     + fragno + ") not found. Found event "
                                     + eventReader.getSeqno() + "/"
                                     + eventReader.getFragno() + " instead");
 
-                        // Our event is simply not in the log.
                         break;
                     }
                     else
@@ -316,12 +349,23 @@ public class LogConnection
 
                         // Remember which seqno we saw and keep going.
                         lastSeqno = eventReader.getSeqno();
+                        previousLogRecord = logRecord;
                     }
                 }
                 else if (recordType == LogRecord.EVENT_ROTATE)
                 {
                     // We are on a rotate log event. This means the event is not
-                    // there.
+                    // there OR the seqno is part of a filtered event at the end
+                    // of the log file. We'll return the event, whatever it is.
+                    if (previousLogRecord != null)
+                    {
+                        // We guess that we have a filtered event. This might
+                        // not be correct.
+                        if (logger.isDebugEnabled())
+                            logger.debug("Found suspected filtered event ("
+                                    + seqno + "/" + fragno + ")");
+                        pendingEvent = deserialize(previousLogRecord);
+                    }
                     break;
                 }
                 else
@@ -507,7 +551,7 @@ public class LogConnection
                     event = deserialize(logRecord);
                     if (event.getSeqno() < this.pendingSeqno)
                     {
-                        // If we are seeking a future event, keep trying.  
+                        // If we are seeking a future event, keep trying.
                         event = null;
                         continue;
                     }

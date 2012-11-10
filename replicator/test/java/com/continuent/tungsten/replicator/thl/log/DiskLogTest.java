@@ -592,6 +592,81 @@ public class DiskLogTest extends TestCase
     }
 
     /**
+     * Verify that we can seek and return a filtered event by looking for any
+     * seqno value from the starting to ending seqno. Confirm also that we are
+     * not confused by bracketing non-filtered events.
+     */
+    public void testSeekFilteredEvent() throws Exception
+    {
+        // Create the log.
+        File logDir = prepareLogDir("testSeekFilteredEvent");
+        DiskLog log = openLog(logDir, false);
+
+        // Write 5 non-filtered events.
+        long seqno = 0;
+        LogConnection conn = log.connect(false);
+        logger.info("Writing five unfiltered events");
+        for (int i = 0; i < 5; i++)
+        {
+            THLEvent e = this.createTHLEvent(seqno++);
+            conn.store(e, false);
+        }
+
+        // Filter five events.
+        long endSeqno = seqno + 4;
+        logger.info("Filtering 5 events: start=" + seqno + " end=" + endSeqno);
+        THLEvent fe = this.createFilteredTHLEvent(seqno, endSeqno, (short) 0);
+        conn.store(fe, false);
+        seqno += 5;
+
+        // Write 5 non-filtered events.
+        logger.info("Writing five unfiltered events");
+        for (int i = 0; i < 5; i++)
+        {
+            THLEvent e = this.createTHLEvent(seqno++);
+            conn.store(e, false);
+        }
+        conn.commit();
+        conn.release();
+        log.release();
+
+        // Ensure all events are stored.
+        assertEquals("Should have stored requested events", (seqno - 1),
+                log.getMaxSeqno());
+        logger.info("Final seqno: " + (seqno - 1));
+
+        // Seek for and find first event before filtered events.
+        DiskLog log2 = openLog(logDir, true);
+        log2.validate();
+        LogConnection conn2 = log2.connect(true);
+
+        conn2.seek(4);
+        THLEvent eBefore = conn2.next(false);
+        ReplDBMSEvent reBefore = (ReplDBMSEvent) eBefore.getReplEvent();
+        assertTrue("Expect a ReplDBMSEvent", reBefore instanceof ReplDBMSEvent);
+
+        // Prove we can see and find filtered event using any seqno within
+        // the filtered range.
+        for (int i = 5; i <= 9; i++)
+        {
+            logger.info("Seeking filtered event: seqno=" + i);
+            assertTrue("Seeking sequence number: seqno=" + i,
+                    conn2.seek(i, (short) 0));
+            THLEvent eFiltered = conn2.next(false);
+            this.validateFilteredEvent(eFiltered, 5, 9);
+        }
+
+        // Find non-filtered event following.
+        conn2.seek(10);
+        THLEvent eAfter = conn2.next(false);
+        ReplDBMSEvent reAfter = (ReplDBMSEvent) eAfter.getReplEvent();
+        assertTrue("Expect a ReplDBMSEvent", reAfter instanceof ReplDBMSEvent);
+
+        // All done.
+        log2.release();
+    }
+
+    /**
      * Confirm that after seeking on a log file next() returns each event in log
      * file followed by a null after the rotate log event. This behavior should
      * be identical for both blocking and non-blocking connections.
@@ -987,6 +1062,89 @@ public class DiskLogTest extends TestCase
 
         // Read back expected number of events.
         readBackStoredEvents(log2, 0, 200);
+
+        // Close the log.
+        log2.release();
+    }
+
+    /**
+     * Confirm that we can write and seek across multiple logs with rotation
+     * events when the logs contain only filtered values. This catches possible
+     * corner cases where filtered events are present at the beginning and end
+     * of log files.
+     */
+    public void testMultipleLogsFiltered() throws Exception
+    {
+        // Create the log and write multiple events.
+        File logDir = prepareLogDir("testMultipleLogsFiltered");
+        DiskLog log = openLog(logDir, false, 1000);
+
+        // Fill log with unfiltered events.
+        LogConnection conn = log.connect(false);
+        long seqno = 0;
+        for (int i = 0; i < 100; i++)
+        {
+            THLEvent fe = this.createFilteredTHLEvent(seqno, seqno + 4,
+                    (short) 0);
+            conn.store(fe, false);
+            seqno += 5;
+        }
+        // Add a final event that filters only one seqno. This is necessary to
+        // avoid ambiguity at the end of the log. Then commit and release.
+        conn.store(createFilteredTHLEvent(seqno, seqno, (short) 0), false);
+        conn.commit();
+        conn.release();
+
+        // Assert that we stored multiple files.
+        logger.info("Log file count: " + log.fileCount());
+        assertTrue("More than one log file", log.fileCount() > 1);
+        log.release();
+
+        // Reopen and read back all filtered events.
+        DiskLog log2 = openLog(logDir, true);
+        LogConnection conn2 = log2.connect(true);
+        assertTrue("Find first filtered event", conn2.seek(0));
+
+        for (int i = 0; i < 100; i++)
+        {
+            THLEvent e = conn2.next(false);
+            long start = i * 5;
+            long end = start + 4;
+            validateFilteredEvent(e, start, end);
+            ReplDBMSFilteredEvent fe = (ReplDBMSFilteredEvent) e.getReplEvent();
+            logger.info("Found filtered event: start=" + fe.getSeqno()
+                    + " end=" + fe.getSeqnoEnd());
+            if (i > 0 && i % 100 == 0)
+                logger.info("Reading filtered events from disk: start=" + start
+                        + " end=" + end);
+        }
+
+        // Should be a single event at the end.
+        THLEvent e2 = conn2.next(false);
+        validateFilteredEvent(e2, seqno, seqno);
+
+        // Prove that we can seek to and read each seqno value. This
+        // hits corner cases at the start and end of log files.
+        for (int i = 0; i < 100; i++)
+        {
+            long start = i * 5;
+            long end = start + 4;
+            for (long j = start; j <= end; j++)
+            {
+                assertTrue("Find filtered event for seqno: " + j, conn2.seek(j));
+                THLEvent e = conn2.next(false);
+                validateFilteredEvent(e, start, end);
+                if (j > 0 && j % 250 == 0)
+                    logger.info("Seeking single filtered events from disk: seqno="
+                            + j + " start=" + start + " end=" + end);
+            }
+        }
+
+        // Should be a single event at the end.
+        assertTrue("Find last filtered event for seqno: " + seqno,
+                conn2.seek(seqno));
+        THLEvent e3 = conn2.next(false);
+        validateFilteredEvent(e3, seqno, seqno);
 
         // Close the log.
         log2.release();
@@ -1568,19 +1726,24 @@ public class DiskLogTest extends TestCase
 
     // Create an empty log directory or if the directory exists remove
     // any files within it.
-    private File prepareLogDir(String logDirName)
+    private File prepareLogDir(String logDirName) throws Exception
     {
         File logDir = new File(logDirName);
+        // Delete old log directory.
         if (logDir.exists())
         {
             for (File f : logDir.listFiles())
             {
                 f.delete();
             }
+            logDir.delete();
         }
-        else
+
+        // Create a new directory.
+        if (!logDir.mkdirs())
         {
-            logDir.mkdirs();
+            throw new Exception("Unable to create log directory: "
+                    + logDir.getAbsolutePath());
         }
         return logDir;
     }
@@ -1670,6 +1833,21 @@ public class DiskLogTest extends TestCase
             if (i > 0 && i % 1000 == 0)
                 logger.info("Reading events from disk: seqno=" + i);
         }
+    }
+
+    // Validate that the proferred event is within expected range.
+    private void validateFilteredEvent(THLEvent fe, long start, long end)
+    {
+        assertNotNull(
+                "Not null filtered event: start=" + start + " end=" + end, fe);
+        assertTrue("Expect a ReplDBMSFilteredEvent",
+                fe.getReplEvent() instanceof ReplDBMSFilteredEvent);
+        ReplDBMSFilteredEvent filterEvent = (ReplDBMSFilteredEvent) fe
+                .getReplEvent();
+        assertEquals("Expected start seqno of filtered events", start,
+                filterEvent.getSeqno());
+        assertEquals("Expected end seqno of filtered events", end,
+                filterEvent.getSeqnoEnd());
     }
 
     // Create a dummy THL event.
