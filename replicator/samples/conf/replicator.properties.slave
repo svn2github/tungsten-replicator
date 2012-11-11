@@ -300,7 +300,7 @@ replicator.applier.parallel-q-applier.storeName=parallel-queue
 # to avoid replication errors. 
 replicator.service.channel-assignment=com.continuent.tungsten.replicator.channel.ChannelAssignmentService
 replicator.service.channel-assignment.url=@{APPLIER.REPL_DBTHLURL}
-replicator.service.channel-assignment.channels=@{REPL_SVC_CHANNELS}
+replicator.service.channel-assignment.channels=${replicator.global.apply.channels}
 
 ################################
 # BACKUP/RESTORE CONFIGURATION #
