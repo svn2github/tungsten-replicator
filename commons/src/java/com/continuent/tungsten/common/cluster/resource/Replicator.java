@@ -182,6 +182,7 @@ public class Replicator extends Resource implements Serializable
     private boolean            isStandbyDataSource            = false;
     private long               latestEpochNumber              = -1L;
     private String             appliedLastEventId             = null;
+    private long               appliedLastSeqno               = 01L;
     private double             appliedLatency                 = 0.0;
     private String             vipInterface                   = null;
     private String             vipAddress                     = null;
@@ -200,9 +201,7 @@ public class Replicator extends Resource implements Serializable
     public static final String DEFAULT_LAST_EVENT_ID          = "0:0";
 
     /**
-     * 
      * Creates a new <code>Replicator</code> object
-     *
      */
     public Replicator()
     {
@@ -238,9 +237,10 @@ public class Replicator extends Resource implements Serializable
 
         newReplicator.setAppliedLastEventId(replicatorProps
                 .getString(Replicator.APPLIED_LAST_EVENT_ID));
+        newReplicator.setAppliedLastSeqno(replicatorProps
+                .getLong(Replicator.APPLIED_LAST_SEQNO));
         newReplicator.setAppliedLatency(replicatorProps
                 .getDouble(Replicator.APPLIED_LATENCY));
-
         newReplicator.setMasterConnectUri(replicatorProps
                 .getString(Replicator.MASTER_CONNECT_URI));
         newReplicator.setMasterListenUri(replicatorProps
@@ -567,6 +567,26 @@ public class Replicator extends Resource implements Serializable
     public void setState(String state)
     {
         this.state = state;
+    }
+
+    /**
+     * Returns the appliedLastSeqno value.
+     * 
+     * @return Returns the appliedLastSeqno.
+     */
+    public long getAppliedLastSeqno()
+    {
+        return appliedLastSeqno;
+    }
+
+    /**
+     * Sets the appliedLastSeqno value.
+     * 
+     * @param appliedLastSeqno The appliedLastSeqno to set.
+     */
+    public void setAppliedLastSeqno(long appliedLastSeqno)
+    {
+        this.appliedLastSeqno = appliedLastSeqno;
     }
 
 }
