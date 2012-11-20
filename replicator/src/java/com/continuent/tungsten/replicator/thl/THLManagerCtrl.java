@@ -182,7 +182,8 @@ public class THLManagerCtrl
     {
         long minSeqno = diskLog.getMinSeqno();
         long maxSeqno = diskLog.getMaxSeqno();
-        return new InfoHolder(minSeqno, maxSeqno, maxSeqno - minSeqno, -1);
+        String logDir = diskLog.getLogDir();
+        return new InfoHolder(logDir, minSeqno, maxSeqno, maxSeqno - minSeqno, -1);
     }
 
     /**
@@ -837,6 +838,7 @@ public class THLManagerCtrl
                 thlManager.prepare(true);
 
                 InfoHolder info = thlManager.getInfo();
+                println("log directory = " + info.getLogDir());
                 println("min seq# = " + info.getMinSeqNo());
                 println("max seq# = " + info.getMaxSeqNo());
                 println("events = " + info.getEventCount());
@@ -1140,18 +1142,25 @@ public class THLManagerCtrl
      */
     public static class InfoHolder
     {
+        private String logDir               = "";
         private long minSeqNo               = -1;
         private long maxSeqNo               = -1;
         private long eventCount             = -1;
         private long highestReplicatedEvent = -1;
 
-        public InfoHolder(long minSeqNo, long maxSeqNo, long eventCount,
-                long highestReplicatedEvent)
+        public InfoHolder(String logDir, long minSeqNo, long maxSeqNo,
+                long eventCount, long highestReplicatedEvent)
         {
+            this.logDir = logDir;
             this.minSeqNo = minSeqNo;
             this.maxSeqNo = maxSeqNo;
             this.eventCount = eventCount;
             this.highestReplicatedEvent = highestReplicatedEvent;
+        }
+
+        public String getLogDir()
+        {
+            return logDir;
         }
 
         public long getMinSeqNo()

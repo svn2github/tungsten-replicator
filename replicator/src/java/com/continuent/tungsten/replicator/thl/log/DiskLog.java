@@ -143,6 +143,14 @@ public class DiskLog
             this.logDirName = this.logDirName.concat("/");
         }
     }
+    
+    /**
+     * Returns the log directory.
+     */
+    public String getLogDir()
+    {
+        return this.logDirName;
+    }
 
     /**
      * Sets the log file size. This is approximate as rotation will occur after
