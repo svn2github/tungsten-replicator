@@ -13,6 +13,9 @@
 # THL utility main class. 
 THL_CTRL=com.continuent.tungsten.replicator.thl.THLManagerCtrl
 
+# Log4j properties to use for THL utility.
+THL_CTRL_LOG4J=log4j-thl.properties
+
 # Find home. 
 RPBIN=`dirname $0`
 RPHOME=`cd $RPBIN/..; pwd`
@@ -61,4 +64,4 @@ fi
 #JVM_OPTIONS="${JVM_OPTIONS} -enableassertions -Xdebug -Xnoagent -Djava.compiler=none -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$REPLICATOR_JVMDEBUG_PORT"
 
 # Run the utility. 
-$JAVA -cp $CP -Dreplicator.home.dir=$RPHOME $JVM_OPTIONS $THL_CTRL $*
+$JAVA -cp $CP -Dreplicator.home.dir=$RPHOME -Dlog4j.configuration=$THL_CTRL_LOG4J $JVM_OPTIONS $THL_CTRL $*
