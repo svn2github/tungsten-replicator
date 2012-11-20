@@ -270,7 +270,11 @@ public class THLManagerCtrl
                         .compareTo(schema) != 0)))
         {
             if (pureSQL) // TODO: what about Oracle and `USE`?
-                println(sb, "USE " + schema + ";");
+            {
+                // Print only meaningful statement.
+                if (schema.length() > 0)
+                    println(sb, "USE " + schema + ";");
+            }
             else
                 println(sb, "- SCHEMA = " + schema);
         }
@@ -455,21 +459,26 @@ public class THLManagerCtrl
             return;
         }
 
-        // Add metadata before handling specific types of ReplDBMSEvents.
-        List<ReplOption> metadata = event.getDBMSEvent().getMetadata();
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (ReplOption option : metadata)
+        // Hide meta data of the event under SQL mode.
+        if (!pureSQL)
         {
-            if (sb.length() > 1)
-                sb.append(";");
-            String value = option.getOptionValue();
-            sb.append(option.getOptionName()).append(
-                    (value != null && value.length() > 0 ? "=" + value : ""));
+            // Add metadata before handling specific types of ReplDBMSEvents.
+            List<ReplOption> metadata = event.getDBMSEvent().getMetadata();
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (ReplOption option : metadata)
+            {
+                if (sb.length() > 1)
+                    sb.append(";");
+                String value = option.getOptionValue();
+                sb.append(option.getOptionName())
+                        .append((value != null && value.length() > 0 ? "="
+                                + value : ""));
+            }
+            sb.append("]");
+            println(stringBuilder, "- METADATA = " + sb.toString());
+            println(stringBuilder, "- TYPE = " + event.getClass().getName());
         }
-        sb.append("]");
-        println(stringBuilder, "- METADATA = " + sb.toString());
-        println(stringBuilder, "- TYPE = " + event.getClass().getName());
 
         if (event.getDBMSEvent() instanceof DBMSEmptyEvent)
         {
@@ -499,7 +508,7 @@ public class THLManagerCtrl
             {
                 RowChangeData rowChange = (RowChangeData) dataElem;
                 lastSchema = printRowChangeData(stringBuilder, rowChange,
-                        lastSchema, pureSQL, i, charset, hex);
+                        lastSchema, pureSQL, i, charset, hex, event.getSeqno());
             }
             else if (dataElem instanceof StatementData)
             {
@@ -581,7 +590,7 @@ public class THLManagerCtrl
     {
         // Output schema name if needed.
         String schema = statement.getDefaultSchema();
-        printOptions(stringBuilder, statement);
+        printOptions(stringBuilder, statement, pureSQL);
         printSchema(stringBuilder, schema, lastSchema, pureSQL);
         String query = statement.getQuery();
 
@@ -601,9 +610,9 @@ public class THLManagerCtrl
     }
 
     private static void printOptions(StringBuilder stringBuilder,
-            StatementData statement)
+            StatementData statement, boolean pureSQL)
     {
-        if (statement.getOptions() != null)
+        if (statement.getOptions() != null && !pureSQL)
             println(stringBuilder, "- OPTIONS = " + statement.getOptions());
     }
 
@@ -620,7 +629,7 @@ public class THLManagerCtrl
      */
     private static String printRowChangeData(StringBuilder stringBuilder,
             RowChangeData rowChange, String lastSchema, boolean pureSQL,
-            int sqlIndex, String charset, boolean hex)
+            int sqlIndex, String charset, boolean hex, long seqno)
     {
         if (!pureSQL)
             println(stringBuilder, "- SQL(" + sqlIndex + ") =");
@@ -629,8 +638,13 @@ public class THLManagerCtrl
         {
             // Output row change details.
             if (pureSQL)
-                println(stringBuilder,
-                        "# SQL output on row change events is not supported yet.");
+            {
+                stringBuilder.append("/* SEQ# = ");
+                stringBuilder.append(seqno);
+                stringBuilder
+                        .append(" - SQL output on row change events is not supported yet. */");
+                println(stringBuilder, "");
+            }
             else
             {
                 println(stringBuilder, " - ACTION = "
@@ -1032,7 +1046,7 @@ public class THLManagerCtrl
         println("  -service name - Name of a replication service");
         println("Commands and corresponding options:");
         println("  list [-low #] [-high #] [-by #] - Dump THL events from low to high #");
-        println("       [-sql]                       Specify -sql to use pure SQL output only");
+        println("       [-sql]                       Representative (no metadata!) SQL mode");
         println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
         println("  list [-seqno #] [-sql]          - Dump the exact event by a given #");
         println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
