@@ -1297,10 +1297,18 @@ public class MySQLIOs
             {
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug(String.format("%s\nUsing default mapping.\n"
-                            + "Check the file at %s and correct any issues.",
-                            c.getLocalizedMessage(),
-                            stateMapConfig.getConfigFileNameInUse()));
+                    if (stateMapConfig != null)
+                    {
+                        logger.debug("Exception using default mapping."
+                                + " Check the file at "
+                                + stateMapConfig.getConfigFileNameInUse()
+                                + " and correct any issues.");
+                    }
+                    else
+                    {
+                        logger.debug("Default config for " + status + " = "
+                                + mappedState + " is invalid");
+                    }
                 }
             }
 
