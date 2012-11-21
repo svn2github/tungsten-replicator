@@ -776,6 +776,11 @@ public class CLUtils implements Serializable
 
         if (msg.length() > 0)
         {
+            if (level.getLevel() >= CLLogLevel.detailed.getLevel())
+            {
+                msg = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss ")
+                        .format(new Date()) + msg;
+            }
             if (level.getLevel() >= CLLogLevel.debug.getLevel())
             {
                 msg = String.format("%s: %s", level.toString().toUpperCase(),
