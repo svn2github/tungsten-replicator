@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.patterns.order.HighWaterResource;
@@ -23,36 +23,36 @@ import com.continuent.tungsten.common.patterns.order.Sequence;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DataSource extends Resource implements Serializable
 {
-    private static final long              serialVersionUID               = 8153881753668230575L;
-    private static final Logger            logger                         = Logger.getLogger(DataSource.class);
+    private static final long       serialVersionUID               = 8153881753668230575L;
+    private static final Logger     logger                         = Logger.getLogger(DataSource.class);
 
-    public static final String             NAME                           = "name";
-    public static final String             CLUSTERNAME                    = "dataServiceName";
-    public static final String             PRECEDENCE                     = "precedence";
-    public static final String             ISAVAILABLE                    = "isAvailable";
-    public static final String             STATE                          = "state";
-    public static final String             ISCOMPOSITE                    = "isComposite";
-    public static final String             ALERT_STATUS                   = "alertStatus";
-    public static final String             ALERT_MESSAGE                  = "alertMessage";
-    public static final String             ALERT_TIME                     = "alertTime";
-    public static final String             APPLIED_LATENCY                = "appliedLatency";
-    public static final String             HOST                           = "host";
-    public static final String             ROLE                           = "role";
-    public static final String             VENDOR                         = "vendor";
-    public static final String             DRIVER                         = "driver";
-    public static final String             URL                            = "url";
-    public static final String             LASTERROR                      = "lastError";
-    public static final String             LASTSHUNREASON                 = "lastShunReason";
-    public static final String             HIGHWATER                      = "highWater";
-    public static final String             VIPINTERFACE                   = "vipInterface";
-    public static final String             VIPADDRESS                     = "vipAddress";
-    public static final String             VIPISBOUND                     = "vipIsBound";
-    public static final String             ACTIVE_CONNECTION_COUNT        = "activeConnectionsCount";
-    public static final String             CONNECTIONS_CREATED_COUNT      = "connectionsCreatedCount";
-    public static final String             TYPE                           = "type";
+    public static final String      NAME                           = "name";
+    public static final String      CLUSTERNAME                    = "dataServiceName";
+    public static final String      PRECEDENCE                     = "precedence";
+    public static final String      ISAVAILABLE                    = "isAvailable";
+    public static final String      STATE                          = "state";
+    public static final String      ISCOMPOSITE                    = "isComposite";
+    public static final String      ALERT_STATUS                   = "alertStatus";
+    public static final String      ALERT_MESSAGE                  = "alertMessage";
+    public static final String      ALERT_TIME                     = "alertTime";
+    public static final String      APPLIED_LATENCY                = "appliedLatency";
+    public static final String      HOST                           = "host";
+    public static final String      ROLE                           = "role";
+    public static final String      VENDOR                         = "vendor";
+    public static final String      DRIVER                         = "driver";
+    public static final String      URL                            = "url";
+    public static final String      LASTERROR                      = "lastError";
+    public static final String      LASTSHUNREASON                 = "lastShunReason";
+    public static final String      HIGHWATER                      = "highWater";
+    public static final String      VIPINTERFACE                   = "vipInterface";
+    public static final String      VIPADDRESS                     = "vipAddress";
+    public static final String      VIPISBOUND                     = "vipIsBound";
+    public static final String      ACTIVE_CONNECTION_COUNT        = "activeConnectionsCount";
+    public static final String      CONNECTIONS_CREATED_COUNT      = "connectionsCreatedCount";
+    public static final String      TYPE                           = "type";
 
     // Defaults
-    public static final double             DEFAULT_APPLIED_LATENCY        = 0.0;
+    public static final double      DEFAULT_APPLIED_LATENCY        = 0.0;
 
     /**
      * The following six properties are the absolute minimum that are required
@@ -61,75 +61,73 @@ public class DataSource extends Resource implements Serializable
      * where the datasource is resident - the framework that associates
      * replicators with datasources will fail to work.
      */
-    private String                         dataServiceName                = "";
-    private String                         host                           = "";
-    private DataSourceRole                 role                           = DataSourceRole.undefined;
-    private String                         vendor                         = "";
-    private String                         driver                         = "";
-    private String                         url                            = "";
-    private boolean                        isComposite                    = false;
-    private int                            precedence                     = 0;
-    private boolean                        available                      = false;
+    private String                  dataServiceName                = "";
+    private String                  host                           = "";
+    private DataSourceRole          role                           = DataSourceRole.undefined;
+    private String                  vendor                         = "";
+    private String                  driver                         = "";
+    private String                  url                            = "";
+    private boolean                 isComposite                    = false;
+    private int                     precedence                     = 0;
+    private boolean                 available                      = false;
 
-    private ResourceState                  state                          = ResourceState.UNKNOWN;
+    private ResourceState           state                          = ResourceState.UNKNOWN;
 
-    private DataSourceAlertStatus          alertStatus                    = DataSourceAlertStatus.UNKNOWN;
-    private String                         alertMessage                   = "";
-    private long                           alertTime                      = System.currentTimeMillis();
+    private DataSourceAlertStatus   alertStatus                    = DataSourceAlertStatus.UNKNOWN;
+    private String                  alertMessage                   = "";
+    private long                    alertTime                      = System.currentTimeMillis();
 
-    private String                         lastError                      = "";
-    private String                         lastShunReason                 = "";
+    private String                  lastError                      = "";
+    private String                  lastShunReason                 = "";
 
-    private double                         appliedLatency                 = DEFAULT_APPLIED_LATENCY;
-    private Date                           updateTimestamp                = new Date();
-    private Date                           lastUpdate                     = new Date();
+    private double                  appliedLatency                 = DEFAULT_APPLIED_LATENCY;
+    private Date                    updateTimestamp                = new Date();
+    private Date                    lastUpdate                     = new Date();
 
     @SuppressWarnings("unused")
-    private boolean                        isStandby                      = false;
+    private boolean                 isStandby                      = false;
 
-    private HighWaterResource              highWater                      = new HighWaterResource();
+    private HighWaterResource       highWater                      = new HighWaterResource();
 
     // Statistics.
-    private AtomicLong                     activeConnectionsCount         = new AtomicLong(
-                                                                                  0);
-    private AtomicLong                     connectionsCreatedCount        = new AtomicLong(
-                                                                                  0);
-    private AtomicLong                     statementsCreatedCount         = new AtomicLong(
-                                                                                  0);
-    private AtomicLong                     preparedStatementsCreatedCount = new AtomicLong(
-                                                                                  0);
-    private AtomicLong                     callableStatementsCreatedCount = new AtomicLong(
-                                                                                  0);
+    private AtomicLong              activeConnectionsCount         = new AtomicLong(
+                                                                           0);
+    private AtomicLong              connectionsCreatedCount        = new AtomicLong(
+                                                                           0);
+    private AtomicLong              statementsCreatedCount         = new AtomicLong(
+                                                                           0);
+    private AtomicLong              preparedStatementsCreatedCount = new AtomicLong(
+                                                                           0);
+    private AtomicLong              callableStatementsCreatedCount = new AtomicLong(
+                                                                           0);
 
     /**
      * Represents a single life cycle transition for this datasource. A
      * transition occurs for any update() in which
      */
-    private Sequence                       sequence                       = new Sequence();
+    private Sequence                sequence                       = new Sequence();
 
-    private AtomicInteger                  enabled                        = new AtomicInteger(
-                                                                                  0);
+    private AtomicInteger           enabled                        = new AtomicInteger(
+                                                                           0);
     /**
      * VIP management properties
      */
-    private String                         vipInterface                   = "";
-    private String                         vipAddress                     = "";
-    private boolean                        vipIsBound                     = false;
+    private String                  vipInterface                   = "";
+    private String                  vipAddress                     = "";
+    private boolean                 vipIsBound                     = false;
 
     /** Retains all non-closed connections to this data source */
-    private static Set<DatabaseConnection> activeConnections              = Collections
-                                                                                  .synchronizedSet(new HashSet<DatabaseConnection>());
+    private Set<DatabaseConnection> activeConnections              = Collections
+                                                                           .synchronizedSet(new HashSet<DatabaseConnection>());
 
     /**
-     * 
      * Creates a new <code>DataSource</code> object
-     *
      */
     public DataSource()
     {
         super(ResourceType.DATASOURCE, "unknown");
     }
-    
+
     public DataSource(TungstenProperties props)
     {
         super(ResourceType.DATASOURCE, props.getString(DataSource.NAME,
