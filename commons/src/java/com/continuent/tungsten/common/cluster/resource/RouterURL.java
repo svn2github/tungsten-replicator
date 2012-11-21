@@ -38,7 +38,7 @@ import org.apache.log4j.Logger;
  */
 public class RouterURL implements Cloneable
 {
-    private static final String URL_OPTIONS_DELIMITERS    = "&=";
+    private static final String URL_OPTIONS_DELIMITERS    = "&=?";
 
     private static Logger       logger                    = Logger.getLogger(RouterURL.class);
 
