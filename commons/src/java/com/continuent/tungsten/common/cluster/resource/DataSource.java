@@ -933,4 +933,26 @@ public class DataSource extends Resource implements Serializable
     {
         this.isStandby = isStandby;
     }
+
+    /**
+     * Set the activeConnectionCount for this data source from the count passed
+     * via a long
+     * 
+     * @param activeConnectionCount
+     */
+    public void setActiveConnectionCount(long activeConnectionCount)
+    {
+        this.activeConnectionsCount.set(activeConnectionCount);
+    }
+
+    /**
+     * Set the connectionsCreatedCount for this data source from the count
+     * passed via a long
+     * 
+     * @param connectionsCreatedCount
+     */
+    public void setConnectionsCreatedCount(long connectionsCreatedCount)
+    {
+        this.connectionsCreatedCount.set(connectionsCreatedCount);
+    }
 }
