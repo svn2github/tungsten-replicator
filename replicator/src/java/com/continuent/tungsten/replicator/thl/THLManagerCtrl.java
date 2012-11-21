@@ -642,7 +642,7 @@ public class THLManagerCtrl
                 stringBuilder.append("/* SEQ# = ");
                 stringBuilder.append(seqno);
                 stringBuilder
-                        .append(" - SQL output on row change events is not supported yet. */");
+                        .append(" - SQL rendering of row change events is not supported */");
                 println(stringBuilder, "");
             }
             else
