@@ -7,7 +7,7 @@
 #
 # OVERVIEW:
 #   This script performs a full build of the replicator and all its
-#   dependencies, plus bristlecone tool.
+#   dependencies, plus bristlecone and cookbook tools.
 #   It checks out and builds all components: replicator, commons, and
 #   replicator-extra.
 #
@@ -152,6 +152,7 @@ source_bristlecone=${SRC_DIR}/bristlecone
 source_replicator=${SRC_DIR}/replicator
 source_replicator_extra=${SRC_DIR}/replicator-extra
 source_community_extra=extra
+source_cookbook=${SRC_DIR}/cookbook
 
 extra_replicator=${source_community_extra}/replicator
 extra_cluster_home=${source_community_extra}/cluster-home
@@ -232,6 +233,7 @@ echo "# Commons:    $source_commons"
 echo "# Replicator: $source_replicator"
 echo "# Replicator Extras: $source_replicator_extra"
 echo "# Bristlecone: $source_bristlecone"
+echo "# Cookbook: $source_cookbook"
 
 if [ ${SKIP_CHECKOUT} -eq 1 ]; then
   echo "### Using existing code without checkout"
@@ -240,6 +242,7 @@ else
   doSvnCheckout replicator ${TREP_SVN_URL} $source_replicator
   doSvnCheckout replicator-extra ${TREP_EXT_SVN_URL} $source_replicator_extra
   doSvnCheckout bristlecone ${BRI_SVN_URL} $source_bristlecone
+  doSvnCheckout cookbook ${COOK_SVN_URL} $source_cookbook
 fi
 
 ##########################################################################
@@ -275,6 +278,7 @@ mkdir -p $reldir
 # Copy everything!
 doCopy tungsten-replicator $source_replicator/build/tungsten-replicator $reldir
 doCopy bristlecone $source_bristlecone/build/dist/bristlecone $reldir
+doCopy cookbook $source_cookbook $reldir
 cp LICENSE $reldir
 cp extra/README $reldir
 cp extra/README.LICENSES $reldir
@@ -355,6 +359,7 @@ echo "  ${TCOM_SVN_URL}" >> $manifest
 echo "  ${TREP_SVN_URL}" >> $manifest
 echo "  ${TREP_EXT_SVN_URL}" >> $manifest
 echo "  ${BRI_SVN_URL}" >> $manifest
+echo "  ${COOK_SVN_URL}" >> $manifest
 
 echo "SVN Revisions:" >> $manifest
 echo -n "  commons: " >> $manifest
@@ -365,6 +370,8 @@ echo -n "  replicator-extra: " >> $manifest
 svn info $source_replicator_extra | grep Revision: >> $manifest
 echo -n "  bristlecone: " >> $manifest
 svn info $source_bristlecone | grep Revision: >> $manifest
+echo -n "  cookbook: " >> $manifest
+svn info $source_cookbook | grep Revision: >> $manifest
 
 ##########################################################################
 # Create JSON manifest file.
@@ -428,6 +435,12 @@ echo    "    {" >> $manifestJSON
 echo    "      \"URL\": \"${BRI_SVN_URL}\"," >> $manifestJSON
 echo -n "      \"revision\": " >> $manifestJSON
 echo           "`extractRevision $source_bristlecone`" >> $manifestJSON
+echo    "    }," >> $manifestJSON
+echo    "    \"cookbook\":" >> $manifestJSON
+echo    "    {" >> $manifestJSON
+echo    "      \"URL\": \"${COOK_SVN_URL}\"," >> $manifestJSON
+echo -n "      \"revision\": " >> $manifestJSON
+echo           "`extractRevision $source_cookbook`" >> $manifestJSON
 echo    "    }" >> $manifestJSON
 echo    "  }" >> $manifestJSON
 echo    "}" >> $manifestJSON
@@ -491,6 +504,7 @@ if [ "$SKIP_SOURCE" = 0 ]; then
   cp -r $SRC_DIR/commons $modules_sources_folder
   cp -r $SRC_DIR/bristlecone $modules_sources_folder
   cp -r $SRC_DIR/replicator-extra $modules_sources_folder
+  cp -r $SRC_DIR/cookbook $modules_sources_folder
   cp -r build.sh config extra $builder_folder/
   echo "SKIP_CHECKOUT=1" > $builder_folder/config.local
 

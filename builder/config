@@ -6,7 +6,7 @@ SRC_DIR=../sources
 BUILD_DIR=build
 
 # SVN URLs of the required modules
-# Replicator URL
+# Replicator URL.
 TREP_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/replicator
 # Replicator Extras URL.
 TREP_EXT_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/replicator-extra
@@ -14,6 +14,8 @@ TREP_EXT_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/replicator
 TCOM_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/commons
 # Bristlecone URL.
 BRI_SVN_URL=https://bristlecone.svn.sourceforge.net/svnroot/bristlecone/trunk/bristlecone
+# Tungsten Cookbook URL.
+COOK_SVN_URL=https://tungsten-toolbox.googlecode.com/svn/trunk/cookbook
 
 # Version name of the release to build
 VERSION_MAJOR=2
