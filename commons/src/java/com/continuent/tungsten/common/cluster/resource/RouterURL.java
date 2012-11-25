@@ -44,7 +44,7 @@ public class RouterURL implements Cloneable
 
     private static final String URL_ELMT_JDBC             = "jdbc";
     private static final String URL_ELMT_TROUTER          = "t-router";
-    private static final String URL_FULL_HEADER           = URL_ELMT_JDBC
+    public static final String  URL_FULL_HEADER           = URL_ELMT_JDBC
                                                                   + ':'
                                                                   + URL_ELMT_TROUTER
                                                                   + "://";
