@@ -201,17 +201,15 @@ public class Replicator
     public static final String SEQNO_TYPE_STRING           = "java.lang.String";
 
     /**
-     * Obsolete values provided for compatibility with branched open replicator.
-     * 
-     * @deprecated
-     */
-    public static final String MASTER_URI                  = "masterUri";
-
-    /**
      * Contains the names of enabled extensions (e.g., sharding) on this
      * replicator.
      */
     public static final String EXTENSIONS                  = "extensions";
+
+    /**
+     * Denotes the source of the head extractor.
+     */
+    public static final String PIPELINE_SOURCE             = "pipelineSource";
 
     // Default values
     public static final long   DEFAULT_LATEST_EPOCH_NUMBER = -1;
