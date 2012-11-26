@@ -533,6 +533,16 @@ class ReplicationServiceAutoEnable < ConfigurePrompt
   end
 end
 
+class MasterPreferredRole < ConfigurePrompt
+  include ReplicationServicePrompt
+
+  def initialize
+    super(REPL_MASTER_PREFERRED_ROLE, "Preferred role for master THL when connecting as a slave (master, slave, etc.)",
+      PV_ANY, "")
+  end
+end
+
+
 class ReplicationServiceChannels < ConfigurePrompt
   include ReplicationServicePrompt
   
