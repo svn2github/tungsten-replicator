@@ -85,7 +85,8 @@ public class TestTHL2 extends TestCase
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline
+                .watchForProcessedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
 
@@ -128,7 +129,7 @@ public class TestTHL2 extends TestCase
                 "thl://localhost:2112/");
         TungstenProperties serverConf = builder.getConfig();
 
-        // Generate server pipeline from remote extractor to THL to dummy
+        // Generate slave pipeline from remote extractor to THL to dummy
         // applier.
         PipelineConfigBuilder builder2 = new PipelineConfigBuilder();
         builder2.setProperty(ReplicatorConf.SERVICE_NAME, "test");
@@ -293,6 +294,97 @@ public class TestTHL2 extends TestCase
     }
 
     /**
+     * Verify that a slave can choose selectively to connect to a slave, a
+     * master, or either one. This test works by defining master/slave
+     * pipelines, then constructs a slave that connects to each in turn. 
+     */
+    public void testMultiThlServerConnect() throws Exception
+    {
+        logger.info("##### testMultiThlServerConnect #####");
+
+        // Configure and start server pipeline from queue extractor to THL.
+        TungstenProperties masterConf = generateQueueFedMasterProps("testMultiThlMaster");
+        ReplicatorRuntime masterRuntime = new ReplicatorRuntime(masterConf,
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        masterRuntime.configure();
+        masterRuntime.prepare();
+        Pipeline master = masterRuntime.getPipeline();
+        master.start(new MockEventDispatcher());
+
+        // Configure and start slave pipeline.
+        Pipeline slave1 = this.createMultiThlSlave("testMultiThlSlave1",
+                "thl://localhost:2112/", 2113, null);
+
+        // Confirm the master/slave connection works by writing a transaction
+        // and ensuring it reaches the slave.
+        logger.info("Testing master/slave connection with seqno 0");
+        InMemoryQueueStore masterQueue = (InMemoryQueueStore) master
+                .getStore("queue");
+        masterQueue.put(createEvent(0));
+        Future<ReplDBMSHeader> wait = slave1.watchForProcessedSequenceNumber(0);
+        ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
+        assertEquals("Expected event we put in", 0, lastEvent.getSeqno());
+
+        // Create a slave that prefers to read from a slave rather than a
+        // master.
+        Pipeline slave2 = this.createMultiThlSlave("testMultiThlSlave2",
+                "thl://localhost:2112,thl://localhost:2113", 2114, "slave");
+
+        // Confirm that we can connect and receive preferentially
+        // from the slave. Shut down the slave once this is accomplished.
+        logger.info("Testing read from slave #1 with seqno 1");
+        masterQueue.put(createEvent(1));
+        Future<ReplDBMSHeader> wait2 = slave2
+                .watchForProcessedSequenceNumber(1);
+        ReplDBMSHeader lastEvent2 = wait2.get(5, TimeUnit.SECONDS);
+        assertEquals("Expected event we put in", 1, lastEvent2.getSeqno());
+        assertEquals("Slave should read from slave", "thl://localhost:2113",
+                slave2.getPipelineSource());
+
+        // Shut down the slave #1 and ensure slave2 reads switch to the 
+        // master. 
+        slave1.shutdown(true);
+        ((ReplicatorRuntime) slave1.getContext()).release();
+        slave1 = null;
+        
+        logger.info("Testing read from master with seqno 2");
+        masterQueue.put(createEvent(2));
+        Future<ReplDBMSHeader> wait3 = slave2
+                .watchForProcessedSequenceNumber(2);
+        ReplDBMSHeader lastEvent3 = wait3.get(5, TimeUnit.SECONDS);
+        assertEquals("Expected event we put in", 2, lastEvent3.getSeqno());
+        assertEquals("Slave should read from master", "thl://localhost:2112",
+                slave2.getPipelineSource());
+
+        // Shut down the test slave. 
+        slave2.shutdown(true);
+        ((ReplicatorRuntime) slave2.getContext()).release();
+        slave2 = null;
+
+        // Shut down original master and slave pipelines.
+        master.shutdown(true);
+        masterRuntime.release();
+    }
+
+    // Helper function to create and start a slave pipeline while avoiding test
+    // errors due to silly typos in intermediate variables.
+    private Pipeline createMultiThlSlave(String svc, String connectUris,
+            int localThlPort, String preferredRole) throws Exception
+    {
+        TungstenProperties conf = generateSlaveProps(svc, connectUris,
+                localThlPort, preferredRole);
+        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        runtime.configure();
+        runtime.prepare();
+        Pipeline slave = runtime.getPipeline();
+        slave.start(new MockEventDispatcher());
+        return slave;
+    }
+
+    /**
      * Verify that if we store events in a THL, shutdown, and then restart a new
      * pipeline referring to the same in-memory storage, the starting sequence
      * number is correctly propagated back to the extractor so that new events
@@ -301,7 +393,6 @@ public class TestTHL2 extends TestCase
     public void testSeqnoPropagation() throws Exception
     {
         logger.info("##### testSeqnoPropagation #####");
-
         this.prepareLogDir("testSeqnoPropagation");
 
         // Generate config.
@@ -359,8 +450,8 @@ public class TestTHL2 extends TestCase
         ReplDBMSHeader lastEvent2 = wait2.get(5, TimeUnit.SECONDS);
         assertEquals("Expected 20 events", 19, lastEvent2.getSeqno());
 
-        // Ensure THL contains expected number of events.  We must sleep 
-        // very briefly to allow the THL to commit. 
+        // Ensure THL contains expected number of events. We must sleep
+        // very briefly to allow the THL to commit.
         Thread.sleep(50);
         Store thl = pipeline2.getStore("thl");
         assertEquals("Expected 0 as first event", 0, thl.getMinStoredSeqno());
@@ -420,7 +511,8 @@ public class TestTHL2 extends TestCase
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline
+                .watchForProcessedSequenceNumber(9);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
 
@@ -452,8 +544,7 @@ public class TestTHL2 extends TestCase
 
         // Set up a pipeline with a queue at the beginning. We will feed
         // transactions into the queue.
-        TungstenProperties conf = this
-                .generateQueueFedPipelineProps("testTHLExtractWaiting");
+        TungstenProperties conf = generateQueueFedMasterProps("testTHLExtractWaiting");
         ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
                 new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
@@ -520,7 +611,7 @@ public class TestTHL2 extends TestCase
         runtime.release();
     }
 
-    // Generate configuration properties for a double stage-pipline
+    // Generate configuration properties for a double stage-pipeline
     // going through THL.
     public TungstenProperties generateTwoStageProps(String schemaName,
             int nFrags) throws Exception
@@ -555,10 +646,10 @@ public class TestTHL2 extends TestCase
         return builder.getConfig();
     }
 
-    // Generate configuration properties for a double stage-pipeline
+    // Generate configuration properties for a double stage master pipeline
     // going through THL. This pipeline uses a queue as the initial head
     // of the queue.
-    public TungstenProperties generateQueueFedPipelineProps(String schemaName)
+    public TungstenProperties generateQueueFedMasterProps(String schemaName)
             throws Exception
     {
         // Clear the THL log directory.
@@ -592,6 +683,50 @@ public class TestTHL2 extends TestCase
         builder.addComponent("applier", "dummy", DummyApplier.class);
 
         return builder.getConfig();
+    }
+
+    // Generate pipeline properties for a slave with ability to listen
+    // optionally on multiple THL URIs.
+    public TungstenProperties generateSlaveProps(String svc,
+            String connectUris, int localThlPort, String preferredRole)
+            throws Exception
+    {
+        // Clear the THL log directory.
+        prepareLogDir(svc);
+
+        // Generate pipeline properties.
+        PipelineConfigBuilder builder2 = new PipelineConfigBuilder();
+        builder2.setProperty(ReplicatorConf.SERVICE_NAME, svc);
+        builder2.setRole("slave");
+        builder2.setProperty(ReplicatorConf.METADATA_SCHEMA, svc);
+        builder2.addPipeline("slave", "extract-c,apply-c", "thl");
+        builder2.addStage("extract-c", "thl-remote-extractor", "thl-apply",
+                null);
+        builder2.addStage("apply-c", "thl-extract", "dummy", null);
+
+        builder2.addComponent("extractor", "thl-remote-extractor",
+                RemoteTHLExtractor.class);
+        builder2.addProperty("extractor", "thl-remote-extractor", "connectUri",
+                connectUris);
+        if (preferredRole != null)
+        {
+            builder2.addProperty("extractor", "thl-remote-extractor",
+                    "preferredRole", preferredRole);
+        }
+        builder2.addComponent("applier", "thl-apply", THLStoreApplier.class);
+        builder2.addProperty("applier", "thl-apply", "storeName", "thl");
+
+        builder2.addComponent("extractor", "thl-extract",
+                THLStoreExtractor.class);
+        builder2.addProperty("extractor", "thl-extract", "storeName", "thl");
+        builder2.addComponent("applier", "dummy", DummyApplier.class);
+
+        builder2.addComponent("store", "thl", THL.class);
+        builder2.addProperty("store", "thl", "logDir", svc);
+        builder2.addProperty("store", "thl", "storageListenerUri",
+                "thl://localhost:" + localThlPort + "/");
+
+        return builder2.getConfig();
     }
 
     // Create an empty log directory or if the directory exists remove

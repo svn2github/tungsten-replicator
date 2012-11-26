@@ -855,6 +855,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         statusProps.setDouble(Replicator.APPLIED_LATENCY, -1.0);
         statusProps.setString(Replicator.CURRENT_EVENT_ID, "NONE");
         statusProps.setString(Replicator.OFFLINE_REQUESTS, "NONE");
+        statusProps.setString(Replicator.PIPELINE_SOURCE, "UNKNOWN");
 
         // The following logic avoids race conditions that may cause
         // different sources of information to be null.
@@ -866,6 +867,11 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
             pipeline = runtime.getPipeline();
             extensions = runtime.getExtensionNames();
             type = (runtime.isRemoteService() ? "remote" : "local");
+
+            String pipelineSource = runtime.getPipelineSource();
+            if (pipelineSource != null)
+                statusProps.setString(Replicator.PIPELINE_SOURCE,
+                        pipelineSource);
         }
         ReplDBMSHeader lastEvent = null;
         if (pipeline != null)

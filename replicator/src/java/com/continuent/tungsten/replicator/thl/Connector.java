@@ -31,6 +31,7 @@ import java.nio.channels.SocketChannel;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplEvent;
@@ -45,26 +46,27 @@ import com.continuent.tungsten.replicator.plugin.ReplicatorPlugin;
  */
 public class Connector implements ReplicatorPlugin
 {
-    private static Logger   logger          = Logger.getLogger(Connector.class);
+    private static Logger      logger          = Logger.getLogger(Connector.class);
 
-    protected PluginContext pluginContext   = null;
-    protected String        host            = null;
-    protected int           port            = 2112;
-    private SocketChannel   channel         = null;
-    private long            minSeqNo        = -1;
-    private long            maxSeqNo        = -1;
-    private Protocol        protocol        = null;
+    protected PluginContext    pluginContext   = null;
+    protected String           host            = null;
+    protected int              port            = 2112;
+    private SocketChannel      channel         = null;
+    private long               minSeqNo        = -1;
+    private long               maxSeqNo        = -1;
+    private Protocol           protocol        = null;
+    private TungstenProperties serverCapabilities;
 
-    protected int           resetPeriod;
-    protected long          lastSeqno;
-    protected long          lastEpochNumber;
-    protected int           heartbeatMillis = 3000;
-    protected String        lastEventId;
+    protected int              resetPeriod;
+    protected long             lastSeqno;
+    protected long             lastEpochNumber;
+    protected int              heartbeatMillis = 3000;
+    protected String           lastEventId;
 
-    private String          remoteURI       = null;
+    private String             remoteURI       = null;
 
     // Marked true to show this connector has been closed.
-    boolean                 closed;
+    boolean                    closed;
 
     /**
      * Creates a new <code>Connector</code> object
@@ -144,11 +146,16 @@ public class Connector implements ReplicatorPlugin
         // connect timeout by design so we don't time out if the server is busy.
         channel.socket().setSoTimeout(heartbeatMillis * 10);
 
+        // Perform handshake with server.
         protocol = new Protocol(pluginContext, channel, resetPeriod);
         SeqNoRange seqNoRange = protocol.clientHandshake(lastEpochNumber,
                 lastSeqno, heartbeatMillis, lastEventId);
+
         minSeqNo = seqNoRange.getMinSeqNo();
         maxSeqNo = seqNoRange.getMaxSeqNo();
+
+        // Store server capabilities
+        serverCapabilities = protocol.getServerCapabities();
     }
 
     /**
@@ -198,9 +205,15 @@ public class Connector implements ReplicatorPlugin
     }
 
     /**
-     * TODO: getMinSeqNo definition.
-     * 
-     * @return min seqno
+     * Return server capability by name.
+     */
+    public String getServerCapability(String name)
+    {
+        return serverCapabilities.getString(name);
+    }
+
+    /**
+     * Return minimum sequence number stored on server.
      */
     public long getMinSeqNo()
     {
@@ -208,9 +221,7 @@ public class Connector implements ReplicatorPlugin
     }
 
     /**
-     * TODO: getMaxSeqNo definition.
-     * 
-     * @return max seqno
+     * Return maximum sequence number stored on server.
      */
     public long getMaxSeqNo()
     {

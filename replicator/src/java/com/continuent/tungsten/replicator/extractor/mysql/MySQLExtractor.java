@@ -1209,6 +1209,14 @@ public class MySQLExtractor implements RawExtractor
                 logger.info("Using relay log directory as source of binlogs: "
                         + relayLogDir);
                 binlogDir = relayLogDir;
+                
+                // Note the source of our binlog data. 
+                context.setPipelineSource(url);
+            }
+            else
+            {
+                // Logs are coming from binlog dir. 
+                context.setPipelineSource(binlogDir);
             }
         }
         else if (MODE_SLAVE_RELAY.equals(binlogMode))

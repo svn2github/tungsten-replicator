@@ -65,6 +65,7 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
     private int              resetPeriod        = 1;
     private boolean          checkSerialization = true;
     private int              heartbeatMillis    = 3000;
+    private String           preferredRole      = null;
 
     // Connection control variables.
     private PluginContext    pluginContext;
@@ -76,6 +77,9 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
 
     // Set to show that we have been shut down.
     private volatile boolean shutdown           = false;
+
+    // Connection retry count.
+    private long             retryCount         = 0;
 
     /**
      * Create Connector instance.
@@ -141,6 +145,21 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
     public void setHeartbeatInterval(int heartbeatMillis)
     {
         this.heartbeatMillis = heartbeatMillis;
+    }
+
+    /** Returns the preferred master server role. */
+    public String getPreferredRole()
+    {
+        return preferredRole;
+    }
+
+    /**
+     * Sets the preferred role of the master replicator. If set to 'slave' we
+     * will try to find a slave from the URL list before accepting a master.
+     */
+    public void setPreferredRole(String preferredRole)
+    {
+        this.preferredRole = preferredRole;
     }
 
     /**
@@ -320,6 +339,11 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                 checkSerialization = false;
             }
         }
+
+        // Adjust the preferred role so that null and empty strings are
+        // identical.
+        if (preferredRole != null && "".equals(preferredRole.trim()))
+            preferredRole = null;
     }
 
     /**
@@ -395,7 +419,6 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
         ConnectUriManager uriManager = new ConnectUriManager(uriList);
         logger.info("Opening connection to master: " + uriManager.toString());
         String currentUri = null;
-        long retryCount = 0;
         for (;;)
         {
             try
@@ -436,22 +459,46 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                             e);
                 }
 
+                // Try to connect. Accept if the connection matches our
+                // criteria.
                 conn.connect();
-                break;
+                String serverRole = conn.getServerCapability(Protocol.ROLE);
+                if (preferredRole == null)
+                {
+                    // Accept if there is no preferred role.
+                    logger.info("Connection is accepted");
+                    break;
+                }
+                else if (preferredRole.equals(serverRole))
+                {
+                    // Accept if there is a preferred role and we have a match.
+                    logger.info("Connection is accepted by role match: preferredRole="
+                            + preferredRole + " serverRole=" + serverRole);
+                    break;
+                }
+                else if (uriManager.getIterations() > 0)
+                {
+                    // Accept if we have been through the list at least one.
+                    logger.info("Connection is accepted by connect iterations: preferredRole="
+                            + preferredRole
+                            + " serverRole="
+                            + serverRole
+                            + " iterations=" + uriManager.getIterations());
+                    break;
+                }
+                else
+                {
+                    // If we get here the role did not match and we want to try
+                    // for something better.
+                    logger.info("Connection does not meet acceptance criteria preferredRole="
+                            + preferredRole + " serverRole=" + serverRole);
+                    closeConnector();
+                }
             }
             catch (IOException e)
             {
                 // Sleep for 1 second per retry; report every 10 retries.
-                synchronized (this)
-                {
-                    // Clearing the connection must be synchronized.
-                    // See concurrency note in class header comment.
-                    if (conn != null)
-                    {
-                        conn.close();
-                        conn = null;
-                    }
-                }
+                closeConnector();
                 if ((retryCount % 10) == 0)
                 {
                     logger.info("Waiting for master to become available: uri="
@@ -462,10 +509,25 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
             }
         }
 
+        // Record the current URI so that it is visible to the rest of the
+        // replicator.
+        pluginContext.setPipelineSource(currentUri);
+
         // Announce the happy event and reset retry count.
         logger.info("Connected to master on uri=" + currentUri + " after "
                 + retryCount + " retries");
         retryCount = 0;
         pluginContext.getEventDispatcher().put(new InSequenceNotification());
+    }
+
+    // Close the connector. Clearing the connection must be synchronized.
+    // See concurrency note in class header comment.
+    private synchronized void closeConnector()
+    {
+        if (conn != null)
+        {
+            conn.close();
+            conn = null;
+        }
     }
 }

@@ -184,6 +184,12 @@ public class Pipeline implements ReplicatorPlugin
         return serviceNames;
     }
 
+    /** Returns the source of the current pipeline, if known. */
+    public String getPipelineSource()
+    {
+        return context.getPipelineSource();
+    }
+
     /**
      * Configures pipeline data structures including stages and stores. All
      * pipeline information is accessible after this call.

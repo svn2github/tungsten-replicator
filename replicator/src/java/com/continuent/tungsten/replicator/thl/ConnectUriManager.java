@@ -25,16 +25,17 @@ package com.continuent.tungsten.replicator.thl;
 import java.util.List;
 
 /**
- * Implements a simple strategy class that hands out connection URIs and
- * allows the caller to cycle through a list of them.
+ * Implements a simple strategy class that hands out connection URIs and allows
+ * the caller to cycle through a list of them.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
  */
 public class ConnectUriManager
 {
-    private int          index = 0;
+    private int          index      = 0;
     private List<String> uriList;
+    private long         iterations = 0;
 
     /**
      * Creates a new instance with a list of URIs.
@@ -57,9 +58,21 @@ public class ConnectUriManager
      */
     public String next()
     {
+        String uri = uriList.get(index++);
         if (index >= uriList.size())
+        {
             index = 0;
-        return uriList.get(index++);
+            iterations++;
+        }
+        return uri;
+    }
+
+    /**
+     * Returns the number of full iterations over the list of URIs.
+     */
+    public long getIterations()
+    {
+        return iterations;
     }
 
     /**

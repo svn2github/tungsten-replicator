@@ -165,4 +165,18 @@ public interface PluginContext
      */
     public Future<ReplDBMSHeader> waitForCommitted(long seqno)
             throws InterruptedException;
+
+    /**
+     * Registers the transaction source (if any) for the head of the current
+     * pipeline. Should be used by head stage only to avoid confusion. For best
+     * usability, head stages should set this as soon as it is known.
+     * 
+     * @param source Typical value is a URI of some kind
+     */
+    public void setPipelineSource(String source);
+
+    /**
+     * Returns the transaction source of the head stage in the pipeline.
+     */
+    public String getPipelineSource();
 }
