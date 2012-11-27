@@ -141,6 +141,8 @@ public class RouterConfiguration extends ClusterConfiguration
 
     private boolean           showRelativeLatency               = false;
 
+    private int               routerClientThreadsPerService     = 1;
+
     public RouterConfiguration(String clusterName)
             throws ConfigurationException
     {
@@ -632,5 +634,25 @@ public class RouterConfiguration extends ClusterConfiguration
             logger.fatal("Unable to clone this RouterConfiguration", cnse);
         }
         return o;
+    }
+
+    /**
+     * Returns the routerClientThreadsPerService value.
+     * 
+     * @return Returns the routerClientThreadsPerService.
+     */
+    public int getRouterClientThreadsPerService()
+    {
+        return routerClientThreadsPerService;
+    }
+
+    /**
+     * Sets the routerClientThreadsPerService value.
+     * 
+     * @param routerClientThreadsPerService The routerClientThreadsPerService to set.
+     */
+    public void setRouterClientThreadsPerService(int routerClientThreadsPerService)
+    {
+        this.routerClientThreadsPerService = routerClientThreadsPerService;
     }
 }
