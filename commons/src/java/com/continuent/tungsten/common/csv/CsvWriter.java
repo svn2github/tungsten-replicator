@@ -270,9 +270,9 @@ public class CsvWriter
     }
 
     /**
-     * Add a row id name. Row IDs are a numeric counter at the end of the rows
-     * to make loading processes easier for data warehouses. They automatically
-     * join the index as the last column.
+     * Add a row id name. Row IDs are a numeric counter that can be inserted
+     * in any column.  By defining the row id name, the matching column always
+     * has the batch row number automatically added to it. 
      * 
      * @param name Row ID name
      * @throws CsvException Thrown if the row ID has already been set.
@@ -289,6 +289,7 @@ public class CsvWriter
             throw new CsvException("Attempt to add row ID twice");
         }
         this.rowId = name;
+        addColumnName(rowId);
     }
 
     /**
@@ -298,8 +299,8 @@ public class CsvWriter
     {
         // Create null-filled array. The array differs by one according
         // to whether we use row IDs or not.
-        int size = (rowId == null) ? names.size() : names.size() + 1;
-        List<String> nameList = new ArrayList<String>(size);
+        int size = names.size();
+        List<String> nameList = new ArrayList<String>(names.size());
         for (int i = 0; i < size; i++)
             nameList.add(null);
 
@@ -309,11 +310,6 @@ public class CsvWriter
             int index = names.get(name);
             nameList.set(index - 1, name);
         }
-
-        // Add rowId if we are using it.
-        if (rowId != null)
-            nameList.set(names.size(), rowId);
-
         return nameList;
     }
 
@@ -322,11 +318,7 @@ public class CsvWriter
      */
     public int getWidth()
     {
-        int base = names.size();
-        if (rowId == null)
-            return base;
-        else
-            return base + 1;
+        return names.size();
     }
 
     /**
@@ -352,10 +344,10 @@ public class CsvWriter
         // If we have a pending row, write it now.
         if (row != null)
         {
-            // Add the row count value to last column if row IDs are enabled.
+            // Add the row count value if row IDs are enabled.
             if (rowId != null)
             {
-                put(row.size(), new Integer(rowCount + 1).toString());
+                put(rowId, new Integer(rowCount + 1).toString());
             }
 
             // Check for writing too few columns.
