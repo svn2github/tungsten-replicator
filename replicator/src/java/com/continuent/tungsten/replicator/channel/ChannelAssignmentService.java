@@ -132,7 +132,8 @@ public class ChannelAssignmentService implements PipelineService
         String metadataSchema = context.getReplicatorSchemaName();
 
         // Create shard-channel table if it does not exist.
-        channelTable = new ShardChannelTable(metadataSchema);
+        channelTable = new ShardChannelTable(metadataSchema,
+                context.getTungstenTableType());
         try
         {
             // HACK: Create schema. This table should be created by

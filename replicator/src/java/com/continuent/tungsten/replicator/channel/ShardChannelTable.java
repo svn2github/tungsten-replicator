@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -58,6 +58,7 @@ public class ShardChannelTable
                                                     + TABLE_NAME + " ORDER BY "
                                                     + SHARD_ID_COL;
 
+    private String             tableType;
     private Table              channelTable;
     private Column             shardId;
     private Column             channel;
@@ -67,8 +68,9 @@ public class ShardChannelTable
      * 
      * @param schema
      */
-    public ShardChannelTable(String schema)
+    public ShardChannelTable(String schema, String tableType)
     {
+        this.tableType = tableType;
         initialize(schema);
     }
 
@@ -101,7 +103,7 @@ public class ShardChannelTable
             logger.debug("Initializing channel table");
 
         // Replace the table.
-        database.createTable(this.channelTable, false);
+        database.createTable(this.channelTable, false, tableType);
     }
 
     /**

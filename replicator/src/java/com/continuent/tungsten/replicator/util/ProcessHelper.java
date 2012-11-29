@@ -20,7 +20,7 @@
  * Contributor(s):
  */
 
-package com.continuent.tungsten.replicator.backup;
+package com.continuent.tungsten.replicator.util;
 
 import java.io.File;
 import java.io.InputStream;
@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.exec.ProcessExecutor;
+import com.continuent.tungsten.replicator.backup.BackupException;
 
 /**
  * Implements a simple helper to execute operating system processes with

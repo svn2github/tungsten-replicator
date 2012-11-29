@@ -64,7 +64,7 @@ public class DerbyDatabase extends AbstractDatabase
      * 
      * @see com.continuent.tungsten.replicator.database.AbstractDatabase#columnToTypeString(com.continuent.tungsten.replicator.database.Column)
      */
-    protected String columnToTypeString(Column c)
+    protected String columnToTypeString(Column c, String tableType)
     {
         switch (c.getType())
         {

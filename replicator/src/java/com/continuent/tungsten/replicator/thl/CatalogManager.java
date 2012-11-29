@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -150,7 +150,8 @@ public class CatalogManager
             shardTable.initializeShardTable(conn);
 
             // Create channel table.
-            channelTable = new ShardChannelTable(metadataSchema);
+            channelTable = new ShardChannelTable(metadataSchema,
+                    runtime.getTungstenTableType());
             channelTable.initializeShardTable(conn);
         }
         catch (SQLException e)

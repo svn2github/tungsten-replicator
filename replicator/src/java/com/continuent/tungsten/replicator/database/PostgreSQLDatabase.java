@@ -66,7 +66,7 @@ public class PostgreSQLDatabase extends AbstractDatabase
         return new MySQLOperationMatcher();
     }
 
-    protected String columnToTypeString(Column c)
+    protected String columnToTypeString(Column c, String tableType)
     {
         switch (c.getType())
         {
@@ -293,7 +293,7 @@ public class PostgreSQLDatabase extends AbstractDatabase
         {
             Column c = i.next();
             SQL += (comma ? ", " : "") + c.getName() + " "
-                    + columnToTypeString(c)
+                    + columnToTypeString(c, null)
                     + (c.isNotNull() ? " NOT NULL" : "");
             comma = true;
         }

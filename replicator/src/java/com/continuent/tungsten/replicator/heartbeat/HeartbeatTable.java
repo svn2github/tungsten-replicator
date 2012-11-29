@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -289,6 +289,29 @@ public class HeartbeatTable
         values.add(hbTargetTstamp);
         values.add(hbLagMillis);
 
+        database.update(hbTable, whereClause, values);
+    }
+
+    /**
+     * Applies a heartbeat update on the slave. This call is designed for data
+     * warehouses that cannot apply a heartbeat using batch loading mechanisms.
+     */
+    public void applyHeartbeat(Database database, Timestamp sourceTimestamp,
+            String name) throws SQLException
+    {
+        ArrayList<Column> whereClause = new ArrayList<Column>();
+        ArrayList<Column> values = new ArrayList<Column>();
+
+        if (logger.isDebugEnabled())
+            logger.debug("Applying heartbeat to slave: name=" + name
+                    + " sourceTstamp=" + sourceTimestamp);
+
+        hbId.setValue(KEY);
+        whereClause.add(hbId);
+        hbSourceTstamp.setValue(sourceTimestamp);
+        hbName.setValue(name);
+        values.add(hbSourceTstamp);
+        values.add(hbName);
         database.update(hbTable, whereClause, values);
     }
 }

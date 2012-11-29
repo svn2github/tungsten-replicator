@@ -281,7 +281,19 @@ public class Table
      */
     public String toString()
     {
-        return this.schema + "." + this.name;
+        StringBuffer sb = new StringBuffer();
+        sb.append("Table name=");
+        sb.append(this.schema).append(".").append(this.name);
+        sb.append(" (");
+        for (int c = 0; c < getColumnCount(); c++)
+        {
+            if (c > 0)
+                sb.append(", ");
+            Column col = this.getAllColumns().get(c);
+            sb.append(col);
+        }
+        sb.append(")");
+        return sb.toString();
     }
 
     /**

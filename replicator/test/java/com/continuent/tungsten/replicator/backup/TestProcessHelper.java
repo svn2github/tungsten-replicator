@@ -27,6 +27,8 @@ import junit.framework.TestCase;
 import org.junit.After;
 import org.junit.Before;
 
+import com.continuent.tungsten.replicator.util.ProcessHelper;
+
 /**
  * This class tests the process helper using dummy commands.
  * 

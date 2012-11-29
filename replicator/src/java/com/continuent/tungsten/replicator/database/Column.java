@@ -245,4 +245,13 @@ public class Column implements Serializable
         this.typeDescription = typeDescription;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see java.lang.Object#toString()
+     */
+    public String toString()
+    {
+        return "Column name=" + name;
+    }
 }

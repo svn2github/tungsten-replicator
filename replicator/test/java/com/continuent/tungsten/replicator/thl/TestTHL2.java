@@ -296,7 +296,7 @@ public class TestTHL2 extends TestCase
     /**
      * Verify that a slave can choose selectively to connect to a slave, a
      * master, or either one. This test works by defining master/slave
-     * pipelines, then constructs a slave that connects to each in turn. 
+     * pipelines, then constructs a slave that connects to each in turn.
      */
     public void testMultiThlServerConnect() throws Exception
     {
@@ -342,12 +342,12 @@ public class TestTHL2 extends TestCase
         assertEquals("Slave should read from slave", "thl://localhost:2113",
                 slave2.getPipelineSource());
 
-        // Shut down the slave #1 and ensure slave2 reads switch to the 
-        // master. 
+        // Shut down the slave #1 and ensure slave2 reads switch to the
+        // master.
         slave1.shutdown(true);
         ((ReplicatorRuntime) slave1.getContext()).release();
         slave1 = null;
-        
+
         logger.info("Testing read from master with seqno 2");
         masterQueue.put(createEvent(2));
         Future<ReplDBMSHeader> wait3 = slave2
@@ -357,7 +357,7 @@ public class TestTHL2 extends TestCase
         assertEquals("Slave should read from master", "thl://localhost:2112",
                 slave2.getPipelineSource());
 
-        // Shut down the test slave. 
+        // Shut down the test slave.
         slave2.shutdown(true);
         ((ReplicatorRuntime) slave2.getContext()).release();
         slave2 = null;

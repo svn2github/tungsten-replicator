@@ -26,6 +26,8 @@ import java.io.File;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.replicator.util.ProcessHelper;
+
 /**
  * Implements a helper for running LVM commands across full life-cycle from
  * creating a snapshot to mounting it to unmounting and discarding.

@@ -50,6 +50,7 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.csv.CsvException;
 import com.continuent.tungsten.common.csv.CsvWriter;
+import com.continuent.tungsten.common.exec.ProcessExecutor;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.applier.RawApplier;
 import com.continuent.tungsten.replicator.consistency.ConsistencyException;
@@ -72,6 +73,7 @@ import com.continuent.tungsten.replicator.dbms.RowIdData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
@@ -85,80 +87,55 @@ import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
  */
 public class SimpleBatchApplier implements RawApplier
 {
-    private static Logger  logger            = Logger.getLogger(SimpleBatchApplier.class);
+    private static Logger               logger               = Logger.getLogger(SimpleBatchApplier.class);
 
     /**
      * Denotes an insert operation.
      */
-    public static String   INSERT            = "I";
+    public static String                INSERT               = "I";
 
     /**
      * Denotes a delete operation.
      */
-    public static String   DELETE            = "D";
+    public static String                DELETE               = "D";
 
     // Task management information.
-    private int            taskId;
+    private int                         taskId;
 
     // Properties.
-    protected String       driver;
-    protected String       url;
-    protected String       user;
-    protected String       password;
-    protected String       stageDirectory;
-    protected String       startupScript;
-    protected String       stageLoadScript;
-    protected String       stageMergeScript;
-    protected String       stageSchemaPrefix;
-    protected String       stageTablePrefix;
-    protected String       stageColumnPrefix = "tungsten_";
-    protected String       stagePkeyColumn;
-    protected boolean      cleanUpFiles      = true;
-    protected String       charset           = "UTF-8";
-    protected String       timezone          = "GMT-0:00";
-    protected LoadMismatch onLoadMismatch    = LoadMismatch.fail;
+    protected String                    driver;
+    protected String                    url;
+    protected String                    user;
+    protected String                    password;
+    protected String                    stageDirectory;
+    protected String                    startupScript;
+    protected String                    stageMergeScript;
+    protected String                    stageSchemaPrefix;
+    protected String                    stageTablePrefix;
+    protected String                    stageColumnPrefix    = "tungsten_";
+    protected String                    stagePkeyColumn;
+    protected boolean                   cleanUpFiles         = true;
+    protected String                    charset              = "UTF-8";
+    protected String                    timezone             = "GMT-0:00";
+    protected LoadMismatch              onLoadMismatch       = LoadMismatch.fail;
+    protected boolean                   showCommands;
 
     // Load file directory for this task.
-    private File           stageDir;
+    private File                        stageDir;
 
     // Character set for writing CSV files.
-    private Charset        outputCharset;
-
-    // Enum to set load mismatch policy.
-    enum LoadMismatch
-    {
-        fail, warn
-    };
-
-    // Batch CSV file information. When using staging the
-    // stage table metadata field is filled in. Otherwise it is null.
-    class CsvInfo
-    {
-        String    schema;
-        String    table;
-        Table     baseTableMetadata;
-        Table     stageTableMetadata;
-        File      file;
-        CsvWriter writer;
-    }
+    private Charset                     outputCharset;
 
     // Open CVS files in current transaction.
     private Map<String, CsvInfo>        openCsvFiles         = new TreeMap<String, CsvInfo>();
 
-    // Cached load commands.
-    protected SqlScriptGenerator        loadScriptGenerator  = new SqlScriptGenerator();
-    protected Map<String, List<String>> loadScripts          = new HashMap<String, List<String>>();
-
     // Cached merge commands.
-    private SqlScriptGenerator          mergeScriptGenerator = new SqlScriptGenerator();
-    private Map<String, List<String>>   mergeScripts         = new HashMap<String, List<String>>();
+    private BatchScript                 mergeScript          = new BatchScript();
 
     // Latest event.
     private ReplDBMSHeader              latestHeader;
 
-    // Table metadata for base tables. We have to separate delete metadata from
-    // normal metadata, as delete metadata is generated differently using only
-    // keys supplied in a row delete operation.
+    // Table metadata for base tables.
     private TableMetadataCache          fullMetadataCache;
 
     // DBMS connection information.
@@ -176,84 +153,95 @@ public class SimpleBatchApplier implements RawApplier
     // Data formatter.
     protected volatile SimpleDateFormat dateFormatter;
 
-    public synchronized void setDriver(String driver)
+    public void setDriver(String driver)
     {
         this.driver = driver;
     }
 
-    public synchronized void setUrl(String url)
+    public void setUrl(String url)
     {
         this.url = url;
     }
 
-    public synchronized void setUser(String user)
+    public void setUser(String user)
     {
         this.user = user;
     }
 
-    public synchronized void setPassword(String password)
+    public void setPassword(String password)
     {
         this.password = password;
     }
 
-    public synchronized void setStartupScript(String startupScript)
+    /** Set the name of the connect script. */
+    public void setStartupScript(String startupScript)
     {
         this.startupScript = startupScript;
     }
 
-    public synchronized void setStageLoadScript(String stageLoadScript)
-    {
-        this.stageLoadScript = stageLoadScript;
-    }
-
-    public synchronized void setStageMergeScript(String stageMergeScript)
+    /** Set the name of the merge script. */
+    public void setStageMergeScript(String stageMergeScript)
     {
         this.stageMergeScript = stageMergeScript;
     }
 
-    public synchronized void setStageSchemaPrefix(String stageSchemaPrefix)
+    /** Set the schema prefix for staging tables. */
+    public void setStageSchemaPrefix(String stageSchemaPrefix)
     {
         this.stageSchemaPrefix = stageSchemaPrefix;
     }
 
-    public synchronized void setStageTablePrefix(String stageTablePrefix)
+    public void setStageTablePrefix(String stageTablePrefix)
     {
         this.stageTablePrefix = stageTablePrefix;
     }
 
-    public synchronized void setStagePkeyColumn(String stagePkeyColumn)
+    /** Set the default name of the staging table primary key. */
+    public void setStagePkeyColumn(String stagePkeyColumn)
     {
         this.stagePkeyColumn = stagePkeyColumn;
     }
 
-    public synchronized void setStageColumnPrefix(String stageColumnPrefix)
+    /** Set the prefix for staging table columns. */
+    public void setStageColumnPrefix(String stageColumnPrefix)
     {
         this.stageColumnPrefix = stageColumnPrefix;
     }
 
-    public synchronized void setStageDirectory(String stageDirectory)
+    /** Set the name of the staging directory. */
+    public void setStageDirectory(String stageDirectory)
     {
         this.stageDirectory = stageDirectory;
     }
 
-    public synchronized void setCleanUpFiles(boolean cleanUpFiles)
+    /** If true, clean up files automatically. */
+    public void setCleanUpFiles(boolean cleanUpFiles)
     {
         this.cleanUpFiles = cleanUpFiles;
     }
 
-    public synchronized void setCharset(String charset)
+    /** Sets the platform charset name. */
+    public void setCharset(String charset)
     {
         this.charset = charset;
     }
 
-    public synchronized void setTimezone(String timezone)
+    /** Sets the timezone. */
+    public void setTimezone(String timezone)
     {
         this.timezone = timezone;
     }
 
-    public synchronized void setOnLoadMismatch(String onLoadMismatchString)
+    /** Sets the proper handling of a load mismatch. */
+    public void setOnLoadMismatch(String onLoadMismatchString)
     {
         this.onLoadMismatch = LoadMismatch.valueOf(onLoadMismatchString);
+    }
+
+    /** If true, show commands in the log when loading batches. */
+    public void setShowCommands(boolean showCommands)
+    {
+        this.showCommands = showCommands;
     }
 
     /**
@@ -271,6 +259,40 @@ public class SimpleBatchApplier implements RawApplier
     {
         long seqno = header.getSeqno();
         ArrayList<DBMSData> dbmsDataValues = event.getData();
+
+        // Apply heartbeat directly, skipping batch loading.
+        String hbName = event
+                .getMetadataOptionValue(ReplOptionParams.HEARTBEAT);
+        if (hbName != null)
+        {
+            try
+            {
+                heartbeatTable.applyHeartbeat(conn, event.getSourceTstamp(),
+                        hbName);
+                heartbeatTable.completeHeartbeat(conn, header.getSeqno(),
+                        event.getEventId());
+                if (doCommit)
+                {
+                    conn.commit();
+                }
+            }
+            catch (SQLException e)
+            {
+                throw new ReplicatorException("Error updating heartbeat table",
+                        e);
+            }
+            return;
+        }
+
+        // Process consistency checks. These are currently not supported.
+        String consistencyWhere = event
+                .getMetadataOptionValue(ReplOptionParams.CONSISTENCY_WHERE);
+        if (consistencyWhere != null)
+        {
+            logger.warn("Consistency checks are not supported: where clause="
+                    + consistencyWhere);
+            return;
+        }
 
         // Iterate through values inferring the database name.
         for (DBMSData dbmsData : dbmsDataValues)
@@ -340,13 +362,13 @@ public class SimpleBatchApplier implements RawApplier
                     {
                         // Fetch column names and values.
                         List<ColumnSpec> keySpecs = orc.getKeySpec();
-                        // List<ColumnSpec> colSpecs = orc.getColumnSpec();
+                        List<ColumnSpec> colSpecs = orc.getColumnSpec();
                         ArrayList<ArrayList<ColumnVal>> keyValues = orc
                                 .getKeyValues();
 
                         // Get information about the table definition.
                         Table tableMetadata = this.getTableMetadata(schema,
-                                table, keySpecs, keySpecs);
+                                table, colSpecs, keySpecs);
 
                         // Insert each column into the CSV file.
                         writeValues(seqno, tableMetadata, keySpecs, keyValues,
@@ -410,7 +432,6 @@ public class SimpleBatchApplier implements RawApplier
         for (CsvInfo info : openCsvFiles.values())
         {
             clearStageTable(info);
-            load(info);
             mergeFromStageTable(info);
             loadCount++;
         }
@@ -448,8 +469,8 @@ public class SimpleBatchApplier implements RawApplier
         // Clear the CSV file cache.
         openCsvFiles.clear();
 
-        // Clear the load directories.
-        if (this.cleanUpFiles)
+        // Clear the load directories if desired.
+        if (cleanUpFiles)
             purgeDirIfExists(stageDir, false);
     }
 
@@ -528,15 +549,12 @@ public class SimpleBatchApplier implements RawApplier
         assertNotNull(stageDirectory, "stageDirectory");
         assertNotNull(stageTablePrefix, "stageTablePrefix");
         assertNotNull(stageColumnPrefix, "stageRowIdColumn");
-        assertNotNull(stageLoadScript, "stageLoadScript");
         assertNotNull(stageMergeScript, "stageMergeScript");
 
         // Get metadata schema.
         metadataSchema = context.getReplicatorSchemaName();
         consistencyTable = metadataSchema + "." + ConsistencyTable.TABLE_NAME;
         consistencySelect = "SELECT * FROM " + consistencyTable + " ";
-
-        // Check parameters.
     }
 
     // Ensure value is not null.
@@ -586,9 +604,9 @@ public class SimpleBatchApplier implements RawApplier
                     + outputCharset.toString());
         }
 
-        // Initialize script generators for load and merge operations.
-        loadScriptGenerator = initializeGenerator(stageLoadScript);
-        mergeScriptGenerator = initializeGenerator(stageMergeScript);
+        // Initialize script for merge operations.
+        mergeScript = new BatchScript();
+        mergeScript.load(new File(stageMergeScript));
 
         // Set up the staging directory.
         File staging = new File(stageDirectory);
@@ -624,21 +642,22 @@ public class SimpleBatchApplier implements RawApplier
             conn.connect(false);
             statement = conn.createStatement();
 
+            // Get the table type. For MySQL databases this is important.
+            String tableType = context.getTungstenTableType();
+
             // Set up heartbeat table.
             heartbeatTable = new HeartbeatTable(
-                    context.getReplicatorSchemaName(), "");
+                    context.getReplicatorSchemaName(), tableType);
             heartbeatTable.initializeHeartbeatTable(conn);
-            createStageTable(heartbeatTable.getTable(), false);
 
             // Create consistency table
             Table consistency = ConsistencyTable
                     .getConsistencyTableDefinition(metadataSchema);
-            conn.createTable(consistency, false);
-            createStageTable(consistency, false);
+            conn.createTable(consistency, false, tableType);
 
             // Set up commit seqno table and fetch the last processed event.
             commitSeqnoTable = new CommitSeqnoTable(conn,
-                    context.getReplicatorSchemaName(), "", false);
+                    context.getReplicatorSchemaName(), tableType, false);
             commitSeqnoTable.prepare(taskId);
             latestHeader = commitSeqnoTable.lastCommitSeqno(taskId);
 
@@ -691,7 +710,7 @@ public class SimpleBatchApplier implements RawApplier
     }
 
     // Initializes a SqlScriptGenerator.
-    private SqlScriptGenerator initializeGenerator(String script)
+    public static SqlScriptGenerator initializeGenerator(String script)
             throws ReplicatorException
     {
         FileReader fileReader = null;
@@ -761,25 +780,6 @@ public class SimpleBatchApplier implements RawApplier
     }
 
     /**
-     * Creates staging tables for the base table.
-     * 
-     * @param baseTable Base table for which to create the corresponding staging
-     *            tables.
-     */
-    private void createStageTable(Table baseTable, boolean dropExisting)
-            throws SQLException
-    {
-        Table stageTable = getStageTable(baseTable);
-
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("Creating test staging table: " + stageTable.getName());
-            logger.debug("Table details: " + stageTable);
-        }
-        conn.createTable(stageTable, dropExisting);
-    }
-
-    /**
      * Create stage table definition by prefixing the base name, removing PK
      * constraint (if requested) and adding a stageRowIdColumn column.
      * 
@@ -799,22 +799,20 @@ public class SimpleBatchApplier implements RawApplier
         stageTable.setTable(stageName);
         stageTable.setSchema(stageSchema);
 
-        // Seqno, and op code columns
-        Column seqnoCol = new Column(stageColumnPrefix + "seqno", Types.INTEGER);
-        stageTable.AddColumn(seqnoCol);
+        // Opcode, seqno, and row_id columns are always first 3 columns.
         Column opCol = new Column(stageColumnPrefix + "opcode", Types.CHAR, 1);
         stageTable.AddColumn(opCol);
+        Column seqnoCol = new Column(stageColumnPrefix + "seqno", Types.INTEGER);
+        stageTable.AddColumn(seqnoCol);
+        Column rowIdCol = new Column(stageColumnPrefix + "row_id",
+                Types.INTEGER);
+        stageTable.AddColumn(rowIdCol);
 
         // Add columns from base table.
         for (Column col : baseTable.getAllColumns())
         {
             stageTable.AddColumn(col);
         }
-
-        // Add row ID column to the end.
-        Column rowIdCol = new Column(stageColumnPrefix + "row_id",
-                Types.INTEGER);
-        stageTable.AddColumn(rowIdCol);
 
         // Return the result.
         return stageTable;
@@ -836,7 +834,7 @@ public class SimpleBatchApplier implements RawApplier
             File file = new File(this.stageDir, key + ".csv");
 
             // Pick the right table to use. For staging tables, we
-            // need to use the stage metadata instead of going direct
+            // need to use the stage metadata instead of going direct.
             Table csvMetadata;
             if (stageTableMetadata == null)
                 csvMetadata = tableMetadata;
@@ -846,6 +844,19 @@ public class SimpleBatchApplier implements RawApplier
             // Now generate the CSV writer.
             try
             {
+                // Ensure the file does not exist. This cleans up from
+                // previous transactions.
+                if (file.exists())
+                {
+                    file.delete();
+                }
+                if (file.exists())
+                {
+                    throw new ReplicatorException(
+                            "Unable to delete CSV file prior to loading new data: "
+                                    + file.getAbsolutePath());
+                }
+
                 // Generate a CSV writer on the file.
                 FileOutputStream outputStream = new FileOutputStream(file);
                 OutputStreamWriter streamWriter = new OutputStreamWriter(
@@ -856,18 +867,20 @@ public class SimpleBatchApplier implements RawApplier
 
                 // Populate columns. The last column is the row ID, which is
                 // automatically populated by the CSV writer.
+                String rowIdName = stageColumnPrefix + "row_id";
                 List<Column> columns = csvMetadata.getAllColumns();
                 for (int i = 0; i < columns.size(); i++)
                 {
                     Column col = columns.get(i);
-                    if (i + 1 < columns.size())
-                        writer.addColumnName(col.getName());
+                    String name = col.getName();
+                    if (rowIdName.equals(name))
+                        writer.addRowIdName(name);
                     else
-                        writer.addRowIdName(col.getName());
+                        writer.addColumnName(name);
                 }
 
                 // Create and cache writer information.
-                info = new CsvInfo();
+                info = new CsvInfo(this.stagePkeyColumn);
                 info.schema = tableMetadata.getSchema();
                 info.table = tableMetadata.getName();
                 info.baseTableMetadata = tableMetadata;
@@ -907,10 +920,11 @@ public class SimpleBatchApplier implements RawApplier
             {
                 // Insert the sequence number and opcode.
                 int csvIndex = 1;
-                csv.put(csvIndex++, new Long(seqno).toString());
                 csv.put(csvIndex++, opcode);
+                csv.put(csvIndex++, new Long(seqno).toString());
 
-                // Now add the row data.
+                // Now add the row data. Note that we skip the 3rd column as
+                // that has the row_id value and is filled in automatically.
                 ArrayList<ColumnVal> row = colIterator.next();
                 for (int i = 0; i < row.size(); i++)
                 {
@@ -918,7 +932,7 @@ public class SimpleBatchApplier implements RawApplier
                     ColumnSpec columnSpec = colSpecs.get(i);
                     String value = getCsvString(columnVal, columnSpec);
                     int colIdx = columnSpec.getIndex();
-                    csv.put(colIdx + 2, value);
+                    csv.put(colIdx + 3, value);
                 }
                 csv.write();
             }
@@ -978,108 +992,8 @@ public class SimpleBatchApplier implements RawApplier
         }
     }
 
-    /**
-     * Load an open CSV file.
-     */
-    protected void load(CsvInfo info) throws ReplicatorException
-    {
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("Loading CSV file: " + info.file.getAbsolutePath());
-        }
-        int rowsToLoad = info.writer.getRowCount();
-
-        // Generate the load command(s).
-        Table base = info.baseTableMetadata;
-        List<String> loadCommands = loadScripts.get(base.fullyQualifiedName());
-        if (loadCommands == null)
-        {
-            // If we do not have load commands yet, generate them.
-            Map<String, String> parameters = getSqlParameters(info);
-            loadCommands = loadScriptGenerator
-                    .getParameterizedScript(parameters);
-            loadScripts.put(base.fullyQualifiedName(), loadCommands);
-        }
-
-        // Execute aforesaid load commands.
-        int commandCount = 0;
-        for (String loadCommand : loadCommands)
-        {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Executing load command: " + loadCommand);
-            }
-            try
-            {
-                long start = System.currentTimeMillis();
-                int rows = statement.executeUpdate(loadCommand);
-                commandCount++;
-                double interval = (System.currentTimeMillis() - start) / 1000.0;
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("Execution completed: rows updated=" + rows
-                            + " duration=" + interval + "s");
-                }
-
-                // Check for load mismatches on last command in list.
-                // (Allows earlier commands to do things like set time zone.
-                if (commandCount == loadCommands.size() && rows != rowsToLoad)
-                {
-                    if (onLoadMismatch == LoadMismatch.warn)
-                    {
-                        // If there are several load commands, we may just warn
-                        // if there are
-                        // differences.
-                        logger.warn("Difference between CSV file size and rows loaded: rowsInFile="
-                                + rowsToLoad
-                                + " rowsLoaded="
-                                + rows
-                                + " loadCommand=" + loadCommand);
-                    }
-                    else if (onLoadMismatch == LoadMismatch.fail)
-                    {
-                        // For single commands, this is what you want.
-                        // Differences in rows loaded usually indicate a bug.
-                        ReplicatorException re = new ReplicatorException(
-                                "Difference between CSV file size and rows loaded: rowsInFile="
-                                        + rowsToLoad + " rowsLoaded=" + rows);
-                        re.setExtraData(loadCommand);
-                        throw re;
-                    }
-                    else
-                    {
-                        // Otherwise we just ignore the mismatch. For
-                        // experts only.
-                        if (logger.isDebugEnabled())
-                        {
-                            logger.debug("Ignoring CSV load mismatch: rowsInFile="
-                                    + rowsToLoad
-                                    + " rowsLoaded="
-                                    + rows
-                                    + " loadCommand=" + loadCommand);
-                        }
-                    }
-                }
-            }
-            catch (SQLException e)
-            {
-                ReplicatorException re = new ReplicatorException(
-                        "Unable to execute load command", e);
-                re.setExtraData(loadCommand);
-                throw re;
-            }
-        }
-
-        // Delete the load file if we are done with it.
-        if (cleanUpFiles && !info.file.delete())
-        {
-            logger.warn("Unable to delete load file: "
-                    + info.file.getAbsolutePath());
-        }
-    }
-
     // Load an open CSV file.
-    private void clearStageTable(CsvInfo info) throws ReplicatorException
+    protected void clearStageTable(CsvInfo info) throws ReplicatorException
     {
         Table table = info.stageTableMetadata;
         if (logger.isDebugEnabled())
@@ -1111,45 +1025,6 @@ public class SimpleBatchApplier implements RawApplier
         }
     }
 
-    /**
-     * Determines primary key name for the given CsvInfo object. If underlying
-     * meta data table contains a primary key, it is used. If not, user's
-     * configured default one is taken.<br/>
-     * Currently, only single-column primary keys are supported.
-     * 
-     * @return Primary key column name.
-     * @throws ReplicatorException Thrown if primary key cannot be found
-     */
-    private String getPKColumn(CsvInfo info) throws ReplicatorException
-    {
-        String pkey = stagePkeyColumn;
-
-        // If THL event contains PK, use it.
-        if (info.baseTableMetadata.getPrimaryKey() != null
-                && info.baseTableMetadata.getPrimaryKey().getColumns() != null
-                && info.baseTableMetadata.getPrimaryKey().getColumns().size() > 0
-                && info.baseTableMetadata.getPrimaryKey().getColumns().get(0)
-                        .getName() != null
-                && !info.baseTableMetadata.getPrimaryKey().getColumns().get(0)
-                        .getName().equals(""))
-        {
-            pkey = info.baseTableMetadata.getPrimaryKey().getColumns().get(0)
-                    .getName();
-        }
-
-        // If the primary key is still null that means we don't have a key
-        // from metadata and nothing was set in the configuration properties.
-        if (pkey == null)
-        {
-            String msg = String
-                    .format("Unable to find a primary key for %s and there is no default from property stagePkeyColumn",
-                            info.baseTableMetadata.fullyQualifiedName());
-            throw new ReplicatorException(msg);
-        }
-
-        return pkey;
-    }
-
     // Load an open CSV file.
     private void mergeFromStageTable(CsvInfo info) throws ReplicatorException
     {
@@ -1162,75 +1037,86 @@ public class SimpleBatchApplier implements RawApplier
         }
 
         // Get the commands(s) to merge from stage table to base table.
-        List<String> commands = mergeScripts.get(base.fullyQualifiedName());
-        if (commands == null)
-        {
-            // If we do not have commands yet, generate them.
-            Map<String, String> parameters = getSqlParameters(info);
-            commands = mergeScriptGenerator.getParameterizedScript(parameters);
-            mergeScripts.put(base.fullyQualifiedName(), commands);
-        }
+        Map<String, String> parameters = info.getSqlParameters();
+        List<BatchCommand> commands = mergeScript
+                .getParameterizedScript(parameters);
 
         // Execute merge commands one by one.
-        for (String command : commands)
+        for (BatchCommand command : commands)
         {
             if (logger.isDebugEnabled())
             {
-                logger.debug("Executing insert merge command: " + command);
+                logger.debug("Executing merge command: " + command.toString());
             }
-            try
+            String commandText = command.getCommand();
+            if (this.showCommands)
             {
-                long start = System.currentTimeMillis();
-                int rows = statement.executeUpdate(command);
-                double interval = (System.currentTimeMillis() - start) / 1000.0;
+                logger.info("Batch Command: " + commandText);
+            }
+
+            // Process command.
+            long start = System.currentTimeMillis();
+            if (commandText.startsWith("!"))
+            {
+                // Check for "bang" with no command following...
+                if (commandText.length() <= 1)
+                {
+                    // This must be ignored.
+                    continue;
+                }
+
+                String osCommandText = commandText.substring(1);
+                String[] osArray = {"sh", "-c", osCommandText};
+                ProcessExecutor pe = new ProcessExecutor();
+                pe.setCommands(osArray);
                 if (logger.isDebugEnabled())
                 {
-                    logger.debug("Execution completed: rows updated=" + rows
-                            + " duration=" + interval + "s");
+                    logger.debug("Executing OS command: " + osCommandText);
+                }
+                pe.run();
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("OS command stdout: " + pe.getStdout());
+                    logger.debug("OS command stderr: " + pe.getStderr());
+                    logger.debug("OS command exit value: " + pe.getExitValue());
+                }
+                if (!pe.isSuccessful())
+                {
+                    logger.error("OS command failed: command=" + osCommandText
+                            + " rc=" + pe.getExitValue() + " stdout="
+                            + pe.getStdout() + " stderr=" + pe.getStderr());
+                    throw new ReplicatorException("OS command failed: command="
+                            + osCommandText);
                 }
             }
-            catch (SQLException e)
+            else
             {
-                ReplicatorException re = new ReplicatorException(
-                        "Unable to merge data from stage table: "
-                                + stage.fullyQualifiedName(), e);
-                re.setExtraData(command);
-                throw re;
+                // SQL command.
+                try
+                {
+                    int rows = statement.executeUpdate(commandText);
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("SQL execution completed: rows updated="
+                                + rows);
+                    }
+                }
+                catch (SQLException e)
+                {
+                    ReplicatorException re = new ReplicatorException(
+                            "Unable to merge data to base table: "
+                                    + base.fullyQualifiedName(), e);
+                    re.setExtraData(command.toString());
+                    throw re;
+                }
+            }
+
+            double interval = (System.currentTimeMillis() - start) / 1000.0;
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Execution completed: duration=" + interval + "s");
             }
         }
-    }
-
-    // Generate parameters required by SQL load scripts.
-    protected Map<String, String> getSqlParameters(CsvInfo info)
-            throws ReplicatorException
-    {
-        // Generate data for base and staging tables.
-        Table base = info.baseTableMetadata;
-        Table stage = info.stageTableMetadata;
-        String pkey = getPKColumn(info);
-        String basePkey = base.getName() + "." + pkey;
-        String stagePkey = stage.getName() + "." + pkey;
-        StringBuffer colNames = new StringBuffer();
-        for (Column col : base.getAllColumns())
-        {
-            if (colNames.length() > 0)
-                colNames.append(",");
-            colNames.append(col.getName());
-        }
-        File csvFile = info.file;
-
-        // Create map containing parameters.
-        Map<String, String> parameters = new HashMap<String, String>();
-        parameters.put("%%CSV_FILE%%", csvFile.getAbsolutePath());
-        parameters.put("%%BASE_TABLE%%", base.fullyQualifiedName());
-        parameters.put("%%BASE_COLUMNS%%", colNames.toString());
-        parameters.put("%%STAGE_TABLE%%", stage.fullyQualifiedName());
-        parameters.put("%%PKEY%%", pkey);
-        parameters.put("%%BASE_PKEY%%", basePkey);
-        parameters.put("%%STAGE_PKEY%%", stagePkey);
-
-        // Return parameters.
-        return parameters;
     }
 
     // Get full table metadata. Cache for table metadata is populated

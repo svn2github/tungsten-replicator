@@ -27,6 +27,7 @@ import java.io.FileNotFoundException;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.backup.postgresql.PostgreSqlDumpAgent;
+import com.continuent.tungsten.replicator.util.ProcessHelper;
 
 /**
  * This class defines a AbstractBackupAgent

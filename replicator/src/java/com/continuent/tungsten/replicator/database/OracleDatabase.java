@@ -144,7 +144,7 @@ public class OracleDatabase extends AbstractDatabase
         return true;
     }
 
-    protected String columnToTypeString(Column c)
+    protected String columnToTypeString(Column c, String tableType)
     {
         switch (c.getType())
         {
@@ -261,10 +261,10 @@ public class OracleDatabase extends AbstractDatabase
         {
             Column c = i.next();
             SQL += (comma ? ", " : "") + c.getName() + " "
-                    + columnToTypeString(c)
+                    + columnToTypeString(c, null)
                     + (c.isNotNull() ? " NOT NULL" : "");
             colList += (comma ? ", " : "") + c.getName() + " "
-                    + columnToTypeString(c);
+                    + columnToTypeString(c, null);
             comma = true;
         }
         Iterator<Key> j = t.getKeys().iterator();

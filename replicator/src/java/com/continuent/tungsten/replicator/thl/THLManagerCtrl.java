@@ -666,9 +666,9 @@ public class THLManagerCtrl
                 {
                     println(stringBuilder, " - ROW# = " + row);
                     // Print column values.
-                    for (int c = 0; c < columns.size(); c++)
+                    if (columnValues.size() > 0)
                     {
-                        if (columnValues.size() > 0)
+                        for (int c = 0; c < columns.size(); c++)
                         {
                             OneRowChange.ColumnSpec colSpec = columns.get(c);
                             ArrayList<OneRowChange.ColumnVal> values = columnValues
@@ -679,6 +679,21 @@ public class THLManagerCtrl
                                             charset, hex));
                         }
                     }
+                    else if (columns.size() > 0)
+                    {
+                        // No values entered, but a list of column specs was
+                        // provided (probably by a filter)
+                        StringBuffer buf = new StringBuffer("Column specs only found : ");
+                        for (int c = 0; c < columns.size(); c++)
+                        {
+                            OneRowChange.ColumnSpec colSpec = columns.get(c);
+                            if (c > 0)
+                                buf.append(", ");
+                            buf.append(colSpec.getName());
+                        }
+                        println(stringBuilder, buf.toString());
+                    }
+
                     // Print key values.
                     for (int k = 0; k < keys.size(); k++)
                     {
@@ -739,8 +754,6 @@ public class THLManagerCtrl
         }
         logger.info("Transactions deleted");
     }
-    
-    
 
     /**
      * Main method to run utility.

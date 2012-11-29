@@ -41,7 +41,7 @@ import com.continuent.tungsten.replicator.backup.BackupException;
 import com.continuent.tungsten.replicator.backup.BackupLocator;
 import com.continuent.tungsten.replicator.backup.BackupSpecification;
 import com.continuent.tungsten.replicator.backup.FileBackupLocator;
-import com.continuent.tungsten.replicator.backup.ProcessHelper;
+import com.continuent.tungsten.replicator.util.ProcessHelper;
 
 /**
  * Implements a backup agent that works using pg_dump to dump data and

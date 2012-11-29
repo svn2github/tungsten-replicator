@@ -179,4 +179,11 @@ public interface PluginContext
      * Returns the transaction source of the head stage in the pipeline.
      */
     public String getPipelineSource();
+
+    /**
+     * Returns the table type used for Tungsten catalog databases. This value is
+     * meaningful only for MySQL databases and related data warehouse offspring
+     * like InfiniDB and InfoBright.
+     */
+    public String getTungstenTableType();
 }
