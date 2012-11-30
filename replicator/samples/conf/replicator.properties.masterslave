@@ -254,7 +254,7 @@ replicator.store.thl.doChecksum=@{REPL_THL_DO_CHECKSUM}
 
 # Maximum number of events to transfer at once.  Higher values are better
 # but as with queue store sizes require more memory.
-replicator.thl.protocol.buffer_size=${replicator.global.buffer.size}
+replicator.thl.protocol.buffer_size=10
 
 # THL listener address for remote access.  To listen on all ports, 
 # use a value like thl://0.0.0.0:2112/.  (2112 is default
