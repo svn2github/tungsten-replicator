@@ -3,7 +3,10 @@ package com.continuent.tungsten.common.cluster.resource;
 
 import java.io.Serializable;
 
+import org.codehaus.jackson.map.ObjectMapper;
+
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.exception.ResourceException;
 import com.continuent.tungsten.common.utils.ReflectUtils;
 import com.continuent.tungsten.common.utils.ResultFormatter;
 
@@ -164,4 +167,25 @@ public abstract class Resource implements Serializable
         return destination;
     }
 
+    public String toJSON() throws ResourceException
+    {
+        ObjectMapper mapper = new ObjectMapper();
+
+        try
+        {
+            String jsonString = null;
+
+            jsonString = mapper.writeValueAsString(this);
+
+            // Sanity check that we can convert the string back to an object
+            mapper.readValue(jsonString, this.getClass());
+
+            return (jsonString);
+        }
+        catch (Exception e)
+        {
+            String message = "Possible serialization/deserialization issue";
+            throw new ResourceException(message, e);
+        }
+    }
 }
