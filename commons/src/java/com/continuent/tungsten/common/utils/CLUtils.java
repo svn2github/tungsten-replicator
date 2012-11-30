@@ -227,11 +227,6 @@ public class CLUtils implements Serializable
     }
 
     /**
-     * @param dsProps
-     * @param header
-     * @param wasModified
-     * @param printDetails
-     * @param includeStatistics
      * @return a formatted string representing a datasource
      */
     public static String formatDsMap(Map<String, TungstenProperties> dsMap,
@@ -298,7 +293,6 @@ public class CLUtils implements Serializable
      * @param wasModified
      * @param printDetails
      * @param includeStatistics
-     * @return
      */
     public static String formatStatus(TungstenProperties dsProps,
             TungstenProperties replProps, TungstenProperties dbProps,

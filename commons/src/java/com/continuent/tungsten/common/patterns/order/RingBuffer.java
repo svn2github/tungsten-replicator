@@ -100,8 +100,6 @@ public class RingBuffer<T> implements Iterable<T>, Serializable
 
     /**
      * Get the total number of elements in the buffer.
-     * 
-     * @return
      */
     public synchronized int getElementCount()
     {
@@ -110,8 +108,6 @@ public class RingBuffer<T> implements Iterable<T>, Serializable
 
     /**
      * Get the maximum capacity of the buffer.
-     * 
-     * @return
      */
     public synchronized int getCapacity()
     {
@@ -120,8 +116,6 @@ public class RingBuffer<T> implements Iterable<T>, Serializable
 
     /**
      * Get a synchronized copy of the elements in this buffer.
-     * 
-     * @return
      */
     public synchronized RingBuffer<T> clone()
     {

@@ -266,7 +266,6 @@ public class MySQLIOs
      * Given a C3P0 pooled connection, extracts the enclosed "real" connection
      * 
      * @param pooledConnection a c3p0-pooled connection
-     * @param memberVariableName name of the inner connection variable
      * @return JDBC connection wrapped by the given connection
      * @throws IOException if an error occurs retrieving inner connection
      */
@@ -281,7 +280,6 @@ public class MySQLIOs
      * Given a BoneCP pooled connection, extracts the enclosed "real" connection
      * 
      * @param pooledConnection a boneCP-pooled connection
-     * @param memberVariableName name of the inner connection variable
      * @return JDBC connection wrapped by the given connection
      * @throws IOException if an error occurs retrieving inner connection
      */
@@ -1209,7 +1207,6 @@ public class MySQLIOs
      * Returns the ResourceState that maps to the status of the query execution.
      * 
      * @param status
-     * @return
      */
     public static ResourceState getStateFromQueryStatus(
             ExecuteQueryStatus status)

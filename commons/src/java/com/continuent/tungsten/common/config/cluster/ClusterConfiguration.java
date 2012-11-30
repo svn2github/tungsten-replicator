@@ -342,7 +342,6 @@ public class ClusterConfiguration
      * 
      * @param moduleProps the module properties file name
      * @param clusterHome location of cluster home
-     * @return
      */
     public static String getModulePropertiesFileName(String moduleProps,
             String clusterHome)
@@ -622,7 +621,6 @@ public class ClusterConfiguration
     /**
      * Loads a cluster configuration from a file located on the classpath.
      * 
-     * @param clusterName TODO
      * @param configFileName
      * @throws ConfigurationException
      */

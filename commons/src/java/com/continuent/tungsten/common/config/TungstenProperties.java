@@ -1775,9 +1775,6 @@ public class TungstenProperties implements Serializable
 
     /**
      * TODO: listToString definition.
-     * 
-     * @param list
-     * @return
      */
     static public String listToString(List<String> list)
     {

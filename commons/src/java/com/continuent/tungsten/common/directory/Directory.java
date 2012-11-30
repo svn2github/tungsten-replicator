@@ -1956,7 +1956,6 @@ public class Directory extends ResourceTree
      * @param port
      * @param component
      * @param managerName
-     * @return
      * @throws Exception
      */
     public ResourceNode getManagerNode(String sessionID, String siteName,
@@ -1997,13 +1996,8 @@ public class Directory extends ResourceTree
      * Processes are found at: /<site>/<cluster>/<member>/<component>/<process>
      * 
      * @param sessionID
-     * @param siteName
      * @param clusterName
      * @param memberName
-     * @param beanServiceName
-     * @param port
-     * @param component
-     * @return
      */
     public ResourceNode getProcessNode(String sessionID, String clusterName,
             String memberName, String processName)
@@ -2027,8 +2021,6 @@ public class Directory extends ResourceTree
     }
 
     /**
-     * {@inheritDoc}
-     * 
      * @see com.continuent.tungsten.common.directory.Directory#rm(java.lang.String,
      *      com.continuent.tungsten.common.directory.ResourceNode)
      */

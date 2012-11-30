@@ -926,8 +926,6 @@ public class DataSource extends Resource implements Serializable
 
     /**
      * Sets the standby value.
-     * 
-     * @param standby The standby to set.
      */
     public void setStandby(boolean isStandby)
     {

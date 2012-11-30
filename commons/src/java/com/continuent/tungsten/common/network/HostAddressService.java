@@ -82,7 +82,7 @@ public class HostAddressService
      * Sets the timeout for ping methods. Methods will try for up to this time
      * before giving up.
      * 
-     * @param timeout Timeout in milliseconds
+     * @param timeoutMillis Timeout in milliseconds
      */
     public void setTimeout(int timeoutMillis)
     {
@@ -127,7 +127,7 @@ public class HostAddressService
     /**
      * Enables a ping method.
      * 
-     * @param Name of method to enable
+     * @param name of method to enable
      * @throws HostException Thrown if method name does not exist
      */
     public synchronized void enableMethod(String name) throws HostException

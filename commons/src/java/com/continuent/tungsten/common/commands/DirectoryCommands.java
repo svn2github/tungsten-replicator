@@ -121,7 +121,6 @@ public class DirectoryCommands
      * Deletes files in a directory matching a specific pattern
      * 
      * @param directoryPath the directory to delete files in
-     * @param listingPattern the pattern the files must match to be deleted
      */
     public static boolean deleteFiles(String directoryPath)
     {
@@ -161,8 +160,8 @@ public class DirectoryCommands
     /**
      * Returns a listing of files in a directory matching a pattern.
      * 
-     * @param directoryPath the directory to get a file listing of
-     * @param listingPattern the pattern to search for in the file listing
+     * @param directoryPath the directory to get a file listing of;
+     *            listingPattern the pattern to search for in the file listing
      * @return the contents of the directory that match the pattern
      */
     public static List<String> fileList(String directoryPath,

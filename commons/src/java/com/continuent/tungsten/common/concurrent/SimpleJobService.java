@@ -66,7 +66,6 @@ public class SimpleJobService<V>
     /**
      * Submits a task for execution.
      * 
-     * @param A Runnable implementation to execute
      * @return A Future that allows clients to fetch result of running task.
      * @throws RejectedExecutionException Thrown if the task cannot be
      *             submitted, typically because the request queue is full

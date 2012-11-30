@@ -109,8 +109,6 @@ public class DataServicesConfiguration extends ClusterConfiguration
 
     /**
      * Returns the full path of the data services configuration file.
-     * 
-     * @return
      */
     public String getConfigFileNameInUse()
     {

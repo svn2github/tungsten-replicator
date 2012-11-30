@@ -99,8 +99,6 @@ public class QueryStatusToResourceStateConfiguration
 
     /**
      * Returns the full path of the data services configuration file.
-     * 
-     * @return
      */
     public String getConfigFileNameInUse()
     {
@@ -113,7 +111,6 @@ public class QueryStatusToResourceStateConfiguration
      * Returns the ResourceState currently mapped to the query status.
      * 
      * @param queryStatus
-     * @return
      * @throws ConfigurationException
      */
     public static ResourceState getMappedState(ExecuteQueryStatus queryStatus)

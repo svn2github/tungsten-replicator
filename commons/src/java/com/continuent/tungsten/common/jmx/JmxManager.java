@@ -97,8 +97,9 @@ public class JmxManager implements NotificationListener
     /**
      * Creates an instance to manage a JMX service
      * 
+     * TODO: beanPort parameter
+     * 
      * @param host The host name or IP to use
-     * @param beanPort TODO
      * @param registryPort The JMX server RMI registryPort
      * @param serviceName The JMX service name
      */

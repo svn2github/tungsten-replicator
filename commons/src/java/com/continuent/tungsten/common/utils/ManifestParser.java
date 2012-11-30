@@ -232,8 +232,6 @@ public class ManifestParser
 
     /**
      * Returns Hudson's build number from the manifest.
-     * 
-     * @return
      */
     public Number getHudsonBuildNumber()
     {
@@ -287,8 +285,6 @@ public class ManifestParser
     /**
      * Convenience method for a single line call to get a representative string
      * of release name, version and build number.
-     * 
-     * @param logger Logger to log into.
      */
     public static String parseReleaseWithBuildNumber()
     {
