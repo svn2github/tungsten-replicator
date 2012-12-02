@@ -9,6 +9,8 @@ REPL_MYSQL_ENABLE_ANSIQUOTES = "repl_mysql_enable_ansiquotes"
 REPL_MYSQL_ENABLE_NOONLYKEYWORDS = "repl_mysql_enable_noonlykeywords"
 REPL_MYSQL_XTRABACKUP_DIR = "repl_mysql_xtrabackup_dir"
 REPL_MYSQL_XTRABACKUP_FILE = "repl_mysql_xtrabackup_file"
+REPL_MYSQL_XTRABACKUP_TMP_DIR = "repl_mysql_xtrabackup_tmp_dir"
+REPL_MYSQL_XTRABACKUP_TMP_FILE = "repl_mysql_xtrabackup_tmp_file"
 REPL_MYSQL_USE_BYTES_FOR_STRING = "repl_mysql_use_bytes_for_string"
 REPL_MYSQL_CONF = "repl_datasource_mysql_conf"
 
@@ -326,6 +328,42 @@ class MySQLXtrabackupFile < ConfigurePrompt
   
   def get_default_value
     @config.getProperty(get_member_key(REPL_BACKUP_DUMP_DIR)) + "/innobackup.tar"
+  end
+end
+
+class MySQLXtrabackupTempDirectory < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_MYSQL_XTRABACKUP_TMP_DIR, "Directory to use for xtrabackup temp files", PV_FILENAME)
+  end
+  
+  def get_default_value
+    dir = @config.getProperty(get_member_key(REPL_BACKUP_STORAGE_DIR))
+    if dir.to_s != ""
+      return dir + "/innobackup"
+    else
+      return nil
+    end
+  end
+end
+
+class MySQLXtrabackupTempFile < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_MYSQL_XTRABACKUP_TMP_FILE, "File to use for xtrabackup packaging", PV_FILENAME)
+  end
+  
+  def get_default_value
+    dir = @config.getProperty(get_member_key(REPL_BACKUP_STORAGE_DIR))
+    if dir.to_s != ""
+      return dir + "/innobackup.tar"
+    else
+      return nil
+    end
   end
 end
 
