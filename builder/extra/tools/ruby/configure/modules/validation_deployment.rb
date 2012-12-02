@@ -153,6 +153,12 @@ class WriteableHomeDirectoryCheck < ConfigureValidationCheck
     else
       debug "#{dir} is writeable"
     end
+    
+    if is_valid?()
+      if File.exists?(@config.getProperty(CURRENT_RELEASE_DIRECTORY)) && !File.symlink?(@config.getProperty(CURRENT_RELEASE_DIRECTORY))
+        error "#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)} already exists but is not a symlink"
+      end
+    end
   end
   
   def enabled?

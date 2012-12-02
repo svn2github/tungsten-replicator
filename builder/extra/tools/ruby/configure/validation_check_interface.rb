@@ -104,12 +104,12 @@ module ValidationCheckInterface
   def get_target_current_config
     begin
       # The -D flag will tell us if it is a directory
-      is_directory = ssh_result("if [ -d #{@config.getProperty(CURRENT_RELEASE_DIRECTORY)} ]; then echo 0; else echo 1; fi", get_hostname(), get_userid())
+      is_directory = ssh_result("if [ -f #{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/configure ]; then echo 0; else echo 1; fi", get_hostname(), get_userid())
       unless is_directory == "0"
         # There is no current release
         return nil
       end
-    
+      
       command = "cd #{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}; tools/configure --output-config"    
       config_output = ssh_result(command, get_hostname(), get_userid())
       parsed_contents = JSON.parse(config_output)
