@@ -103,6 +103,13 @@ def backup
       |tm|
       tm.write(storage_dir)
     }  
+    
+    # Change the directory ownership if run with sudo
+    if ENV.has_key?('SUDO_USER')
+      cmd_result("chown -R #{ENV['SUDO_USER']}: #{storage_dir}")
+    end
+    
+    # Write the directory name to the final storage file
     cmd_result("echo \"file=#{storage_file}\" > #{@properties}")
   rescue => e
     log("Error: #{e.message}")
