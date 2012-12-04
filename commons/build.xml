@@ -27,7 +27,6 @@
         http://community.continuent.com
     </description>
 
-    <property file="version.properties"/>
     <property file="build.properties"/>
     <property file="local.build.properties"/>
 
@@ -115,14 +114,10 @@
                            value="${specification.title}"/>
                 <attribute name="Specification-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Specification-Version"
-                           value="${version}"/>
                 <attribute name="Implementation-Title"
                            value="${specification.title}"/>
                 <attribute name="Implementation-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Implementation-Version"
-                           value="${version}"/>
                 <attribute name="Class-path"
                            value="log4j-1.2.15.jar"/>
             </manifest>
@@ -139,14 +134,10 @@
                            value="${specification.title}"/>
                 <attribute name="Specification-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Specification-Version"
-                           value="${version}"/>
                 <attribute name="Implementation-Title"
                            value="${specification.title}"/>
                 <attribute name="Implementation-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Implementation-Version"
-                           value="${version}"/>
             </manifest>
             <fileset dir="${java.src.dir}">
                 <include name="**/*.java"/>
@@ -156,7 +147,7 @@
     </target>
 
     <target name="run" depends="dist" description="--> start tungsten server">
-        <java jar="${dist.dir}/lib/tungsten-${version}.jar" fork="true">
+        <java jar="${dist.dir}/lib/tungsten.jar" fork="true">
             <sysproperty key="tungsten.logger" value="${tungsten.logger}"/>
             <arg value="${tungsten.config}"/>
         </java>
@@ -203,9 +194,6 @@
     	<copy filtering="true"
               file="bin/tungsten.sh"
               tofile="${dist.dir}/bin/tungsten.sh">
-            <filterset>
-                <filter token="VERSION" value="${version}"/>
-            </filterset>
         </copy>
         <chmod dir="${dist.dir}/bin" perm="ugo+rx" includes="*.sh"/>
         -->
@@ -213,11 +201,8 @@
             <fileset dir="${jars.dir}"/>
         </copy>
         <available property="has.conf" file="conf" type="dir"/>
-    	<copy filtering="true" todir="${dist.dir}/conf" failonerror="has.conf">
+    	<copy todir="${dist.dir}/conf" failonerror="has.conf">
             <fileset dir="conf"/>
-            <filterset>
-                <filter token="VERSION" value="${version}"/>
-            </filterset>
         </copy>
         <copy todir="${dist.dir}/lib">
             <fileset dir="lib/">
@@ -239,7 +224,6 @@
             <fileset file="README"/>
             <fileset file="build.properties"/>
             <fileset file="build.xml"/>
-            <fileset file="version.properties"/>
         </copy>
 
         <copy todir="${dist.src.dir}/conf">
@@ -282,30 +266,30 @@
     	<copy file="README" tofile="${dist.dir}/README" failonerror="${has.readme}"/>
     	<available property="has.license" file="README"/>
         <copy file="LICENSE" tofile="${dist.dir}/LICENSE" failonerror="${has.license}"/>
-        <tar destfile="${dist.dir}-${version}.tgz" compression="gzip" basedir="${dist.dir}" includes="none" longfile="gnu">
-            <tarfileset dir="${dist.dir}" mode="755" prefix="tungsten-common-${version}">
+        <tar destfile="${dist.dir}.tgz" compression="gzip" basedir="${dist.dir}" includes="none" longfile="gnu">
+            <tarfileset dir="${dist.dir}" mode="755" prefix="tungsten-common">
                 <include name="bin/tungsten.sh"/>
             </tarfileset>
-            <tarfileset dir="${dist.dir}" prefix="tungsten-common-${version}">
+            <tarfileset dir="${dist.dir}" prefix="tungsten-common">
                 <exclude name="bin/**"/>
             </tarfileset>
         </tar>
-        <tar destfile="${dist.dir}-src-${version}.tgz" compression="gzip" basedir="${dist.src.dir}" includes="none" longfile="gnu">
-            <tarfileset dir="${dist.src.dir}" prefix="tungsten-common-src-${version}">
+        <tar destfile="${dist.dir}-src.tgz" compression="gzip" basedir="${dist.src.dir}" includes="none" longfile="gnu">
+            <tarfileset dir="${dist.src.dir}" prefix="tungsten-common-src">
                 <include name="*/**"/>
             </tarfileset>
         </tar>
 
-        <zip destfile="${dist.dir}-${version}.zip" basedir="${dist.dir}" includes="none">
-            <zipfileset dir="${dist.dir}" filemode="755" prefix="tungsten-common-${version}">
+        <zip destfile="${dist.dir}.zip" basedir="${dist.dir}" includes="none">
+            <zipfileset dir="${dist.dir}" filemode="755" prefix="tungsten-common">
                 <include name="bin/tungsten.sh"/>
             </zipfileset>
-            <zipfileset dir="${dist.dir}" prefix="tungsten-common-${version}">
+            <zipfileset dir="${dist.dir}" prefix="tungsten-common">
                 <exclude name="bin/**cd "/>
             </zipfileset>
         </zip>
-        <zip destfile="${dist.dir}-src-${version}.zip" basedir="${dist.src.dir}" includes="none">
-            <zipfileset dir="${dist.src.dir}" prefix="tungsten-common-src-${version}">
+        <zip destfile="${dist.dir}-src.zip" basedir="${dist.src.dir}" includes="none">
+            <zipfileset dir="${dist.src.dir}" prefix="tungsten-common-src">
                 <include name="*/**"/>
             </zipfileset>
         </zip>

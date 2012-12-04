@@ -26,7 +26,6 @@
     </description>
 
     <property file="local.build.properties"/>
-    <property file="version.properties"/>
     <property file="build.properties"/>
 
     <property name="build.dir" value="build"/>
@@ -111,14 +110,10 @@
                            value="${specification.title}"/>
                 <attribute name="Specification-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Specification-Version"
-                           value="${version}"/>
                 <attribute name="Implementation-Title"
                            value="${specification.title}"/>
                 <attribute name="Implementation-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Implementation-Version"
-                           value="${version}"/>
             </manifest>
             <fileset dir="${classes.dir}">
                 <include name="**/*.properties"/>

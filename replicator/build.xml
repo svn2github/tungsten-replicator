@@ -28,7 +28,6 @@
     </description>
 
     <property file="local.build.properties"/>
-    <property file="version.properties"/>
     <property file="build.properties"/>
 
     <property name="build.dir" value="build"/>
@@ -120,14 +119,10 @@
                            value="${specification.title}"/>
                 <attribute name="Specification-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Specification-Version"
-                           value="${version}"/>
                 <attribute name="Implementation-Title"
                            value="${specification.title}"/>
                 <attribute name="Implementation-Vendor"
                            value="${specification.vendor}"/>
-                <attribute name="Implementation-Version"
-                           value="${version}"/>
                 <!--
                 <attribute name="Main-class"
                            value="org.continuent.unicluster.vcf.core.Launcher"/>
@@ -145,7 +140,7 @@
     </target>
 
     <target name="run" depends="dist" description="--> start tungsten server">
-        <java jar="${dist.dir}/lib/tungsten-${version}.jar" fork="true">
+        <java jar="${dist.dir}/lib/tungsten.jar" fork="true">
             <sysproperty key="tungsten.logger" value="${tungsten.logger}"/>
             <arg value="${tungsten.config}"/>
         </java>
@@ -222,16 +217,12 @@
         <mkdir dir="${dist.dir}"/>
         <copy file="LICENSE" tofile="${dist.dir}/LICENSE"/>
 
-        <!-- Copy bin scripts inserting version number. -->
 	<mkdir dir="${dist.dir}/bin"/>
 	<copy todir="${dist.dir}/bin">
 	    <fileset dir="${bin.dir}">
 	        <include name="*"/>
 	        <exclude name="wrapper*"/>
 	    </fileset>
-            <filterset>
-                <filter token="VERSION" value="${version}"/>
-            </filterset>
 	</copy>
 	<copy todir="${dist.dir}/bin">
 	    <fileset dir="${bin.dir}">
@@ -239,11 +230,8 @@
 	    </fileset>
 	</copy>
 	<chmod dir="${dist.dir}/bin" perm="ug+rx" includes="*" excludes="*.bat"/>
-    	<copy filtering="true" todir="${dist.dir}/conf">
+    	<copy todir="${dist.dir}/conf">
             <fileset dir="conf" excludes="replicator.properties"/>
-            <filterset>
-                <filter token="VERSION" value="${version}"/>
-            </filterset>
         </copy>
         <copy todir="${dist.dir}/samples/conf" file="${project.common}/conf/sample.jmx.properties" />
         <mkdir dir="${dist.dir}/doc/licenses"/>
@@ -329,29 +317,29 @@
 
     <target name="releases" depends="dist, javadoc"
         description="--> create drops of tungsten (.zip &amp; .tgz files)">
-        <tar destfile="${dist.dir}-${version}.tgz" compression="gzip" basedir="${dist.dir}" includes="tungsten/**" longfile="gnu">
-            <tarfileset dir="${dist.dir}" mode="755" prefix="${build.name}-${version}">
+        <tar destfile="${dist.dir}.tgz" compression="gzip" basedir="${dist.dir}" includes="tungsten/**" longfile="gnu">
+            <tarfileset dir="${dist.dir}" mode="755" prefix="${build.name}">
                 <include name="bin/*"/>
                 <include name="samples/**/*.sh"/>
                 <exclude name="bin/*.bat"/>
             </tarfileset>
-            <tarfileset dir="${dist.dir}" prefix="${build.name}-${version}">
+            <tarfileset dir="${dist.dir}" prefix="${build.name}">
                 <include name="bin/*.bat"/>
             </tarfileset>
-            <tarfileset dir="${dist.dir}" prefix="${build.name}-${version}">
+            <tarfileset dir="${dist.dir}" prefix="${build.name}">
                 <exclude name="bin/**"/>
                 <exclude name="samples/**/*.sh"/>
             </tarfileset>
         </tar>
-        <zip destfile="${dist.dir}-${version}.zip" basedir="${dist.dir}" includes="tungsten/**">
-            <zipfileset dir="${dist.dir}" filemode="755" prefix="${build.name}-${version}">
+        <zip destfile="${dist.dir}.zip" basedir="${dist.dir}" includes="tungsten/**">
+            <zipfileset dir="${dist.dir}" filemode="755" prefix="${build.name}">
                 <include name="samples/**/*.sh"/>
                 <include name="bin/*"/>
             </zipfileset>
-            <zipfileset dir="${dist.dir}" prefix="${build.name}-${version}">
+            <zipfileset dir="${dist.dir}" prefix="${build.name}">
                 <include name="bin/*.bat"/>
             </zipfileset>
-            <zipfileset dir="${dist.dir}" prefix="${build.name}-${version}">
+            <zipfileset dir="${dist.dir}" prefix="${build.name}">
                 <exclude name="bin/** "/>
             </zipfileset>
         </zip>
