@@ -121,22 +121,6 @@ public class DataSource extends Resource implements Serializable
     private Set<DatabaseConnection> activeConnections              = Collections
                                                                            .synchronizedSet(new HashSet<DatabaseConnection>());
 
-    public static void main(String[] argv)
-    {
-        ObjectMapper mapper = new ObjectMapper();
-
-        try
-        {
-            String dsString = new String("{\"name\":\"m2.continuent.com\",\"dataServiceName\":\"sj\",\"host\":\"m2.continuent.com\",\"type\":\"DATASOURCE\",\"childType\":\"UNDEFINED\",\"role\":\"master\",\"vendor\":\"mysql\",\"driver\":\"com.mysql.jdbc.Driver\",\"url\":\"jdbc:mysql://m2.continuent.com:3306/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false\",\"precedence\":99,\"available\":false,\"state\":\"SHUNNED\",\"alertStatus\":\"SHUNNED\",\"alertMessage\":\"\",\"alertTime\":1354638477444,\"lastError\":\"--\",\"lastShunReason\":\"FAILED-OVER-TO-m1.continuent.com\",\"appliedLatency\":1.184,\"updateTimestamp\":1354641957936,\"lastUpdate\":1354641957936,\"activeConnectionsCount\":0,\"enabled\":0,\"vipInterface\":\"\",\"vipAddress\":\"\",\"vipIsBound\":false,\"composite\":false,\"dataSourceRole\":\"master\",\"isAvailable\":false,\"standby\":false,\"connectionsCreated\":0,\"statementsCreated\":0,\"preparedStatementsCreated\":0,\"callableStatementsCreated\":0,\"master\":true,\"slave\":false,\"relay\":false,\"key\":\"m2.continuent.com\",\"executable\":false,\"container\":false}");
-            DataSource ds = mapper.readValue(dsString, DataSource.class);
-            System.out.println(ds);
-        }
-        catch(Exception e)
-        {
-            System.out.println(e);
-        }
-    }
-
     /**
      * Creates a new <code>DataSource</code> object
      */
