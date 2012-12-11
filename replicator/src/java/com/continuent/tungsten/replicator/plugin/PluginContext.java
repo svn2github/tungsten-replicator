@@ -30,6 +30,7 @@ import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.conf.FailurePolicy;
 import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.pipeline.Stage;
 import com.continuent.tungsten.replicator.service.PipelineService;
 import com.continuent.tungsten.replicator.storage.Store;
 
@@ -104,6 +105,9 @@ public interface PluginContext
 
     /** Returns true if replicator should go on-line automatically. */
     public abstract boolean isAutoEnable();
+
+    /** Returns stages in pipeline order. */
+    public abstract List<Stage> getStages();
 
     /** Returns a named storage component. */
     public abstract Store getStore(String name);
@@ -186,4 +190,10 @@ public interface PluginContext
      * like InfiniDB and InfoBright.
      */
     public String getTungstenTableType();
+
+    /**
+     * Returns the number of channels in the tail stage of the pipeline or -1 if
+     * pipeline is not active.
+     */
+    public int getChannels();
 }

@@ -36,6 +36,7 @@ import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeaderData;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
+import com.continuent.tungsten.replicator.plugin.PluginContext;
 import com.continuent.tungsten.replicator.shard.ShardTable;
 
 /**
@@ -54,7 +55,8 @@ public class CatalogManager
     private CommitSeqnoTable  commitSeqnoTable = null;
     private ShardChannelTable channelTable     = null;
 
-    // Dummy task ID.
+    // Dummy task ID. This is used for updates of the trep_commit_seqno when
+    // operating as a master.
     private int               taskId           = 0;
 
     /**
@@ -102,9 +104,10 @@ public class CatalogManager
     /**
      * Prepare catalog schema schema.
      * 
+     * @param context Replicator plugin context
      * @throws ReplicatorException thrown on failure
      */
-    public void prepareSchema() throws ReplicatorException
+    public void prepareSchema(PluginContext context) throws ReplicatorException
     {
         try
         {
@@ -132,7 +135,7 @@ public class CatalogManager
             commitSeqnoTable = new CommitSeqnoTable(conn, metadataSchema,
                     runtime.getTungstenTableType(),
                     runtime.nativeSlaveTakeover());
-            commitSeqnoTable.prepare(taskId);
+            commitSeqnoTable.initializeTable(context.getChannels());
 
             // Create consistency table
             Table consistency = ConsistencyTable
@@ -152,7 +155,7 @@ public class CatalogManager
             // Create channel table.
             channelTable = new ShardChannelTable(metadataSchema,
                     runtime.getTungstenTableType());
-            channelTable.initializeShardTable(conn);
+            channelTable.initializeShardTable(conn, context.getChannels());
         }
         catch (SQLException e)
         {
@@ -178,7 +181,7 @@ public class CatalogManager
     /**
      * Close database connection.
      */
-    public void close()
+    public void close(PluginContext context)
     {
         // Reduce tasks in task table if possible. If tasks are reduced,
         // clear the channel table.
@@ -188,9 +191,13 @@ public class CatalogManager
             // available)
             if (commitSeqnoTable != null)
             {
-                boolean reduced = commitSeqnoTable.reduceTasks();
+                int channels = context.getChannels();
+                boolean reduced = commitSeqnoTable.reduceTasks(channels);
+
                 if (reduced && channelTable != null)
-                    channelTable.deleleAll(conn);
+                {
+                    channelTable.reduceAssignments(conn, channels);
+                }
             }
         }
         catch (SQLException e)

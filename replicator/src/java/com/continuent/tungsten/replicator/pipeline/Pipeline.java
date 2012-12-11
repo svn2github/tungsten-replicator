@@ -78,6 +78,7 @@ public class Pipeline implements ReplicatorPlugin
     private ExecutorService                  shutdownTaskExec     = Executors
                                                                           .newCachedThreadPool();
     private TreeMap<String, Future<?>>       offlineRequests      = new TreeMap<String, Future<?>>();
+    private int                              channels             = -1;
 
     public Pipeline()
     {
@@ -139,6 +140,16 @@ public class Pipeline implements ReplicatorPlugin
         return stages;
     }
 
+    public Stage getFirstStage()
+    {
+        return stages.getFirst();
+    }
+
+    public Stage getLastStage()
+    {
+        return stages.getLast();
+    }
+
     public PluginContext getContext()
     {
         return context;
@@ -157,7 +168,7 @@ public class Pipeline implements ReplicatorPlugin
     /** Returns applier at tail of pipeline. */
     public Applier getTailApplier()
     {
-        Stage s0 = stages.getFirst();
+        Stage s0 = stages.getLast();
         if (s0 == null)
             return null;
         else
@@ -190,6 +201,12 @@ public class Pipeline implements ReplicatorPlugin
         return context.getPipelineSource();
     }
 
+    /** Returns the number of parallel apply channels in final stage. */
+    public int getChannels()
+    {
+        return channels;
+    }
+
     /**
      * Configures pipeline data structures including stages and stores. All
      * pipeline information is accessible after this call.
@@ -204,6 +221,10 @@ public class Pipeline implements ReplicatorPlugin
         if (stages.size() == 0)
             throw new ReplicatorException(
                     "Attempt to configure pipeline without any stages");
+
+        // Record the channels by counting the number of tasks in the last
+        // stage.
+        channels = getLastStage().getTaskCount();
 
         // Set auto sync value on the first stage.
         Stage first = stages.getFirst();

@@ -489,6 +489,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                 ReplDBMSHeader lastAppliedEvent = pipeline.getTailApplier()
                         .getLastEvent();
                 if (lastAppliedEvent != null
+                        && lastAppliedEvent.getSourceId() != null
                         && !lastAppliedEvent.getSourceId().equals(
                                 runtime.getSourceId()))
                 {
@@ -856,6 +857,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         statusProps.setString(Replicator.CURRENT_EVENT_ID, "NONE");
         statusProps.setString(Replicator.OFFLINE_REQUESTS, "NONE");
         statusProps.setString(Replicator.PIPELINE_SOURCE, "UNKNOWN");
+        statusProps.setLong(Replicator.CHANNELS, -1);
 
         // The following logic avoids race conditions that may cause
         // different sources of information to be null.
@@ -922,6 +924,9 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                 statusProps.setDouble(Replicator.APPLIED_LATENCY,
                         pipeline.getApplyLatency());
             }
+
+            // Report the current number of channels.
+            statusProps.setLong(Replicator.CHANNELS, pipeline.getChannels());
         }
 
         // Fill out non-pipeline data.

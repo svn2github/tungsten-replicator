@@ -343,7 +343,7 @@ public class THL implements Store
             String metadataSchema = context.getReplicatorSchemaName();
             catalog = new CatalogManager(runtime);
             catalog.connect(url, user, password, metadataSchema, vendor);
-            catalog.prepareSchema();
+            catalog.prepareSchema(context);
         }
         else
             logger.info("SQL catalog tables are disabled");
@@ -410,7 +410,7 @@ public class THL implements Store
 
         if (catalog != null)
         {
-            catalog.close();
+            catalog.close(context);
             catalog = null;
         }
         if (diskLog != null)

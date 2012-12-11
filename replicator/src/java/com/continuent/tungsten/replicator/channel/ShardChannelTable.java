@@ -33,6 +33,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.Key;
@@ -53,10 +54,8 @@ public class ShardChannelTable
     public static final String SHARD_ID_COL = "shard_id";
     public static final String CHANNEL_COL  = "channel";
 
-    private String             select       = "SELECT " + SHARD_ID_COL + ", "
-                                                    + CHANNEL_COL + " FROM "
-                                                    + TABLE_NAME + " ORDER BY "
-                                                    + SHARD_ID_COL;
+    private String             select;
+    private String             selectMax;
 
     private String             tableType;
     private Table              channelTable;
@@ -92,18 +91,40 @@ public class ShardChannelTable
 
         select = "SELECT " + SHARD_ID_COL + ", " + CHANNEL_COL + " FROM "
                 + schema + "." + TABLE_NAME + " ORDER BY " + SHARD_ID_COL;
+        selectMax = "SELECT MAX(" + CHANNEL_COL + ") FROM " + schema + "."
+                + TABLE_NAME;
     }
 
     /**
      * Set up the channel table.
+     * 
+     * @throws ReplicatorException Thrown if table appears to have invalid data
      */
-    public void initializeShardTable(Database database) throws SQLException
+    public void initializeShardTable(Database database, int channels)
+            throws SQLException, ReplicatorException
     {
         if (logger.isDebugEnabled())
             logger.debug("Initializing channel table");
 
         // Replace the table.
         database.createTable(this.channelTable, false, tableType);
+
+        // Validate the channel assignments.
+        int maxChannel = this.listMaxChannel(database);
+        if (maxChannel < channels)
+        {
+            if (logger.isDebugEnabled())
+                logger.info("Validated channel assignments");
+        }
+        else
+        {
+            String msg = String
+                    .format("Shard channel assignments are inconsistent with channel configuration: channels=%d max channel id allowed=%d max id assigned=%d",
+                            channels, channels - 1, maxChannel);
+            logger.error("Replication configuration error: table trep_shard_channel has value(s) that exceed available channels");
+            logger.info("This may be due to resetting the number of channels after an unclean replicator shutdown");
+            throw new ReplicatorException(msg);
+        }
     }
 
     /**
@@ -118,11 +139,27 @@ public class ShardChannelTable
     }
 
     /**
-     * Drop all channel definitions.
+     * Drop all channel definitions, but only if there are no channel
+     * assignments over the currently configured level.
      */
-    public int deleleAll(Database database) throws SQLException
+    public int reduceAssignments(Database conn, int channels)
+            throws SQLException
     {
-        return database.delete(channelTable, true);
+        // Find the max assigned channel.
+        int maxChannel = this.listMaxChannel(conn);
+        if (maxChannel < channels)
+        {
+            return conn.delete(channelTable, true);
+        }
+        else
+        {
+            logger.warn("Cannot reduce channel assignments as assignments exceed channels:  channels="
+                    + channels
+                    + " max assigned="
+                    + maxChannel
+                    + " max allowed=" + (channels - 1));
+            return 0;
+        }
     }
 
     /**
@@ -154,6 +191,32 @@ public class ShardChannelTable
             close(statement);
         }
         return shardToChannels;
+    }
+
+    /**
+     * Return the maximum assigned channel.
+     */
+    public int listMaxChannel(Database conn) throws SQLException
+    {
+        ResultSet rs = null;
+        Statement statement = null;
+        int maxChannel = -1;
+        try
+        {
+            statement = conn.createStatement();
+            rs = statement.executeQuery(selectMax);
+
+            while (rs.next())
+            {
+                maxChannel = rs.getInt(1);
+            }
+        }
+        finally
+        {
+            close(rs);
+            close(statement);
+        }
+        return maxChannel;
     }
 
     // Close a result set properly.

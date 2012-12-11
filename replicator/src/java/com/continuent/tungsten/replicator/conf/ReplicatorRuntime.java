@@ -899,6 +899,21 @@ public class ReplicatorRuntime implements PluginContext
     /**
      * {@inheritDoc}
      * 
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#getStages()
+     */
+    public List<Stage> getStages()
+    {
+        ArrayList<Stage> stages = new ArrayList<Stage>();
+        for (Stage stage : pipeline.getStages())
+        {
+            stages.add(stage);
+        }
+        return stages;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.plugin.PluginContext#getStore(java.lang.String)
      */
     public Store getStore(String name)
@@ -1025,10 +1040,28 @@ public class ReplicatorRuntime implements PluginContext
         return pipeline.getMaxStoredSeqno();
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#getTungstenTableType()
+     */
     public String getTungstenTableType()
     {
-        // TODO Auto-generated method stub
         return this.replicatorTableType;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#getChannels()
+     */
+    public int getChannels()
+    {
+        Pipeline p = pipeline;
+        if (p == null)
+            return -1;
+        else
+            return p.getChannels();
     }
 
     /**
@@ -1104,8 +1137,8 @@ public class ReplicatorRuntime implements PluginContext
         catch (ReplicatorException e)
         {
             throw new ReplicatorException(
-                    "Unable to prepare plugin: class name=" + pluginClassName,
-                    e);
+                    "Unable to prepare plugin: class name=" + pluginClassName
+                            + " message=[" + e.getMessage() + "]", e);
         }
         catch (Throwable t)
         {

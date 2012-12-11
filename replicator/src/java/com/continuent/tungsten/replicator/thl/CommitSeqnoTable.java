@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,6 +31,7 @@ import java.sql.Types;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.GreenplumDatabase;
@@ -91,18 +92,18 @@ public class CommitSeqnoTable
      * connection.
      */
     public CommitSeqnoTable(Database database, String schema, String tableType,
-            boolean syncNativeSlaveRequired)
+            boolean syncNativeSlaveRequired) throws SQLException
     {
         this.database = database;
         this.schema = schema;
         this.tableType = tableType;
         this.syncNativeSlaveRequired = syncNativeSlaveRequired;
+
+        defineTableData();
     }
 
-    /**
-     * Prepares the instance for use. This must occur before use.
-     */
-    public void prepare(int taskId) throws SQLException
+    // Set up SQL structures for table.
+    private void defineTableData() throws SQLException
     {
         // Define schema.
         commitSeqnoTable = new Table(schema, TABLE_NAME);
@@ -145,12 +146,6 @@ public class CommitSeqnoTable
         pkey.AddColumn(commitSeqnoTableTaskId);
         commitSeqnoTable.AddKey(pkey);
 
-        // Create the table if it does not exist.
-        if (logger.isDebugEnabled())
-            logger.debug("Initializing " + TABLE_NAME + " table");
-
-        database.createTable(commitSeqnoTable, false, tableType);
-
         // Prepare SQL.
         lastSeqnoQuery = database
                 .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp from "
@@ -181,32 +176,89 @@ public class CommitSeqnoTable
                     commitSeqnoTable.getName(), GREENPLUM_DISTRIBUTED_BY);
         }
 
-        // Check to see if we need to initialize data for this task ID.
-        if (lastCommitSeqno(taskId) == null)
+    }
+
+    /**
+     * Create the trep_commit_seqno table, if necessary, and ensure the number
+     * of channels matches the number of channels.
+     * 
+     * @param channels Number of channels in the pipeline
+     */
+    public void initializeTable(int channels) throws SQLException,
+            ReplicatorException
+    {
+        // Create the table if it does not exist.
+        if (logger.isDebugEnabled())
+            logger.debug("Initializing " + TABLE_NAME + " table");
+        database.createTable(commitSeqnoTable, false, tableType);
+
+        // If necessary, add a dummy first row. There are some extra
+        // steps in this process but they do no harm.
+        int rows = count();
+        if (lastCommitSeqno(0) == null)
         {
-            // Always initialize to default value.
-            commitSeqnoTableTaskId.setValue(taskId);
+            if (logger.isDebugEnabled())
+                logger.debug("Adding dummy first row to " + TABLE_NAME
+                        + " table");
+
+            // Set defaults.
+            commitSeqnoTableTaskId.setValue(0);
             commitSeqnoTableSeqno.setValue(-1L);
             commitSeqnoTableEventId.setValue(null);
             commitSeqnoTableUpdateTimestamp.setValue(new Timestamp(System
                     .currentTimeMillis()));
 
+            // Insert and retrieve default value.
             database.insert(commitSeqnoTable);
-
-            // If there is a task 0 commit seqno, we propagate task 0 position
-            // into succeeding tasks.
             ReplDBMSHeader task0CommitSeqno = lastCommitSeqno(0);
-            if (task0CommitSeqno == null)
-            {
-                logger.info("Initializing trep_commit_seqno defaults for task: "
-                        + taskId);
-            }
-            else
-            {
-                logger.info("Propagating trep_commit_seqno data from task 0 to task: "
-                        + taskId);
-                updateLastCommitSeqno(taskId, task0CommitSeqno, 0);
-            }
+
+            // Update to set default values correctly.
+            updateLastCommitSeqno(0, task0CommitSeqno, 0);
+        }
+
+        // Count again and check the number of rows in the table.
+        //
+        // a) If the number equals the number of channels, we leave it alone.
+        // b) If there is just one row, we expand to the number of channels.
+        //
+        // Any other number is an error.
+        rows = count();
+        if (rows == channels)
+        {
+            logger.info("Validated that trep_commit_seqno row count matches channels: rows="
+                    + rows + " channels=" + channels);
+        }
+        else if (rows == 1)
+        {
+            expandTasks(channels);
+        }
+        else
+        {
+            String msg = String
+                    .format("Rows in trep_commit_seqno are inconsistent with channel count: channels=%d rows=%d",
+                            channels, rows);
+            logger.error("Replication configuration error: table trep_commit_seqno does not match channels");
+            logger.info("This may be due to resetting the number of channels after an unclean replicator shutdown");
+            throw new ReplicatorException(msg);
+        }
+    }
+
+    /**
+     * Prepares the instance for use. This must occur before use.
+     * 
+     * @throws ReplicatorException Thrown if we don't have a row for this entry
+     */
+    public void prepare(int taskId) throws SQLException, ReplicatorException
+    {
+        // Ensure there is a row for this task ID.
+        if (lastCommitSeqno(taskId) == null)
+        {
+            String msg = String.format(
+                    "Missing entry in trep_commit_seqno for task: taskId=%d",
+                    taskId);
+            logger.error(msg);
+            logger.info("This may indicate a replicator misconfiguration or manual deletion of rows");
+            throw new ReplicatorException(msg);
         }
     }
 
@@ -278,12 +330,53 @@ public class CommitSeqnoTable
     }
 
     /**
+     * Copies the single task 0 row left by a clean offline operation to add
+     * rows for each task in multi-channel operation. This fails if task 0 does
+     * not exist.
+     * 
+     * @throws ReplicatorException Thrown if the task ID 0 does not exist
+     */
+    public void expandTasks(int channels) throws SQLException,
+            ReplicatorException
+    {
+        // Fetch the task 0 position.
+        ReplDBMSHeader task0CommitSeqno = lastCommitSeqno(0);
+        if (task0CommitSeqno == null)
+        {
+            throw new ReplicatorException(
+                    "Unable to expand tasks as task 0 row is missing from trep_commit_seqno; check for misconfiguration");
+        }
+
+        // Copy the task 0 position to create channels - 1 new rows.
+        logger.info("Expanding task 0 entry in trep_commit_seqno for parallel apply: channels="
+                + channels);
+        for (int taskId = 1; taskId < channels; taskId++)
+        {
+            // Always initialize to default value.
+            commitSeqnoTableTaskId.setValue(taskId);
+            commitSeqnoTableSeqno.setValue(-1L);
+            commitSeqnoTableEventId.setValue(null);
+            commitSeqnoTableUpdateTimestamp.setValue(new Timestamp(System
+                    .currentTimeMillis()));
+
+            // Add base row and commit to base value.
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Add trep_commit_seqno entry for task_id: "
+                        + taskId);
+            }
+            database.insert(commitSeqnoTable);
+            updateLastCommitSeqno(taskId, task0CommitSeqno, 0);
+        }
+    }
+
+    /**
      * Reduces the trep_commit_seqno table to task 0 entry *provided* there is a
      * task 0 row and provide all rows are at the same sequence number. This
      * operation allows the table to convert to a different number of apply
      * threads.
      */
-    public boolean reduceTasks() throws SQLException
+    public boolean reduceTasks(int channels) throws SQLException
     {
         boolean reduced = false;
         boolean hasTask0 = false;
@@ -300,9 +393,13 @@ public class CommitSeqnoTable
                     .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, task_id from "
                             + schema + "." + TABLE_NAME);
             String lastEventId = null;
+            int rows = 0;
             rs = allSeqnosQuery.executeQuery();
             while (rs.next())
             {
+                // Increment row count.
+                rows++;
+
                 // Look for a common sequence number.
                 ReplDBMSHeader header = headerFromResult(rs);
                 if (commonSeqno == -1)
@@ -331,6 +428,11 @@ public class CommitSeqnoTable
             {
                 logger.warn("Sequence numbers do not match; cannot reduce task entries: "
                         + schema + "." + TABLE_NAME);
+            }
+            else if (rows != channels)
+            {
+                logger.warn("Task entry rows do not match channels:  rows="
+                        + rows + " channels=" + channels);
             }
             else
             {
@@ -393,6 +495,59 @@ public class CommitSeqnoTable
         commitSeqnoUpdate.setInt(11, taskId);
 
         commitSeqnoUpdate.executeUpdate();
+    }
+
+    /**
+     * Returns the count of rows in the trep_commit_seqno table.
+     */
+    public int count() throws SQLException
+    {
+        ResultSet res = null;
+        int taskRows = 0;
+
+        try
+        {
+            res = allSeqnoQuery.executeQuery();
+            while (res.next())
+            {
+                taskRows++;
+            }
+        }
+        finally
+        {
+            close(res);
+        }
+
+        return taskRows;
+    }
+
+    public void validate(int channels) throws SQLException, ReplicatorException
+    {
+        ResultSet res = null;
+        int taskRows = 0;
+
+        try
+        {
+            res = allSeqnoQuery.executeQuery();
+            while (res.next())
+            {
+                taskRows++;
+            }
+        }
+        finally
+        {
+            close(res);
+        }
+
+        if (taskRows != channels)
+        {
+            String msg = String
+                    .format("Task recovery rows in trep_commit_seqno are inconsistent with parallel apply channel configuration: channels=%d rows=%d",
+                            channels, taskRows);
+            logger.error("Replication configuration error: table trep_commit_seqno does not match channels");
+            logger.info("This may be due to resetting the number of channels after an unclean replicator shutdown");
+            throw new ReplicatorException(msg);
+        }
     }
 
     // Return a header from a trep_commit_seqno result.

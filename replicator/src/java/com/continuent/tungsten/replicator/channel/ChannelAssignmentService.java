@@ -54,7 +54,7 @@ public class ChannelAssignmentService implements PipelineService
     private Database             conn;
     private ShardChannelTable    channelTable;
     private Map<String, Integer> assignments = new HashMap<String, Integer>();
-    private int                  maxChannel;
+    private int                  maxChannel  = -1;
     private int                  nextChannel = 0;
     private int                  accessFailures;
 
@@ -144,7 +144,7 @@ public class ChannelAssignmentService implements PipelineService
                     conn.createSchema(metadataSchema);
                 conn.useDefaultSchema(metadataSchema);
             }
-            channelTable.initializeShardTable(conn);
+            channelTable.initializeShardTable(conn, context.getChannels());
         }
         catch (SQLException e)
         {
@@ -206,6 +206,8 @@ public class ChannelAssignmentService implements PipelineService
         try
         {
             channelTable.insert(conn, shardId, channel);
+            if (channel > maxChannel)
+                maxChannel = channel;
             assignments.put(shardId, channel);
         }
         catch (SQLException e)
@@ -259,10 +261,15 @@ public class ChannelAssignmentService implements PipelineService
             List<Map<String, String>> rows = channelTable.list(conn);
             for (Map<String, String> assignment : rows)
             {
+                // Populate the table.
                 String shardId = assignment.get(ShardChannelTable.SHARD_ID_COL);
                 Integer channel = Integer.parseInt(assignment
                         .get(ShardChannelTable.CHANNEL_COL));
                 assignments.put(shardId, channel);
+
+                // Track the maximum channel.
+                if (channel > maxChannel)
+                    maxChannel = channel;
             }
         }
         catch (SQLException e)
