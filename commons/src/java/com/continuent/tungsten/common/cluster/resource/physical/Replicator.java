@@ -211,6 +211,11 @@ public class Replicator
      */
     public static final String PIPELINE_SOURCE             = "pipelineSource";
 
+    /**
+     * Denotes the number of channels for parallel apply.
+     */
+    public static final String CHANNELS                    = "channels";
+
     // Default values
     public static final long   DEFAULT_LATEST_EPOCH_NUMBER = -1;
     public static final String DEFAULT_LAST_EVENT_ID       = "0:0";
