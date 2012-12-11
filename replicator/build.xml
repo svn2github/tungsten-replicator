@@ -222,6 +222,7 @@
 	    <fileset dir="${bin.dir}">
 	        <include name="*"/>
 	        <exclude name="wrapper*"/>
+	        <exclude name="extras"/>
 	    </fileset>
 	</copy>
 	<copy todir="${dist.dir}/bin">
