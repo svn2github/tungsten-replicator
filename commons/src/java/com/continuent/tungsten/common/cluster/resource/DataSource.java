@@ -205,9 +205,9 @@ public class DataSource extends Resource implements Serializable
         activeConnections.remove(conn);
     }
 
-    public int getActiveConnectionsCount()
+    public long getActiveConnectionsCount()
     {
-        return activeConnections.size();
+        return activeConnectionsCount.get();
     }
 
     /**
