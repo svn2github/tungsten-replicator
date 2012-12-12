@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -41,7 +41,10 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * Filter to transform a specific database name to a new value using Java
  * regular expression rules. This filter matches the schema name using the
  * fromRegex expression and then does a replacement on the name using the
- * toRegex expression.
+ * toRegex expression.<br/>
+ * Can also be used to transform table names instead by turning on
+ * transformTables flag. However, statement data transformation is unsupported
+ * in this case.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
@@ -75,6 +78,8 @@ public class DatabaseTransformFilter implements Filter
 
     Pattern               pattern4;
     Matcher               matcher4;
+
+    private boolean       transformTables = false;
 
     /** Sets the regex used to match the database name. */
     public void setFromRegex1(String fromRegex)
@@ -123,6 +128,12 @@ public class DatabaseTransformFilter implements Filter
     {
         this.toRegex4 = toRegex;
     }
+    
+    /** Transform table instead of database names. */
+    public void setTransformTables(boolean transformTables)
+    {
+        this.transformTables = transformTables;
+    }
 
     /**
      * {@inheritDoc}
@@ -159,7 +170,8 @@ public class DatabaseTransformFilter implements Filter
 
     /**
      * updateStatementData updates the schema name of the given StatementData
-     * object if it matches the regular expression.
+     * object if it matches the regular expression.<br/>
+     * If transformTables flag is set, this does nothing.
      * 
      * @param sdata the StatementData object to process
      * @param matcher the matcher used to check the schema name
@@ -172,6 +184,10 @@ public class DatabaseTransformFilter implements Filter
     private boolean updateStatementData(StatementData sdata, Matcher matcher,
             String toRegex)
     {
+        // Table transformation is unsupported for StatementData.
+        if (transformTables)
+            return true;
+
         if (matcher == null)
             return true;
 
@@ -211,14 +227,29 @@ public class DatabaseTransformFilter implements Filter
         if (matcher == null)
             return true;
 
-        matcher.reset(orc.getSchemaName());
+        if (transformTables)
+            matcher.reset(orc.getTableName());
+        else
+            matcher.reset(orc.getSchemaName());
+
         if (matcher.matches())
         {
-            String oldSchema = orc.getSchemaName();
-            orc.setSchemaName(matcher.replaceAll(toRegex));
-            if (logger.isDebugEnabled())
-                logger.debug("Filtered event schema name: old=" + oldSchema
-                        + " new=" + orc.getSchemaName());
+            if (transformTables)
+            {
+                String oldTable = orc.getTableName();
+                orc.setTableName(matcher.replaceAll(toRegex));
+                if (logger.isDebugEnabled())
+                    logger.debug("Filtered event table name: old=" + oldTable
+                            + " new=" + orc.getTableName());
+            }
+            else
+            {
+                String oldSchema = orc.getSchemaName();
+                orc.setSchemaName(matcher.replaceAll(toRegex));
+                if (logger.isDebugEnabled())
+                    logger.debug("Filtered event schema name: old=" + oldSchema
+                            + " new=" + orc.getSchemaName());
+            }
             return true;
         }
 
