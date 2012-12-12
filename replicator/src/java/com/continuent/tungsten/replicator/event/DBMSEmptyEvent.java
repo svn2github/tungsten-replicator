@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009 Continuent Inc.
+ * Copyright (C) 2009-2012 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,10 @@
  * Initial developer(s): Stephane Giron
  * Contributor(s):
  */
+
 package com.continuent.tungsten.replicator.event;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-
-import com.continuent.tungsten.replicator.dbms.DBMSData;
 
 /**
  * This class defines a DBMSEmptyEvent
@@ -36,13 +34,26 @@ public class DBMSEmptyEvent extends DBMSEvent
 {
     private static final long serialVersionUID = 1300L;
 
-    public DBMSEmptyEvent(String id, ArrayList<DBMSData> data)
+    /**
+     * Creates a new empty event.
+     * 
+     * @param id Event Id
+     * @param extractTime Time of commit or failing that extraction
+     */
+    public DBMSEmptyEvent(String id, Timestamp extractTime)
     {
-        super(id, data, new Timestamp(System.currentTimeMillis()));
+        super(id, null, extractTime);
     }
 
+    /**
+     * Creates a new empty event with the current time as timestamp. WARNING: do
+     * not put this type of event into the log as it can mess up parallel
+     * replication.
+     * 
+     * @param id Event Id
+     */
     public DBMSEmptyEvent(String id)
     {
-        this(id, null);
+        this(id, new Timestamp(System.currentTimeMillis()));
     }
 }

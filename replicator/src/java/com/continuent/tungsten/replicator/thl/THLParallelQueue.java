@@ -341,15 +341,16 @@ public class THLParallelQueue implements ParallelStore
         // Check the thread read interval once per second of elapsed
         // time between complete transactions. This check ropes in threads that
         // have exceeded the maximum online interval between highest and lowest
-        // threads.  
+        // threads. The check must occur on the event that begins a transaction 
+        // or a deadlock can occur on fragmented transactions.
         //
-        // (BEWARE:  If you do this check on fragmented events within
-        // long transactions it can lead to deadlocks if the timestamps on 
-        // fragmented events deviate more than maxOfflineMillis from the last 
+        // (BEWARE: If you do this check on fragmented events within
+        // long transactions it can lead to deadlocks if the timestamps on
+        // fragmented events deviate more than maxOfflineMillis from the last
         // reported transaction.)
         long currentTimeMillis = System.currentTimeMillis();
         if (currentTimeMillis - intervalCheckMillis >= 1000
-                && event.getLastFrag())
+                && event.getFragno() == 0)
         {
             // If we have a previously recorded event timestamp, it is
             // now time to see how our threads are doing and ensure nobody

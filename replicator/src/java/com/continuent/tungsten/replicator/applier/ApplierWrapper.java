@@ -110,7 +110,7 @@ public class ApplierWrapper implements ParallelApplier
     public void updatePosition(ReplDBMSHeader header, boolean doCommit,
             boolean syncTHL) throws ReplicatorException, InterruptedException
     {
-        DBMSEmptyEvent empty = new DBMSEmptyEvent(null, null);
+        DBMSEmptyEvent empty = new DBMSEmptyEvent(null);
         applier.apply(empty, header, doCommit, false);
     }
 

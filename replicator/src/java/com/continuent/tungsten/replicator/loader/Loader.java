@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -133,7 +134,8 @@ public abstract class Loader implements RawExtractor
             InterruptedException
     {
         DBMSEmptyEvent heartbeat = new DBMSEmptyEvent(
-                this.getCurrentResourceEventId());
+                this.getCurrentResourceEventId(), new Timestamp(
+                        System.currentTimeMillis()));
         heartbeat
                 .setMetaDataOption(ReplOptionParams.HEARTBEAT, "LOAD_COMPLETE");
         return heartbeat;

@@ -48,7 +48,8 @@ public interface RawApplier extends ReplicatorPlugin
     /**
      * Apply the proffered event to the replication target.
      * 
-     * @param event Event to be applied
+     * @param event Event to be applied. If a DBMSEmptyEvent, just mark the
+     *            apply position.
      * @param header Header data corresponding to event
      * @param doCommit Boolean flag indicating whether this is the last part of
      *            multi-part event

@@ -701,7 +701,7 @@ public class MySQLExtractor implements RawExtractor
                         {
                             statement.setDefaultSchema(event.getDefaultDb());
                         }
-                        
+
                         if (isCreateOrDropDB)
                             statement.addOption(
                                     StatementData.CREATE_OR_DROP_DB, "");
@@ -814,8 +814,17 @@ public class MySQLExtractor implements RawExtractor
                         logger.debug("Clearing Table Map events");
                         tableEvents.clear();
                         tableEvents = new HashMap<Long, TableMapLogEvent>();
-                        return new DBMSEmptyEvent(getDBMSEventId(position,
-                                sessionId));
+                        if (startTime == null)
+                        {
+                            // This should not happen but the world is an
+                            // uncertain place.
+                            logger.warn("Generated empty event without commit timestamp at commit time");
+                            return new DBMSEmptyEvent(getDBMSEventId(position,
+                                    sessionId));
+                        }
+                        else
+                            return new DBMSEmptyEvent(getDBMSEventId(position,
+                                    sessionId), startTime);
                     }
                 }
                 else if (logEvent.getClass() == StopLogEvent.class)
@@ -1209,13 +1218,13 @@ public class MySQLExtractor implements RawExtractor
                 logger.info("Using relay log directory as source of binlogs: "
                         + relayLogDir);
                 binlogDir = relayLogDir;
-                
-                // Note the source of our binlog data. 
+
+                // Note the source of our binlog data.
                 context.setPipelineSource(url);
             }
             else
             {
-                // Logs are coming from binlog dir. 
+                // Logs are coming from binlog dir.
                 context.setPipelineSource(binlogDir);
             }
         }
