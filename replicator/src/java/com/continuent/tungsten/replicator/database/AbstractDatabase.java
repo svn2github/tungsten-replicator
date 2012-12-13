@@ -1181,6 +1181,19 @@ public abstract class AbstractDatabase implements Database
         createTable(table, replace, tungstenTableType);
     }
 
+    
+    /**
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.database.Database#createTable(com.continuent.tungsten.replicator.database.Table, boolean, java.lang.String, java.lang.String, java.lang.String)
+     */
+    @Override
+    public void createTable(Table table, boolean replace, String tungstenSchema,
+            String tungstenTableType, String serviceName) throws SQLException
+    {
+        createTable(table, replace, tungstenSchema, tungstenTableType);
+        
+    }
+
     /**
      * {@inheritDoc}
      * 

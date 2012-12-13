@@ -497,6 +497,9 @@ public interface Database
             String tungstenSchema, String tungstenTableType)
             throws SQLException;
 
+    public void createTable(Table hbTable, boolean b, String schema,
+            String tableType, String serviceName) throws SQLException;
+
     /**
      * prepareOptionSetStatement generates the sql statement that is to be used
      * to set an option (or a session variable) at the database connection

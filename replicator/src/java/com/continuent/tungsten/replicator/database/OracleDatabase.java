@@ -47,7 +47,8 @@ import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
  */
 public class OracleDatabase extends AbstractDatabase
 {
-    private static Logger             logger = Logger.getLogger(OracleDatabase.class);
+    private static final String       TUNGSTEN_CHANGE_SET_PREFIX = "TUNGSTEN_CS_";
+    private static Logger             logger                     = Logger.getLogger(OracleDatabase.class);
     private Hashtable<Integer, Table> tablesCache;
     private String                    colList;
 
@@ -644,7 +645,7 @@ public class OracleDatabase extends AbstractDatabase
      */
     @Override
     public void createTable(Table table, boolean replace,
-            String tungstenSchema, String tungstenTableType)
+            String tungstenSchema, String tungstenTableType, String serviceName)
             throws SQLException
     {
         createTable(table, replace);
@@ -655,6 +656,8 @@ public class OracleDatabase extends AbstractDatabase
                 && table.getSchema().equals(tungstenSchema)
                 && table.getName().equalsIgnoreCase(tableName))
         {
+
+            String changeSetName = TUNGSTEN_CHANGE_SET_PREFIX + serviceName;
 
             Statement statement = dbConn.createStatement();
             ResultSet rs = null;
@@ -687,13 +690,22 @@ public class OracleDatabase extends AbstractDatabase
             if (!tungstenTableType.equals("CDCSYNC"))
             {
                 // Disable Tungsten Change Set
-                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'TUNGSTEN_CHANGE_SET',enable_capture=>'N'); END;");
+                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
+                        + changeSetName + "',enable_capture=>'N'); END;");
+
                 // Or prepare table for asynchronous capture.
                 // This should not be done for synchronous capture as this would
                 // not work on standard edition.
-                execute("ALTER TABLE " + table.getSchema() + "."
-                        + table.getName()
-                        + " ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS");
+                try
+                {
+                    execute("ALTER TABLE " + table.getSchema() + "."
+                            + table.getName()
+                            + " ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS");
+                }
+                catch (Exception e)
+                {
+                    logger.warn("Got exception", e);
+                }
 
                 execute("BEGIN DBMS_CAPTURE_ADM.PREPARE_TABLE_INSTANTIATION('"
                         + table.getSchema() + "." + tableName
@@ -712,7 +724,9 @@ public class OracleDatabase extends AbstractDatabase
                         + "', change_table_name=> '"
                         + "CT_"
                         + tableName
-                        + "', change_set_name=>'TUNGSTEN_CHANGE_SET', source_schema=>'"
+                        + "', change_set_name=>'"
+                        + changeSetName
+                        + "', source_schema=>'"
                         + table.getSchema()
                         + "', source_table=>'"
                         + tableName
@@ -732,7 +746,9 @@ public class OracleDatabase extends AbstractDatabase
                         + "', change_table_name=> '"
                         + "CT_"
                         + tableName
-                        + "', change_set_name=>'TUNGSTEN_CHANGE_SET', source_schema=>'"
+                        + "', change_set_name=>'"
+                        + changeSetName
+                        + "', source_schema=>'"
                         + table.getSchema()
                         + "', source_table=>'"
                         + tableName
@@ -750,10 +766,12 @@ public class OracleDatabase extends AbstractDatabase
             execute("GRANT SELECT ON " + tableName + " TO PUBLIC");
 
             if (!tungstenTableType.equals("CDCSYNC"))
+            {
                 // Enable Tungsten Change Set back
-                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'TUNGSTEN_CHANGE_SET',enable_capture=>'Y'); END;");
+                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
+                        + changeSetName + "',enable_capture=>'Y'); END;");
+            }
 
         }
-
     }
 }

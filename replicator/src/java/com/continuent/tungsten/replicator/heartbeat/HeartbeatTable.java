@@ -70,10 +70,18 @@ public class HeartbeatTable
     String                     sourceTsQuery = null;
 
     private String             tableType;
+    private String             serviceName;
 
     public HeartbeatTable(String schema, String tableType)
     {
         this.tableType = tableType;
+        initialize(schema);
+    }
+
+    public HeartbeatTable(String schema, String tableType, String serviceName)
+    {
+        this.tableType = tableType;
+        this.serviceName = serviceName;
         initialize(schema);
     }
 
@@ -123,7 +131,8 @@ public class HeartbeatTable
             logger.debug("Initializing heartbeat table");
 
         // Replace the table.
-        database.createTable(this.hbTable, false, this.hbTable.getSchema(), tableType);
+        database.createTable(this.hbTable, false, this.hbTable.getSchema(),
+                tableType, serviceName);
 
         // Add an initial heartbeat value if needed
         ResultSet res = null;
@@ -132,9 +141,8 @@ public class HeartbeatTable
 
         try
         {
-            hbRowCount = database
-                    .prepareStatement("SELECT count(*) from " + this.hbTable.getSchema() + "."
-                            + this.hbTable.getName());
+            hbRowCount = database.prepareStatement("SELECT count(*) from "
+                    + this.hbTable.getSchema() + "." + this.hbTable.getName());
             res = hbRowCount.executeQuery();
             if (res.next())
             {

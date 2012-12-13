@@ -144,7 +144,7 @@ public class CatalogManager
 
             // Create heartbeat table.
             HeartbeatTable heartbeatTable = new HeartbeatTable(metadataSchema,
-                    runtime.getTungstenTableType());
+                    runtime.getTungstenTableType(), runtime.getServiceName());
             heartbeatTable.initializeHeartbeatTable(conn);
 
             // Create shard table if it does not exist
