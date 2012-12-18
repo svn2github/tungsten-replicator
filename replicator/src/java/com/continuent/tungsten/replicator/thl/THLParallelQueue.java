@@ -341,7 +341,7 @@ public class THLParallelQueue implements ParallelStore
         // Check the thread read interval once per second of elapsed
         // time between complete transactions. This check ropes in threads that
         // have exceeded the maximum online interval between highest and lowest
-        // threads. The check must occur on the event that begins a transaction 
+        // threads. The check must occur on the event that begins a transaction
         // or a deadlock can occur on fragmented transactions.
         //
         // (BEWARE: If you do this check on fragmented events within
@@ -655,7 +655,7 @@ public class THLParallelQueue implements ParallelStore
     /**
      * Start the reader for a particular task.
      */
-    public synchronized void start(int taskId)
+    public void start(int taskId)
     {
         this.readTasks.get(taskId).start();
     }
@@ -663,7 +663,7 @@ public class THLParallelQueue implements ParallelStore
     /**
      * Stop the reader for a particular task.
      */
-    public synchronized void stop(int taskId)
+    public void stop(int taskId)
     {
         this.readTasks.get(taskId).stop();
     }
