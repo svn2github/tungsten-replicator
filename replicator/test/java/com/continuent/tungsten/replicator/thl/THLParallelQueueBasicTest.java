@@ -24,10 +24,13 @@ package com.continuent.tungsten.replicator.thl;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -40,7 +43,9 @@ import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplDBMSFilteredEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.management.MockEventDispatcher;
 import com.continuent.tungsten.replicator.management.MockOpenReplicatorContext;
 import com.continuent.tungsten.replicator.pipeline.Pipeline;
@@ -50,9 +55,9 @@ import com.continuent.tungsten.replicator.storage.Store;
 import com.continuent.tungsten.replicator.thl.log.LogConnection;
 
 /**
- * Implements a basic test of parallel THL operations. Parallel THL operation requires
- * a pipeline consisting of a THL coupled with a THLParallelQueue.  This test focuses
- * on basic operations. 
+ * Implements a basic test of parallel THL operations. Parallel THL operation
+ * requires a pipeline consisting of a THL coupled with a THLParallelQueue. This
+ * test focuses on basic operations.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
@@ -180,16 +185,8 @@ public class THLParallelQueueBasicTest
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
-        ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
-        Assert.assertEquals("Expected 10 server events", 9,
-                lastEvent.getSeqno());
-
         Store thl = pipeline.getStore("thl");
-        Assert.assertEquals("Expected 0 as first event", 0,
-                thl.getMinStoredSeqno());
-        Assert.assertEquals("Expected 9 as last event", 9,
-                thl.getMaxStoredSeqno());
+        verifyStoredEvents(pipeline, thl, 0, 9);
     }
 
     /*
@@ -212,16 +209,8 @@ public class THLParallelQueueBasicTest
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline.watchForProcessedSequenceNumber(9);
-        ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
-        Assert.assertEquals("Expected 10 server events", 9,
-                lastEvent.getSeqno());
-
         Store thl = pipeline.getStore("thl");
-        Assert.assertEquals("Expected 0 as first event", 0,
-                thl.getMinStoredSeqno());
-        Assert.assertEquals("Expected 9 as last event", 9,
-                thl.getMaxStoredSeqno());
+        verifyStoredEvents(pipeline, thl, 0, 9);
     }
 
     /**
@@ -279,6 +268,186 @@ public class THLParallelQueueBasicTest
     }
 
     /**
+     * Verify that a parallel queue with a single partition does not fail or
+     * stall when it receives events having commit times that are separated by
+     * an amount greater than the maxOfflineInterval value.
+     */
+    @Test
+    public void testSingleChannelPerniciousLag() throws Exception
+    {
+        logger.info("##### testSingleChannelPerniciousLag #####");
+
+        // Set up and prepare pipeline. Add an extra property setting for
+        // maxOfflineInterval.
+        TungstenProperties conf = helper.generateTHLParallelPipeline(
+                "testSingleChannelPerniciousLag", 1, 50, 100, true);
+        conf.setLong("replicator.store.parallel-queue.maxOfflineInterval", 5);
+
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        runtime.configure();
+        runtime.prepare();
+        pipeline = runtime.getPipeline();
+        pipeline.start(new MockEventDispatcher());
+
+        // Fetch references to stores.
+        THL thl = (THL) pipeline.getStore("thl");
+        InMemoryMultiQueue mq = (InMemoryMultiQueue) pipeline
+                .getStore("multi-queue");
+
+        // Write 10 events to the log with timestamps greater than the
+        // maxOfflineInterval.
+        long startTimestamp = System.currentTimeMillis() - 10000000;
+        LogConnection conn = thl.connect(false);
+        for (int i = 0; i < 10; i++)
+        {
+            Timestamp ts = new Timestamp(startTimestamp + (i * 100000));
+            ReplDBMSEvent rde = helper.createEvent(i, (short) 0, true, "1", ts);
+            THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+            conn.store(thlEvent, false);
+        }
+        conn.commit();
+        thl.disconnect(conn);
+
+        // Ensure THL received expected events.
+        Assert.assertEquals("Expected as first event: " + 0, 0,
+                thl.getMinStoredSeqno());
+        Assert.assertEquals("Expected as last event: " + 9, 9,
+                thl.getMaxStoredSeqno());
+
+        // Wait for and verify events.
+        verifyStoredEvents(pipeline, mq, 0, 9);
+    }
+
+    /**
+     * Verify that a parallel queue with a single partition does not fail or
+     * stall when it receives events having commit times that are separated by
+     * an amount greater than the maxOfflineInterval value. Those events should
+     * include a mix of normal events, events with fragments, and skipped
+     * events.
+     */
+    @Test
+    public void testMultiChannelPerniciousLag() throws Exception
+    {
+        logger.info("##### testMultiChannelPerniciousLag #####");
+        int events = 10;
+
+        // Set up and prepare pipeline. Add an extra property setting for
+        // maxOfflineInterval.
+        TungstenProperties conf = helper.generateTHLParallelPipeline(
+                "testMultiChannelPerniciousLag", 5, 50, 200, true);
+        conf.setLong("replicator.store.parallel-queue.maxOfflineInterval", 5);
+
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        runtime.configure();
+        runtime.prepare();
+        pipeline = runtime.getPipeline();
+        pipeline.start(new MockEventDispatcher());
+
+        // Fetch references to stores.
+        THL thl = (THL) pipeline.getStore("thl");
+        InMemoryMultiQueue mq = (InMemoryMultiQueue) pipeline
+                .getStore("multi-queue");
+
+        // Write 100 events to the log with timestamps greater than the
+        // maxOfflineInterval.
+        long startTimestamp = System.currentTimeMillis() - 100000000;
+        LogConnection conn = thl.connect(false);
+        long seqno = -1;
+        for (int i = 0; i < events; i++)
+        {
+            // Generate the timestamp and shard ID for our event(s).
+            seqno++;
+            Timestamp ts = new Timestamp(startTimestamp + (i * 100000));
+            String shard = "shard_" + (i % 5);
+
+            // Decide what sort of event to create. Since there are three
+            // channels we create a nice mix.
+            switch (i % 3)
+            {
+                case 0 :
+                {
+                    // Unfragmented event.
+                    ReplDBMSEvent rde = helper.createEvent(seqno, (short) 0,
+                            true, shard, ts);
+                    THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+                    conn.store(thlEvent, false);
+                    break;
+                }
+                case 1 :
+                {
+                    // Filtered event.
+                    ReplDBMSEvent rde1 = helper.createEvent(seqno, (short) 0,
+                            true, shard, ts);
+                    ReplDBMSEvent rde2 = helper.createEvent(seqno + 4,
+                            (short) 0, true, shard, ts);
+                    ReplDBMSFilteredEvent fe = new ReplDBMSFilteredEvent(rde1,
+                            rde2);
+                    THLEvent thlEvent = new THLEvent(fe.getSourceId(), fe);
+                    conn.store(thlEvent, false);
+                    seqno += 4;
+                    break;
+                }
+                case 2 :
+                {
+                    // Fragmented event.
+                    for (short fragno = 0; fragno < 3; fragno++)
+                    {
+                        ReplDBMSEvent rde = helper.createEvent(seqno,
+                                (short) fragno, (fragno >= 2), shard, ts);
+                        THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+                        conn.store(thlEvent, false);
+                    }
+                    break;
+                }
+                default :
+                {
+                    throw new Exception("Unexpected switch value!");
+                }
+            }
+        }
+        
+        // Send along a heartbeat event to flush through transactions. 
+        seqno++;
+        ReplDBMSEvent rde = helper.createEvent(seqno, (short) 0,
+                true, "end", new Timestamp(startTimestamp));
+        rde.getDBMSEvent().addMetadataOption(ReplOptionParams.HEARTBEAT, "heartbeat");
+        THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+        conn.store(thlEvent, false);
+
+        // Commit and close the THL store. 
+        conn.commit();
+        thl.disconnect(conn);
+
+        // Ensure THL received expected events.
+        Assert.assertEquals("Expected as first event: " + 0, 0,
+                thl.getMinStoredSeqno());
+        Assert.assertEquals("Expected as last event: " + seqno, seqno,
+                thl.getMaxStoredSeqno());
+
+        // Wait for and verify events.
+        verifyStoredEvents(pipeline, mq, 0, seqno);
+    }
+
+    // Verify that events are committed to a particular store.
+    private void verifyStoredEvents(Pipeline pipeline, Store store,
+            long firstSeqno, long lastSeqno) throws InterruptedException,
+            ExecutionException, TimeoutException
+    {
+        Future<ReplDBMSHeader> wait = pipeline
+                .watchForProcessedSequenceNumber(lastSeqno);
+        ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
+        Assert.assertEquals("Expected " + (lastSeqno + 1) + " server events",
+                lastSeqno, lastEvent.getSeqno());
+
+        Assert.assertEquals("Expected as first event: " + firstSeqno,
+                firstSeqno, store.getMinStoredSeqno());
+        Assert.assertEquals("Expected as last event: " + lastSeqno, lastSeqno,
+                store.getMaxStoredSeqno());
+    }
+
+    /**
      * Confirm that watch synchronization control events go to a single
      * partition and appear in total order compared to all other events. We
      * implement this test by inserting watch events on even sequence numbers
@@ -316,7 +485,7 @@ public class THLParallelQueueBasicTest
             // Seqno is every 10 positions.
             long seqno = i * 10;
             processing.add(pipeline.watchForProcessedSequenceNumber(seqno));
-            commits.add(pipeline.watchForProcessedSequenceNumber(seqno));
+            commits.add(pipeline.watchForCommittedSequenceNumber(seqno, false));
         }
 
         // Write 100 events, which should trigger the watches. Commit

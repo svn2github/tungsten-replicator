@@ -156,6 +156,8 @@ public class THLParallelReadTask implements Runnable
                 try
                 {
                     response = partitioner.partition(header, taskId);
+                    intervalGuard.report(taskId, header.getSeqno(), header
+                            .getExtractedTstamp().getTime());
                 }
                 catch (THLException e)
                 {
@@ -263,10 +265,6 @@ public class THLParallelReadTask implements Runnable
                 // our thread from jumping too far ahead of others and
                 // coordinates serialization.
                 headSeqnoCounter.waitSeqnoGreaterEqual(thlEvent.getSeqno());
-
-                // Report our position to the interval guard.
-                intervalGuard.report(taskId, thlEvent.getSeqno(), thlEvent
-                        .getSourceTstamp().getTime());
 
                 // Post to the queue.
                 if (logger.isDebugEnabled())

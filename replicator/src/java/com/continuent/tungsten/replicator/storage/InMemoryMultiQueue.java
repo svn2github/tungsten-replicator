@@ -38,7 +38,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 /**
  * Implements an in-memory queue store with multiple queues. This is used for
  * testing other parallel queues where we need to simulate ability to apply in
- * parallel across a bunch of threads and tell what happened on each.  
+ * parallel across a bunch of threads and tell what happened on each.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
@@ -49,6 +49,9 @@ public class InMemoryMultiQueue implements Store
     private String                             name;
     private int                                partitions       = 1;
     private int                                maxSize          = 1;
+
+    private long                               minStored        = Long.MAX_VALUE;
+    private long                               maxStored        = Long.MIN_VALUE;
 
     private List<BlockingQueue<ReplDBMSEvent>> queues;
     private ReplDBMSHeader[]                   lastHeader;
@@ -111,9 +114,9 @@ public class InMemoryMultiQueue implements Store
      * 
      * @see com.continuent.tungsten.replicator.storage.Store#getMaxStoredSeqno()
      */
-    public long getMaxStoredSeqno()
+    public synchronized long getMaxStoredSeqno()
     {
-        return -1;
+        return this.maxStored;
     }
 
     /**
@@ -121,9 +124,9 @@ public class InMemoryMultiQueue implements Store
      * 
      * @see com.continuent.tungsten.replicator.storage.Store#getMinStoredSeqno()
      */
-    public long getMinStoredSeqno()
+    public synchronized long getMinStoredSeqno()
     {
-        return 0;
+        return this.minStored;
     }
 
     /**
@@ -132,12 +135,23 @@ public class InMemoryMultiQueue implements Store
     public void put(int taskId, ReplDBMSEvent event)
             throws InterruptedException
     {
+        // Insert into the queue.
         queues.get(taskId).put(event);
         transactionCount++;
         if (logger.isDebugEnabled())
         {
             if (transactionCount % 10000 == 0)
                 logger.debug("Queue store: xacts=" + transactionCount);
+        }
+
+        // Record the sequence number.
+        synchronized (this)
+        {
+            long seqno = event.getSeqno();
+            if (seqno < minStored)
+                minStored = seqno;
+            if (seqno > maxStored)
+                maxStored = seqno;
         }
     }
 

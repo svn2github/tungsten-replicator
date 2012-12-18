@@ -224,18 +224,28 @@ public class THLParallelQueueHelper
      * Returns a well-formed ReplDBMSEvent fragment with a specified shard ID.
      */
     public ReplDBMSEvent createEvent(long seqno, short fragNo,
-            boolean lastFrag, String shardId)
+            boolean lastFrag, String shardId, Timestamp timestamp)
     {
         ArrayList<DBMSData> t = new ArrayList<DBMSData>();
         t.add(new StatementData("SELECT 1"));
         DBMSEvent dbmsEvent = new DBMSEvent(new Long(seqno).toString(), null,
-                t, true, new Timestamp(System.currentTimeMillis()));
+                t, true, timestamp);
         ReplDBMSEvent replDbmsEvent = new ReplDBMSEvent(seqno, fragNo,
-                lastFrag, "NONE", 0, new Timestamp(System.currentTimeMillis()),
-                dbmsEvent);
+                lastFrag, "NONE", 0, timestamp, dbmsEvent);
         replDbmsEvent.getDBMSEvent().addMetadataOption(
                 ReplOptionParams.SHARD_ID, shardId);
         return replDbmsEvent;
+    }
+
+    /**
+     * Convenience event to generate an event fragment with a default timestamp
+     * value.
+     */
+    public ReplDBMSEvent createEvent(long seqno, short fragNo,
+            boolean lastFrag, String shardId)
+    {
+        return createEvent(seqno, fragNo, lastFrag, shardId, new Timestamp(
+                System.currentTimeMillis()));
     }
 
     /**
