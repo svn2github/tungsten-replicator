@@ -617,6 +617,46 @@ class MySQLApplierServerIDCheck < ConfigureValidationCheck
   end
 end
 
+class MySQLApplierServerPortCheck < ConfigureValidationCheck
+  include ReplicationServiceValidationCheck
+  include MySQLApplierCheck
+  include NotPrefetchCheck
+  
+  def set_vars
+    @title = "MySQL Server Port"
+  end
+  
+  def validate
+    port = @config.getProperty(get_applier_key(REPL_DBPORT))
+    
+    retrieved_port = get_applier_datasource.get_value("SHOW VARIABLES LIKE 'port'", "Value")
+    if port.to_i != retrieved_port.to_i
+      error("The port '#{port}' does not match the the port from #{get_applier_datasource.get_connection_summary()} '#{retrieved_port}'")
+    end
+    
+    conf_file = @config.getProperty(get_applier_key(REPL_MYSQL_CONF))
+    if Configurator.instance.is_localhost?(@config.getProperty(get_applier_key(REPL_DBHOST)))
+      if File.exists?(conf_file) && File.readable?(conf_file)
+        begin
+          conf_file_results = cmd_result("grep ^port #{conf_file}").split("=")
+          if conf_file_results.length <= 1
+            error("Unable to read the port value in the MySQL config file '#{conf_file_results.join('=')}'")
+          else
+            unless port.to_i == conf_file_results[1].to_i
+              error("The MySQL config file has a port of '#{conf_file_results[1].to_i}' that is different from the configured port")
+            end
+          end
+        rescue
+        end
+      else
+        error("The MySQL config file '#{conf_file}' is not readable")
+      end
+    else
+      warning("Unable to compare the configured port to the one in '#{conf_file}'")
+    end
+  end
+end
+
 class MySQLSettingsCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck
   include MySQLApplierCheck
