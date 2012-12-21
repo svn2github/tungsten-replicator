@@ -15,7 +15,6 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.patterns.order.HighWaterResource;
@@ -722,7 +721,11 @@ public class DataSource extends Resource implements Serializable
 
     public void setHighWater(HighWaterResource highWater)
     {
-        this.highWater = highWater;
+        if (highWater != null)
+        {
+            setHighWater(highWater.getHighWaterEpoch(),
+                    highWater.getHighWaterEventId());
+        }
     }
 
     public void setHighWater(long epoch, String eventId)

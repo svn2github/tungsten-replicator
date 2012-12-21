@@ -214,7 +214,7 @@ public class RouterURL implements Cloneable
                 throw new SQLException(msg.toString());
             }
         }
-        // Same for max latency
+        // Same for max latency...
         String maxAppliedLatencyValue = (String) props
                 .remove(KEY_MAX_APPLIED_LATENCY);
         if (maxAppliedLatencyValue != null)
@@ -233,10 +233,14 @@ public class RouterURL implements Cloneable
                 this.maxAppliedLatency = MAX_APPLIED_LATENCY_UNDEF;
             }
         }
-        // for affinity
-        this.affinity = (String) props.remove(KEY_AFFINITY);
+        // ...for affinity...
+        String affinityInProps = (String) props.remove(KEY_AFFINITY);
+        if (affinityInProps != null)
+        {
+            this.affinity = affinityInProps;
+        }
 
-        // and for session ID
+        // ...and for session ID
         String propsSessionId = (String) props.remove(KEY_SESSION_ID);
         if (propsSessionId != null)
         {
