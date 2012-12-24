@@ -495,6 +495,10 @@ public class SingleThreadStageTask implements Runnable
             logError(message, e);
             dispatchErrorEvent(new ErrorNotification(message, event.getSeqno(),
                     event.getEventId(), e));
+
+            // Roll back to prevent partial writes (should not be possible but
+            // might happen).
+            emergencyRollback();
         }
         catch (Throwable e)
         {
@@ -510,6 +514,29 @@ public class SingleThreadStageTask implements Runnable
                         event.getEventId(), e));
             }
             logger.info("Unexpected error: " + msg, e);
+
+            // Roll back to prevent partial writes (should not be possible but
+            // might happen).
+            emergencyRollback();
+        }
+    }
+
+    // Roll back following an unexpected failure.
+    private void emergencyRollback()
+    {
+        logger.info("Performing emergency rollback of applied changes");
+        try
+        {
+            applier.rollback();
+        }
+        catch (InterruptedException e1)
+        {
+            logWarn("Task cancelled while trying to rollback following cancellation",
+                    null);
+        }
+        catch (Throwable t)
+        {
+            logWarn("Emergency rollback failed", t);
         }
     }
 
