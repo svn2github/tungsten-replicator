@@ -75,6 +75,18 @@ public class OneRowChange implements Serializable
             this.blob = false;
         }
 
+        public ColumnSpec(ColumnSpec spec)
+        {
+            this();
+            this.name = spec.getName();
+            this.type = spec.getType();
+            this.length = spec.getLength();
+            this.notNull = spec.isNotNull();
+            this.signed = !spec.isUnsigned();
+            this.blob = spec.isBlob();
+            this.typeDescription = spec.getTypeDescription();
+        }
+
         public int getIndex()
         {
             return this.index;
