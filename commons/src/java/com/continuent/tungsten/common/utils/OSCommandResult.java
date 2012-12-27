@@ -73,7 +73,7 @@ public class OSCommandResult implements Serializable
 
     public String toString()
     {
-        return getMessages();
+        return String.format("Exit code=%d\n%s", exitCode, getMessages());
     }
 
 }
