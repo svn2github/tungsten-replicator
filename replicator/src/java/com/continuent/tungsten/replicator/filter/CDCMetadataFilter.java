@@ -32,6 +32,7 @@ import java.util.Iterator;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
@@ -60,22 +61,27 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class CDCMetadataFilter implements Filter
 {
-    private static Logger logger = Logger.getLogger(CDCMetadataFilter.class);
+    private static Logger           logger = Logger.getLogger(CDCMetadataFilter.class);
 
-    private String        schemaNameSuffix;
-    private String        tableNameSuffix;
-    
+    private String                  schemaNameSuffix;
+    private String                  tableNameSuffix;
+
     /**
      * Cache of last sequence numbers in a given change table:</br>
      * "schema.table" => lastSeq
      */
     private Hashtable<String, Long> seqCache;
-    
-    Database              conn   = null;
 
-    private String        user;
-    private String        url;
-    private String        password;
+    /**
+     * Name of current replication service's internal tungsten schema.
+     */
+    private String                  tungstenSchema;
+
+    Database                        conn   = null;
+
+    private String                  user;
+    private String                  url;
+    private String                  password;
 
     /**
      * Sets the schemaNameSuffix value. Can be left empty, if change tables are
@@ -123,8 +129,17 @@ public class CDCMetadataFilter implements Filter
                         .iterator(); iterator2.hasNext();)
                 {
                     OneRowChange orc = iterator2.next();
-                    
-					String schemaCDC = orc.getSchemaName() + schemaNameSuffix;
+
+                    // Don't add CDC rows for tables from Tungsten schema.
+                    if (orc.getSchemaName().equals(tungstenSchema))
+                    {
+                        if (logger.isDebugEnabled())
+                            logger.debug("Ignoring " + tungstenSchema
+                                    + " schema");
+                        continue;
+                    }
+
+                    String schemaCDC = orc.getSchemaName() + schemaNameSuffix;
 					String tableCDC = orc.getTableName() + tableNameSuffix;
 
 					OneRowChange cdcRowChangeData = new OneRowChange(schemaCDC,
@@ -272,8 +287,8 @@ public class CDCMetadataFilter implements Filter
             catch (SQLException e)
             {
                 throw new ReplicatorException(
-                        "Unable to determine next sequence number for CDC table",
-                        e);
+                        "Unable to determine next sequence number for CDC table: "
+                                + schemaTable, e);
             }
             finally
             {
@@ -313,6 +328,8 @@ public class CDCMetadataFilter implements Filter
      */
     public void configure(PluginContext context) throws ReplicatorException
     {
+        tungstenSchema = context.getReplicatorProperties().getString(
+                ReplicatorConf.METADATA_SCHEMA);
     }
 
     /**
