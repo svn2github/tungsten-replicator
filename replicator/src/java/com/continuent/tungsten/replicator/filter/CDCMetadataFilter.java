@@ -131,7 +131,7 @@ public class CDCMetadataFilter implements Filter
                     OneRowChange orc = iterator2.next();
 
                     // Don't add CDC rows for tables from Tungsten schema.
-                    if (orc.getSchemaName().equals(tungstenSchema))
+                    if (orc.getSchemaName().compareToIgnoreCase(tungstenSchema) == 0)
                     {
                         if (logger.isDebugEnabled())
                             logger.debug("Ignoring " + tungstenSchema
@@ -292,6 +292,17 @@ public class CDCMetadataFilter implements Filter
             }
             finally
             {
+                try
+                {
+                    // If connection is not autocommit, aggregate MAX(...) might
+                    // be taking a lock, so we free it up.
+                    if (conn != null)
+                        conn.rollback();
+                }
+                catch (SQLException e)
+                {
+                    logger.warn("Failed to rollback : " + e);
+                }
                 if (rs != null)
                 {
                     try
