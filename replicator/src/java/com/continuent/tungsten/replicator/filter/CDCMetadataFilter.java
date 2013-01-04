@@ -279,7 +279,7 @@ public class CDCMetadataFilter implements Filter
                 else
                 {
                     if (logger.isDebugEnabled())
-                        logger.debug("Max sequence number couldn't be determine, using 1 instead. Query used: "
+                        logger.debug("Max sequence number couldn't be determined, using 1 instead. Query used: "
                                 + query);
                     seqCache.put(schemaTable, (long) 1);
                 }
@@ -288,7 +288,8 @@ public class CDCMetadataFilter implements Filter
             {
                 throw new ReplicatorException(
                         "Unable to determine next sequence number for CDC table: "
-                                + schemaTable, e);
+                                + schemaTable + " (note: ignoring schema "
+                                + tungstenSchema + ")", e);
             }
             finally
             {
