@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -47,6 +47,7 @@ public class InMemoryQueueStore implements Store
     protected int                                maxSize          = 1;
     protected ReplDBMSHeader                     lastHeader;
     protected long                               transactionCount = 0;
+    protected int                                partitions       = 1;
 
     public String getName()
     {
@@ -100,18 +101,40 @@ public class InMemoryQueueStore implements Store
         return 0;
     }
 
+    // PSEUDO-PARALLEL QUEUE INTERFACE -- Allows this store to masquerade as a
+    // parallel store for configuration purposes.
+
     /**
-     * As in-memory queue don't keep events, this function is no-op and just
-     * returns null
-     * 
-     * @return null
+     * Sets the number of queue partitions, i.e., channels. This may not be more
+     * than 1.
      */
-    public ReplDBMSEvent fetchEvent(long seqno, short fragno,
-            boolean ignoreSkippedEvent)
+    public void setPartitions(int partitions)
     {
-        // We don't keep events persistently, so this is always null.
-        return null;
+        this.partitions = partitions;
     }
+
+    /** Sets the class used for partitioning transactions across queues. */
+    public void setPartitionerClass(String partitionerClass)
+    {
+        // NO-OP.
+    }
+
+    /**
+     * Sets the number of events to process before generating an automatic
+     * control event if sync is enabled.
+     */
+    public void setSyncInterval(int syncInterval)
+    {
+        // NO-OP.
+    }
+
+    /** Sets the maximum number of seconds for a clean shutdown. */
+    public void setMaxOfflineInterval(int maxOfflineInterval)
+    {
+        // NO-OP.
+    }
+
+    // END OF PSEUDO-PARALLEL QUEUE INTERFACE
 
     /**
      * Puts an event in the queue, blocking if it is full.
@@ -173,7 +196,13 @@ public class InMemoryQueueStore implements Store
      */
     public void configure(PluginContext context) throws ReplicatorException
     {
-        // Nothing to do.
+        // Ensure that we are configured for one partition only.
+        if (partitions != 1)
+        {
+            throw new ReplicatorException(
+                    "Attempt to configure non-parallel queue with more than a single channel: channels="
+                            + partitions);
+        }
     }
 
     /**

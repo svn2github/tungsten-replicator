@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -190,7 +190,9 @@ public class ParallelQueueStore implements ParallelStore
 
     /**
      * Enables/disables automatic generation of control events to ensure queue
-     * consumers have up-to-date positions in the log.
+     * consumers have up-to-date positions in the log. This feature is mostly
+     * used for testing, as it makes it easier to count queue contents if sync
+     * control events are turned off.
      * 
      * @param syncEnabled If true sync control events are generated
      */
@@ -199,9 +201,25 @@ public class ParallelQueueStore implements ParallelStore
         this.syncEnabled = syncEnabled;
     }
 
-    /** No-op method to preserve interface compability with THLParallelQueue. */
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.storage.ParallelStore#setMaxOfflineInterval(int)
+     */
     public void setMaxOfflineInterval(int maxOfflineInterval)
     {
+        // NO-OP for this queue type.
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.storage.ParallelStore#getMaxOfflineInterval()
+     */
+    public int getMaxOfflineInterval()
+    {
+        // NO-OP for this queue type.
+        return 0;
     }
 
     /**

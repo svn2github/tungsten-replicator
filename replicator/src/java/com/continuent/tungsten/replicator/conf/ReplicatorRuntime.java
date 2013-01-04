@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1107,8 +1107,8 @@ public class ReplicatorRuntime implements PluginContext
         catch (ReplicatorException e)
         {
             throw new ReplicatorException(
-                    "Unable to configure plugin: class name=" + pluginClassName,
-                    e);
+                    "Unable to configure plugin: class name=" + pluginClassName
+                            + " message=[" + e.getMessage() + "]", e);
         }
         catch (Throwable t)
         {
