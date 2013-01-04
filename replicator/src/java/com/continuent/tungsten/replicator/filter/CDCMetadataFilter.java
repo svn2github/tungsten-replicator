@@ -112,7 +112,6 @@ public class CDCMetadataFilter implements Filter
      */
     public ReplDBMSEvent filter(ReplDBMSEvent event) throws ReplicatorException
     {
-        RowChangeData cdcData = null;
         ArrayList<DBMSData> data = event.getData();
         ArrayList<DBMSData> dataToAdd = new ArrayList<DBMSData>();
         for (Iterator<DBMSData> iterator = data.iterator(); iterator.hasNext();)
@@ -120,9 +119,7 @@ public class CDCMetadataFilter implements Filter
             DBMSData dataElem = iterator.next();
             if (dataElem instanceof RowChangeData)
             {
-                if (cdcData == null)
-                    cdcData = new RowChangeData();
-                
+                RowChangeData cdcData = new RowChangeData();
                 dataToAdd.add(cdcData);
                 RowChangeData rdata = (RowChangeData) dataElem;
                 for (Iterator<OneRowChange> iterator2 = rdata.getRowChanges()
