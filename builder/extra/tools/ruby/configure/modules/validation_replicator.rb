@@ -281,3 +281,22 @@ class DifferentMasterSlaveCheck < ConfigureValidationCheck
     end
   end
 end
+
+class ParallelReplicationCheck < ConfigureValidationCheck
+  include ReplicationServiceValidationCheck
+  
+  def set_vars
+    @title = "Parallel replication consistency check"
+  end
+  
+  def validate
+    ptype = @config.getProperty(get_member_key(REPL_SVC_PARALLELIZATION_TYPE))
+    channels = @config.getProperty(get_member_key(REPL_SVC_CHANNELS))
+    
+    if ptype == "none" and channels != "1"
+      error("Parallelization type is set to 'none' but channels are set to #{channels}; either set parallelization type to 'disk' or 'memory' using --svc-parallelization-type or set channels to 1 using --channels")
+    elsif ptype == "memory"
+      warning("The 'memory' parallelization type is not recommended for production use; use 'disk' instead")
+    end
+  end
+end

@@ -561,9 +561,9 @@ class ReplicationServiceParallelizationType < ConfigurePrompt
   include ReplicationServicePrompt
   
   def initialize
-    super(REPL_SVC_PARALLELIZATION_TYPE, "Method for implementing parallel queues (disk|memory)",
-      PropertyValidator.new("disk|memory", 
-        "Value must be disk or memory"), "disk")
+    super(REPL_SVC_PARALLELIZATION_TYPE, "Method for implementing parallel apply (disk|memory|none)",
+      PropertyValidator.new("disk|memory|none", 
+        "Value must be disk, memory, or none"), "none")
   end
 end
 
@@ -578,8 +578,10 @@ class ReplicationServiceParallelizationStoreClass < ConfigurePrompt
   def get_default_value
     if @config.getProperty(get_member_key(REPL_SVC_PARALLELIZATION_TYPE)) == "memory"
       "com.continuent.tungsten.replicator.storage.parallel.ParallelQueueStore"
-    else
+    elsif @config.getProperty(get_member_key(REPL_SVC_PARALLELIZATION_TYPE)) == "disk"
       "com.continuent.tungsten.replicator.thl.THLParallelQueue"
+    else
+      "com.continuent.tungsten.replicator.storage.InMemoryQueueStore"
     end
   end
 end
@@ -595,8 +597,10 @@ class ReplicationServiceParallelizationApplierClass < ConfigurePrompt
   def get_default_value
     if @config.getProperty(get_member_key(REPL_SVC_PARALLELIZATION_TYPE)) == "memory"
       "com.continuent.tungsten.replicator.storage.parallel.ParallelQueueApplier"
-    else
+    elsif @config.getProperty(get_member_key(REPL_SVC_PARALLELIZATION_TYPE)) == "disk"
       "com.continuent.tungsten.replicator.thl.THLParallelQueueApplier"
+    else
+      "com.continuent.tungsten.replicator.storage.InMemoryQueueAdapter"
     end
   end
 end
@@ -612,8 +616,10 @@ class ReplicationServiceParallelizationExtractorClass < ConfigurePrompt
   def get_default_value
     if @config.getProperty(get_member_key(REPL_SVC_PARALLELIZATION_TYPE)) == "memory"
       "com.continuent.tungsten.replicator.storage.parallel.ParallelQueueExtractor"
-    else
+    elsif @config.getProperty(get_member_key(REPL_SVC_PARALLELIZATION_TYPE)) == "disk"
       "com.continuent.tungsten.replicator.thl.THLParallelQueueExtractor"
+    else
+      "com.continuent.tungsten.replicator.storage.InMemoryQueueAdapter"
     end
   end
 end
