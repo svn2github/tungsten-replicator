@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -53,6 +53,7 @@ import com.continuent.tungsten.common.cluster.resource.physical.ReplicatorCapabi
 import com.continuent.tungsten.common.concurrent.SimpleJobService;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.WildcardPattern;
+import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.channel.ChannelAssignmentService;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
@@ -846,6 +847,8 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         // Set generic values that are always identical.
         statusProps
                 .setString(Replicator.SEQNO_TYPE, Replicator.SEQNO_TYPE_LONG);
+        statusProps.setString(Replicator.VERSION,
+                ManifestParser.parseReleaseWithBuildNumber());
 
         // Set default values.
         statusProps.setLong(Replicator.APPLIED_LAST_SEQNO, -1);
@@ -854,6 +857,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         statusProps.setLong(Replicator.MAX_STORED_SEQNO, -1);
         statusProps.setLong(Replicator.LATEST_EPOCH_NUMBER, -1);
         statusProps.setDouble(Replicator.APPLIED_LATENCY, -1.0);
+        statusProps.setDouble(Replicator.RELATIVE_LATENCY, -1.0);
         statusProps.setString(Replicator.CURRENT_EVENT_ID, "NONE");
         statusProps.setString(Replicator.OFFLINE_REQUESTS, "NONE");
         statusProps.setString(Replicator.PIPELINE_SOURCE, "UNKNOWN");
@@ -923,6 +927,14 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                         pipeline.getMaxStoredSeqno());
                 statusProps.setDouble(Replicator.APPLIED_LATENCY,
                         pipeline.getApplyLatency());
+                Timestamp commitTime = lastEvent.getExtractedTstamp();
+                double relativeLatency = ((System.currentTimeMillis() - commitTime
+                        .getTime()) / 1000.0);
+                if (commitTime != null)
+                {
+                    statusProps.setDouble(Replicator.RELATIVE_LATENCY,
+                            relativeLatency);
+                }
             }
 
             // Report the current number of channels.
