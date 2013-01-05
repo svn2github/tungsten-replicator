@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -63,6 +63,12 @@ public class Replicator
      * originally generated.
      */
     public static final String APPLIED_LATENCY             = "appliedLatency";
+
+    /**
+     * Lag in seconds between the timestamp of the last committed transaction
+     * and the current time.
+     */
+    public static final String RELATIVE_LATENCY            = "relativeLatency";
 
     /** Current epoch number used by replicator, if it has one. */
     public static final String LATEST_EPOCH_NUMBER         = "latestEpochNumber";
@@ -215,6 +221,11 @@ public class Replicator
      * Denotes the number of channels for parallel apply.
      */
     public static final String CHANNELS                    = "channels";
+
+    /**
+     * Denotes the replicator version.
+     */
+    public static final String VERSION                     = "version";
 
     // Default values
     public static final long   DEFAULT_LATEST_EPOCH_NUMBER = -1;
