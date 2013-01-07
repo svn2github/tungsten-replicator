@@ -162,7 +162,7 @@ public class CDCMetadataFilter implements Filter
                     spec.setIndex(3);
                     spec.setName("CDC_OP_TYPE");
                     spec.setType(java.sql.Types.VARCHAR);
-                    spec.setLength(6); // INSERT, UPDATE or DELETE
+                    spec.setLength(1); // (I)NSERT, (U)PDATE or (D)ELETE
                     cdcSpecs.add(spec);
 
                     if (orc.getAction() == ActionType.DELETE)
@@ -193,7 +193,8 @@ public class CDCMetadataFilter implements Filter
                                     .getSourceTstamp());
                             val.add(colVal);
                             colVal = cdcRowChangeData.new ColumnVal();
-                            colVal.setValue(orc.getAction().toString());
+                            colVal.setValue(orc.getAction().toString()
+                                    .substring(0, 1));
                             val.add(colVal);
                             for (ColumnVal columnVal : values)
                             {
@@ -229,7 +230,8 @@ public class CDCMetadataFilter implements Filter
                                     .getSourceTstamp());
                             val.add(colVal);
                             colVal = cdcRowChangeData.new ColumnVal();
-                            colVal.setValue(orc.getAction().toString());
+                            colVal.setValue(orc.getAction().toString()
+                                    .substring(0, 1));
                             val.add(colVal);
                             for (ColumnVal columnVal : values)
                             {
