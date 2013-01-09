@@ -49,7 +49,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * to a corresponding change table.<br/>
  * <br/>
  * Change table structure:<br/>
- * CDC_SEQUENCE_NUMBER, CDC_TIMESTAMP, CDC_OP_TYPE, original columns ... <br/>
+ * original columns ..., CDC_OP_TYPE, CDC_TIMESTAMP, CDC_SEQUENCE_NUMBER<br/>
  * <br/>
  * Filter automatically generates a CDC_SEQUENCE_NUMBER primary key value for
  * the change table. However, for this to work correctly, caller must ensure
