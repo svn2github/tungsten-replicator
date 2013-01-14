@@ -1,6 +1,8 @@
 # Merge script for InfiniDB.
 
-# Either call cpimport using the full path, or by putting it into PATH.
+# Either call cpimport using the full path, or by putting it into PATH.  
+# Depending on your installation you may need to enable sudo for the 
+# tungsten account or run as root for cpimport to work.  
 !/usr/local/bin/cpimport %%STAGE_SCHEMA%% %%STAGE_TABLE%% %%CSV_FILE%% -s ',' -E '"'
 
 # Delete rows.  This query applies all deletes that match, need it or not.
