@@ -890,6 +890,15 @@ class LogSlaveUpdates < ConfigurePrompt
   end
 end
 
+class SlavePrivilegedUpdates < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(SLAVE_PRIVILEGED_UPDATES, "Does login for slave update have superuser privileges", 
+      PV_BOOLEAN, "true")
+  end
+end
+
 class PrefetchEnabled < ConfigurePrompt
   include ReplicationServicePrompt
   
