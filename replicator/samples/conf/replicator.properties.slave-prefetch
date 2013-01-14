@@ -67,6 +67,17 @@ service.name=@{SERVICE.DEPLOYMENT_SERVICE}
 # is remote. 
 local.service.name=@{SERVICE.DSNAME}
 
+# Whether to log slave updates or not.  This is normally false but can
+# be enabled so that updates inserted into the slave can be extracted again
+# by another replicator.  This can be useful for multi-master and some
+# chained replication topologies.
+replicator.log.slave.updates=@{LOG_SLAVE_UPDATES}
+
+# Whether slave updates have a privileged account for updates.  Certain
+# stores such as Amazon RDS do not allow slave to have superuser privileges.
+# If this values is false we try to apply using non-superuser capabilites.
+replicator.privileged.slave.update=@{SLAVE_PRIVILEGED_UPDATES}
+
 # Schema to store Replicator catalog tables. 
 replicator.schema=@{REPL_SVC_SCHEMA}
 

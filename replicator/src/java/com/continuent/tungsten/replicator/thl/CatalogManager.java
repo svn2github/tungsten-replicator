@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-2012 Continuent Inc.
+ * Copyright (C) 2011-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -91,8 +91,13 @@ public class CatalogManager
         // Create the database handle
         try
         {
-            // Log updates if requested in configuration.
-            conn = DatabaseFactory.createDatabase(url, user, password, vendor);
+            // Check to see if we have a privileged account.
+            boolean privileged = runtime.isMaster()
+                    || runtime.isPrivilegedSlaveUpdate();
+
+            // Connect and log updates only if requested.
+            conn = DatabaseFactory.createDatabase(url, user, password,
+                    privileged, vendor);
             conn.connect(runtime.logReplicatorUpdates());
         }
         catch (SQLException e)

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -148,6 +148,9 @@ public interface PluginContext
      * MySQL's log_slave_updates option.
      */
     public boolean logReplicatorUpdates();
+
+    /** Returns true if the JDBC login for slave apply is a superuser. */
+    public boolean isPrivilegedSlaveUpdate();
 
     /**
      * Return true if operating in native slave takeover mode.

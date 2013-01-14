@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -64,6 +64,7 @@ public abstract class AbstractDatabase implements Database
     protected String                       dbUri         = null;
     protected String                       dbUser        = null;
     protected String                       dbPassword    = null;
+    protected boolean                      privileged    = false;
     protected Connection                   dbConn        = null;
     protected boolean                      autoCommit    = false;
     protected String                       defaultSchema = null;
@@ -105,6 +106,16 @@ public abstract class AbstractDatabase implements Database
     public void setPassword(String dbPassword)
     {
         this.dbPassword = dbPassword;
+    }
+
+    public boolean isPrivileged()
+    {
+        return privileged;
+    }
+
+    public void setPrivileged(boolean privileged)
+    {
+        this.privileged = privileged;
     }
 
     public String getPlaceHolder(OneRowChange.ColumnSpec col, Object colValue,
@@ -420,7 +431,7 @@ public abstract class AbstractDatabase implements Database
      * 
      * @see com.continuent.tungsten.replicator.database.Database#kill(com.continuent.tungsten.replicator.database.Session)
      */
-    public void kill(Session session) throws SQLException
+    public void kill(Session session) throws SQLException, ReplicatorException
     {
         throw new UnsupportedOperationException(
                 "User management is not supported");
@@ -1181,17 +1192,19 @@ public abstract class AbstractDatabase implements Database
         createTable(table, replace, tungstenTableType);
     }
 
-    
     /**
      * {@inheritDoc}
-     * @see com.continuent.tungsten.replicator.database.Database#createTable(com.continuent.tungsten.replicator.database.Table, boolean, java.lang.String, java.lang.String, java.lang.String)
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#createTable(com.continuent.tungsten.replicator.database.Table,
+     *      boolean, java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    public void createTable(Table table, boolean replace, String tungstenSchema,
-            String tungstenTableType, String serviceName) throws SQLException
+    public void createTable(Table table, boolean replace,
+            String tungstenSchema, String tungstenTableType, String serviceName)
+            throws SQLException
     {
         createTable(table, replace, tungstenSchema, tungstenTableType);
-        
+
     }
 
     /**

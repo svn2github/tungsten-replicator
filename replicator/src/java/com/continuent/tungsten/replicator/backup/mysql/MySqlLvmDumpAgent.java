@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009 Continuent Inc.
+ * Copyright (C) 2009-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -276,7 +276,7 @@ public class MySqlLvmDumpAgent extends AbstractBackupAgent
         {
             // Connect to the database.
             logger.debug("Connecting to database and flushing tables");
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password, true);
             conn.connect();
 
             // Flush to ensure that tables are consistent.

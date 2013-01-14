@@ -1188,6 +1188,17 @@ public class ReplicatorRuntime implements PluginContext
     /**
      * {@inheritDoc}
      * 
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#isPrivilegedSlaveUpdate()
+     */
+    public boolean isPrivilegedSlaveUpdate()
+    {
+        return properties.getBoolean(ReplicatorConf.PRIVILEGED_SLAVE_UPDATE,
+                ReplicatorConf.PRIVILEGED_SLAVE_UPDATE_DEFAULT, true);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.plugin.PluginContext#nativeSlaveTakeover()
      */
     public boolean nativeSlaveTakeover()

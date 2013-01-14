@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -115,6 +115,10 @@ public class ReplicatorConf
     /** Whether to log slave updates. */
     static public final String   LOG_SLAVE_UPDATES                     = "replicator.log.slave.updates";
     static public final String   LOG_SLAVE_UPDATES_DEFAULT             = "false";
+
+    /** Whether slave updates use a privileged account. */
+    static public final String   PRIVILEGED_SLAVE_UPDATE               = "replicator.privileged.slave.update";
+    static public final String   PRIVILEGED_SLAVE_UPDATE_DEFAULT       = "true";
 
     /**
      * Whether to allow SQL comments to distinguish services for multi-master

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -67,6 +67,18 @@ public interface Database
 
     /** Sets the database password. */
     public void setPassword(String password);
+
+    /**
+     * Determines whether this connection has superuser privileges (e.g., SYSDBA
+     * or SUPER depending on the DBMS type).  Superusers can create logins, 
+     * kill sessions, and manipulate replication.  
+     * 
+     * @param privileged If true this account is a superuser
+     */
+    public void setPrivileged(boolean privileged);
+
+    /** Returns true if this account is a super user. */
+    public boolean isPrivileged();
 
     /**
      * Connects to the database. You must set the url, user, and password then
@@ -233,9 +245,9 @@ public interface Database
     public List<Session> listSessions() throws SQLException;
 
     /**
-     * Kills a particular session.
+     * Kills a particular session. 
      */
-    public void kill(Session session) throws SQLException;
+    public void kill(Session session) throws SQLException, ReplicatorException;
 
     /**
      * Return the Table with all its current accompanying Columns that matches

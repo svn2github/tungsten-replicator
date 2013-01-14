@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -149,12 +149,69 @@ public class TestDatabase
     }
 
     /**
+     * Verify that connecting with privileged flag set to true results in a
+     * privileged connection.
+     */
+    @Test
+    public void testDatabaseConnectPrivileged() throws Exception
+    {
+        Database db = DatabaseFactory.createDatabase(url, user, password, true);
+        Assert.assertNotNull(db);
+        Assert.assertTrue(db.isPrivileged());
+        db.connect();
+        db.close();
+    }
+
+    /**
+     * Verify that MySQL has expected capabities for privileged accounts. This
+     * prevents us from skipping over tests and missing possible errors.
+     */
+    @Test
+    public void testMySQLCapabilities() throws Exception
+    {
+        // Makes sure MySQL has expected capabilities.
+        if (url.indexOf("mysql") < 0)
+        {
+            logger.info("Skipping MySQL-specific test as URL is non-MySQL: "
+                    + url);
+            return;
+        }
+
+        // Create a privileged connection and ensure expected capabilities are
+        // set.
+        Database db = DatabaseFactory.createDatabase(url, user, password, true);
+        Assert.assertNotNull(db);
+        Assert.assertTrue("Control section logging",
+                db.supportsControlSessionLevelLogging());
+        Assert.assertTrue("Control native slave sync",
+                db.supportsNativeSlaveSync());
+        Assert.assertTrue("Control sessions", db.supportsUserManagement());
+        db.connect();
+        db.close();
+        db = null;
+
+        // Create a non-privileged connection and ensure expected capabilities
+        // are *not* set.
+        Database db2 = DatabaseFactory.createDatabase(url, user, password,
+                false);
+        Assert.assertNotNull(db2);
+        Assert.assertFalse("Do not control section logging",
+                db2.supportsControlSessionLevelLogging());
+        Assert.assertFalse("Do not control native slave sync",
+                db2.supportsNativeSlaveSync());
+        Assert.assertFalse("Do not control sessions",
+                db2.supportsUserManagement());
+        db2.connect();
+        db2.close();
+    }
+
+    /**
      * Test calls to support session-level binlogging.
      */
     @Test
     public void testSessionLoggingSupport() throws Exception
     {
-        Database db = DatabaseFactory.createDatabase(url, user, password);
+        Database db = DatabaseFactory.createDatabase(url, user, password, true);
         db.connect();
         if (db.supportsControlSessionLevelLogging())
         {
@@ -476,7 +533,7 @@ public class TestDatabase
     public void testUserManagement() throws Exception
     {
         // Open database and connect, but only if we support user management.
-        Database db = DatabaseFactory.createDatabase(url, user, password);
+        Database db = DatabaseFactory.createDatabase(url, user, password, true);
         if (!db.supportsUserManagement())
         {
             logger.info("User management is not supported; skipping test...");
@@ -515,7 +572,7 @@ public class TestDatabase
     public void testSessionManagement() throws Exception
     {
         // Open database and connect, but only if we support user management.
-        Database db = DatabaseFactory.createDatabase(url, user, password);
+        Database db = DatabaseFactory.createDatabase(url, user, password, true);
         if (!db.supportsUserManagement())
         {
             logger.info("User management is not supported; skipping test...");
@@ -577,6 +634,39 @@ public class TestDatabase
         }
 
         // All done.
+        db.disconnect();
+    }
+
+    /**
+     * Verify that we can create an unprivileged user and then login
+     * successfully using Database class. This shows we don't do anything
+     * unprivileged on login.
+     */
+    @Test
+    public void testUnprivilegedUser() throws Exception
+    {
+        // Open database and connect, but only if we support user management.
+        Database db = DatabaseFactory.createDatabase(url, user, password, true);
+        if (!db.supportsUserManagement())
+        {
+            logger.info("User management is not supported; skipping test...");
+            return;
+        }
+        db.connect();
+
+        // Create user for the test and ensure said user exists.
+        User u = new User("test25unpriv", "testpassword", false);
+        db.dropUser(u, true);
+        db.createUser(u);
+
+        // Login independently with our non-privileged user.
+        Database db2 = DatabaseFactory.createDatabase(url, u.getLogin(),
+                u.getPassword(), false);
+        db2.connect();
+        db2.disconnect();
+
+        // Clean up the test user and disconnect.
+        db.dropUser(u, false);
         db.disconnect();
     }
 

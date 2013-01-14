@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -62,7 +62,8 @@ public class DerbyDatabase extends AbstractDatabase
      * Provide column specifications that work in Derby, which hews very closely
      * to the SQL-92 standard. {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#columnToTypeString(com.continuent.tungsten.replicator.database.Column)
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#columnToTypeString(com.continuent.tungsten.replicator.database.Column,
+     *      java.lang.String)
      */
     protected String columnToTypeString(Column c, String tableType)
     {

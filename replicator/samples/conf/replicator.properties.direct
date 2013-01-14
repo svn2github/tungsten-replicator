@@ -82,6 +82,11 @@ replicator.service.comments=true
 # chained replication topologies.
 replicator.log.slave.updates=@{LOG_SLAVE_UPDATES}
 
+# Whether slave updates have a privileged account for updates.  Certain 
+# stores such as Amazon RDS do not allow slave to have superuser privileges. 
+# If this values is false we try to apply using non-superuser capabilites. 
+replicator.privileged.slave.update=@{SLAVE_PRIVILEGED_UPDATES}
+
 # Schema to store Replicator catalog tables. 
 replicator.schema=@{REPL_SVC_SCHEMA}
 

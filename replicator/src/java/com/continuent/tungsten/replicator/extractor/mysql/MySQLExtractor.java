@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -423,7 +423,7 @@ public class MySQLExtractor implements RawExtractor
         try
         {
             logger.info("Positioning from MySQL master current position");
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password, true);
             conn.connect();
             st = conn.createStatement();
             if (flush)
@@ -481,7 +481,7 @@ public class MySQLExtractor implements RawExtractor
             String password = runtime.getJdbcPassword();
             logger.info("Establishing connection to local DBMS to get slave info: url="
                     + url);
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password, true);
             conn.connect();
             st = conn.createStatement();
             // Stop the MySQL slave if it is currently running.
@@ -1279,7 +1279,7 @@ public class MySQLExtractor implements RawExtractor
 
         try
         {
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password, true);
             conn.connect();
 
             String version = getDatabaseVersion(conn);
@@ -1606,7 +1606,7 @@ public class MySQLExtractor implements RawExtractor
         ResultSet rs = null;
         try
         {
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password, true);
             conn.connect();
             st = conn.createStatement();
             logger.debug("Seeking head position in binlog");

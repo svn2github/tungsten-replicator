@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-12 Continuent Inc.
+ * Copyright (C) 2011-13 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -638,7 +638,12 @@ public class SimpleBatchApplier implements RawApplier
             }
 
             // Create the database.
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            if (!context.isPrivilegedSlaveUpdate())
+            {
+                logger.info("Assuming non-privileged JDBC login for apply");
+            }
+            conn = DatabaseFactory.createDatabase(url, user, password,
+                    context.isPrivilegedSlaveUpdate());
             conn.connect(false);
             statement = conn.createStatement();
 

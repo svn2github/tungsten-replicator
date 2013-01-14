@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2012 Continuent Inc.
+ * Copyright (C) 2012-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -270,7 +270,7 @@ public abstract class JdbcLoader extends Loader
                 returnType = columnType;
                 break;
         }
-        
+
         return returnType;
     }
 
@@ -622,7 +622,7 @@ public abstract class JdbcLoader extends Loader
             }
 
             // Create the database.
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password, true);
             conn.connect(false);
             statement = conn.createStatement();
         }

@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -196,7 +196,11 @@ public class MySQLDatabase extends AbstractDatabase
      */
     public boolean supportsControlSessionLevelLogging()
     {
-        return true;
+        // This is a privileged command.
+        if (isPrivileged())
+            return true;
+        else
+            return false;
     }
 
     /**
@@ -226,7 +230,11 @@ public class MySQLDatabase extends AbstractDatabase
     @Override
     public boolean supportsNativeSlaveSync()
     {
-        return true;
+        // This is a privileged command.
+        if (isPrivileged())
+            return true;
+        else
+            return false;
     }
 
     /**
@@ -607,7 +615,11 @@ public class MySQLDatabase extends AbstractDatabase
      */
     public boolean supportsUserManagement()
     {
-        return true;
+        // This requires a privileged account. 
+        if (isPrivileged())
+            return true;
+        else 
+            return false;
     }
 
     /**
@@ -698,8 +710,14 @@ public class MySQLDatabase extends AbstractDatabase
      * @see com.continuent.tungsten.replicator.database.AbstractDatabase#kill(com.continuent.tungsten.replicator.database.Session)
      */
     @Override
-    public void kill(Session session) throws SQLException
+    public void kill(Session session) throws SQLException, ReplicatorException
     {
+        // This requires a privileged account. 
+        if (!isPrivileged())
+        {
+            throw new ReplicatorException(
+                    "Attempt to issue a kill command on a non-privileged connection");
+        }
         String sql = String.format("kill %s", session.getIdentifier());
         execute(sql);
     }

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -45,6 +45,7 @@ public class MySQLSessionSupportFilter implements Filter
 
     private String              lastSessionId         = "";
     private static final String SET_PTHREAD_STATEMENT = "set @@session.pseudo_thread_id=";
+    private boolean             privileged;
 
     /**
      * {@inheritDoc}
@@ -53,6 +54,12 @@ public class MySQLSessionSupportFilter implements Filter
      */
     public ReplDBMSEvent filter(ReplDBMSEvent event) throws ReplicatorException
     {
+        if (!privileged)
+        {
+            logger.debug("Database update is not privileged; skipping pseudo-thread support");
+            return event;
+        }
+
         String eventId = event.getEventId();
         String sessionId = HighWaterResource.getSessionId(eventId);
 
@@ -84,7 +91,11 @@ public class MySQLSessionSupportFilter implements Filter
      */
     public void configure(PluginContext context) throws ReplicatorException
     {
-
+        privileged = context.isPrivilegedSlaveUpdate();
+        if (!privileged)
+        {
+            logger.warn("Database update is not privileged; MySQL temp table support using psuedo-threads is disabled");
+        }
     }
 
     /**

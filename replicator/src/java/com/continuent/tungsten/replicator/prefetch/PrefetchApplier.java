@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-2012 Continuent Inc.
+ * Copyright (C) 2011-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -431,7 +431,8 @@ public class PrefetchApplier implements RawApplier
             }
 
             // Create the database.
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password,
+                    context.isPrivilegedSlaveUpdate());
             conn.connect(true);
             statement = conn.createStatement();
 

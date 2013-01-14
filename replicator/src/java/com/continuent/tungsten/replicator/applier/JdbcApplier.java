@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -186,7 +186,7 @@ public class JdbcApplier implements RawApplier
     public void setGetColumnMetadataFromDB(String getMetadataFromDB)
     {
         getColumnInformationFromDB = getMetadataFromDB.toLowerCase().compareTo(
-                "false")!=0;
+                "false") != 0;
         if (!getColumnInformationFromDB)
             logger.info("Using event column metadata. Not fetching information from underlying database.");
 
@@ -1645,8 +1645,15 @@ public class JdbcApplier implements RawApplier
                 }
             }
 
-            // Create the database.
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            // Create the database. Note that we need to see if we have a
+            // privileged account as some slaves like Amazon RDS do not allow
+            // superuser.
+            if (!context.isPrivilegedSlaveUpdate())
+            {
+                logger.info("Assuming non-privileged JDBC login for apply");
+            }
+            conn = DatabaseFactory.createDatabase(url, user, password,
+                    context.isPrivilegedSlaveUpdate());
             conn.connect(false);
             statement = conn.createStatement();
 

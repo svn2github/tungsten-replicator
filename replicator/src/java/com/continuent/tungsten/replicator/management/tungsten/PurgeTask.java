@@ -30,6 +30,7 @@ import java.util.concurrent.Callable;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
@@ -55,7 +56,7 @@ public class PurgeTask implements Callable<Integer>
     }
 
     /**
-     * Execute a purge.
+     * Execute a purge. This requires a privileged account.
      */
     public Integer call() throws Exception
     {
@@ -76,7 +77,7 @@ public class PurgeTask implements Callable<Integer>
         String tungstenPw = properties
                 .getString(ReplicatorConf.GLOBAL_DB_PASSWORD);
         Database db = DatabaseFactory.createDatabase(url, tungstenUser,
-                tungstenPw);
+                tungstenPw, true);
 
         // Make sure we have user management so we can find and delete sessions.
         if (!db.supportsUserManagement())
@@ -129,6 +130,11 @@ public class PurgeTask implements Callable<Integer>
                     }
                 }
             }
+        }
+        catch (ReplicatorException e)
+        {
+            logger.error("Purge task failed: " + e.getMessage());
+            throw e;
         }
         catch (Exception e)
         {

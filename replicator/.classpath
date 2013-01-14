@@ -11,7 +11,7 @@
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.6WithEscapeProcessingFix-bin.jar"/>
 	<classpathentry kind="lib" path="lib/protobuf-java-2.3.0.jar"/>
 	<classpathentry kind="lib" path="lib/vertica_4.1.13_jdk_5.jar"/>
-	<classpathentry kind="lib" path="lib/drizzle-jdbc-1.2-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="lib/drizzle-jdbc-1.2-SNAPSHOT.jar" sourcepath="lib/drizzle-jdbc-1.2-SNAPSHOT-sources.jar"/>
 	<classpathentry kind="lib" path="lib/tungsten-fsm.jar" sourcepath="lib/tungsten-fsm-src.jar"/>
 	<classpathentry kind="lib" path="lib/opencsv-2.3.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/oss-commons"/>

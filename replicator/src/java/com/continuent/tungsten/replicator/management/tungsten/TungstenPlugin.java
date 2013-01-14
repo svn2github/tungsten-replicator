@@ -186,7 +186,8 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
             try
             // connect to database
             {
-                conn = DatabaseFactory.createDatabase(url, user, password);
+                conn = DatabaseFactory
+                        .createDatabase(url, user, password, true);
                 // this is about the only place where we want logging the
                 // queries
                 conn.connect(true);
