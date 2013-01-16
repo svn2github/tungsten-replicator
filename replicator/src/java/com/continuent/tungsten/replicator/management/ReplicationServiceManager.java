@@ -42,6 +42,7 @@ import com.continuent.tungsten.common.cluster.resource.ResourceState;
 import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.exec.ProcessExecutor;
+import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
 import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.common.jmx.MethodDesc;
@@ -98,12 +99,19 @@ public class ReplicationServiceManager
         File propsFile = new File(confDir, "services.properties");
         serviceProps = PropertiesManager.loadProperties(propsFile);
 
+        // Get Authentication and Encryption parameters
+        AuthenticationInfo authenticationInfo = this
+                .getAuthenticationInformation(serviceProps);
+        TungstenProperties jmxProperties = authenticationInfo
+                .getAsTungstenProperties();
+
         // Start JMX registry.
         managerRMIPort = serviceProps.getInt(ReplicatorConf.RMI_PORT,
                 ReplicatorConf.RMI_DEFAULT_PORT, false);
         String rmiHost = getHostName(serviceProps);
+
         JmxManager jmxManager = new JmxManager(rmiHost, managerRMIPort,
-                ReplicatorConf.RMI_DEFAULT_SERVICE_NAME);
+                ReplicatorConf.RMI_DEFAULT_SERVICE_NAME, jmxProperties);
         jmxManager.start();
 
         // Make sure we have configurations for the replicators to work with.
@@ -175,6 +183,74 @@ public class ReplicationServiceManager
         // Register ourselves as the master service manager bean.
         // JmxManager.registerMBean(this, ReplicationServiceManagerMBean.class);
         JmxManager.registerMBean(this, ReplicationServiceManager.class);
+    }
+
+    /**
+     * Retrieves Authenticaiton and Encryption parametres from
+     * service.properties file
+     * 
+     * @return AuthenticationInfo
+     * @throws ReplicatorException
+     */
+    private AuthenticationInfo getAuthenticationInformation(
+            TungstenProperties tungsteProperties) throws ReplicatorException
+    {
+        AuthenticationInfo authInfo = new AuthenticationInfo();
+
+        // Make a copy of the TungstenProperties so that we can Trim
+        TungstenProperties jmxProperties = new TungstenProperties(
+                tungsteProperties.hashMap());
+
+        // Authorisation and/or encryption
+        jmxProperties.trim(); // Remove white spaces
+        boolean useAuthentication = jmxProperties.getBoolean(
+                ReplicatorConf.RMI_JMX_USE_AUTHENTICATION,
+                ReplicatorConf.RMI_JMX_USE_AUTHENTICATION_DEFAULT, false);
+        boolean useEncryption = jmxProperties.getBoolean(
+                ReplicatorConf.RMI_JMX_USE_ENCRYPTION,
+                ReplicatorConf.RMI_JMX_USE_ENCRYPTION_DEFAULT, false);
+
+        if (useAuthentication || useEncryption)
+        {
+            // Retrieve properties
+            String username = (useAuthentication) ? jmxProperties
+                    .getString(ReplicatorConf.RMI_JMX_USERNAME) : null;
+            String password = (useAuthentication) ? jmxProperties
+                    .getString(ReplicatorConf.RMI_JMX_PASSWORD) : null;
+            String passwordFileLocation = (useAuthentication)
+                    ? jmxProperties
+                            .getString(ReplicatorConf.RMI_JMX_PASSWORD_FILE_LOCATION)
+                    : null;
+            String accessFileLocation = (useAuthentication)
+                    ? jmxProperties
+                            .getString(ReplicatorConf.RMI_JMX_ACCESS_FILE_LOCATION)
+                    : null;
+            String keystoreLocation = (useEncryption) ? jmxProperties
+                    .getString(ReplicatorConf.RMI_JMX_KEYSTORE_LOCATION) : null;
+            String keystorePassword = (useEncryption) ? jmxProperties
+                    .getString(ReplicatorConf.RMI_JMX_KEYSTORE_PASSWORD) : null;
+            String truststoreLocation = (useEncryption)
+                    ? jmxProperties
+                            .getString(ReplicatorConf.RMI_JMX_TRUSTSTORE_LOCATION)
+                    : null;
+            String truststorePassword = (useEncryption)
+                    ? jmxProperties
+                            .getString(ReplicatorConf.RMI_JMX_TRUSTSTORE_PASSWORD)
+                    : null;
+
+            // Populate return object
+            authInfo.setAuthenticationNeeded(useAuthentication);
+            authInfo.setEncryptionNeeded(useEncryption);
+            authInfo.setUsername(username);
+            authInfo.setPassword(password);
+            authInfo.setPasswordFileLocation(passwordFileLocation);
+            authInfo.setAccessFileLocation(accessFileLocation);
+            authInfo.setKeystoreLocation(keystoreLocation);
+            authInfo.setKeystorePassword(keystorePassword);
+            authInfo.setTruststoreLocation(truststoreLocation);
+            authInfo.setTruststorePassword(truststorePassword);
+        }
+        return authInfo;
     }
 
     /**

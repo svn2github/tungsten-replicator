@@ -212,16 +212,16 @@ public class ReplicatorConf
     static public final String   MONITOR_DETAIL_ENABLED                = "replicator.monitor.detail_enabled";
 
     /** RMI and JMX Authentication and Encryption */
-    static public final String   RMI_JMX_USE_AUTHENTICATION            = "rmi_jmx.use.authentication";
-    static public final String   RMI_JMX_USE_ENCRYPTION                = "rmi_jmx.use.encryption";
-    static public final String   RMI_JMX_USERNAME                      = "rmi_jmx.username";
-    static public final String   RMI_JMX_PASSWORD                      = "rmi_jmx.password";
-    static public final String   RMI_JMX_PASSWORD_FILE_LOCATION        = "rmi_jmx.password_file.location";
-    static public final String   RMI_JMX_ACCESS_FILE_LOCATION          = "rmi_jmx.access_file.location";
-    static public final String   RMI_JMX_KEYSTORE_LOCATION             = "rmi_jmx.keystore.location";
-    static public final String   RMI_JMX_KEYSTORE_PASSWORD             = "rmi_jmx.keystore.password";
-    static public final String   RMI_JMX_TRUSTSTORE_LOCATION           = "rmi_jmx.truststore.location";
-    static public final String   RMI_JMX_TRUSTSTORE_PASSWORD           = "rmi_jmx.truststore.password";
+    static public final String   RMI_JMX_USE_AUTHENTICATION            = "replicator.rmi_jmx.use.authentication";
+    static public final String   RMI_JMX_USE_ENCRYPTION                = "replicator.rmi_jmx.use.encryption";
+    static public final String   RMI_JMX_USERNAME                      = "replicator.rmi_jmx.username";
+    static public final String   RMI_JMX_PASSWORD                      = "replicator.rmi_jmx.password";
+    static public final String   RMI_JMX_PASSWORD_FILE_LOCATION        = "replicator.rmi_jmx.password_file.location";
+    static public final String   RMI_JMX_ACCESS_FILE_LOCATION          = "replicator.rmi_jmx.access_file.location";
+    static public final String   RMI_JMX_KEYSTORE_LOCATION             = "replicator.rmi_jmx.keystore.location";
+    static public final String   RMI_JMX_KEYSTORE_PASSWORD             = "replicator.rmi_jmx.keystore.password";
+    static public final String   RMI_JMX_TRUSTSTORE_LOCATION           = "replicator.rmi_jmx.truststore.location";
+    static public final String   RMI_JMX_TRUSTSTORE_PASSWORD           = "replicator.rmi_jmx.truststore.password";
 
     /** RMI and JMX Authentication and Encryption: DEFAULT values */
     static public final String   RMI_JMX_USE_AUTHENTICATION_DEFAULT    = "false";

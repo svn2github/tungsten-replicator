@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.management;
 
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.io.OutputStreamWriter;
 import java.rmi.ConnectException;
 import java.rmi.RemoteException;
 import java.text.DateFormat;
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -52,6 +54,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.csv.CsvReader;
 import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.common.exec.ArgvIterator;
+import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.utils.ManifestParser;
@@ -92,6 +95,8 @@ public class OpenReplicatorManagerCtrl
     private int                            rmiPort;
     private String                         service;
     private int                            connectDelay         = 10;
+    // Authentication and Encryption information
+    private AuthenticationInfo             authenticationInfo   = null;
 
     OpenReplicatorManagerCtrl(String[] argv)
     {
@@ -103,38 +108,46 @@ public class OpenReplicatorManagerCtrl
         println("Replicator Manager Control Utility");
         println("Syntax:  trepctl [global-options] command [command-options]");
         println("Global Options:");
-        println("  -host name        - Host name of replicator [default: localhost]");
-        println("  -port number      - Port number of replicator [default: 10000]");
-        println("  -service name     - Name of replicator service [default: none]");
-        println("  -verbose          - Print verbose messages");
-        println("  -retry N          - Retry connections up to N times [default: 10]");
+        println("  -host name                   - Host name of replicator [default: localhost]");
+        println("  -port number                 - Port number of replicator [default: 10000]");
+        println("  -service name                - Name of replicator service [default: none]");
+        println("  -verbose                     - Print verbose messages");
+        println("  -retry N                     - Retry connections up to N times [default: 10]");
+        println("  " + AuthenticationInfo.USERNAME
+                + " u                  - Set RMI/JMX username as u");
+        println("  " + AuthenticationInfo.PASSWORD
+                + " p                  - Set RMI/JMX password as p");
+        println("  " + AuthenticationInfo.TRUSTSTORE_LOCATION
+                + " t        - Path to Trustore location for SSL encryption");
+        println("  " + AuthenticationInfo.TRUSTSTORE_PASSWORD
+                + " tp       - Truststore password for SSL encryption");
         println("Replicator-Wide Commands:");
-        println("  version           - Show replicator version and build");
-        println("  services          - List replication services");
-        println("  capabilities      - List replicator capabilities");
-        println("  shutdown [-y]     - Shut down replication services cleanly and exit");
-        println("  kill [-y]         - Exit immediately without shutting down services");
+        println("  version                      - Show replicator version and build");
+        println("  services                     - List replication services");
+        println("  capabilities                 - List replicator capabilities");
+        println("  shutdown [-y]                - Shut down replication services cleanly and exit");
+        println("  kill [-y]                    - Exit immediately without shutting down services");
         println("Service-Specific Commands (Require -service option)");
         println("  backup [-backup agent] [-storage agent] [-limit s]  - Backup database");
-        println("  clear             - Clear one or all dynamic variables");
-        println("  configure [file]  - Reload replicator properties file");
-        println("  flush [-limit s]  - Synchronize transaction history log to database");
-        println("  heartbeat [-name name] - Insert a heartbeat event with optional name");
-        println("  offline [-immediate]   - Set replicator to OFFLINE state");
+        println("  clear                        - Clear one or all dynamic variables");
+        println("  configure [file]             - Reload replicator properties file");
+        println("  flush [-limit s]             - Synchronize transaction history log to database");
+        println("  heartbeat [-name name]       - Insert a heartbeat event with optional name");
+        println("  offline [-immediate]         - Set replicator to OFFLINE state");
         println("  offline-deferred [-at-seqno seqno] [-at-event event] [-at-heartbeat [name]] [-at-time YYYY-MM-DD_hh:mm:ss]");
-        println("                    - Set replicator OFFLINE at future point");
+        println("                               - Set replicator OFFLINE at future point");
         println("  online [-force] [-from-event event] [-base-seqno x] [-skip-seqno x,y,z] [-until-seqno seqno] [-until-event event] [-until-heartbeat [name]] [-until-time YYYY-MM-DD_hh:mm:ss]");
-        println("                    - Set Replicator to ONLINE with start and stop points");
-        println("  purge [-y] [-limit s] - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
-        println("  reset [-y]        - Deletes the replicator service");
-        println("  restore [-uri uri] [-limit s]  - Restore database");
-        println("  setrole -role role [-uri uri]  - Set replicator role");
-        println("  start             - Start start replication service");
+        println("                               - Set Replicator to ONLINE with start and stop points");
+        println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
+        println("  reset [-y]                   - Deletes the replicator service");
+        println("  restore [-uri uri] [-limit s]    - Restore database");
+        println("  setrole -role role [-uri uri]    - Set replicator role");
+        println("  start                        - Start start replication service");
         println("  status [-name {channel-assignments|services|shards|stages|stores|watches}] ");
-        println("                    - Print replicator status information");
-        println("  stop [-y]         - Stop replication service");
-        println("  wait -state s [-limit s] - Wait up to s seconds for replicator state s");
-        println("  wait -applied n [-limit s] - Wait up to s seconds for seqno to be applied");
+        println("                               - Print replicator status information");
+        println("  stop [-y]                    - Stop replication service");
+        println("  wait -state s [-limit s]     - Wait up to s seconds for replicator state s");
+        println("  wait -applied n [-limit s]   - Wait up to s seconds for seqno to be applied");
         println("  check <table> [-limit offset,limit] [-method m] - generate consistency check for the given table");
         println("Shard Commands:");
         println("  shard [-insert shard_definition] - Add a new shard");
@@ -177,6 +190,15 @@ public class OpenReplicatorManagerCtrl
         String curArg = null;
         try
         {
+            // Check if Authentication or Encryption will be used
+            if (argvIterator.contains(AuthenticationInfo.USERNAME)
+                    || argvIterator.contains(AuthenticationInfo.PASSWORD)
+                    || argvIterator
+                            .contains(AuthenticationInfo.TRUSTSTORE_LOCATION)
+                    || argvIterator
+                            .contains(AuthenticationInfo.TRUSTSTORE_PASSWORD))
+                authenticationInfo = new AuthenticationInfo();
+
             while (argvIterator.hasNext())
             {
                 curArg = argvIterator.next();
@@ -209,6 +231,18 @@ public class OpenReplicatorManagerCtrl
                         }
                     }
                 }
+                // Authentication and Encryption parameters
+                else if (AuthenticationInfo.USERNAME.equals(curArg))
+                    authenticationInfo.setUsername(argvIterator.next());
+                else if (AuthenticationInfo.PASSWORD.equals(curArg))
+                    authenticationInfo.setPassword(argvIterator.next());
+                else if (AuthenticationInfo.TRUSTSTORE_LOCATION.equals(curArg))
+                    authenticationInfo.setTruststoreLocation(argvIterator
+                            .next());
+                else if (AuthenticationInfo.TRUSTSTORE_PASSWORD.equals(curArg))
+                    authenticationInfo.setTruststorePassword(argvIterator
+                            .next());
+
                 else if (curArg.startsWith("-"))
                 {
                     fatal("Unrecognized global option: " + curArg, null);
@@ -217,6 +251,23 @@ public class OpenReplicatorManagerCtrl
                 {
                     command = curArg;
                     break;
+                }
+            }
+
+            // --- Prompts user for password if needed ---
+            if (argvIterator.contains(AuthenticationInfo.USERNAME)
+                    && !argvIterator.contains(AuthenticationInfo.PASSWORD))
+            {
+                String promptMessage = MessageFormat.format(
+                        "Enter password for user {0}:",
+                        authenticationInfo.getUsername());
+
+                Console console = System.console();
+                if (console != null)
+                {
+                    char[] userPassword = console.readPassword(promptMessage);
+                    String password = new String(userPassword);
+                    authenticationInfo.setPassword(password);
                 }
             }
         }
@@ -351,8 +402,16 @@ public class OpenReplicatorManagerCtrl
             Exception failure = null;
             try
             {
+                // Add Authentication and Encryption parameters if needed
+                if (authenticationInfo != null)
+                    authenticationInfo.checkAuthenticationInfo();
+
+                TungstenProperties jmxProperties = (authenticationInfo != null)
+                        ? authenticationInfo.getAsTungstenProperties()
+                        : null;
+
                 conn = JmxManager.getRMIConnector(rmiHost, rmiPort,
-                        ReplicatorConf.RMI_DEFAULT_SERVICE_NAME);
+                        ReplicatorConf.RMI_DEFAULT_SERVICE_NAME, jmxProperties);
             }
             catch (Exception e)
             {
@@ -364,7 +423,11 @@ public class OpenReplicatorManagerCtrl
                     println("Connected to replicator process");
                 break;
             }
-            else if (connectDelay > delay)
+            // Could not connect:
+            // If an AssertionError was added: no need to try again : missing
+            // Credentials, parameters, ...
+            else if (connectDelay > delay
+                    && !(failure.getCause() instanceof AssertionError))
             {
                 sleep(1);
                 print(".");
