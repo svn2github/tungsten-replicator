@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.common.exec;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 /**
@@ -68,5 +69,10 @@ public class ArgvIterator implements Iterator<String>
             return argv[index];
         else
             return null;
+    }
+
+    public boolean contains(String arg)
+    {
+        return Arrays.asList(this.argv).contains(arg);
     }
 }
