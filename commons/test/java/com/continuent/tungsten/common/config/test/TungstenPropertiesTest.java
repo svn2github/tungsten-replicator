@@ -935,4 +935,24 @@ public class TungstenPropertiesTest extends TestCase
         pw.close();
         br.close();
     }
+    
+    public void testShallowCopy() throws Exception
+    {
+        TungstenProperties prop1 = new TungstenProperties();
+        String value1 = "value1    ";
+        
+        prop1.put("key1", value1);
+        
+        
+        TungstenProperties prop2 = new TungstenProperties(prop1.hashMap());
+        String value11 = prop2.get("key1");
+        
+        assertEquals(value1, value11);                  // there's indeed a copy
+        
+        prop2.trim();
+        assertEquals(value1, prop1.get("key1"));           // value1 in prop1 hasn't changed
+        assertEquals(prop2.get("key1"), value1.trim());    // value in prop2 is the same as value 1 but trimmed
+
+    }
+    
 }
