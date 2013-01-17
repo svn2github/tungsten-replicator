@@ -213,10 +213,6 @@ public class ReplicationServiceManager
         if (useAuthentication || useEncryption)
         {
             // Retrieve properties
-            String username = (useAuthentication) ? jmxProperties
-                    .getString(ReplicatorConf.RMI_JMX_USERNAME) : null;
-            String password = (useAuthentication) ? jmxProperties
-                    .getString(ReplicatorConf.RMI_JMX_PASSWORD) : null;
             String passwordFileLocation = (useAuthentication)
                     ? jmxProperties
                             .getString(ReplicatorConf.RMI_JMX_PASSWORD_FILE_LOCATION)
@@ -241,8 +237,6 @@ public class ReplicationServiceManager
             // Populate return object
             authInfo.setAuthenticationNeeded(useAuthentication);
             authInfo.setEncryptionNeeded(useEncryption);
-            authInfo.setUsername(username);
-            authInfo.setPassword(password);
             authInfo.setPasswordFileLocation(passwordFileLocation);
             authInfo.setAccessFileLocation(accessFileLocation);
             authInfo.setKeystoreLocation(keystoreLocation);

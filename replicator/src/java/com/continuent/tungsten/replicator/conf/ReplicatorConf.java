@@ -214,8 +214,6 @@ public class ReplicatorConf
     /** RMI and JMX Authentication and Encryption */
     static public final String   RMI_JMX_USE_AUTHENTICATION            = "replicator.rmi_jmx.use.authentication";
     static public final String   RMI_JMX_USE_ENCRYPTION                = "replicator.rmi_jmx.use.encryption";
-    static public final String   RMI_JMX_USERNAME                      = "replicator.rmi_jmx.username";
-    static public final String   RMI_JMX_PASSWORD                      = "replicator.rmi_jmx.password";
     static public final String   RMI_JMX_PASSWORD_FILE_LOCATION        = "replicator.rmi_jmx.password_file.location";
     static public final String   RMI_JMX_ACCESS_FILE_LOCATION          = "replicator.rmi_jmx.access_file.location";
     static public final String   RMI_JMX_KEYSTORE_LOCATION             = "replicator.rmi_jmx.keystore.location";
