@@ -35,6 +35,7 @@
     <property name="conf.dir" value="conf"/>
     <property name="java.src.dir" value="src/java"/>
     <property name="test.src.dir" value="test/java"/>
+	<property name="test.data.dir" value="test/data"/>
     <property name="classes.dir" value="${build.dir}/java/classes"/>
     <property name="test.classes.dir" value="${build.dir}/test/classes"/>
     <property name="test.reports" value="${build.dir}/reports"/>
@@ -158,6 +159,11 @@
         <mkdir dir="${test.reports}"/>
         <delete dir="${test.work}"/>
         <mkdir dir="${test.work}"/>
+    	<copy todir="${test.work}">
+    		<fileset dir="${test.data.dir}">
+    			<include name="*"/>
+    		</fileset>
+   		</copy>
         <junit printsummary="yes" haltonfailure="no" fork="yes"
             dir="${test.work}" failureproperty="tests.failed">
             <classpath>

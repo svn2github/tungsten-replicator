@@ -30,36 +30,39 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 
 /**
  * Information class holding Authentication and Encryption parameters
+ * Some of the properties may be left null depending on how and when this is used
  * 
  * @author <a href="mailto:ludovic.launer@continuent.com">Ludovic Launer</a>
  * @version 1.0
  */
 public final class AuthenticationInfo
 {
-    private static final Logger logger                       = Logger.getLogger(AuthenticationInfo.class);
+    private static final Logger logger                         = Logger.getLogger(AuthenticationInfo.class);
 
-    private boolean             authenticationNeeded         = false;
-    private boolean             encryptionNeeded             = false;
+    private boolean             authenticationNeeded           = false;
+    private boolean             encryptionNeeded               = false;
+    private boolean             useTungstenAuthenticationRealm = true;
 
     // Authentication parameters
-    private String              username                     = null;
-    private String              password                     = null;
-    private String              passwordFileLocation         = null;
-    private String              accessFileLocation           = null;
+    private String              username                       = null;
+    private String              password                       = null;
+    private String              passwordFileLocation           = null;
+    private String              accessFileLocation             = null;
     // Encryption parameters
-    private String              keystoreLocation             = null;
-    private String              keystorePassword             = null;
-    private String              truststoreLocation           = null;
-    private String              truststorePassword           = null;
+    private String              keystoreLocation               = null;
+    private String              keystorePassword               = null;
+    private String              truststoreLocation             = null;
+    private String              truststorePassword             = null;
 
-    public final static String  AUTHENTICATION_INFO_PROPERTY = "authenticationInfo";
+    public final static String  AUTHENTICATION_INFO_PROPERTY   = "authenticationInfo";
+    public final static String  TUNGSTEN_AUTHENTICATION_REALM  = "tungstenAutenthicationRealm";
     // Possible command line parameters
-    public final static String  USERNAME                     = "-username";
-    public final static String  PASSWORD                     = "-password";
-    public final static String  KEYSTORE_LOCATION            = "-keystoreLocation";
-    public final static String  KEYSTORE_PASSWORD            = "-keystorePassword";
-    public final static String  TRUSTSTORE_LOCATION          = "-truststoreLocation";
-    public final static String  TRUSTSTORE_PASSWORD          = "-truststorePassword";
+    public final static String  USERNAME                       = "-username";
+    public final static String  PASSWORD                       = "-password";
+    public final static String  KEYSTORE_LOCATION              = "-keystoreLocation";
+    public final static String  KEYSTORE_PASSWORD              = "-keystorePassword";
+    public final static String  TRUSTSTORE_LOCATION            = "-truststoreLocation";
+    public final static String  TRUSTSTORE_PASSWORD            = "-truststorePassword";
 
     /**
      * Creates a new <code>AuthenticationInfo</code> object
@@ -126,6 +129,22 @@ public final class AuthenticationInfo
                         "File must exist"));
             }
         }
+        
+        // Check Keystore location
+        if (this.isEncryptionNeeded() && this.keystoreLocation != null)
+        {
+            File f = new File(this.keystoreLocation);
+            if (!f.isFile() || !f.canRead())
+            {
+                String msg = MessageFormat.format(
+                        "Cannot find or read {0} file: {1}",
+                        KEYSTORE_LOCATION, this.keystoreLocation);
+                logger.error(msg);
+                throw new ServerRuntimeException(msg, new AssertionError(
+                        "File must exist"));
+            }
+        }
+        
 
     }
 
@@ -156,6 +175,18 @@ public final class AuthenticationInfo
             encryptionNeeded = true;
 
         return encryptionNeeded;
+    }
+    
+    public void setKeystore(String keyStoreLocation, String keystorePassword)
+    {
+        this.setKeystoreLocation(keyStoreLocation);
+        this.setKeystorePassword(keystorePassword);
+    }
+    
+    public void setTruststore(String truststoreLocation, String truststorePassword)
+    {
+        this.setTruststoreLocation(truststoreLocation);
+        this.setTruststorePassword(truststorePassword);
     }
 
     public void setAuthenticationNeeded(boolean authenticationNeeded)
@@ -246,6 +277,17 @@ public final class AuthenticationInfo
     public void setTruststorePassword(String truststorePassword)
     {
         this.truststorePassword = truststorePassword;
+    }
+
+    public boolean isUseTungstenAuthenticationRealm()
+    {
+        return useTungstenAuthenticationRealm;
+    }
+
+    public void setUseTungstenAuthenticationRealm(
+            boolean useTungstenAuthenticationRealm)
+    {
+        this.useTungstenAuthenticationRealm = useTungstenAuthenticationRealm;
     }
 
 }

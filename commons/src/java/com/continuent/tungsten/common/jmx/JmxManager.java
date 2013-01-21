@@ -55,6 +55,7 @@ import javax.rmi.ssl.SslRMIServerSocketFactory;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.security.RealmJMXAuthenticator;
 
 /**
  * Encapsulates JMX server start/stop and provides static utility methods to
@@ -247,8 +248,11 @@ public class JmxManager implements NotificationListener
             if (authenticationInfo != null
                     && authenticationInfo.isAuthenticationNeeded())
             {
-                env.put("jmx.remote.x.password.file",
-                        authenticationInfo.getPasswordFileLocation());
+//                env.put("jmx.remote.x.password.file",
+//                        authenticationInfo.getPasswordFileLocation());
+                
+                env.put(JMXConnectorServer.AUTHENTICATOR, new RealmJMXAuthenticator(authenticationInfo.getPasswordFileLocation()));
+                
                 env.put("jmx.remote.x.access.file",
                         authenticationInfo.getAccessFileLocation());
             }
@@ -505,8 +509,15 @@ public class JmxManager implements NotificationListener
             // --- Authentication based on password and access files---
             if (authInfo != null && authInfo.isAuthenticationNeeded())
             {
-                String[] credentials = new String[]{authInfo.getUsername(),
+                // Build credentials
+                String[] credentials;
+                if (authInfo.isUseTungstenAuthenticationRealm())
+                    credentials= new String[]{authInfo.getUsername(),
+                        authInfo.getPassword(),AuthenticationInfo.TUNGSTEN_AUTHENTICATION_REALM};
+                else
+                    credentials= new String[]{authInfo.getUsername(),
                         authInfo.getPassword()};
+
                 env.put("jmx.remote.credentials", credentials);
             }
             // --- SSL ---
