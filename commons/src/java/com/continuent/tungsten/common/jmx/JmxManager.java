@@ -248,10 +248,11 @@ public class JmxManager implements NotificationListener
             if (authenticationInfo != null
                     && authenticationInfo.isAuthenticationNeeded())
             {
-//                env.put("jmx.remote.x.password.file",
-//                        authenticationInfo.getPasswordFileLocation());
-                
-                env.put(JMXConnectorServer.AUTHENTICATOR, new RealmJMXAuthenticator(authenticationInfo.getPasswordFileLocation()));
+                            
+                if (authenticationInfo.isUseTungstenAuthenticationRealm())
+                    env.put(JMXConnectorServer.AUTHENTICATOR, new RealmJMXAuthenticator(authenticationInfo.getPasswordFileLocation()));
+                else
+                    env.put("jmx.remote.x.password.file", authenticationInfo.getPasswordFileLocation());
                 
                 env.put("jmx.remote.x.access.file",
                         authenticationInfo.getAccessFileLocation());
