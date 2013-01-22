@@ -33,11 +33,9 @@ import java.text.MessageFormat;
 import java.util.Enumeration;
 
 import javax.crypto.Cipher;
+import javax.xml.bind.DatatypeConverter;
 
 import org.apache.log4j.Logger;
-
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
 
 import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
@@ -160,7 +158,7 @@ public class Encryptor
 
         try
         {
-            Cipher cipher = Cipher.getInstance(privateKey.getAlgorithm()); 
+            Cipher cipher = Cipher.getInstance(privateKey.getAlgorithm());
             cipher.init(Cipher.ENCRYPT_MODE, privateKey);
 
             // Gets the raw bytes to encrypt, UTF8 is needed for
@@ -171,8 +169,7 @@ public class Encryptor
             byte[] raw = cipher.doFinal(stringBytes);
 
             // Converts to base64 for easier display.
-            BASE64Encoder encoder = new BASE64Encoder();
-            base64 = encoder.encode(raw);
+            base64 = DatatypeConverter.printBase64Binary(raw);
         }
         catch (Exception e)
         {
@@ -202,8 +199,7 @@ public class Encryptor
             cipher.init(Cipher.DECRYPT_MODE, publicKey);
 
             // Decode the BASE64 coded message
-            BASE64Decoder decoder = new BASE64Decoder();
-            byte[] raw = decoder.decodeBuffer(encryptedMessage);
+            byte[] raw = DatatypeConverter.parseBase64Binary(encryptedMessage);
 
             // Decode the message
             byte[] stringBytes = cipher.doFinal(raw);
