@@ -319,6 +319,15 @@ public class StageProgressTracker
             logger.info("Stage processing counter: event count=" + eventCount);
     }
 
+    public synchronized void setInitialLastProcessedEvent(int taskId,
+            ReplDBMSHeader replEvent) throws InterruptedException
+    {
+        committedSeqno.report(taskId, replEvent.getSeqno(), replEvent
+                .getExtractedTstamp().getTime(), replEvent);
+        taskInfo[taskId].setLastCommittedEvent(replEvent);
+    }
+
+    
     /**
      * Records the last committed event.
      */

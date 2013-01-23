@@ -201,6 +201,8 @@ public class StageTaskGroup implements ReplicatorPlugin
             }
             else
             {
+                task.reportInitialPosition(lastHeader);
+
                 logger.info("[" + task.getName() + "] "
                         + "Setting extractor position: seqno="
                         + lastHeader.getSeqno() + " event="

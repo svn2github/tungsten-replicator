@@ -747,4 +747,9 @@ public class SingleThreadStageTask implements Runnable
             }
         }
     }
+
+    public void reportInitialPosition(ReplDBMSHeader lastHeader) throws InterruptedException
+    {
+        stage.getProgressTracker().setInitialLastProcessedEvent(getTaskId(), lastHeader);
+    }
 }
