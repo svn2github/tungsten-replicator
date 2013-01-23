@@ -94,7 +94,7 @@ public class MySQLSessionSupportFilter implements Filter
         privileged = context.isPrivilegedSlaveUpdate();
         if (!privileged)
         {
-            logger.warn("Database update is not privileged; MySQL temp table support using psuedo-threads is disabled");
+            logger.warn("Database update is not privileged; MySQL temp table support using pseudo-threads is disabled");
         }
     }
 
