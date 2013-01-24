@@ -22,10 +22,14 @@
 
 package com.continuent.tungsten.replicator.ddlscan;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -62,9 +66,7 @@ public class DDLScanCtrl
      * Variable used in JDBC URL of Replicator's configuration file to designate
      * current schema/database.
      */
-    public final static String   DBNAME_VAR        = "${DBNAME}";
-
-    protected String              configFile        = null;
+    public final static String    DBNAME_VAR        = "${DBNAME}";
 
     private String                url               = null;
     private String                db                = null;
@@ -74,54 +76,9 @@ public class DDLScanCtrl
     private String                tables            = null;
 
     private String                templateFile      = null;
+    private String                outFile           = null;
 
     private DDLScan               scanner           = null;
-
-    /**
-     * Creates a new <code>DDLScanCtrl</code> object from existing Replicator
-     * configuration file. File read operation involved.
-     * 
-     * @param configFile Path to the Tungsten properties file.
-     * @param dbName What database name to substitute in place of "${DBNAME}" in
-     *            the JDBC URL of read configuration file.
-     * @param templateFile Path to template file.
-     * @throws Exception
-     */
-    public DDLScanCtrl(String configFile, String dbName, String tables,
-            String templateFile) throws Exception
-    {
-        // Set path to configuration file.
-        this.configFile = configFile;
-
-        // Tables to extract.
-        this.db = dbName;
-        this.tables = tables;
-
-        // Template to fill in DDL data.
-        this.templateFile = templateFile;
-
-        // Read properties required to connect to database.
-        TungstenProperties properties = readConfig();
-
-        if (properties != null)
-        {
-            // Get JDBC URL and substitute the database name to avoid errors.
-            Properties jProps = new Properties();
-            jProps.setProperty("URL",
-                    properties.getString(ReplicatorConf.RESOURCE_JDBC_URL));
-            if (dbName != null)
-                jProps.setProperty("DBNAME", dbName);
-            TungstenProperties.substituteSystemValues(jProps);
-            this.url = jProps.getProperty("URL");
-
-            // Get login.
-            this.user = properties.getString(ReplicatorConf.GLOBAL_DB_USER);
-            this.pass = properties.getString(ReplicatorConf.GLOBAL_DB_PASSWORD);
-        }
-        else
-            throw new ReplicatorException(
-                    "Configuration file doesn't have JDBC URL credentials");
-    }
 
     /**
      * Creates a new <code>DDLScanCtrl</code> object from provided JDBC URL
@@ -130,23 +87,91 @@ public class DDLScanCtrl
      * @param url JDBC URL connection string.
      * @throws Exception
      */
-    public DDLScanCtrl(String url, String user, String pass, String dbName,
-            String tables, String templateFile) throws Exception
+    public DDLScanCtrl(String url, String user, String pass, String db,
+            String tables, String templateFile, String outFile)
+            throws Exception
     {
-        // Tables to extract.
-        this.db = dbName;
-        this.tables = tables;
-
         // JDBC connection string.
         this.url = url;
         this.user = user;
         this.pass = pass;
+
+        // Tables to extract.
+        this.db = db;
+        this.tables = tables;
+
+        // Output file.
+        this.templateFile = templateFile;
+        this.outFile = outFile;
+    }
+
+    public void prepare() throws ReplicatorException, InterruptedException
+    {
+        // Provide some details if we're writing to file.
+        if (outFile != null)
+        {
+            println("url = " + url);
+            println("db = " + db);
+            println("user = " + user);
+            println("template = " + templateFile);
+        }
+
+        try
+        {
+            scanner = new DDLScan(url, db, user, pass);
+            scanner.prepare();
+        }
+        catch (SQLException e)
+        {
+            if (e.getMessage().contains(DBNAME_VAR))
+            {
+                // Known error, do not overwhelm the user - give him a tip.
+                println("HINT: have you tried with \"-db dbName\" parameter?");
+                fatal(e.getLocalizedMessage(), null);
+            }
+            else
+                fatal(e.getLocalizedMessage(), e);
+        }
+    }
+
+    /**
+     * Scans the database for requested objects and generates output through a
+     * template.
+     */
+    public void scanAndGenerate() throws InterruptedException,
+            ReplicatorException, SQLException, IOException
+    {
+        Writer writer = null;
+
+        scanner.parseTemplate(templateFile);
+
+        if (outFile == null)
+            writer = new StringWriter();
+        else
+            writer = new BufferedWriter(new FileWriter(new File(outFile)));
+
+        scanner.scan(tables, writer);
+
+        // Flush and cleanup.
+        writer.flush();
+        writer.close();
+
+        if (outFile == null)
+            println(writer.toString());
+        else
+            println("rendered to = " + outFile);
+    }
+
+    public void release()
+    {
+        scanner.release();
     }
 
     /**
      * Reads the replicator.properties.
      */
-    protected TungstenProperties readConfig() throws Exception
+    public static TungstenProperties readConfig(String configFile)
+            throws Exception
     {
         TungstenProperties conf = null;
 
@@ -174,47 +199,6 @@ public class DDLScanCtrl
         return conf;
     }
 
-    public void prepare() throws ReplicatorException, InterruptedException
-    {
-        println("url = " + url);
-        println("db = " + db);
-        println("user = " + user);
-        println("template = " + templateFile);
-
-        try
-        {
-            scanner = new DDLScan(url, db, user, pass, templateFile);
-            scanner.prepare();
-        }
-        catch (SQLException e)
-        {
-            if (e.getMessage().contains(DBNAME_VAR))
-            {
-                // Known error, do not overwhelm the user - give him a tip.
-                println("HINT: have you tried with \"-db dbName\" parameter?");
-                fatal(e.getLocalizedMessage(), null);
-            }
-            else
-                fatal(e.getLocalizedMessage(), e);
-        }
-    }
-
-    /**
-     * Scans the database for requested objects and generates output through a
-     * template.
-     */
-    public void scanAndGenerate() throws InterruptedException,
-            ReplicatorException, SQLException
-    {
-        scanner.scan(tables);
-        println(scanner.generate(templateFile));
-    }
-
-    public void release()
-    {
-        scanner.release();
-    }
-
     /**
      * Main method to run utility.
      * 
@@ -233,7 +217,8 @@ public class DDLScanCtrl
             String pass = null;
             String url = null;
             String tables = null;
-            String dbName = null;
+            String db = null;
+            String outFile = null;
 
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
@@ -254,7 +239,7 @@ public class DDLScanCtrl
                 else if ("-db".equals(curArg))
                 {
                     if (argvIterator.hasNext())
-                        dbName = argvIterator.next();
+                        db = argvIterator.next();
                 }
                 else if ("-user".equals(curArg))
                 {
@@ -281,6 +266,11 @@ public class DDLScanCtrl
                     if (argvIterator.hasNext())
                         templateFile = argvIterator.next();
                 }
+                else if ("-out".equals(curArg))
+                {
+                    if (argvIterator.hasNext())
+                        outFile = argvIterator.next();
+                }
                 else if (curArg.startsWith("-"))
                     fatal("Unrecognized option: " + curArg, null);
                 else
@@ -306,23 +296,14 @@ public class DDLScanCtrl
                         null);
             }
 
-            if (tables == null)
-                println("Tables not specified - extracting everything!");
-
-            if (dbName == null)
+            if (db == null)
                 fatal("Database is not provided! Use -db parameter.", null);
 
             // Construct actual DDLScanCtrl and call methods based on a
             // parsed user input.
-            DDLScanCtrl ddlScanManager = null;
-            if (user != null && pass != null && url != null)
+            if (user == null || pass == null || url == null)
             {
-                // Construct DDLScanCtrl from JDBC URL credentials.
-                ddlScanManager = new DDLScanCtrl(url, user, pass, dbName,
-                        tables, templateFile);
-            }
-            else
-            {
+                // Credentials not provided, retrieve from configuration.
                 if (configFile == null)
                 {
                     if (service == null)
@@ -345,10 +326,41 @@ public class DDLScanCtrl
                                 .getAbsolutePath();
                     }
                 }
-                // Construct DDLScanCtrl from configuration file.
-                ddlScanManager = new DDLScanCtrl(configFile, dbName, tables,
-                        templateFile);
+
+                // Read connection info from configuration file.
+                TungstenProperties properties = readConfig(configFile);
+                if (properties != null)
+                {
+                    // Get JDBC URL and substitute the database name to avoid
+                    // errors.
+                    Properties jProps = new Properties();
+                    jProps.setProperty("URL", properties
+                            .getString(ReplicatorConf.RESOURCE_JDBC_URL));
+                    if (db != null)
+                        jProps.setProperty("DBNAME", db);
+                    TungstenProperties.substituteSystemValues(jProps);
+                    url = jProps.getProperty("URL");
+
+                    // Get login.
+                    user = properties.getString(ReplicatorConf.GLOBAL_DB_USER);
+                    pass = properties
+                            .getString(ReplicatorConf.GLOBAL_DB_PASSWORD);
+
+                    if (user == null || url == null)
+                        throw new ReplicatorException(
+                                "Configuration file doesn't have JDBC URL credentials");
+                }
+                else
+                    throw new ReplicatorException(
+                            "Unable to read configuration file " + configFile);
             }
+
+            // Construct DDLScanCtrl from JDBC URL credentials.
+            DDLScanCtrl ddlScanManager = new DDLScanCtrl(url, user, pass, db,
+                    tables, templateFile, outFile);
+
+            if (tables == null && outFile != null)
+                println("Tables not specified - extracting everything!");
 
             ddlScanManager.prepare();
 

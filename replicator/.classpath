@@ -17,5 +17,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/oss-commons"/>
 	<classpathentry kind="lib" path="/oss-commons/lib/log4j-1.2.16.jar" sourcepath="/oss-commons/lib/log4j-1.2.16-sources.jar"/>
 	<classpathentry kind="lib" path="/oss-commons/lib-test/junit-4.4.jar" sourcepath="/oss-commons/lib-test/junit-4.4-src.zip"/>
+	<classpathentry kind="lib" path="/oss-commons/lib/velocity-1.7.jar"/>
 	<classpathentry kind="output" path="build/java/classes"/>
 </classpath>
