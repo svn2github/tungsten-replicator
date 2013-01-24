@@ -400,6 +400,10 @@ replicator.extractor.failure_policy=stop
 # How to react on applier failure. Possible values are 'stop' or 'warn'. 
 replicator.applier.failure_policy=stop
 
+# How applier should react when detecting a row update that did not change anything.
+# Possible values are 'stop', 'warn' or 'ignore'. 
+replicator.applier.failOnZeroRowUpdate=warn
+
 # Event checksum algorithm.  Possible values are 'crc' or 'none'.
 replicator.event.checksum=none
 

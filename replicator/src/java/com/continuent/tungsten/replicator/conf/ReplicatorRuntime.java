@@ -82,6 +82,7 @@ public class ReplicatorRuntime implements PluginContext
     // Failure policies.
     private FailurePolicy                     extractorFailurePolicy;
     private FailurePolicy                     applierFailurePolicy;
+    private FailurePolicy                     applierFailOn0RowUpdates;
 
     /** Replicator role. */
     private ReplicatorRole                    role;
@@ -377,9 +378,45 @@ public class ReplicatorRuntime implements PluginContext
             throw new ReplicatorException(
                     "Valid values for "
                             + ReplicatorConf.APPLIER_FAILURE_POLICY
-                            + " are either 'stop' or 'skip'. Found: "
+                            + " are either 'stop' or 'warn'. Found: "
                             + properties
                                     .getString(ReplicatorConf.APPLIER_FAILURE_POLICY));
+
+        }
+
+        // Set applier failure policy on 0 row updates or deletes
+        String applierFailureSettingOn0RowUpdates = assertPropertyDefault(
+                ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE,
+                ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE_DEFAULT);
+        if (applierFailureSettingOn0RowUpdates.equalsIgnoreCase("stop"))
+        {
+            logger.info("Setting "
+                    + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE
+                    + " to stop");
+            applierFailOn0RowUpdates = FailurePolicy.STOP;
+        }
+        else if (applierFailureSettingOn0RowUpdates.equalsIgnoreCase("warn"))
+        {
+            logger.info("Setting "
+                    + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE
+                    + " to warn");
+            applierFailOn0RowUpdates = FailurePolicy.WARN;
+        }
+        else if (applierFailureSettingOn0RowUpdates.equalsIgnoreCase("ignore"))
+        {
+            logger.info("Setting "
+                    + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE
+                    + " to ignore");
+            applierFailOn0RowUpdates = FailurePolicy.IGNORE;
+        }
+        else
+        {
+            throw new ReplicatorException(
+                    "Valid values for "
+                            + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE
+                            + " are either 'stop', 'warn' or 'ignore'. Found: "
+                            + properties
+                                    .getString(ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE));
 
         }
 
@@ -1022,6 +1059,16 @@ public class ReplicatorRuntime implements PluginContext
     public FailurePolicy getExtractorFailurePolicy()
     {
         return extractorFailurePolicy;
+    }
+
+    /**
+     * Returns the applierFailurePolicyOn0Updates value.
+     * 
+     * @return Returns the applierFailurePolicyOn0Updates.
+     */
+    public FailurePolicy getApplierFailurePolicyOn0RowUpdates()
+    {
+        return applierFailOn0RowUpdates;
     }
 
     /**

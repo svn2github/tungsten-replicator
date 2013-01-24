@@ -170,6 +170,10 @@ public class ReplicatorConf
     static public final String   APPLIER_FAILURE_POLICY                                               = "replicator.applier.failure_policy";
     static public final String   APPLIER_FAILURE_POLICY_DEFAULT                                       = "stop";
 
+    /** Applier failure policy on zero row updates or deletes */
+    static public final String   APPLIER_FAIL_ON_0_ROW_UPDATE                                         = "replicator.applier.failOnZeroRowUpdate";
+    static public final String   APPLIER_FAIL_ON_0_ROW_UPDATE_DEFAULT                                 = "warn";
+
     /** Policy when consistency check fails (stop|warn) */
     static public final String   APPLIER_CONSISTENCY_POLICY                                           = "replicator.applier.consistency_policy";
     static public final String   APPLIER_CONSISTENCY_POLICY_DEFAULT                                   = "stop";

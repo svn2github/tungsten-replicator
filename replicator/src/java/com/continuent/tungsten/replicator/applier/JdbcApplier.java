@@ -42,6 +42,7 @@ import java.util.regex.Pattern;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.FailurePolicy;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.consistency.ConsistencyCheck;
 import com.continuent.tungsten.replicator.consistency.ConsistencyCheckFactory;
@@ -1005,7 +1006,25 @@ public class JdbcApplier implements RawApplier
 
                 try
                 {
-                    updateCount += prepStatement.executeUpdate();
+                    int oneChangeCount = prepStatement.executeUpdate();
+                    if (oneChangeCount == 0)
+                    {
+                        if (runtime.getApplierFailurePolicyOn0RowUpdates() == FailurePolicy.WARN)
+                            logger.warn("UPDATE or DELETE statement did not process any row"
+                                    + logFailedRowChangeSQL(stmt, oneRowChange,
+                                            row));
+                        else if (runtime.getApplierFailurePolicyOn0RowUpdates() == FailurePolicy.STOP)
+                        {
+                            ReplicatorException replicatorException = new ReplicatorException(
+                                    "UPDATE or DELETE statement did not process any row");
+                            replicatorException
+                                    .setExtraData(logFailedRowChangeSQL(stmt,
+                                            oneRowChange, row));
+                            throw replicatorException;
+                        }
+                        // else IGNORE
+                    }
+                    updateCount += oneChangeCount;
                 }
                 catch (SQLWarning e)
                 {
@@ -1043,6 +1062,40 @@ public class JdbcApplier implements RawApplier
         }
     }
 
+    private String logFailedRowChangeSQL(StringBuffer stmt,
+            OneRowChange oneRowChange, int row)
+    {
+        // TODO: use THLManagerCtrl for logging exact failing SQL after
+        // branch thl_meta is merged into HEAD. Now this duplicates
+        // functionality.
+        try
+        {
+            ArrayList<OneRowChange.ColumnSpec> keys = oneRowChange.getKeySpec();
+            ArrayList<OneRowChange.ColumnSpec> columns = oneRowChange
+                    .getColumnSpec();
+            ArrayList<ArrayList<OneRowChange.ColumnVal>> keyValues = oneRowChange
+                    .getKeyValues();
+            ArrayList<ArrayList<OneRowChange.ColumnVal>> columnValues = oneRowChange
+                    .getColumnValues();
+            String log = "Failing statement : " + stmt.toString()
+                    + "\nArguments:";
+            log += logFailedRowChangeValues(keys, columns, keyValues,
+                    columnValues, row);
+            // Output the error message, truncate it if too large.
+            if (log.length() > maxSQLLogLength)
+                log = log.substring(0, maxSQLLogLength);
+
+            return log;
+        }
+        catch (Exception e)
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("logFailedRowChangeSQL failed to log, because: "
+                        + e.getMessage());
+        }
+        return null;
+    }
+
     /**
      * Logs prepared statement and it's arguments into error log stream. Trims
      * the message if it exceeds maxSQLLogLength.
@@ -1071,35 +1124,8 @@ public class JdbcApplier implements RawApplier
             for (int row = 0; row < columnValues.size()
                     || row < keyValues.size(); row++)
             {
-                log += "\n - ROW# = " + row;
-                // Print column values.
-                for (int c = 0; c < columns.size(); c++)
-                {
-                    if (columnValues.size() > 0)
-                    {
-                        OneRowChange.ColumnSpec colSpec = columns.get(c);
-                        ArrayList<OneRowChange.ColumnVal> values = columnValues
-                                .get(row);
-                        OneRowChange.ColumnVal value = values.get(c);
-                        log += "\n"
-                                + THLManagerCtrl.formatColumn(colSpec, value,
-                                        "COL", null, false);
-                    }
-                }
-                // Print key values.
-                for (int k = 0; k < keys.size(); k++)
-                {
-                    if (keyValues.size() > 0)
-                    {
-                        OneRowChange.ColumnSpec colSpec = keys.get(k);
-                        ArrayList<OneRowChange.ColumnVal> values = keyValues
-                                .get(row);
-                        OneRowChange.ColumnVal value = values.get(k);
-                        log += "\n"
-                                + THLManagerCtrl.formatColumn(colSpec, value,
-                                        "KEY", null, false);
-                    }
-                }
+                log += logFailedRowChangeValues(keys, columns, keyValues,
+                        columnValues, row);
             }
             // Output the error message, truncate it if too large.
             if (log.length() > maxSQLLogLength)
@@ -1114,6 +1140,43 @@ public class JdbcApplier implements RawApplier
                         + e.getMessage());
         }
         return null;
+    }
+
+    private String logFailedRowChangeValues(
+            ArrayList<OneRowChange.ColumnSpec> keys,
+            ArrayList<OneRowChange.ColumnSpec> columns,
+            ArrayList<ArrayList<OneRowChange.ColumnVal>> keyValues,
+            ArrayList<ArrayList<OneRowChange.ColumnVal>> columnValues, int row)
+    {
+        StringBuffer log = new StringBuffer("\n - ROW# = " + row);
+        // Print column values.
+        for (int c = 0; c < columns.size(); c++)
+        {
+            if (columnValues.size() > 0)
+            {
+                OneRowChange.ColumnSpec colSpec = columns.get(c);
+                ArrayList<OneRowChange.ColumnVal> values = columnValues
+                        .get(row);
+                OneRowChange.ColumnVal value = values.get(c);
+                log.append('\n');
+                log.append(THLManagerCtrl.formatColumn(colSpec, value, "COL",
+                        "utf8", false));
+            }
+        }
+        // Print key values.
+        for (int k = 0; k < keys.size(); k++)
+        {
+            if (keyValues.size() > 0)
+            {
+                OneRowChange.ColumnSpec colSpec = keys.get(k);
+                ArrayList<OneRowChange.ColumnVal> values = keyValues.get(row);
+                OneRowChange.ColumnVal value = values.get(k);
+                log.append('\n');
+                log.append(THLManagerCtrl.formatColumn(colSpec, value, "KEY",
+                        "utf8", false));
+            }
+        }
+        return log.toString();
     }
 
     protected void applyRowChangeData(RowChangeData data,

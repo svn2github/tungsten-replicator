@@ -31,5 +31,7 @@ public enum FailurePolicy
     /** Cancel replication */
     STOP, 
     /** Warn and continue */
-    WARN
+    WARN,
+    /** Ignore and continue */
+    IGNORE
 }
