@@ -197,7 +197,8 @@ public class OpenReplicatorManagerCtrl
                             .contains(AuthenticationInfo.TRUSTSTORE_LOCATION)
                     || argvIterator
                             .contains(AuthenticationInfo.TRUSTSTORE_PASSWORD))
-                authenticationInfo = new AuthenticationInfo();
+                authenticationInfo = new AuthenticationInfo(
+                        AuthenticationInfo.AUTH_USAGE.CLIENT_SIDE);
 
             while (argvIterator.hasNext())
             {

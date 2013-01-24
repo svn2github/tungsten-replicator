@@ -195,7 +195,8 @@ public class ReplicationServiceManager
     private AuthenticationInfo getAuthenticationInformation(
             TungstenProperties tungsteProperties) throws ReplicatorException
     {
-        AuthenticationInfo authInfo = new AuthenticationInfo();
+        AuthenticationInfo authInfo = new AuthenticationInfo(
+                AuthenticationInfo.AUTH_USAGE.SERVER_SIDE);
 
         // Make a copy of the TungstenProperties so that we can Trim
         TungstenProperties jmxProperties = new TungstenProperties(
@@ -209,41 +210,43 @@ public class ReplicationServiceManager
         boolean useEncryption = jmxProperties.getBoolean(
                 ReplicatorConf.RMI_JMX_USE_ENCRYPTION,
                 ReplicatorConf.RMI_JMX_USE_ENCRYPTION_DEFAULT, false);
+        boolean useTungstenAuthenticationRealm = jmxProperties
+                .getBoolean(
+                        ReplicatorConf.RMI_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM,
+                        ReplicatorConf.RMI_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT,
+                        false);
+        boolean useEncryptedPassword = jmxProperties
+                .getBoolean(
+                        ReplicatorConf.RMI_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
+                        ReplicatorConf.RMI_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT,
+                        false);
 
-        if (useAuthentication || useEncryption)
-        {
-            // Retrieve properties
-            String passwordFileLocation = (useAuthentication)
-                    ? jmxProperties
-                            .getString(ReplicatorConf.RMI_JMX_PASSWORD_FILE_LOCATION)
-                    : null;
-            String accessFileLocation = (useAuthentication)
-                    ? jmxProperties
-                            .getString(ReplicatorConf.RMI_JMX_ACCESS_FILE_LOCATION)
-                    : null;
-            String keystoreLocation = (useEncryption) ? jmxProperties
-                    .getString(ReplicatorConf.RMI_JMX_KEYSTORE_LOCATION) : null;
-            String keystorePassword = (useEncryption) ? jmxProperties
-                    .getString(ReplicatorConf.RMI_JMX_KEYSTORE_PASSWORD) : null;
-            String truststoreLocation = (useEncryption)
-                    ? jmxProperties
-                            .getString(ReplicatorConf.RMI_JMX_TRUSTSTORE_LOCATION)
-                    : null;
-            String truststorePassword = (useEncryption)
-                    ? jmxProperties
-                            .getString(ReplicatorConf.RMI_JMX_TRUSTSTORE_PASSWORD)
-                    : null;
+        // Retrieve properties
+        String passwordFileLocation = jmxProperties
+                .getString(ReplicatorConf.RMI_JMX_PASSWORD_FILE_LOCATION);
+        String accessFileLocation = jmxProperties
+                .getString(ReplicatorConf.RMI_JMX_ACCESS_FILE_LOCATION);
+        String keystoreLocation = jmxProperties
+                .getString(ReplicatorConf.RMI_JMX_KEYSTORE_LOCATION);
+        String keystorePassword = jmxProperties
+                .getString(ReplicatorConf.RMI_JMX_KEYSTORE_PASSWORD);
+        String truststoreLocation = jmxProperties
+                .getString(ReplicatorConf.RMI_JMX_TRUSTSTORE_LOCATION);
+        String truststorePassword = jmxProperties
+                .getString(ReplicatorConf.RMI_JMX_TRUSTSTORE_PASSWORD);
 
-            // Populate return object
-            authInfo.setAuthenticationNeeded(useAuthentication);
-            authInfo.setEncryptionNeeded(useEncryption);
-            authInfo.setPasswordFileLocation(passwordFileLocation);
-            authInfo.setAccessFileLocation(accessFileLocation);
-            authInfo.setKeystoreLocation(keystoreLocation);
-            authInfo.setKeystorePassword(keystorePassword);
-            authInfo.setTruststoreLocation(truststoreLocation);
-            authInfo.setTruststorePassword(truststorePassword);
-        }
+        // Populate return object
+        authInfo.setAuthenticationNeeded(useAuthentication);
+        authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
+        authInfo.setUseEncryptedPasswords(useEncryptedPassword);
+        authInfo.setEncryptionNeeded(useEncryption);
+        authInfo.setPasswordFileLocation(passwordFileLocation);
+        authInfo.setAccessFileLocation(accessFileLocation);
+        authInfo.setKeystoreLocation(keystoreLocation);
+        authInfo.setKeystorePassword(keystorePassword);
+        authInfo.setTruststoreLocation(truststoreLocation);
+        authInfo.setTruststorePassword(truststorePassword);
+
         return authInfo;
     }
 
