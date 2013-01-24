@@ -322,12 +322,14 @@ public class StageProgressTracker
     public synchronized void setInitialLastProcessedEvent(int taskId,
             ReplDBMSHeader replEvent) throws InterruptedException
     {
-        committedSeqno.report(taskId, replEvent.getSeqno(), replEvent
-                .getExtractedTstamp().getTime(), replEvent);
+        Timestamp extractedTstamp = replEvent.getExtractedTstamp();
+        committedSeqno.report(taskId, replEvent.getSeqno(),
+                (extractedTstamp == null
+                        ? System.currentTimeMillis()
+                        : extractedTstamp.getTime()), replEvent);
         taskInfo[taskId].setLastCommittedEvent(replEvent);
     }
 
-    
     /**
      * Records the last committed event.
      */
