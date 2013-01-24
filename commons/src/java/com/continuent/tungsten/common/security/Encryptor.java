@@ -73,7 +73,7 @@ public class Encryptor
      * 
      * @return KeyPair
      */
-    private KeyPair getKeys(String storeLocation, String storePassword)
+    public KeyPair getKeys(String storeLocation, String storePassword)
     {
         FileInputStream storeFile;
         KeyPair keyPair = null;
@@ -110,8 +110,9 @@ public class Encryptor
         }
         catch (Exception e)
         {
-            String msg = MessageFormat.format("Cannot retrieve key from: {0}",
-                    storeLocation);
+            String msg = MessageFormat.format(
+                    "Cannot retrieve key from: {0} Reason={1}", storeLocation,
+                    e.getMessage());
             logger.error(msg);
             throw new ServerRuntimeException(msg, e);
         }
@@ -124,7 +125,7 @@ public class Encryptor
      * 
      * @return
      */
-    private PublicKey getPublicKey_from_Truststore()
+    public PublicKey getPublicKey_from_Truststore()
     {
         KeyPair keyPair = this.getKeys(
                 this.authenticationInfo.getTruststoreLocation(),
@@ -137,7 +138,7 @@ public class Encryptor
      * 
      * @return
      */
-    private PrivateKey getPrivateKey_from_KeyStore()
+    public PrivateKey getPrivateKey_from_KeyStore()
     {
         KeyPair keyPair = this.getKeys(
                 this.authenticationInfo.getKeystoreLocation(),

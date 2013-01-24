@@ -248,12 +248,14 @@ public class JmxManager implements NotificationListener
             if (authenticationInfo != null
                     && authenticationInfo.isAuthenticationNeeded())
             {
-                            
+
                 if (authenticationInfo.isUseTungstenAuthenticationRealm())
-                    env.put(JMXConnectorServer.AUTHENTICATOR, new RealmJMXAuthenticator(authenticationInfo.getPasswordFileLocation()));
+                    env.put(JMXConnectorServer.AUTHENTICATOR,
+                            new RealmJMXAuthenticator(authenticationInfo));
                 else
-                    env.put("jmx.remote.x.password.file", authenticationInfo.getPasswordFileLocation());
-                
+                    env.put("jmx.remote.x.password.file",
+                            authenticationInfo.getPasswordFileLocation());
+
                 env.put("jmx.remote.x.access.file",
                         authenticationInfo.getAccessFileLocation());
             }
@@ -513,11 +515,12 @@ public class JmxManager implements NotificationListener
                 // Build credentials
                 String[] credentials;
                 if (authInfo.isUseTungstenAuthenticationRealm())
-                    credentials= new String[]{authInfo.getUsername(),
-                        authInfo.getPassword(),AuthenticationInfo.TUNGSTEN_AUTHENTICATION_REALM};
+                    credentials = new String[]{authInfo.getUsername(),
+                            authInfo.getPassword(),
+                            AuthenticationInfo.TUNGSTEN_AUTHENTICATION_REALM};
                 else
-                    credentials= new String[]{authInfo.getUsername(),
-                        authInfo.getPassword()};
+                    credentials = new String[]{authInfo.getUsername(),
+                            authInfo.getPassword()};
 
                 env.put("jmx.remote.credentials", credentials);
             }

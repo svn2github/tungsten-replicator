@@ -34,6 +34,7 @@ import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 
@@ -42,13 +43,15 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
     private static final Logger logger              = Logger.getLogger(JmxManager.class);
     private TungstenProperties  passwordProps       = null;
 
-    private final String        passwordFileLocation;
+    private AuthenticationInfo  authenticationInfo  = null;
 
     private static final String INVALID_CREDENTIALS = "Invalid credentials";
+    private static final String AUTHENTICATION_PROBLEM = "Error while trying to authenticate";
 
-    public RealmJMXAuthenticator(String passwordFileLocation)
+    public RealmJMXAuthenticator(AuthenticationInfo authenticationInfo)
     {
-        this.passwordFileLocation = passwordFileLocation;
+        this.authenticationInfo = authenticationInfo;
+
         this.passwordProps = this.LoadPasswordsFromFile();
     }
 
@@ -71,15 +74,26 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         // --- Perform authentication ---
         try
         {
+            // Password file syntax:
+            // username=password
             String goodPassword = this.passwordProps.get(username);
+
+            // --- Decrypt password ---
+            if (this.authenticationInfo.isUseEncryptedPasswords())
+            {
+                Encryptor encryptor = new Encryptor(this.authenticationInfo);
+                goodPassword = encryptor.decrypt(goodPassword);
+            }
+
             if (goodPassword.equals(password))
                 authenticationOK = true;
+
         }
         catch (Exception e)
         {
-            // Throw same exception as authentication not OK : 
+            // Throw same exception as authentication not OK :
             // Do not give any hint on failure reason
-            throw new SecurityException(INVALID_CREDENTIALS);
+            throw new SecurityException(AUTHENTICATION_PROBLEM);
         }
 
         if (authenticationOK)
@@ -104,14 +118,16 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         try
         {
             TungstenProperties newProps = new TungstenProperties();
-            newProps.load(new FileInputStream(this.passwordFileLocation), false);
+            newProps.load(
+                    new FileInputStream(this.authenticationInfo
+                            .getPasswordFileLocation()), false);
             newProps.trim();
             return newProps;
         }
         catch (FileNotFoundException e)
         {
             logger.error("Unable to find properties file: "
-                    + this.passwordFileLocation);
+                    + this.authenticationInfo.getPasswordFileLocation());
             logger.debug("Properties search failure", e);
             throw new ServerRuntimeException("Unable to find properties file: "
                     + e.getMessage());
@@ -119,7 +135,7 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         catch (IOException e)
         {
             logger.error("Unable to read properties file: "
-                    + this.passwordFileLocation);
+                    + this.authenticationInfo.getPasswordFileLocation());
             logger.debug("Properties read failure", e);
             throw new ServerRuntimeException("Unable to read properties file: "
                     + e.getMessage());

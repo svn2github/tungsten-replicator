@@ -21,9 +21,9 @@
 
 package com.continuent.tungsten.common.jmx;
 
-import org.junit.Test;
-
 import junit.framework.TestCase;
+
+import com.continuent.tungsten.common.jmx.AuthenticationInfo.AUTH_USAGE;
 
 /**
  * Implements a simple unit test for AuthenticationInfo
@@ -38,7 +38,9 @@ public class AuthenticationInfoTest extends TestCase
      */
     public void testIsAuthenticationNeeded() throws Exception
     {
-        AuthenticationInfo authInfo = new AuthenticationInfo();
+        // --- Client Side ---
+        AuthenticationInfo authInfo = new AuthenticationInfo(
+                AUTH_USAGE.CLIENT_SIDE);
 
         // No username or password : not needed
         assertEquals("Authentication not needed",
@@ -49,16 +51,40 @@ public class AuthenticationInfoTest extends TestCase
         assertEquals("Authentication needed",
                 authInfo.isAuthenticationNeeded(), true);
 
-        authInfo = new AuthenticationInfo();
+        authInfo = new AuthenticationInfo(AUTH_USAGE.CLIENT_SIDE);
         // Password -> needed
         authInfo.setPassword("now there's a password");
         assertEquals("Authentication needed",
                 authInfo.isAuthenticationNeeded(), true);
+
+        // --- Server Side ---
+        authInfo = new AuthenticationInfo(AUTH_USAGE.SERVER_SIDE);
+
+        // No username or password : not needed
+        assertEquals(authInfo.isAuthenticationNeeded(), false);
+
+        // Username
+        authInfo.setUsername("now there's a username");
+        assertEquals(authInfo.isAuthenticationNeeded(), false);
+
+        // Password
+        authInfo.setPassword("now there's a password");
+        assertEquals(authInfo.isAuthenticationNeeded(), false);
+
+        // Set
+        authInfo.setAuthenticationNeeded(true);
+        assertEquals(authInfo.isAuthenticationNeeded(), true);
+
+        authInfo.setAuthenticationNeeded(false);
+        assertEquals(authInfo.isAuthenticationNeeded(), false);
+
     }
 
     public void testIsEncryptionNeeded() throws Exception
     {
-        AuthenticationInfo authInfo = new AuthenticationInfo();
+        // --- Client Side ---
+        AuthenticationInfo authInfo = new AuthenticationInfo(
+                AUTH_USAGE.CLIENT_SIDE);
 
         // No username or password : not needed
         assertEquals("Encryption not needed", authInfo.isEncryptionNeeded(),
@@ -68,18 +94,39 @@ public class AuthenticationInfoTest extends TestCase
         authInfo.setTruststoreLocation("/tmp/myTruststore.ts");
         assertEquals("Encryption needed", authInfo.isEncryptionNeeded(), true);
 
-        authInfo = new AuthenticationInfo();
+        authInfo = new AuthenticationInfo(AUTH_USAGE.CLIENT_SIDE);
         // trustorePassword -> needed
         authInfo.setTruststorePassword("password");
         assertEquals("Encryption needed", authInfo.isEncryptionNeeded(), true);
+
+        // --- Server Side ---
+        authInfo = new AuthenticationInfo(AUTH_USAGE.SERVER_SIDE);
+
+        // No username or password
+        assertEquals(authInfo.isEncryptionNeeded(), false);
+
+        // truststoreLocation
+        authInfo.setTruststoreLocation("/tmp/myTruststore.ts");
+        assertEquals(authInfo.isEncryptionNeeded(), false);
+
+        // trustorePassword
+        authInfo.setTruststorePassword("password");
+        assertEquals(authInfo.isEncryptionNeeded(), false);
+
+        // Set
+        authInfo.setEncryptionNeeded(true);
+        assertEquals(authInfo.isEncryptionNeeded(), true);
+
+        authInfo.setEncryptionNeeded(false);
+        assertEquals(authInfo.isEncryptionNeeded(), false);
     }
-    
-    
+
     public void testCheckAuthenticationInfo() throws Exception
     {
-        AuthenticationInfo authInfo = new AuthenticationInfo();
+        AuthenticationInfo authInfo = new AuthenticationInfo(
+                AUTH_USAGE.CLIENT_SIDE);
         boolean sreThrown = false;
-        
+
         // If encryption required: trustore location exist
         try
         {
@@ -91,10 +138,8 @@ public class AuthenticationInfoTest extends TestCase
             assertNotNull(sre.getCause());
             sreThrown = true;
         }
-        
-        assert(sreThrown);
+
+        assert (sreThrown);
     }
-    
-    
 
 }

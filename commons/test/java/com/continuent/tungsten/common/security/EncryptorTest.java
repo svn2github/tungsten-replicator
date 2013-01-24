@@ -21,11 +21,12 @@
 
 package com.continuent.tungsten.common.security;
 
-import java.text.MessageFormat;
-
-import com.continuent.tungsten.common.jmx.AuthenticationInfo;
+import java.security.KeyPair;
 
 import junit.framework.TestCase;
+
+import com.continuent.tungsten.common.jmx.AuthenticationInfo;
+import com.continuent.tungsten.common.jmx.AuthenticationInfo.AUTH_USAGE;
 
 /**
  * Implements a simple unit test for AuthenticationInfo
@@ -35,25 +36,52 @@ import junit.framework.TestCase;
  */
 public class EncryptorTest extends TestCase
 {
+    AuthenticationInfo authInfo = new AuthenticationInfo(AUTH_USAGE.SERVER_SIDE);
+    Encryptor encryptor = null;
+    
+    public EncryptorTest()
+    {
+        this.authInfo.setKeystore("tungsten_sample_keystore.jks", "secret");
+        this.authInfo.setTruststore("tungsten_sample_truststore.ts", "secret");
+        
+//        authInfo.setKeystore("tungsten_keystore.jks", "tungsten");
+//        authInfo.setTruststore("tungsten_truststore.ts", "tungsten");
+        
+        this.encryptor = new Encryptor(authInfo);
+    }
+    
     /**
      * Tests encryption / decryption
      */
-    public void testIsAuthenticationNeeded() throws Exception
+    public void testEncrytion() throws Exception
     {
-        AuthenticationInfo authInfo = new AuthenticationInfo();
-        authInfo.setKeystore("tungsten_sample_keystore.jks", "secret");
-        authInfo.setTruststore("tungsten_sample_truststore.ts", "secret");
-        
-        Encryptor encryptor = new Encryptor(authInfo);
-        
-        String testString = "This is a test string. It will be a password";
+        // --- Test encryption / decryption ---
+        String testString       = "secret";
+        String someRandomString = "and now, for something completly different";
         
         String encryptedString = encryptor.encrypt(testString);
-        
         String decryptedString = encryptor.decrypt(encryptedString);
         
         assertEquals(testString, decryptedString);
-
+        assertFalse(testString.equals(someRandomString));
+    }
+    
+    public void testGetKeysOnKeystore()
+    {
+        // -- Keystore--
+        KeyPair keyPair = encryptor.getKeys(this.authInfo.getKeystoreLocation(), this.authInfo.getKeystorePassword());
+        
+        assertNotNull(keyPair.getPrivate());
+        assertNotNull(keyPair.getPublic());
+    }
+    
+    public void testGetKeysOnTruststore()
+    {
+        // -- Keystore--
+        KeyPair keyPair = encryptor.getKeys(this.authInfo.getTruststoreLocation(), this.authInfo.getTruststorePassword());
+        
+        assertNull(keyPair.getPrivate());
+        assertNotNull(keyPair.getPublic());
     }
 
    

@@ -29,8 +29,8 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.common.config.TungstenProperties;
 
 /**
- * Information class holding Authentication and Encryption parameters
- * Some of the properties may be left null depending on how and when this is used
+ * Information class holding Authentication and Encryption parameters Some of
+ * the properties may be left null depending on how and when this is used
  * 
  * @author <a href="mailto:ludovic.launer@continuent.com">Ludovic Launer</a>
  * @version 1.0
@@ -38,10 +38,12 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 public final class AuthenticationInfo
 {
     private static final Logger logger                         = Logger.getLogger(AuthenticationInfo.class);
+    private final AUTH_USAGE    authUsage;
 
     private boolean             authenticationNeeded           = false;
     private boolean             encryptionNeeded               = false;
     private boolean             useTungstenAuthenticationRealm = true;
+    private boolean             useEncryptedPasswords          = false;
 
     // Authentication parameters
     private String              username                       = null;
@@ -64,48 +66,20 @@ public final class AuthenticationInfo
     public final static String  TRUSTSTORE_LOCATION            = "-truststoreLocation";
     public final static String  TRUSTSTORE_PASSWORD            = "-truststorePassword";
 
+    // Defines Authentication Information flavor :
+    // Server side :
+    // Client side : Some of the parameters are set automatically
+    public static enum AUTH_USAGE
+    {
+        SERVER_SIDE, CLIENT_SIDE
+    };
+
     /**
      * Creates a new <code>AuthenticationInfo</code> object
      */
-    public AuthenticationInfo()
+    public AuthenticationInfo(AUTH_USAGE authUsage)
     {
-
-    }
-
-    /**
-     * Creates a new <code>AuthenticationInfo</code> object
-     * 
-     * @param _useAuthentication
-     * @param _useEncryption
-     * @param _username
-     * @param _password
-     * @param _passwordFileLocation
-     * @param _accessFileLocation
-     * @param _keystoreLocation
-     * @param _keystorePassword
-     * @param _truststoreLocation
-     * @param _truststorePassword
-     */
-    public AuthenticationInfo(boolean _useAuthentication,
-            boolean _useEncryption, String _username, String _password,
-            String _passwordFileLocation, String _accessFileLocation,
-            String _keystoreLocation, String _keystorePassword,
-            String _truststoreLocation, String _truststorePassword)
-    {
-        // Authentication and encryption parameters
-        authenticationNeeded = _useAuthentication;
-        encryptionNeeded = _useEncryption;
-
-        this.checkAuthenticationInfo();
-
-        username = _username;
-        password = _password;
-        passwordFileLocation = _passwordFileLocation;
-        accessFileLocation = _accessFileLocation;
-        keystoreLocation = _keystoreLocation;
-        keystorePassword = _keystorePassword;
-        truststoreLocation = _truststoreLocation;
-        truststorePassword = _truststorePassword;
+        this.authUsage = authUsage;
     }
 
     /**
@@ -129,7 +103,7 @@ public final class AuthenticationInfo
                         "File must exist"));
             }
         }
-        
+
         // Check Keystore location
         if (this.isEncryptionNeeded() && this.keystoreLocation != null)
         {
@@ -137,14 +111,13 @@ public final class AuthenticationInfo
             if (!f.isFile() || !f.canRead())
             {
                 String msg = MessageFormat.format(
-                        "Cannot find or read {0} file: {1}",
-                        KEYSTORE_LOCATION, this.keystoreLocation);
+                        "Cannot find or read {0} file: {1}", KEYSTORE_LOCATION,
+                        this.keystoreLocation);
                 logger.error(msg);
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
             }
         }
-        
 
     }
 
@@ -161,37 +134,41 @@ public final class AuthenticationInfo
         return jmxProperties;
     }
 
-    public boolean isAuthenticationNeeded()
-    {
-        if (this.username != null || this.password != null)
-            authenticationNeeded = true;
-
-        return authenticationNeeded;
-    }
-
-    public boolean isEncryptionNeeded()
-    {
-        if (this.truststoreLocation != null || this.truststorePassword != null)
-            encryptionNeeded = true;
-
-        return encryptionNeeded;
-    }
-    
     public void setKeystore(String keyStoreLocation, String keystorePassword)
     {
         this.setKeystoreLocation(keyStoreLocation);
         this.setKeystorePassword(keystorePassword);
     }
-    
-    public void setTruststore(String truststoreLocation, String truststorePassword)
+
+    public void setTruststore(String truststoreLocation,
+            String truststorePassword)
     {
         this.setTruststoreLocation(truststoreLocation);
         this.setTruststorePassword(truststorePassword);
     }
 
+    public boolean isAuthenticationNeeded()
+    {
+        if (this.authUsage == AUTH_USAGE.CLIENT_SIDE
+                && (this.getUsername() != null || this.getPassword() != null))
+            this.authenticationNeeded = true;
+
+        return authenticationNeeded;
+    }
+
     public void setAuthenticationNeeded(boolean authenticationNeeded)
     {
         this.authenticationNeeded = authenticationNeeded;
+    }
+
+    public boolean isEncryptionNeeded()
+    {
+        if (this.authUsage == AUTH_USAGE.CLIENT_SIDE
+                && (this.getTruststoreLocation() != null || this
+                        .getTruststorePassword() != null))
+            this.encryptionNeeded = true;
+
+        return encryptionNeeded;
     }
 
     public void setEncryptionNeeded(boolean encryptionNeeded)
@@ -288,6 +265,16 @@ public final class AuthenticationInfo
             boolean useTungstenAuthenticationRealm)
     {
         this.useTungstenAuthenticationRealm = useTungstenAuthenticationRealm;
+    }
+
+    public boolean isUseEncryptedPasswords()
+    {
+        return useEncryptedPasswords;
+    }
+
+    public void setUseEncryptedPasswords(boolean useEncryptedPasswords)
+    {
+        this.useEncryptedPasswords = useEncryptedPasswords;
     }
 
 }
