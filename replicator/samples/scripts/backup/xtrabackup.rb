@@ -4,6 +4,7 @@ require "cgi"
 require "optparse"
 require "pp"
 require "pathname"
+require "fileutils"
 
 INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
 
@@ -56,6 +57,14 @@ def run
     }
   }
   opts.parse!(args)
+  
+  if File.exist?(@options[:directory])
+    unless File.directory?(@options[:directory])
+      raise "The path #{@options[:directory]} is not a directory"
+    end
+  else
+    FileUtils.mkdir_p(@options[:directory])
+  end
   
   if @op == :backup
     backup()
