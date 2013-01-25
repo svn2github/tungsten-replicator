@@ -304,11 +304,11 @@ public class EnumToStringFilter implements Filter
      * @return Enumeration elements in an array. Unquoted. Eg.:
      *         Active,Inactive,Removed
      */
-    private String[] parseEnumeration(String enumDefinition)
+    public static String[] parseEnumeration(String enumDefinition)
     {
         // Parse out what's inside brackets.
         String keyword = "enum(";
-        int iA = enumDefinition.indexOf(keyword);
+        int iA = enumDefinition.toLowerCase().indexOf(keyword);
         int iB = enumDefinition.indexOf(')', iA);
         String list = enumDefinition.substring(iA + keyword.length(), iB);
 
@@ -324,6 +324,46 @@ public class EnumToStringFilter implements Filter
         }
 
         return enumElements;
+    }
+
+    /**
+     * @see com.continuent.tungsten.replicator.filter.EnumToStringFilter#largestElement(String[])
+     * @param enumDefinition String of the following form:
+     *            enum('val1','val2',...)
+     * @return Length of the largest element in given enumeration definition.
+     */
+    public static int largestElementLen(String enumDefinition)
+    {
+        return largestElementLen(parseEnumeration(enumDefinition));
+    }
+
+    /**
+     * Returns how long is the largest element of enumeration.
+     * 
+     * @param enumValues Values of enumeration. Eg.: 'No','Yes'
+     * @return Length of the largest element.
+     */
+    public static int largestElementLen(String[] enumValues)
+    {
+        return enumValues[largestElement(enumValues)].length();
+    }
+
+    /**
+     * @return Position of the largest element in the array.
+     */
+    public static int largestElement(String[] enumValues)
+    {
+        int largestPos = 0;
+        int largestLen = 0;
+        for (int i = 0; i < enumValues.length; i++)
+        {
+            if (enumValues[i].length() > largestLen)
+            {
+                largestPos = i;
+                largestLen = enumValues[i].length();
+            }
+        }
+        return largestPos;
     }
 
     /**

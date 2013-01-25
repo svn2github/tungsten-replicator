@@ -42,6 +42,7 @@ import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.database.TableMatcher;
+import com.continuent.tungsten.replicator.filter.EnumToStringFilter;
 
 /**
  * Main DDLScan functionality is programmed here.
@@ -99,6 +100,8 @@ public class DDLScan
                 "org.apache.velocity.runtime.log.Log4JLogChute");
         velocity.setProperty(Log4JLogChute.RUNTIME_LOG_LOG4J_LOGGER,
                 DDLScan.class.toString());
+        velocity.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH,
+                ".,../samples/extensions/velocity");
         velocity.init();
     }
 
@@ -175,6 +178,7 @@ public class DDLScan
         context.put("db", db);
 
         // Some handy utilities.
+        context.put("enum", EnumToStringFilter.class);
         context.put("date", new java.util.Date()); // Current time.
 
         // Iterate through all available tables in the database.

@@ -1,0 +1,77 @@
+#*
+  Tungsten Scale-Out Stack
+  Copyright (C) 2007-2013 Continuent Inc.
+  Contact: tungsten@continuent.org
+ 
+  Initial developer(s): Linas Virbalas
+  Contributor(s):
+ 
+  Velocity template for Tungsten.
+  
+  Transforms MySQL table definition (DDL) to Oracle dialect.
+  
+*### Counting tables.
+#if ( !$counter )
+  #set ( $counter = 1 )
+#else
+  #set( $counter = $counter + 1 )
+#end
+## Print header above the first table.
+#if ( $counter == 1 )
+/*
+SQL generated on $date by ./ddlscan utility of Tungsten
+
+url = $url
+user = $user
+dbName = $dbName
+*/
+#end
+
+CREATE TABLE $table.getName()
+(
+## Columns.
+#foreach ( $col in $table.getAllColumns() )
+  $col.getName() ## 
+#if ( $col.getTypeDescription().contains("DATE") || $col.getTypeDescription().contains("TIME") )
+DATE##
+#elseif ( $col.getTypeDescription().startsWith("BIGINT") )
+NUMBER(19, 0)##
+#elseif ( $col.getTypeDescription().startsWith("TINYINT") )
+NUMBER(3, 0)##
+#elseif ( $col.getTypeDescription().startsWith("SMALLINT") )
+NUMBER(5, 0)##
+#elseif ( $col.getTypeDescription().startsWith("MEDIUMINT") )
+NUMBER(7, 0)##
+#elseif ( $col.getTypeDescription().startsWith("INT") )
+NUMBER(10, 0)##
+#elseif ( $col.getTypeDescription().startsWith("VARCHAR") )
+#if ( $col.getLength() <= 4000 )
+VARCHAR2($col.getLength())##
+#{else}CLOB /* WARN: too long ($col.getLength()) for Oracle VARCHAR2, using CLOB instead */##
+#end
+#elseif ( $col.getTypeDescription().startsWith("CHAR") )
+$col.getTypeDescription()##
+#elseif ( $col.getTypeDescription().contains("TEXT") )## TINYTEXT, TEXT, MEDIUMTEXT, LONGTEXT
+CLOB##
+#elseif ( $col.getTypeDescription().contains("FLOAT") )
+$col.getTypeDescription()##
+#elseif ( $col.getTypeDescription().startsWith("ENUM") )
+VARCHAR2($enum.largestElementLen($col.getTypeDescription())) /* $col.getTypeDescription() */##
+#else
+$col.getTypeDescription() /* ERROR: unrecognized (type=$col.getType(), length=$col.getLength()) */#end##
+#if( $foreach.hasNext || $table.getPrimaryKey() ),
+#end
+#end
+## Primary key.
+#if ( $table.getPrimaryKey() )
+  PRIMARY KEY (##
+#foreach ( $key in $table.getPrimaryKey().getColumns() )
+$key.getName()##
+#if( $foreach.hasNext ), #else)#end
+#end
+#else
+
+  /* ERROR: table must have a primary key! */##
+#end
+
+);
