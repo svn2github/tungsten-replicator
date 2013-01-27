@@ -552,7 +552,7 @@ class MySQLExtractorServerIDCheck < ConfigureValidationCheck
     if Configurator.instance.is_localhost?(@config.getProperty(get_extractor_key(REPL_DBHOST)))
       if File.exists?(conf_file) && File.readable?(conf_file)
         begin
-          conf_file_results = cmd_result("grep ^server-id #{conf_file}").split("=")
+          conf_file_results = cmd_result("grep '^server[_-]id' #{conf_file}").split("=")
         rescue
           error("The MySQL config file '#{conf_file}' does not include a value for server-id")
           help("Check the file to ensure a value is given and that it is not commented out")
@@ -596,7 +596,7 @@ class MySQLApplierServerIDCheck < ConfigureValidationCheck
     if Configurator.instance.is_localhost?(@config.getProperty(get_applier_key(REPL_DBHOST)))
       if File.exists?(conf_file) && File.readable?(conf_file)
         begin
-          conf_file_results = cmd_result("grep ^server-id #{conf_file}").split("=")
+          conf_file_results = cmd_result("grep '^server[_-]id' #{conf_file}").split("=")
           if conf_file_results.length <= 1
             error("Unable to read the server-id value in the MySQL config file '#{conf_file_results.join('=')}'")
           else
