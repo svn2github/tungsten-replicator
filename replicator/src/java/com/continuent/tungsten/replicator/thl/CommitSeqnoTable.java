@@ -148,7 +148,7 @@ public class CommitSeqnoTable
 
         // Prepare SQL.
         lastSeqnoQuery = database
-                .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp from "
+                .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency from "
                         + schema + "." + TABLE_NAME + " WHERE task_id=?");
         allSeqnoQuery = database
                 .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp from "
@@ -487,6 +487,7 @@ public class CommitSeqnoTable
         commitSeqnoUpdate.setLong(5, header.getEpochNumber());
         commitSeqnoUpdate.setString(6, header.getEventId());
         // Latency can go negative due to clock differences. Round up to 0.
+        // TODO: Round up to 0 -> this is not what Math.abs does !
         commitSeqnoUpdate.setLong(7, Math.abs(appliedLatency));
         commitSeqnoUpdate.setTimestamp(8,
                 new Timestamp(System.currentTimeMillis()));
@@ -562,9 +563,9 @@ public class CommitSeqnoTable
         String eventId = rs.getString(6);
         String shardId = rs.getString(7);
         Timestamp extractTimestamp = rs.getTimestamp(8);
-
+        long appliedLatency = rs.getLong("applied_latency");
         return new ReplDBMSHeaderData(seqno, fragno, lastFrag, sourceId,
-                epochNumber, eventId, shardId, extractTimestamp);
+                epochNumber, eventId, shardId, extractTimestamp, appliedLatency);
     }
 
     // Close a result set properly.

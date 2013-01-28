@@ -40,13 +40,14 @@ public class ReplDBMSHeaderData implements ReplDBMSHeader
     private final String    eventId;
     private final String    shardId;
     private final Timestamp extractedTstamp;
+    private final long      appliedLatency;
 
     /**
      * Create header instance from component parts.
      */
     public ReplDBMSHeaderData(long seqno, short fragno, boolean lastFrag,
             String sourceId, long epochNumber, String eventId, String shardId,
-            Timestamp extractedTstamp)
+            Timestamp extractedTstamp, long latency)
     {
         this.seqno = seqno;
         this.fragno = fragno;
@@ -56,6 +57,7 @@ public class ReplDBMSHeaderData implements ReplDBMSHeader
         this.eventId = eventId;
         this.shardId = shardId;
         this.extractedTstamp = extractedTstamp;
+        this.appliedLatency = latency;
     }
 
     public ReplDBMSHeaderData(ReplDBMSHeader event)
@@ -68,6 +70,7 @@ public class ReplDBMSHeaderData implements ReplDBMSHeader
         this.eventId = event.getEventId();
         this.shardId = event.getShardId();
         this.extractedTstamp = event.getExtractedTstamp();
+        this.appliedLatency = event.getAppliedLatency();
     }
 
     public long getSeqno()
@@ -108,5 +111,11 @@ public class ReplDBMSHeaderData implements ReplDBMSHeader
     public Timestamp getExtractedTstamp()
     {
         return extractedTstamp;
+    }
+
+    @Override
+    public long getAppliedLatency()
+    {
+        return appliedLatency;
     }
 }

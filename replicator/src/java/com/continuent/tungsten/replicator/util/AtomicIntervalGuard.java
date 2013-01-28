@@ -99,6 +99,39 @@ public class AtomicIntervalGuard<D>
      */
     public synchronized void report(int id, long seqno, long time, D datum)
     {
+        processReport(id, seqno, time, datum);
+
+        // Notify anyone who is waiting.
+        notifyAll();
+    }
+
+    /**
+     * Report position for an individual task. This call makes an important
+     * assumption that sequence numbers never move backward, which simplifies
+     * maintenance of the array.
+     * 
+     * @param id Thread ID
+     * @param seqno Sequence number reached by thread
+     * @param time Original timestamp of transaction
+     * @param reportTime Original time + latency
+     * @param datum An optional datum associated with the transaction
+     * @throws ReplicatorException Thrown if there is an illegal update.
+     */
+    public synchronized void report(int id, long seqno, long time,
+            long reportTime, D datum)
+    {
+        processReport(id, seqno, time, datum);
+
+        ThreadPosition tp = array.get(id);
+        tp.reportTime = reportTime;
+
+        // Notify anyone who is waiting.
+        notifyAll();
+
+    }
+
+    private void processReport(int id, long seqno, long time, D datum)
+    {
         ThreadPosition tp = array.get(id);
 
         // See if this thread is already known.
@@ -197,9 +230,6 @@ public class AtomicIntervalGuard<D>
             if (tp.after == null)
                 tail = tp;
         }
-
-        // Notify anyone who is waiting.
-        notifyAll();
     }
 
     /**

@@ -151,7 +151,7 @@ public class THLParallelReadTask implements Runnable
                         reader.isLastFrag(), reader.getSourceId(),
                         reader.getEpochNumber(), reader.getEventId(),
                         reader.getShardId(), new Timestamp(
-                                reader.getSourceTStamp()));
+                                reader.getSourceTStamp()), 0);
                 PartitionerResponse response;
                 try
                 {

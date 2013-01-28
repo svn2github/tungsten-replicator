@@ -75,4 +75,6 @@ public interface ReplDBMSHeader
      * Returns the extractedTstamp value.
      */
     public Timestamp getExtractedTstamp();
+    
+    public long getAppliedLatency();
 }

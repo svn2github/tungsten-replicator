@@ -437,7 +437,7 @@ public class MongoApplier implements RawApplier
             long extractTimestamp = (Long) doc.get("extract_timestamp");
             ReplDBMSHeaderData header = new ReplDBMSHeaderData(seqno,
                     (short) fragno, lastFrag, sourceId, epochNumber, eventId,
-                    shardId, new Timestamp(extractTimestamp));
+                    shardId, new Timestamp(extractTimestamp), 0);
             return header;
         }
     }

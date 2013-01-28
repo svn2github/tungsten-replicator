@@ -461,11 +461,13 @@ public class PrefetchStore extends InMemoryQueueStore
                 String sourceId = rs.getString("source_id");
                 long epochNumber = rs.getLong("epoch_number");
                 String eventId = rs.getString("eventid");
-                header = new ReplDBMSHeaderData(seqno, fragno, lastFrag,
-                        sourceId, epochNumber, eventId, null, new Timestamp(0));
-
                 // Record current slave latency and time of last check.
-                slaveLatency = rs.getLong("applied_latency") * 1000;
+                slaveLatency = rs.getLong("applied_latency") * 1000;                
+
+                header = new ReplDBMSHeaderData(seqno, fragno, lastFrag,
+                        sourceId, epochNumber, eventId, null, new Timestamp(0), slaveLatency);
+
+
                 slaveSeqno = header.getSeqno();
                 lastChecked = System.currentTimeMillis();
             }

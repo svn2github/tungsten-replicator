@@ -204,4 +204,12 @@ public class ReplDBMSEvent extends ReplEvent implements ReplDBMSHeader
     {
         return event;
     }
+
+    @Override
+    public long getAppliedLatency()
+    {
+        return 0;
+    }
+    
+    
 }

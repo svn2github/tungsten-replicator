@@ -133,7 +133,7 @@ public class THLParallelReadQueue
         {
             this.lastHeader = new ReplDBMSHeaderData(startingSeqno - 1,
                     (short) 0, true, "dummy", -1, "dummy", "dummy",
-                    new Timestamp(System.currentTimeMillis()));
+                    new Timestamp(System.currentTimeMillis()), 0);
         }
         else
         {
@@ -333,7 +333,7 @@ public class THLParallelReadQueue
                 thlEvent.getFragno(), thlEvent.getLastFrag(),
                 thlEvent.getSourceId(), thlEvent.getEpochNumber(),
                 thlEvent.getEventId(), thlEvent.getShardId(),
-                thlEvent.getSourceTstamp());
+                thlEvent.getSourceTstamp(), 0);
 
         // See if we need to synchronize.
         if (lastFrag)

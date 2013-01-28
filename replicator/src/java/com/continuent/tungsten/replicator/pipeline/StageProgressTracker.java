@@ -323,10 +323,14 @@ public class StageProgressTracker
             ReplDBMSHeader replEvent) throws InterruptedException
     {
         Timestamp extractedTstamp = replEvent.getExtractedTstamp();
-        committedSeqno.report(taskId, replEvent.getSeqno(),
-                (extractedTstamp == null
-                        ? System.currentTimeMillis()
-                        : extractedTstamp.getTime()), replEvent);
+        long timeInMs = 0;
+        if (extractedTstamp == null)
+            timeInMs = System.currentTimeMillis();
+        else
+            timeInMs = extractedTstamp.getTime();
+
+        long latencyInMs = 1000 * replEvent.getAppliedLatency();
+        committedSeqno.report(taskId, replEvent.getSeqno(),timeInMs, timeInMs + latencyInMs, replEvent);
         taskInfo[taskId].setLastCommittedEvent(replEvent);
     }
 

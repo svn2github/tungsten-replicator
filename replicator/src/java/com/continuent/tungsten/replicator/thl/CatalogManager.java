@@ -174,12 +174,13 @@ public class CatalogManager
     public void updateCommitSeqnoTable(THLEvent event) throws SQLException
     {
         // Recreate header data.
+        long applyLatency = (System.currentTimeMillis() - event
+                .getSourceTstamp().getTime()) / 1000;
         ReplDBMSHeaderData header = new ReplDBMSHeaderData(event.getSeqno(),
                 event.getFragno(), event.getLastFrag(), event.getSourceId(),
                 event.getEpochNumber(), event.getEventId(), event.getShardId(),
-                event.getSourceTstamp());
-        long applyLatency = (System.currentTimeMillis() - event
-                .getSourceTstamp().getTime()) / 1000;
+                event.getSourceTstamp(), applyLatency);
+
         commitSeqnoTable.updateLastCommitSeqno(taskId, header, applyLatency);
     }
 

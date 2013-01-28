@@ -166,7 +166,7 @@ public class InMemoryTransactionalQueueApplier implements ParallelApplier
         // Create a dummy last event.
         ReplDBMSHeaderData initHeader = new ReplDBMSHeaderData(-1, (short) 0,
                 true, null, -1, null, null, new Timestamp(
-                        System.currentTimeMillis()));
+                        System.currentTimeMillis()), 0);
         return initHeader;
     }
 

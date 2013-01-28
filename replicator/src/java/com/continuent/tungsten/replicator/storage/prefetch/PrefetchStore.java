@@ -414,11 +414,12 @@ public class PrefetchStore extends InMemoryQueueStore
                 String sourceId = rs.getString("source_id");
                 long epochNumber = rs.getLong("epoch_number");
                 String eventId = rs.getString("eventid");
-                header = new ReplDBMSHeaderData(seqno, fragno, lastFrag,
-                        sourceId, epochNumber, eventId, null, new Timestamp(0));
-
                 // Record current slave latency.
                 this.slaveLatency = rs.getLong("applied_latency");
+                header = new ReplDBMSHeaderData(seqno, fragno, lastFrag,
+                        sourceId, epochNumber, eventId, null, new Timestamp(0),
+                        slaveLatency);
+
             }
         }
         catch (SQLException e)
