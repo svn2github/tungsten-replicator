@@ -50,7 +50,6 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.csv.CsvException;
 import com.continuent.tungsten.common.csv.CsvWriter;
-import com.continuent.tungsten.common.exec.ProcessExecutor;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.applier.RawApplier;
 import com.continuent.tungsten.replicator.consistency.ConsistencyException;
@@ -129,8 +128,8 @@ public class SimpleBatchApplier implements RawApplier
     // Open CVS files in current transaction.
     private Map<String, CsvInfo>        openCsvFiles         = new TreeMap<String, CsvInfo>();
 
-    // Cached merge commands.
-    private BatchScript                 mergeScript          = new BatchScript();
+    // Script executor.
+    private ScriptExecutor              scriptExec;
 
     // Latest event.
     private ReplDBMSHeader              latestHeader;
@@ -432,7 +431,7 @@ public class SimpleBatchApplier implements RawApplier
         for (CsvInfo info : openCsvFiles.values())
         {
             clearStageTable(info);
-            mergeFromStageTable(info);
+            scriptExec.execute(info);
             loadCount++;
         }
 
@@ -509,16 +508,19 @@ public class SimpleBatchApplier implements RawApplier
         // Clear the CSV file cache.
         openCsvFiles.clear();
 
-        // Clear the load directories.
-        try
+        // Clear the load directories if desired.
+        if (cleanUpFiles)
         {
-            purgeDirIfExists(stageDir, false);
-        }
-        catch (ReplicatorException e)
-        {
-            logger.error(
-                    "Unable to purge staging directory; "
-                            + stageDir.getAbsolutePath(), e);
+            try
+            {
+                purgeDirIfExists(stageDir, false);
+            }
+            catch (ReplicatorException e)
+            {
+                logger.error(
+                        "Unable to purge staging directory; "
+                                + stageDir.getAbsolutePath(), e);
+            }
         }
     }
 
@@ -603,10 +605,6 @@ public class SimpleBatchApplier implements RawApplier
             logger.debug("Using output character set:"
                     + outputCharset.toString());
         }
-
-        // Initialize script for merge operations.
-        mergeScript = new BatchScript();
-        mergeScript.load(new File(stageMergeScript));
 
         // Set up the staging directory.
         File staging = new File(stageDirectory);
@@ -712,6 +710,24 @@ public class SimpleBatchApplier implements RawApplier
                 }
             }
         }
+
+        // Initialize script for merge operations.
+        if (stageMergeScript.toLowerCase().endsWith(".sql"))
+            scriptExec = new NativeScriptExecutor();
+        else if (stageMergeScript.toLowerCase().endsWith(".js"))
+            scriptExec = new JavascriptExecutor();
+        else
+        {
+            throw new ReplicatorException(
+                    "Unrecognized batch script suffix; only .js and .sql are supported: "
+                            + stageMergeScript);
+        }
+
+        // Set parameters and prepare.
+        scriptExec.setConnection(conn);
+        scriptExec.setScript(stageMergeScript);
+        scriptExec.setShowCommands(showCommands);
+        scriptExec.prepare(context);
     }
 
     // Initializes a SqlScriptGenerator.
@@ -1027,100 +1043,6 @@ public class SimpleBatchApplier implements RawApplier
                             + table.fullyQualifiedName(), e);
             re.setExtraData(delete);
             throw re;
-        }
-    }
-
-    // Load an open CSV file.
-    private void mergeFromStageTable(CsvInfo info) throws ReplicatorException
-    {
-        Table base = info.baseTableMetadata;
-        Table stage = info.stageTableMetadata;
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("Merging from stage table: "
-                    + stage.fullyQualifiedName());
-        }
-
-        // Get the commands(s) to merge from stage table to base table.
-        Map<String, String> parameters = info.getSqlParameters();
-        List<BatchCommand> commands = mergeScript
-                .getParameterizedScript(parameters);
-
-        // Execute merge commands one by one.
-        for (BatchCommand command : commands)
-        {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Executing merge command: " + command.toString());
-            }
-            String commandText = command.getCommand();
-            if (this.showCommands)
-            {
-                logger.info("Batch Command: " + commandText);
-            }
-
-            // Process command.
-            long start = System.currentTimeMillis();
-            if (commandText.startsWith("!"))
-            {
-                // Check for "bang" with no command following...
-                if (commandText.length() <= 1)
-                {
-                    // This must be ignored.
-                    continue;
-                }
-
-                String osCommandText = commandText.substring(1);
-                String[] osArray = {"sh", "-c", osCommandText};
-                ProcessExecutor pe = new ProcessExecutor();
-                pe.setCommands(osArray);
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("Executing OS command: " + osCommandText);
-                }
-                pe.run();
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("OS command stdout: " + pe.getStdout());
-                    logger.debug("OS command stderr: " + pe.getStderr());
-                    logger.debug("OS command exit value: " + pe.getExitValue());
-                }
-                if (!pe.isSuccessful())
-                {
-                    logger.error("OS command failed: command=" + osCommandText
-                            + " rc=" + pe.getExitValue() + " stdout="
-                            + pe.getStdout() + " stderr=" + pe.getStderr());
-                    throw new ReplicatorException("OS command failed: command="
-                            + osCommandText);
-                }
-            }
-            else
-            {
-                // SQL command.
-                try
-                {
-                    int rows = statement.executeUpdate(commandText);
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("SQL execution completed: rows updated="
-                                + rows);
-                    }
-                }
-                catch (SQLException e)
-                {
-                    ReplicatorException re = new ReplicatorException(
-                            "Unable to merge data to base table: "
-                                    + base.fullyQualifiedName(), e);
-                    re.setExtraData(command.toString());
-                    throw re;
-                }
-            }
-
-            double interval = (System.currentTimeMillis() - start) / 1000.0;
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Execution completed: duration=" + interval + "s");
-            }
         }
     }
 

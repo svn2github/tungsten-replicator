@@ -36,7 +36,7 @@ import org.junit.Test;
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  */
-public class TestBatchScript
+public class TestNativeBatch
 {
     /**
      * Test adding and recognizing comments on basic DDL statements.

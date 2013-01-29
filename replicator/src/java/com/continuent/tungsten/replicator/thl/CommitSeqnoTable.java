@@ -151,7 +151,7 @@ public class CommitSeqnoTable
                 .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency from "
                         + schema + "." + TABLE_NAME + " WHERE task_id=?");
         allSeqnoQuery = database
-                .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp from "
+                .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency from "
                         + schema + "." + TABLE_NAME);
 
         commitSeqnoUpdate = database.prepareStatement("UPDATE "
@@ -390,7 +390,7 @@ public class CommitSeqnoTable
         {
             // Scan task positions.
             allSeqnosQuery = database
-                    .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, task_id from "
+                    .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, task_id, applied_latency from "
                             + schema + "." + TABLE_NAME);
             String lastEventId = null;
             int rows = 0;

@@ -16,7 +16,7 @@ replicator.applier.dbms.stageColumnPrefix=tungsten_
 replicator.applier.dbms.stageTablePrefix=stage_xxx_
 replicator.applier.dbms.stageSchemaPrefix=
 replicator.applier.dbms.stageDirectory=/tmp/staging
-replicator.applier.dbms.stageMergeScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-merge.sql
+replicator.applier.dbms.stageMergeScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-merge.@{SERVICE.BATCH_LOAD_LANGUAGE}
 
 # Fail if there is a discrepancy between the number of rows loaded and the 
 # number of rows in CSV.  This is somewhat obsolete at this point. 
