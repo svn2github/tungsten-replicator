@@ -27,6 +27,9 @@ import java.text.MessageFormat;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.security.Encryptor;
+import com.continuent.tungsten.common.security.SecurityHelper;
 
 /**
  * Information class holding Authentication and Encryption parameters Some of
@@ -65,6 +68,7 @@ public final class AuthenticationInfo
     public final static String  KEYSTORE_PASSWORD              = "-keystorePassword";
     public final static String  TRUSTSTORE_LOCATION            = "-truststoreLocation";
     public final static String  TRUSTSTORE_PASSWORD            = "-truststorePassword";
+    public final static String  SECURITY_CONFIG_FILE_LOCATION  = "-securityProperties";
 
     // Defines Authentication Information flavor :
     // Server side :
@@ -134,6 +138,55 @@ public final class AuthenticationInfo
         return jmxProperties;
     }
 
+    /**
+     * Retrieve (encrypted) password from file
+     * 
+     * @throws ConfigurationException
+     */
+    public void retrievePasswordFromFile() throws ConfigurationException
+    {
+        TungstenProperties passwordProps = SecurityHelper
+                .LoadPasswordsFromFile(this);
+        String username = this.getUsername();
+        String goodPassword = passwordProps.get(username);
+        this.password = goodPassword;
+
+        if (goodPassword == null)
+            throw new ConfigurationException(
+                    MessageFormat
+                            .format("Cannot find password for username= {0} \n PasswordFile={1}",
+                                    username, this.getPasswordFileLocation()));
+    }
+
+    /**
+     * Returns the decrypted password
+     * 
+     * @return
+     * @throws ConfigurationException
+     */
+    public String getPassword() throws ConfigurationException
+    {
+        String clearTextPassword = this.password;
+        // --- Try to decrypt the password ---
+        if (this.useEncryptedPasswords)
+        {
+            Encryptor encryptor = new Encryptor(this);
+            clearTextPassword = encryptor.decrypt(this.password);
+        }
+        return clearTextPassword;
+    }
+
+    /**
+     * TODO: getEncryptedPassword definition.
+     * 
+     * @return the encrypted password if useEncryptedPasswords==true or the
+     *         clear text password otherwise
+     */
+    public String getEncryptedPassword()
+    {
+        return this.password;
+    }
+
     public void setKeystore(String keyStoreLocation, String keystorePassword)
     {
         this.setKeystoreLocation(keyStoreLocation);
@@ -150,7 +203,7 @@ public final class AuthenticationInfo
     public boolean isAuthenticationNeeded()
     {
         if (this.authUsage == AUTH_USAGE.CLIENT_SIDE
-                && (this.getUsername() != null || this.getPassword() != null))
+                && (this.username != null || this.password != null))
             this.authenticationNeeded = true;
 
         return authenticationNeeded;
@@ -184,11 +237,6 @@ public final class AuthenticationInfo
     public void setUsername(String username)
     {
         this.username = username;
-    }
-
-    public String getPassword()
-    {
-        return password;
     }
 
     public void setPassword(String password)

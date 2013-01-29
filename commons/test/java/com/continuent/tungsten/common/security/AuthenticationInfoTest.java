@@ -19,10 +19,13 @@
  * Initial developer(s): Ludovic Launer
  */
 
-package com.continuent.tungsten.common.jmx;
+package com.continuent.tungsten.common.security;
 
 import junit.framework.TestCase;
 
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.jmx.AuthenticationInfo;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.jmx.AuthenticationInfo.AUTH_USAGE;
 
 /**
@@ -156,6 +159,33 @@ public class AuthenticationInfoTest extends TestCase
         }
 
         assert (sreThrown);
+    }
+
+    /**
+     * Try to get a clear text password from a file containing encrypted
+     * passwords
+     * 
+     * @throws ConfigurationException
+     */
+    public void testgetPassword() throws ConfigurationException
+    {
+        AuthenticationInfo authenticationInfo = SecurityHelper
+                .getAuthenticationInformation("sample.security.properties",
+                        AUTH_USAGE.CLIENT_SIDE);
+        authenticationInfo.retrievePasswordFromFile();
+
+        // We shoudl be able to retrieve the encrypted password from the file
+        String encryptedPassword = authenticationInfo.getEncryptedPassword();
+        assertNotNull(encryptedPassword);
+
+        // We should be able to get the clear text passsword after decryption
+        String clearTextPassword = authenticationInfo.getPassword();
+        assertNotNull(clearTextPassword);
+
+        // Encrypted and decrypted passwords should be different
+        if (authenticationInfo.isUseEncryptedPasswords())
+            assertEquals(encryptedPassword.equals(clearTextPassword), false);
+
     }
 
 }

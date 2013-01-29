@@ -37,6 +37,7 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 
@@ -188,9 +189,14 @@ public class Encryptor
      * 
      * @param encryptedMessage
      * @return
+     * @throws ConfigurationException
      */
     public String decrypt(String encryptedMessage)
+            throws ConfigurationException
     {
+        if (encryptedMessage == null)
+            return null;
+
         String clearMessage = null;
         PublicKey publicKey = this.getPublicKey_from_Truststore();
 
@@ -212,7 +218,7 @@ public class Encryptor
         {
             String msg = MessageFormat.format(
                     "Cannot decrypt message. Error= {0}", e.getMessage());
-            throw new ServerRuntimeException(msg, e);
+            throw new ConfigurationException(msg);
         }
         return clearMessage;
     }

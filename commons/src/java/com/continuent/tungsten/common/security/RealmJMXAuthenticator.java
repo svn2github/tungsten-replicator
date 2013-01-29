@@ -22,9 +22,6 @@
 
 package com.continuent.tungsten.common.security;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Collections;
 
 import javax.management.remote.JMXAuthenticator;
@@ -36,23 +33,23 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.JmxManager;
-import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 
 public class RealmJMXAuthenticator implements JMXAuthenticator
 {
-    private static final Logger logger              = Logger.getLogger(JmxManager.class);
-    private TungstenProperties  passwordProps       = null;
+    private static final Logger logger                 = Logger.getLogger(JmxManager.class);
+    private TungstenProperties  passwordProps          = null;
 
-    private AuthenticationInfo  authenticationInfo  = null;
+    private AuthenticationInfo  authenticationInfo     = null;
 
-    private static final String INVALID_CREDENTIALS = "Invalid credentials";
+    private static final String INVALID_CREDENTIALS    = "Invalid credentials";
     private static final String AUTHENTICATION_PROBLEM = "Error while trying to authenticate";
 
     public RealmJMXAuthenticator(AuthenticationInfo authenticationInfo)
     {
         this.authenticationInfo = authenticationInfo;
 
-        this.passwordProps = this.LoadPasswordsFromFile();
+        this.passwordProps = SecurityHelper
+                .LoadPasswordsFromFile(authenticationInfo);
     }
 
     /**
@@ -77,13 +74,9 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
             // Password file syntax:
             // username=password
             String goodPassword = this.passwordProps.get(username);
-
-            // --- Decrypt password ---
-            if (this.authenticationInfo.isUseEncryptedPasswords())
-            {
-                Encryptor encryptor = new Encryptor(this.authenticationInfo);
-                goodPassword = encryptor.decrypt(goodPassword);
-            }
+            this.authenticationInfo.setPassword(goodPassword);
+            // Decrypt password if needed
+            goodPassword = this.authenticationInfo.getPassword();
 
             if (goodPassword.equals(password))
                 authenticationOK = true;
@@ -105,42 +98,6 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         {
             throw new SecurityException(INVALID_CREDENTIALS);
         }
-    }
-
-    /**
-     * Loads passwords into a TungstenProperties from a .properties file
-     * 
-     * @return TungstenProperties containing logins as key and passwords as
-     *         values
-     */
-    private TungstenProperties LoadPasswordsFromFile()
-    {
-        try
-        {
-            TungstenProperties newProps = new TungstenProperties();
-            newProps.load(
-                    new FileInputStream(this.authenticationInfo
-                            .getPasswordFileLocation()), false);
-            newProps.trim();
-            return newProps;
-        }
-        catch (FileNotFoundException e)
-        {
-            logger.error("Unable to find properties file: "
-                    + this.authenticationInfo.getPasswordFileLocation());
-            logger.debug("Properties search failure", e);
-            throw new ServerRuntimeException("Unable to find properties file: "
-                    + e.getMessage());
-        }
-        catch (IOException e)
-        {
-            logger.error("Unable to read properties file: "
-                    + this.authenticationInfo.getPasswordFileLocation());
-            logger.debug("Properties read failure", e);
-            throw new ServerRuntimeException("Unable to read properties file: "
-                    + e.getMessage());
-        }
-
     }
 
     /**

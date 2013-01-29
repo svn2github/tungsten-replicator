@@ -163,6 +163,9 @@
     		<fileset dir="${test.data.dir}">
     			<include name="*"/>
     		</fileset>
+    		<fileset dir="${conf.dir}">
+    		    <include name="*"/>
+    		</fileset>
    		</copy>
         <junit printsummary="yes" haltonfailure="no" fork="yes"
             dir="${test.work}" failureproperty="tests.failed">

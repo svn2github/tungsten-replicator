@@ -55,6 +55,7 @@ import javax.rmi.ssl.SslRMIServerSocketFactory;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.security.RealmJMXAuthenticator;
 
 /**
@@ -566,6 +567,11 @@ public class JmxManager implements NotificationListener
                                 + "javax.net.ssl.SSLHandshakeException: Server requires SSL.\n");
                 assertionError = new AssertionError(
                         "Encryption required by server");
+            }
+            else if (e instanceof ConfigurationException)
+            {
+                errorMessage = e.getMessage();
+                assertionError = new AssertionError("Configuration error");
             }
             // Other IOException
             else if (e instanceof IOException)

@@ -33,6 +33,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.AuthenticationInfo;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 
 /**
  * Helper class for security related topics
@@ -48,26 +49,39 @@ public class SecurityHelper
      * Loads Security related properties from a file. File location =
      * {clusterhome}/conf/security.properties
      * 
+     * @param propertiesFileLocation location of the security.properties file.
+     *            If set to null will look for the default file.
      * @return TungstenProperties containing security parameters
      * @throws ConfigurationException
      */
-    private static TungstenProperties loadPropertiesFromFile()
-            throws ConfigurationException
+    public static TungstenProperties loadPropertiesFromFile(
+            String propertiesFileLocation) throws ConfigurationException
     {
         TungstenProperties securityProps = null;
 
         // --- Get Configuration file ---
-        if (ClusterConfiguration.getClusterHome() == null)
+        if (propertiesFileLocation == null
+                && ClusterConfiguration.getClusterHome() == null)
         {
             throw new ConfigurationException(
                     "No cluster.home found from which to configure cluster resources.");
         }
 
-        ClusterConfiguration clusterConf = new ClusterConfiguration("Dummy");
-        File clusterConfDirectory = clusterConf.getDir(ClusterConfiguration
-                .getGlobalConfigDirName(ClusterConfiguration.getClusterHome()));
-        File securityPropertiesFile = new File(clusterConfDirectory.getPath(),
-                SecurityConf.SECURITY_PROPERTIES_FILE_NAME);
+        File securityPropertiesFile;
+        if (propertiesFileLocation == null) // Get from default location
+        {
+            ClusterConfiguration clusterConf = new ClusterConfiguration("Dummy");
+            File clusterConfDirectory = clusterConf.getDir(ClusterConfiguration
+                    .getGlobalConfigDirName(ClusterConfiguration
+                            .getClusterHome()));
+            securityPropertiesFile = new File(clusterConfDirectory.getPath(),
+                    SecurityConf.SECURITY_PROPERTIES_FILE_NAME);
+        }
+        else
+        // Get from supplied location
+        {
+            securityPropertiesFile = new File(propertiesFileLocation);
+        }
 
         // --- Get properties ---
         try
@@ -98,11 +112,50 @@ public class SecurityHelper
                 securityPropertiesFile.getPath()));
         return securityProps;
     }
+    
+    /**
+     * Loads passwords from a TungstenProperties from a .properties file
+     * 
+     * @return TungstenProperties containing logins as key and passwords as
+     *         values
+     */
+    public static TungstenProperties LoadPasswordsFromFile(AuthenticationInfo authenticationInfo)
+    {
+        try
+        {
+            TungstenProperties newProps = new TungstenProperties();
+            newProps.load(
+                    new FileInputStream(authenticationInfo
+                            .getPasswordFileLocation()), false);
+            newProps.trim();
+            return newProps;
+        }
+        catch (FileNotFoundException e)
+        {
+            logger.error("Unable to find properties file: "
+                    + authenticationInfo.getPasswordFileLocation());
+            logger.debug("Properties search failure", e);
+            throw new ServerRuntimeException("Unable to find properties file: "
+                    + e.getMessage());
+        }
+        catch (IOException e)
+        {
+            logger.error("Unable to read properties file: "
+                    + authenticationInfo.getPasswordFileLocation());
+            logger.debug("Properties read failure", e);
+            throw new ServerRuntimeException("Unable to read properties file: "
+                    + e.getMessage());
+        }
+
+    }
+    
 
     /**
      * Retrieves Authentication and Encryption parameters from
      * service.properties file
      * 
+     * @param propertiesFileLocation Location of the security.properties file. If set to null, will try to locate default file.
+     * @param authUsage
      * @return AuthenticationInfo
      * @throws ConfigurationException
      * @throws ReplicatorException
@@ -110,48 +163,50 @@ public class SecurityHelper
     public static AuthenticationInfo getAuthenticationInformation()
             throws ConfigurationException
     {
+        return getAuthenticationInformation(null, AuthenticationInfo.AUTH_USAGE.SERVER_SIDE);
+    }
 
-        TungstenProperties tungsteProperties = loadPropertiesFromFile();
+    public static AuthenticationInfo getAuthenticationInformation(
+            String propertiesFileLocation, AuthenticationInfo.AUTH_USAGE authUsage) throws ConfigurationException
+    {
+        TungstenProperties securityProperties = loadPropertiesFromFile(propertiesFileLocation);
 
-        AuthenticationInfo authInfo = new AuthenticationInfo(
-                AuthenticationInfo.AUTH_USAGE.SERVER_SIDE);
-
-        // Make a copy of the TungstenProperties so that we can Trim
-        TungstenProperties jmxProperties = new TungstenProperties(
-                tungsteProperties.hashMap());
+        AuthenticationInfo authInfo = new AuthenticationInfo(authUsage);
 
         // Authorisation and/or encryption
-        jmxProperties.trim(); // Remove white spaces
-        boolean useAuthentication = jmxProperties.getBoolean(
+        securityProperties.trim(); // Remove white spaces
+        boolean useAuthentication = securityProperties.getBoolean(
                 SecurityConf.SECURITY_USE_AUTHENTICATION,
                 SecurityConf.SECURITY_USE_AUTHENTICATION_DEFAULT, false);
-        boolean useEncryption = jmxProperties.getBoolean(
+        boolean useEncryption = securityProperties.getBoolean(
                 SecurityConf.SECURITY_USE_ENCRYPTION,
                 SecurityConf.SECURITY_USE_ENCRYPTION_DEFAULT, false);
-        boolean useTungstenAuthenticationRealm = jmxProperties
+        boolean useTungstenAuthenticationRealm = securityProperties
                 .getBoolean(
                         SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM,
                         SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT,
                         false);
-        boolean useEncryptedPassword = jmxProperties
+        boolean useEncryptedPassword = securityProperties
                 .getBoolean(
                         SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
                         SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT,
                         false);
 
         // Retrieve properties
-        String passwordFileLocation = jmxProperties
+        String passwordFileLocation = securityProperties
                 .getString(SecurityConf.SECURITY_PASSWORD_FILE_LOCATION);
-        String accessFileLocation = jmxProperties
+        String accessFileLocation = securityProperties
                 .getString(SecurityConf.SECURITY_ACCESS_FILE_LOCATION);
-        String keystoreLocation = jmxProperties
+        String keystoreLocation = securityProperties
                 .getString(SecurityConf.SECURITY_KEYSTORE_LOCATION);
-        String keystorePassword = jmxProperties
+        String keystorePassword = securityProperties
                 .getString(SecurityConf.SECURITY_KEYSTORE_PASSWORD);
-        String truststoreLocation = jmxProperties
+        String truststoreLocation = securityProperties
                 .getString(SecurityConf.SECURITY_TRUSTSTORE_LOCATION);
-        String truststorePassword = jmxProperties
+        String truststorePassword = securityProperties
                 .getString(SecurityConf.SECURITY_TRUSTSTORE_PASSWORD);
+        String userName = securityProperties
+                .getString(SecurityConf.SECURITY_USERNAME, null, false);
 
         // Populate return object
         authInfo.setAuthenticationNeeded(useAuthentication);
@@ -164,6 +219,7 @@ public class SecurityHelper
         authInfo.setKeystorePassword(keystorePassword);
         authInfo.setTruststoreLocation(truststoreLocation);
         authInfo.setTruststorePassword(truststorePassword);
+        authInfo.setUsername(userName);
 
         return authInfo;
     }
