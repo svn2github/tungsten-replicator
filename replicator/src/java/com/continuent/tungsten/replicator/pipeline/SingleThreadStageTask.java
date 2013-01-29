@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -336,27 +336,32 @@ public class SingleThreadStageTask implements Runnable
                 }
                 currentEvent = event;
 
-                // Run filters.
-                taskProgress.beginFilterInterval();
-
-                try
+                // Run filters, unless the event we are looking at is already
+                // filtered. Filtering twice does not really makes sense and
+                // makes filters themselves harder to write.
+                if (!(event instanceof ReplDBMSFilteredEvent))
                 {
-                    for (Filter f : filters)
+                    taskProgress.beginFilterInterval();
+
+                    try
                     {
-                        if ((event = f.filter(event)) == null)
+                        for (Filter f : filters)
                         {
-                            if (logger.isDebugEnabled())
+                            if ((event = f.filter(event)) == null)
                             {
-                                logger.debug("Event discarded by filter: name="
-                                        + f.getClass().toString());
+                                if (logger.isDebugEnabled())
+                                {
+                                    logger.debug("Event discarded by filter: name="
+                                            + f.getClass().toString());
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
-                }
-                finally
-                {
-                    taskProgress.endFilterInterval();
+                    finally
+                    {
+                        taskProgress.endFilterInterval();
+                    }
                 }
 
                 // Event was filtered... Get next event.
@@ -748,8 +753,10 @@ public class SingleThreadStageTask implements Runnable
         }
     }
 
-    public void reportInitialPosition(ReplDBMSHeader lastHeader) throws InterruptedException
+    public void reportInitialPosition(ReplDBMSHeader lastHeader)
+            throws InterruptedException
     {
-        stage.getProgressTracker().setInitialLastProcessedEvent(getTaskId(), lastHeader);
+        stage.getProgressTracker().setInitialLastProcessedEvent(getTaskId(),
+                lastHeader);
     }
 }
