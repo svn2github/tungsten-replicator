@@ -23,7 +23,6 @@
 package com.continuent.tungsten.replicator.management;
 
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -51,12 +50,15 @@ import com.continuent.tungsten.common.cluster.resource.OpenReplicatorParams;
 import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
 import com.continuent.tungsten.common.cluster.resource.physical.ReplicatorCapabilities;
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.csv.CsvReader;
 import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.common.exec.ArgvIterator;
 import com.continuent.tungsten.common.jmx.AuthenticationInfo;
+import com.continuent.tungsten.common.jmx.AuthenticationInfo.AUTH_USAGE;
 import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.security.SecurityHelper;
 import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
@@ -74,29 +76,30 @@ import com.continuent.tungsten.replicator.shard.ShardTable;
  */
 public class OpenReplicatorManagerCtrl
 {
-    private static Logger                  logger               = Logger.getLogger(OpenReplicatorManagerCtrl.class);
+    private static Logger                  logger                         = Logger.getLogger(OpenReplicatorManagerCtrl.class);
     // Statics to read from stdin.
-    private static InputStreamReader       converter            = new InputStreamReader(
-                                                                        System.in);
-    private static BufferedReader          stdin                = new BufferedReader(
-                                                                        converter);
+    private static InputStreamReader       converter                      = new InputStreamReader(
+                                                                                  System.in);
+    private static BufferedReader          stdin                          = new BufferedReader(
+                                                                                  converter);
 
     // Instance variables.
-    private boolean                        verbose              = false;
-    private boolean                        expectLostConnection = false;
+    private boolean                        verbose                        = false;
+    private boolean                        expectLostConnection           = false;
     private ArgvIterator                   argvIterator;
-    private JMXConnector                   conn                 = null;
-    private ReplicationServiceManagerMBean serviceManagerMBean  = null;
-    private OpenReplicatorManagerMBean     openReplicatorMBean  = null;
-    private ShardManagerMBean              shardMBean           = null;
+    private JMXConnector                   conn                           = null;
+    private ReplicationServiceManagerMBean serviceManagerMBean            = null;
+    private OpenReplicatorManagerMBean     openReplicatorMBean            = null;
+    private ShardManagerMBean              shardMBean                     = null;
 
     // JMX connection parameters.
     private String                         rmiHost;
     private int                            rmiPort;
     private String                         service;
-    private int                            connectDelay         = 10;
+    private int                            connectDelay                   = 10;
     // Authentication and Encryption information
-    private AuthenticationInfo             authenticationInfo   = null;
+    private AuthenticationInfo             authenticationInfo             = null;
+    private String                         securityPropertiesFileLocation = null;
 
     OpenReplicatorManagerCtrl(String[] argv)
     {
@@ -113,14 +116,10 @@ public class OpenReplicatorManagerCtrl
         println("  -service name                - Name of replicator service [default: none]");
         println("  -verbose                     - Print verbose messages");
         println("  -retry N                     - Retry connections up to N times [default: 10]");
-        println("  " + AuthenticationInfo.USERNAME
-                + " u                  - Set RMI/JMX username as u");
-        println("  " + AuthenticationInfo.PASSWORD
-                + " p                  - Set RMI/JMX password as p");
-        println("  " + AuthenticationInfo.TRUSTSTORE_LOCATION
-                + " t        - Path to Trustore location for SSL encryption");
-        println("  " + AuthenticationInfo.TRUSTSTORE_PASSWORD
-                + " tp       - Truststore password for SSL encryption");
+        println("Security Properties:");
+        println("  "
+                + AuthenticationInfo.SECURITY_CONFIG_FILE_LOCATION
+                + " sl       - Location of the security properties file. By default file located in {clusterhome}/security.properties will be used.");
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
         println("  services                     - List replication services");
@@ -190,16 +189,7 @@ public class OpenReplicatorManagerCtrl
         String curArg = null;
         try
         {
-            // Check if Authentication or Encryption will be used
-            if (argvIterator.contains(AuthenticationInfo.USERNAME)
-                    || argvIterator.contains(AuthenticationInfo.PASSWORD)
-                    || argvIterator
-                            .contains(AuthenticationInfo.TRUSTSTORE_LOCATION)
-                    || argvIterator
-                            .contains(AuthenticationInfo.TRUSTSTORE_PASSWORD))
-                authenticationInfo = new AuthenticationInfo(
-                        AuthenticationInfo.AUTH_USAGE.CLIENT_SIDE);
-
+            // --- Browse through command line parameters ---
             while (argvIterator.hasNext())
             {
                 curArg = argvIterator.next();
@@ -232,17 +222,12 @@ public class OpenReplicatorManagerCtrl
                         }
                     }
                 }
-                // Authentication and Encryption parameters
-                else if (AuthenticationInfo.USERNAME.equals(curArg))
-                    authenticationInfo.setUsername(argvIterator.next());
-                else if (AuthenticationInfo.PASSWORD.equals(curArg))
-                    authenticationInfo.setPassword(argvIterator.next());
-                else if (AuthenticationInfo.TRUSTSTORE_LOCATION.equals(curArg))
-                    authenticationInfo.setTruststoreLocation(argvIterator
-                            .next());
-                else if (AuthenticationInfo.TRUSTSTORE_PASSWORD.equals(curArg))
-                    authenticationInfo.setTruststorePassword(argvIterator
-                            .next());
+                // Authentication and Encryption from a properties file
+                else if (AuthenticationInfo.SECURITY_CONFIG_FILE_LOCATION
+                        .equals(curArg))
+                {
+                    securityPropertiesFileLocation = argvIterator.next();
+                }
 
                 else if (curArg.startsWith("-"))
                 {
@@ -255,22 +240,30 @@ public class OpenReplicatorManagerCtrl
                 }
             }
 
-            // --- Prompts user for password if needed ---
-            if (argvIterator.contains(AuthenticationInfo.USERNAME)
-                    && !argvIterator.contains(AuthenticationInfo.PASSWORD))
+            // --- Try to get Security information from properties file ---
+            // If securityPropertiesFileLocation==null will try to locate
+            // default file
+            try
             {
-                String promptMessage = MessageFormat.format(
-                        "Enter password for user {0}:",
-                        authenticationInfo.getUsername());
+                authenticationInfo = SecurityHelper
+                        .getAuthenticationInformation(
+                                securityPropertiesFileLocation,
+                                AUTH_USAGE.CLIENT_SIDE);
+                authenticationInfo.retrievePasswordFromFile();
 
-                Console console = System.console();
-                if (console != null)
-                {
-                    char[] userPassword = console.readPassword(promptMessage);
-                    String password = new String(userPassword);
-                    authenticationInfo.setPassword(password);
-                }
             }
+            catch (ConfigurationException ce)
+            {
+                logger.warn(MessageFormat.format(
+                        "Configuration error in file: {0}", ce.getMessage()));
+            }
+            catch (ServerRuntimeException sre)
+            {
+                logger.error(MessageFormat.format(
+                        "Could not get authentication information : {0}",
+                        sre.getMessage()));
+            }
+
         }
         catch (NumberFormatException e)
         {
