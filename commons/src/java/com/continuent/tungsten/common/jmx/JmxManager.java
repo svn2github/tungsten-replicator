@@ -138,8 +138,10 @@ public class JmxManager implements NotificationListener
         JmxManager.beanPort = -1;
 
         // Authentication and encryption parameters
-        authenticationInfo = (AuthenticationInfo) tungstenProperty.getObject(
-                AuthenticationInfo.AUTHENTICATION_INFO_PROPERTY, null, false);
+        if (tungstenProperty != null)
+            authenticationInfo = (AuthenticationInfo) tungstenProperty
+                    .getObject(AuthenticationInfo.AUTHENTICATION_INFO_PROPERTY,
+                            null, false);
     }
 
     /**

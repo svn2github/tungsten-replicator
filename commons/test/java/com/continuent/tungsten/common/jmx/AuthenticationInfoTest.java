@@ -34,7 +34,10 @@ import com.continuent.tungsten.common.jmx.AuthenticationInfo.AUTH_USAGE;
 public class AuthenticationInfoTest extends TestCase
 {
     /**
-     * Tests AuthenticationNeeded and EncryptionNeeded automatic set
+     * Tests AuthenticationNeeded and EncryptionNeeded automatic set This tests
+     * that the isAuthenticationNeeded parameters is automatically set to true
+     * when a username or password is set on the client side On the server side,
+     * this should not be automatically set.
      */
     public void testIsAuthenticationNeeded() throws Exception
     {
@@ -80,6 +83,12 @@ public class AuthenticationInfoTest extends TestCase
 
     }
 
+    /**
+     * Tests AuthenticationNeeded and EncryptionNeeded automatic set This tests
+     * that the isEncryptionNeeded parameters is automatically set to true when
+     * a trustorelocation is set On the server side, this should not be
+     * automatically set.
+     */
     public void testIsEncryptionNeeded() throws Exception
     {
         // --- Client Side ---
@@ -121,6 +130,13 @@ public class AuthenticationInfoTest extends TestCase
         assertEquals(authInfo.isEncryptionNeeded(), false);
     }
 
+    /**
+     * Client side: checks that if a trustorelocation is set, the
+     * checkAuthenticationInfo verifies that the trustore existe If it doesn't,
+     * it throws an exception with a non null cause.
+     * 
+     * @throws Exception
+     */
     public void testCheckAuthenticationInfo() throws Exception
     {
         AuthenticationInfo authInfo = new AuthenticationInfo(
