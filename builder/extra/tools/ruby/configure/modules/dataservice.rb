@@ -986,8 +986,19 @@ class BatchLoadTemplate < ConfigurePrompt
   include BatchModule
 
   def initialize
-    super(BATCH_LOAD_TEMPLATE, "Value for the loadBatchTemplate property", 
+    super(BATCH_LOAD_TEMPLATE, "Which batch load template family to use", 
       PV_IDENTIFIER, "mysql")
+  end
+end
+
+class BatchLoadLanguage < ConfigurePrompt
+  include ReplicationServicePrompt
+  include BatchModule
+
+  def initialize
+    super(BATCH_LOAD_LANGUAGE, 
+      "Which script language to use for batch loading (js|sql)", 
+      PropertyValidator.new("sql|js", "Value must be sql or js"), "sql")
   end
 end
 
