@@ -116,10 +116,11 @@ public class OpenReplicatorManagerCtrl
         println("  -service name                - Name of replicator service [default: none]");
         println("  -verbose                     - Print verbose messages");
         println("  -retry N                     - Retry connections up to N times [default: 10]");
-        println("Security Properties:");
-        println("  "
-                + AuthenticationInfo.SECURITY_CONFIG_FILE_LOCATION
-                + " sl       - Location of the security properties file. By default file located in {clusterhome}/security.properties will be used.");
+//TODO: uncomment when releasing security related features
+//        println("Security Properties:");
+//        println("  "
+//                + AuthenticationInfo.SECURITY_CONFIG_FILE_LOCATION
+//                + " sl       - Location of the security properties file. By default file located in {clusterhome}/security.properties will be used.");
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
         println("  services                     - List replication services");
