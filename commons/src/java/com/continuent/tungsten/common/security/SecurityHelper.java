@@ -32,7 +32,6 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
-import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 
 /**

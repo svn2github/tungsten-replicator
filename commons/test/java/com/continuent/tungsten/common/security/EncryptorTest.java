@@ -25,8 +25,7 @@ import java.security.KeyPair;
 
 import junit.framework.TestCase;
 
-import com.continuent.tungsten.common.jmx.AuthenticationInfo;
-import com.continuent.tungsten.common.jmx.AuthenticationInfo.AUTH_USAGE;
+import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 
 /**
  * Implements a simple unit test for AuthenticationInfo

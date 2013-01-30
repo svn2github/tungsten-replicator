@@ -56,6 +56,7 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.security.AuthenticationInfo;
 import com.continuent.tungsten.common.security.RealmJMXAuthenticator;
 
 /**

@@ -31,9 +31,14 @@ import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
-import com.continuent.tungsten.common.jmx.AuthenticationInfo;
 import com.continuent.tungsten.common.jmx.JmxManager;
 
+/**
+ * Custom Authentication Realm
+ * 
+ * @author <a href="mailto:ludovic.launer@continuent.com">Ludovic Launer</a>
+ * @version 1.0
+ */
 public class RealmJMXAuthenticator implements JMXAuthenticator
 {
     private static final Logger logger                 = Logger.getLogger(JmxManager.class);

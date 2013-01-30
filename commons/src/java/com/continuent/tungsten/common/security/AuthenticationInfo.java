@@ -19,7 +19,7 @@
  * Initial developer(s): Ludovic Launer
  */
 
-package com.continuent.tungsten.common.jmx;
+package com.continuent.tungsten.common.security;
 
 import java.io.File;
 import java.text.MessageFormat;
@@ -28,8 +28,7 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
-import com.continuent.tungsten.common.security.Encryptor;
-import com.continuent.tungsten.common.security.SecurityHelper;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 
 /**
  * Information class holding Authentication and Encryption parameters Some of
