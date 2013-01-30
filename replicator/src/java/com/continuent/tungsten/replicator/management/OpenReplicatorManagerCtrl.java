@@ -254,12 +254,12 @@ public class OpenReplicatorManagerCtrl
             }
             catch (ConfigurationException ce)
             {
-                logger.warn(MessageFormat.format(
-                        "Configuration error in file: {0}", ce.getMessage()));
+                logger.debug(MessageFormat.format(
+                        "Configuration error: {0}", ce.getMessage()));
             }
             catch (ServerRuntimeException sre)
             {
-                logger.error(MessageFormat.format(
+                logger.debug(MessageFormat.format(
                         "Could not get authentication information : {0}",
                         sre.getMessage()));
             }
