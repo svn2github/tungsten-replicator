@@ -8,6 +8,12 @@ replicator.filter.shardfilter.enabled=true
 # and error.
 replicator.filter.shardfilter.unknownShardPolicy=error
 
+
+# Policy for handling unwanted shards.  Used in combination with enforceHome
+# Legal values are accept, drop, warn, and error.
+replicator.filter.shardfilter.unwantedShardPolicy=error
+
+
 # Decide whether to enforce homes.  If unset, we allow all shards. 
 replicator.filter.shardfilter.enforceHome=false
 
