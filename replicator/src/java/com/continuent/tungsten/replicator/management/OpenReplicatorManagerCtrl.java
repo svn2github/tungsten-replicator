@@ -247,7 +247,7 @@ public class OpenReplicatorManagerCtrl
             try
             {
                 authenticationInfo = SecurityHelper
-                        .getAuthenticationInformation(
+                        .loadAuthenticationInformation(
                                 securityPropertiesFileLocation,
                                 AUTH_USAGE.CLIENT_SIDE);
                 authenticationInfo.retrievePasswordFromFile();
@@ -401,12 +401,12 @@ public class OpenReplicatorManagerCtrl
                 if (authenticationInfo != null)
                     authenticationInfo.checkAuthenticationInfo();
 
-                TungstenProperties jmxProperties = (authenticationInfo != null)
+                TungstenProperties securityProperties = (authenticationInfo != null)
                         ? authenticationInfo.getAsTungstenProperties()
                         : null;
 
                 conn = JmxManager.getRMIConnector(rmiHost, rmiPort,
-                        ReplicatorConf.RMI_DEFAULT_SERVICE_NAME, jmxProperties);
+                        ReplicatorConf.RMI_DEFAULT_SERVICE_NAME, securityProperties);
             }
             catch (Exception e)
             {

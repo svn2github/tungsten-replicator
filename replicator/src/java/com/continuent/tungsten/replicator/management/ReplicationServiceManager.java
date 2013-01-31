@@ -107,7 +107,7 @@ public class ReplicationServiceManager
         try
         {
             AuthenticationInfo authenticationInfo = SecurityHelper
-                    .getAuthenticationInformation();
+                    .loadAuthenticationInformation();
             jmxProperties = authenticationInfo.getAsTungstenProperties();
         }
         catch (ConfigurationException ce)
