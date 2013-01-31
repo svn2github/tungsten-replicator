@@ -231,7 +231,7 @@ public class ShardManager implements ShardManagerMBean
     private Database getConnection() throws SQLException
     {
         Database db = null;
-        db = DatabaseFactory.createDatabase(url, user, password);
+        db = DatabaseFactory.createDatabase(url, user, password, true);
         db.connect(false);
 
         return db;
