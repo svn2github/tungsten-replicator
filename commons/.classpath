@@ -2,6 +2,7 @@
 <classpath>
 	<classpathentry kind="lib" path="conf"/>
 	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar" sourcepath="lib/log4j-1.2.16-sources.jar"/>
+	<classpathentry kind="lib" path="lib/commons-cli-1.2.jar"/>
 	<classpathentry kind="src" path="src/java"/>
 	<classpathentry kind="src" path="test/java"/>
 	<classpathentry kind="lib" path="lib-test/junit-4.4.jar" sourcepath="lib-test/junit-4.4-src.zip"/>
