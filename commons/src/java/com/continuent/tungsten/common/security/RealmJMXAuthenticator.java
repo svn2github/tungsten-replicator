@@ -54,7 +54,7 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         this.authenticationInfo = authenticationInfo;
 
         this.passwordProps = SecurityHelper
-                .LoadPasswordsFromFile(authenticationInfo);
+                .loadPasswordsFromAuthenticationInfo(authenticationInfo);
     }
 
     /**

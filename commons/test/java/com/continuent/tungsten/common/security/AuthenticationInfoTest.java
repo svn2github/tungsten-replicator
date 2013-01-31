@@ -169,7 +169,7 @@ public class AuthenticationInfoTest extends TestCase
     public void testgetPassword() throws ConfigurationException
     {
         AuthenticationInfo authenticationInfo = SecurityHelper
-                .getAuthenticationInformation("sample.security.properties",
+                .loadAuthenticationInformation("sample.security.properties",
                         AUTH_USAGE.CLIENT_SIDE);
         authenticationInfo.retrievePasswordFromFile();
 

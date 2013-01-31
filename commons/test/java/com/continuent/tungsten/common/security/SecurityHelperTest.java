@@ -35,21 +35,6 @@ import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
  */
 public class SecurityHelperTest extends TestCase
 {
-
-    /**
-     * Test we can retrieve properties from the sample.security.properties file
-     * 
-     * @throws ConfigurationException
-     */
-    public void testLoadPropertiesFromFile() throws ConfigurationException
-    {
-
-        // This should not be null if we retrieve passwords from the file
-        TungstenProperties tungsteProperties = SecurityHelper
-                .loadPropertiesFromFile("sample.security.properties");
-        assertNotNull(tungsteProperties);
-    }
-
     /**
      * Test we can retrieve passwords from the passwords.store file
      * 
@@ -63,7 +48,7 @@ public class SecurityHelperTest extends TestCase
 
         // This should not be null if we retrieve passwords from the file
         TungstenProperties tungsteProperties = SecurityHelper
-                .LoadPasswordsFromFile(authenticationInfo);
+                .loadPasswordsFromAuthenticationInfo(authenticationInfo);
         assertNotNull(tungsteProperties);
     }
 
@@ -73,17 +58,17 @@ public class SecurityHelperTest extends TestCase
      * 
      * @throws ConfigurationException
      */
-    public void testGetAuthenticationInformation()
+    public void testloadAuthenticationInformation()
             throws ConfigurationException
     {
         // Get authInfo from the configuration file on the CLIENT_SIDE
         AuthenticationInfo authInfo = SecurityHelper
-                .getAuthenticationInformation("sample.security.properties",
+                .loadAuthenticationInformation("sample.security.properties",
                         AUTH_USAGE.CLIENT_SIDE);
         assertNotNull(authInfo);
 
         // Get authInfo from the configuration file on the SERVER_SIDE
-        authInfo = SecurityHelper.getAuthenticationInformation(
+        authInfo = SecurityHelper.loadAuthenticationInformation(
                 "sample.security.properties", AUTH_USAGE.SERVER_SIDE);
         assertNotNull(authInfo);
 
@@ -91,7 +76,7 @@ public class SecurityHelperTest extends TestCase
         ConfigurationException configurationException = null;
         try
         {
-            authInfo = SecurityHelper.getAuthenticationInformation(
+            authInfo = SecurityHelper.loadAuthenticationInformation(
                     "sample.security.properties_DOES_NOT_EXIST",
                     AUTH_USAGE.CLIENT_SIDE);
         }

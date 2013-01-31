@@ -45,6 +45,130 @@ public class SecurityHelper
     private static final Logger logger = Logger.getLogger(SecurityHelper.class);
 
     /**
+     * Loads passwords from a TungstenProperties from a .properties file
+     * 
+     * @return TungstenProperties containing logins as key and passwords as
+     *         values
+     */
+    public static TungstenProperties loadPasswordsFromAuthenticationInfo(
+            AuthenticationInfo authenticationInfo) throws ServerRuntimeException
+    {
+        try
+        {
+            String passwordFileLocation = authenticationInfo
+                    .getPasswordFileLocation();
+            TungstenProperties newProps = new TungstenProperties();
+            newProps.load(new FileInputStream(passwordFileLocation), false);
+            newProps.trim();
+            logger.debug(MessageFormat.format("Passwords loaded from: {0}",
+                    passwordFileLocation));
+            return newProps;
+        }
+        catch (FileNotFoundException e)
+        {
+            logger.error("Unable to find properties file: "
+                    + authenticationInfo.getPasswordFileLocation());
+            logger.debug("Properties search failure", e);
+            throw new ServerRuntimeException("Unable to find password file: "
+                    + e.getMessage());
+        }
+        catch (IOException e)
+        {
+            logger.error("Unable to read properties file: "
+                    + authenticationInfo.getPasswordFileLocation());
+            logger.debug("Properties read failure", e);
+            throw new ServerRuntimeException("Unable to read password file: "
+                    + e.getMessage());
+        }
+
+    }
+
+    /**
+     * Loads Authentication and Encryption parameters from default location for
+     * service.properties file
+     * 
+     * @return
+     * @throws ConfigurationException
+     */
+    public static AuthenticationInfo loadAuthenticationInformation()
+            throws ConfigurationException
+    {
+        return loadAuthenticationInformation(null,
+                AuthenticationInfo.AUTH_USAGE.SERVER_SIDE);
+    }
+
+    /**
+     * Loads Authentication and Encryption parameters from service.properties
+     * file
+     * 
+     * @param propertiesFileLocation Location of the security.properties file.
+     *            If set to null, will try to locate default file.
+     * @param authUsage
+     * @return AuthenticationInfo
+     * @throws ConfigurationException
+     * @throws ReplicatorException
+     */
+    public static AuthenticationInfo loadAuthenticationInformation(
+            String propertiesFileLocation,
+            AuthenticationInfo.AUTH_USAGE authUsage)
+            throws ConfigurationException
+    {
+        TungstenProperties securityProperties = loadSecurityPropertiesFromFile(propertiesFileLocation);
+
+        AuthenticationInfo authInfo = new AuthenticationInfo(authUsage);
+
+        // Authorisation and/or encryption
+        securityProperties.trim(); // Remove white spaces
+        boolean useAuthentication = securityProperties.getBoolean(
+                SecurityConf.SECURITY_USE_AUTHENTICATION,
+                SecurityConf.SECURITY_USE_AUTHENTICATION_DEFAULT, false);
+        boolean useEncryption = securityProperties.getBoolean(
+                SecurityConf.SECURITY_USE_ENCRYPTION,
+                SecurityConf.SECURITY_USE_ENCRYPTION_DEFAULT, false);
+        boolean useTungstenAuthenticationRealm = securityProperties
+                .getBoolean(
+                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM,
+                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT,
+                        false);
+        boolean useEncryptedPassword = securityProperties
+                .getBoolean(
+                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
+                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT,
+                        false);
+
+        // Retrieve properties
+        String passwordFileLocation = securityProperties
+                .getString(SecurityConf.SECURITY_PASSWORD_FILE_LOCATION);
+        String accessFileLocation = securityProperties
+                .getString(SecurityConf.SECURITY_ACCESS_FILE_LOCATION);
+        String keystoreLocation = securityProperties
+                .getString(SecurityConf.SECURITY_KEYSTORE_LOCATION);
+        String keystorePassword = securityProperties
+                .getString(SecurityConf.SECURITY_KEYSTORE_PASSWORD);
+        String truststoreLocation = securityProperties
+                .getString(SecurityConf.SECURITY_TRUSTSTORE_LOCATION);
+        String truststorePassword = securityProperties
+                .getString(SecurityConf.SECURITY_TRUSTSTORE_PASSWORD);
+        String userName = securityProperties.getString(
+                SecurityConf.SECURITY_USERNAME, null, false);
+
+        // Populate return object
+        authInfo.setAuthenticationNeeded(useAuthentication);
+        authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
+        authInfo.setUseEncryptedPasswords(useEncryptedPassword);
+        authInfo.setEncryptionNeeded(useEncryption);
+        authInfo.setPasswordFileLocation(passwordFileLocation);
+        authInfo.setAccessFileLocation(accessFileLocation);
+        authInfo.setKeystoreLocation(keystoreLocation);
+        authInfo.setKeystorePassword(keystorePassword);
+        authInfo.setTruststoreLocation(truststoreLocation);
+        authInfo.setTruststorePassword(truststorePassword);
+        authInfo.setUsername(userName);
+
+        return authInfo;
+    }
+
+    /**
      * Loads Security related properties from a file. File location =
      * {clusterhome}/conf/security.properties
      * 
@@ -53,7 +177,7 @@ public class SecurityHelper
      * @return TungstenProperties containing security parameters
      * @throws ConfigurationException
      */
-    public static TungstenProperties loadPropertiesFromFile(
+    private static TungstenProperties loadSecurityPropertiesFromFile(
             String propertiesFileLocation) throws ConfigurationException
     {
         TungstenProperties securityProps = null;
@@ -111,115 +235,5 @@ public class SecurityHelper
                 securityPropertiesFile.getPath()));
         return securityProps;
     }
-    
-    /**
-     * Loads passwords from a TungstenProperties from a .properties file
-     * 
-     * @return TungstenProperties containing logins as key and passwords as
-     *         values
-     */
-    public static TungstenProperties LoadPasswordsFromFile(AuthenticationInfo authenticationInfo)
-    {
-        try
-        {
-            TungstenProperties newProps = new TungstenProperties();
-            newProps.load(
-                    new FileInputStream(authenticationInfo
-                            .getPasswordFileLocation()), false);
-            newProps.trim();
-            return newProps;
-        }
-        catch (FileNotFoundException e)
-        {
-            logger.error("Unable to find properties file: "
-                    + authenticationInfo.getPasswordFileLocation());
-            logger.debug("Properties search failure", e);
-            throw new ServerRuntimeException("Unable to find properties file: "
-                    + e.getMessage());
-        }
-        catch (IOException e)
-        {
-            logger.error("Unable to read properties file: "
-                    + authenticationInfo.getPasswordFileLocation());
-            logger.debug("Properties read failure", e);
-            throw new ServerRuntimeException("Unable to read properties file: "
-                    + e.getMessage());
-        }
 
-    }
-    
-
-    /**
-     * Retrieves Authentication and Encryption parameters from
-     * service.properties file
-     * 
-     * @param propertiesFileLocation Location of the security.properties file. If set to null, will try to locate default file.
-     * @param authUsage
-     * @return AuthenticationInfo
-     * @throws ConfigurationException
-     * @throws ReplicatorException
-     */
-    public static AuthenticationInfo getAuthenticationInformation()
-            throws ConfigurationException
-    {
-        return getAuthenticationInformation(null, AuthenticationInfo.AUTH_USAGE.SERVER_SIDE);
-    }
-
-    public static AuthenticationInfo getAuthenticationInformation(
-            String propertiesFileLocation, AuthenticationInfo.AUTH_USAGE authUsage) throws ConfigurationException
-    {
-        TungstenProperties securityProperties = loadPropertiesFromFile(propertiesFileLocation);
-
-        AuthenticationInfo authInfo = new AuthenticationInfo(authUsage);
-
-        // Authorisation and/or encryption
-        securityProperties.trim(); // Remove white spaces
-        boolean useAuthentication = securityProperties.getBoolean(
-                SecurityConf.SECURITY_USE_AUTHENTICATION,
-                SecurityConf.SECURITY_USE_AUTHENTICATION_DEFAULT, false);
-        boolean useEncryption = securityProperties.getBoolean(
-                SecurityConf.SECURITY_USE_ENCRYPTION,
-                SecurityConf.SECURITY_USE_ENCRYPTION_DEFAULT, false);
-        boolean useTungstenAuthenticationRealm = securityProperties
-                .getBoolean(
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM,
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT,
-                        false);
-        boolean useEncryptedPassword = securityProperties
-                .getBoolean(
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT,
-                        false);
-
-        // Retrieve properties
-        String passwordFileLocation = securityProperties
-                .getString(SecurityConf.SECURITY_PASSWORD_FILE_LOCATION);
-        String accessFileLocation = securityProperties
-                .getString(SecurityConf.SECURITY_ACCESS_FILE_LOCATION);
-        String keystoreLocation = securityProperties
-                .getString(SecurityConf.SECURITY_KEYSTORE_LOCATION);
-        String keystorePassword = securityProperties
-                .getString(SecurityConf.SECURITY_KEYSTORE_PASSWORD);
-        String truststoreLocation = securityProperties
-                .getString(SecurityConf.SECURITY_TRUSTSTORE_LOCATION);
-        String truststorePassword = securityProperties
-                .getString(SecurityConf.SECURITY_TRUSTSTORE_PASSWORD);
-        String userName = securityProperties
-                .getString(SecurityConf.SECURITY_USERNAME, null, false);
-
-        // Populate return object
-        authInfo.setAuthenticationNeeded(useAuthentication);
-        authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
-        authInfo.setUseEncryptedPasswords(useEncryptedPassword);
-        authInfo.setEncryptionNeeded(useEncryption);
-        authInfo.setPasswordFileLocation(passwordFileLocation);
-        authInfo.setAccessFileLocation(accessFileLocation);
-        authInfo.setKeystoreLocation(keystoreLocation);
-        authInfo.setKeystorePassword(keystorePassword);
-        authInfo.setTruststoreLocation(truststoreLocation);
-        authInfo.setTruststorePassword(truststorePassword);
-        authInfo.setUsername(userName);
-
-        return authInfo;
-    }
 }

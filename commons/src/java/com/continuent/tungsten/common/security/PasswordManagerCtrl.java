@@ -66,7 +66,7 @@ public class PasswordManagerCtrl
     {
         // --- Options on the command line ---
         Option help = new Option(_HELP, "print this message");
-        Option file = OptionBuilder.withLongOpt(FILE).withArgName("filename").hasArgs().withDescription("Password file location").create(_FILE);
+        Option file = OptionBuilder.withLongOpt(FILE).withArgName("filename").hasArgs().withDescription(SecurityConf.SECURITY_PROPERTIES_FILE_NAME + " file location").create(_FILE);
     
         // Mutually excluding options
         OptionGroup optionGroup = new OptionGroup( );

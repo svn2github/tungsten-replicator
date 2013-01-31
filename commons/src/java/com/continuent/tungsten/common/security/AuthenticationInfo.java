@@ -145,7 +145,7 @@ public final class AuthenticationInfo
     public void retrievePasswordFromFile() throws ConfigurationException
     {
         TungstenProperties passwordProps = SecurityHelper
-                .LoadPasswordsFromFile(this);
+                .loadPasswordsFromAuthenticationInfo(this);
         String username = this.getUsername();
         String goodPassword = passwordProps.get(username);
         this.password = goodPassword;
