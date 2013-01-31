@@ -44,7 +44,7 @@ public class DatabaseFactory
     }
 
     /**
-     * Shorthand method to allocate a privileged connetion without vendor
+     * Shorthand method to allocate a privileged connection without vendor
      * identification.
      */
     static public Database createDatabase(String url, String user,
