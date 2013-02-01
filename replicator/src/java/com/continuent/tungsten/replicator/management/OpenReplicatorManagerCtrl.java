@@ -150,6 +150,7 @@ public class OpenReplicatorManagerCtrl
         println("  wait -applied n [-limit s]   - Wait up to s seconds for seqno to be applied");
         println("  check <table> [-limit offset,limit] [-method m] - generate consistency check for the given table");
         println("Shard Commands:");
+        println("  shard [-list ] - List shards installed in a given service");
         println("  shard [-insert shard_definition] - Add a new shard");
         println("  shard [-update shard_definition] - Update a shard");
         println("  shard [-delete shardId] - Delete a shard");
