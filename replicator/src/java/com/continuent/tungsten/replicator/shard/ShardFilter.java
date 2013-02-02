@@ -341,11 +341,19 @@ public class ShardFilter implements Filter
                      * Therefore, we drop all events that affect tungsten_* schemas.
                      */
                     Policy tempShardPolicy = this.unwantedShardPolicy;
+                    String filterRemarks = "";
                     if (event.getDBMSEvent().getMetadataOptionValue(
                                ReplOptionParams.TUNGSTEN_METADATA) != null)
                     {
-                        logger.warn("Dropping event because it comes from Tungsten");
+                        // logger.warn("Dropping event because it comes from Tungsten");
                         tempShardPolicy = Policy.drop;
+                        filterRemarks = "Event is used for Tungsten Replicator";
+                    }
+
+                    if (shard.getMaster().equals("whitelisted"))
+                    {
+                        tempShardPolicy = Policy.accept; 
+                        filterRemarks = " (Event was whitelisted)";
                     }
                     switch (tempShardPolicy)
                     {
@@ -357,6 +365,7 @@ public class ShardFilter implements Filter
                                         + " shard ID=" + eventShard 
                                         + " shard master=" + shard.getMaster()
                                         + " service=" + service
+                                        + filterRemarks
                                         );
                             return event;
                         }
