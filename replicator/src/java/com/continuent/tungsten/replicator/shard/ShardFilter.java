@@ -63,6 +63,7 @@ public class ShardFilter implements Filter
     private boolean    enabled                  = false;
     private boolean    autoCreate               = false;
     private boolean    enforceHome              = false;
+    private boolean    allowWhitelisted         = false;
     private Policy     unknownShardPolicy       = Policy.error;
     private String     unknownShardPolicyString = null;
     private Policy     unwantedShardPolicy       = Policy.drop;
@@ -342,19 +343,25 @@ public class ShardFilter implements Filter
                      */
                     Policy tempShardPolicy = this.unwantedShardPolicy;
                     String filterRemarks = "";
+                    /*
+                     * Remove events that come from the replicator itself.
+                     */
                     if (event.getDBMSEvent().getMetadataOptionValue(
                                ReplOptionParams.TUNGSTEN_METADATA) != null)
                     {
-                        // logger.warn("Dropping event because it comes from Tungsten");
                         tempShardPolicy = Policy.drop;
-                        filterRemarks = "Event is used for Tungsten Replicator";
+                        filterRemarks = " (Event is used for Tungsten Replicator)";
                     }
 
+                    /*
+                     * Accept events that have been explicitly whitelisted
+                     */
                     if (shard.getMaster().equals("whitelisted"))
                     {
                         tempShardPolicy = Policy.accept; 
                         filterRemarks = " (Event was whitelisted)";
                     }
+
                     switch (tempShardPolicy)
                     {
                         case accept :
@@ -377,6 +384,7 @@ public class ShardFilter implements Filter
                                     + " shard ID=" + event.getShardId()
                                     + " shard master=" + shard.getMaster() 
                                     + " service=" + service
+                                    + filterRemarks
                                     );
      
                             return null;
@@ -501,6 +509,15 @@ public class ShardFilter implements Filter
     public void setEnforceHome(boolean enforceHome)
     {
         this.enforceHome = enforceHome;
+    }
+
+
+    /**
+     * If true, we allow whitelisted shards in remote services.
+     */
+    public void setAllowWhitelisted(boolean allowWhitelisted)
+    {
+        this.allowWhitelisted = allowWhitelisted;
     }
 
     /**
