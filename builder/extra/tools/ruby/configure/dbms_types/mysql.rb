@@ -836,3 +836,21 @@ module ConfigureDeploymentStepMySQL
     super()
   end
 end
+
+class MySQLCheckSumCheck < ConfigureValidationCheck
+  include ReplicationServiceValidationCheck
+  include MySQLApplierCheck
+  include NotPrefetchCheck
+  
+  def set_vars
+    @title = "MySQL 5.6 binlog Checksum Check"
+  end
+  
+  def validate
+    info("Checking that MySQL Binlog Checksum is not enabled")
+    checkSum = get_applier_datasource.get_value("show variables like 'binlog_checksum'", "Value")
+    if (checkSum == 'CRC32') 
+      error("This instance is running with BinLog checksum enabled which is not yet supported")
+    end
+  end
+end
