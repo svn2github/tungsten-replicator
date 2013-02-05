@@ -122,10 +122,11 @@ public class JmxManager implements NotificationListener
 
     /**
      * Creates an instance to manage a JMX service TODO: beanPort parameter.
-     * Called when using authentication (and) encryption {@link http
-     * ://download.java
-     * .net/jdk8/docs/technotes/guides/jmx/tutorial/security.html}
+     * Called when using authentication (and) encryption
      * 
+     * @see <a
+     *      href="http://download.java.net/jdk8/docs/technotes/guides/jmx/tutorial/security.html">JMX
+     *      Tutorial on Security</a>
      * @param host
      * @param registryPort
      * @param serviceName

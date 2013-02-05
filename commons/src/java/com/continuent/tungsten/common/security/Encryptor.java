@@ -123,7 +123,7 @@ public class Encryptor
     /**
      * Get the Public key from a TrustStore
      * 
-     * @return
+     * @return Public key from the Truststore
      */
     public PublicKey getPublicKey_from_Truststore()
     {
@@ -136,7 +136,7 @@ public class Encryptor
     /**
      * Get the Public and Private key from a KeyStore
      * 
-     * @return
+     * @return PrivateKey extracted from the Keystore
      */
     public PrivateKey getPrivateKey_from_KeyStore()
     {
@@ -149,8 +149,8 @@ public class Encryptor
     /**
      * Encrypt a String using private key located in keystore.
      * 
-     * @param message
-     * @return
+     * @param message to be encrypted
+     * @return Base64 encoded and encryoted message
      */
     public String encrypt(String message)
     {
@@ -187,7 +187,7 @@ public class Encryptor
      * Encrypt a String using private key located in truststore.
      * 
      * @param encryptedMessage
-     * @return
+     * @return Decrypted String
      * @throws ConfigurationException
      */
     public String decrypt(String encryptedMessage)

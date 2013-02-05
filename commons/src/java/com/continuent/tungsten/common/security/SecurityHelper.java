@@ -87,7 +87,7 @@ public class SecurityHelper
      * Loads Authentication and Encryption parameters from default location for
      * service.properties file
      * 
-     * @return
+     * @return AuthenticationInfo loaded from file
      * @throws ConfigurationException
      */
     public static AuthenticationInfo loadAuthenticationInformation()

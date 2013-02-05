@@ -87,8 +87,6 @@ public final class AuthenticationInfo
 
     /**
      * Check Authentication information consistency
-     * 
-     * @return
      */
     public void checkAuthenticationInfo() throws ServerRuntimeException
     {
@@ -160,7 +158,7 @@ public final class AuthenticationInfo
     /**
      * Returns the decrypted password
      * 
-     * @return
+     * @return String containing the (if needed) decrypted password
      * @throws ConfigurationException
      */
     public String getPassword() throws ConfigurationException

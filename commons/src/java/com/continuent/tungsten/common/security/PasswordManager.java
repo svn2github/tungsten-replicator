@@ -50,7 +50,7 @@ public class PasswordManager
      * properties from a file. File location =
      * {clusterhome}/conf/security.properties
      * 
-     * @param propertiesFileLocation location of the security.properties file.
+     * @param securityPropertiesFileLocation location of the security.properties file.
      *            If set to null will look for the default file.
      * @throws ConfigurationException
      */
@@ -85,7 +85,7 @@ public class PasswordManager
      * Passwords loaded from file as TungstenProperties. Example:
      * getPasswordsAsTungstenProperties.get(username);
      * 
-     * @return
+     * @return TungstenProperties class containing the passwords
      */
     public TungstenProperties loadPasswordsAsTungstenProperties()
             throws ServerRuntimeException
@@ -99,7 +99,7 @@ public class PasswordManager
      * Get clear text password for a username.
      * The list of passwords is loaded from the file if it hasn't been done before
      * @param username
-     * @return
+     * @return String containing the password corresponding to the username
      * @throws ConfigurationException
      */
     public String getPasswordForUser(String username) throws ConfigurationException
