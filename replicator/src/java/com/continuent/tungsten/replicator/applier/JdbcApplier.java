@@ -1675,7 +1675,7 @@ public class JdbcApplier implements RawApplier
         }
         catch (SQLException e)
         {
-            logger.error("Failed to rollback : " + e);
+            logger.error("Failed to rollback", e);
             throw e;
         }
         finally
