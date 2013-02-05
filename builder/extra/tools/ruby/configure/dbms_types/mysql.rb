@@ -1,3 +1,5 @@
+require 'tempfile'
+
 DBMS_MYSQL = "mysql"
 
 # MySQL-specific parameters
@@ -30,7 +32,14 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   # Execute mysql command and return result to client. 
   def run(command)
     begin
-      return cmd_result("mysql -u#{@username} --password=\"#{@password}\" -h#{@host} --port=#{@port} -e \"#{command}\"")
+      # Provisional workaround for MySQL 5.6 non-removable warning (Issue#445)
+      tmp = Tempfile.new('options')
+      tmp << "[client]\n"
+      tmp << "user=#{@username}\n"
+      tmp << "password=#{@password}\n"
+      tmp << "port=#{@port}\n"
+      tmp.flush
+      return cmd_result("mysql --defaults-file=#{tmp.path} -h#{@host} -e \"#{command}\"")
     rescue CommandError
       return nil
     end
