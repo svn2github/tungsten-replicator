@@ -1,0 +1,33 @@
+#*
+  Tungsten Scale-Out Stack
+  Copyright (C) 2007-2013 Continuent Inc.
+  Contact: tungsten@continuent.org
+ 
+  Initial developer(s): Linas Virbalas
+  Contributor(s):
+ 
+  Velocity template for Tungsten.
+  
+  Reports tables which lack primary keys.
+  
+*### Counting tables.
+#if ( !$counter )
+  #set ( $counter = 1 )
+#else
+  #set( $counter = $counter + 1 )
+#end
+## Print header above the first table.
+#if ( $counter == 1 )
+/*
+Report generated on $date by ./ddlscan utility of Tungsten
+
+url = $url
+user = $user
+dbName = $dbName
+*/
+#end
+## Primary key check.
+#if ( !$table.getPrimaryKey() )
+
+/* ERROR: $table.getSchema().$table.getName() has no primary key! */##
+#end
