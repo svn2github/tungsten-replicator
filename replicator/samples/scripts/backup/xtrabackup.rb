@@ -26,7 +26,8 @@ INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
   :mysqllogpattern => "mysql-bin",
   :mysqluser => "mysql",
   :mysqlgroup => "mysql",
-  :incremental => "false"
+  :incremental => "false",
+  :my_cnf => nil
 }
 
 def run
@@ -66,6 +67,14 @@ def run
     end
   else
     FileUtils.mkdir_p(@options[:directory])
+  end
+  
+  if @options[:my_cnf] == nil
+    raise "Unable to determine location of MySQL my.cnf file"
+  else
+    unless File.exist?(@options[:my_cnf])
+      raise "The file #{@options[:my_cnf]} does not exist"
+    end
   end
   
   if @op == :backup
@@ -146,7 +155,7 @@ def execute_backup(incremental_basedir = nil)
     
     log("Create an incremental backup from LSN #{incremental_lsn} in #{storage_dir}")
     # Copy the database files and apply any pending log entries
-    cmd_result("#{get_xtrabackup_command()} --no-timestamp #{storage_dir} --incremental --incremental-lsn=#{incremental_lsn}")
+    cmd_result("#{get_xtrabackup_command()} --no-timestamp --defaults-file=#{@options[:my_cnf]} #{storage_dir} --incremental --incremental-lsn=#{incremental_lsn}")
     
     File.symlink(incremental_basedir, storage_dir + "/#{INCREMENTAL_BASEDIR_FILE}")
   end
@@ -171,15 +180,15 @@ def restore
     log("Copy the full base directory '#{fullbackup_dir}' to the staging directory '#{staging_dir}'")
     cmd_result("cp -r #{fullbackup_dir} #{staging_dir}")
     log("Apply the redo-log to #{staging_dir}")
-    cmd_result("#{get_xtrabackup_command()} --apply-log --redo-only  #{staging_dir}")
+    cmd_result("#{get_xtrabackup_command()} --apply-log --redo-only --defaults-file=#{@options[:my_cnf]}  #{staging_dir}")
     
     lineage.each{
       |incremental_dir|
       log("Apply the incremental updates from #{incremental_dir}")
-      cmd_result("#{get_xtrabackup_command()} --apply-log --incremental-dir=#{incremental_dir} #{staging_dir}")
+      cmd_result("#{get_xtrabackup_command()} --apply-log --incremental-dir=#{incremental_dir} --defaults-file=#{@options[:my_cnf]} #{staging_dir}")
     }
     
-    cmd_result("#{get_xtrabackup_command()} --apply-log #{staging_dir}")
+    cmd_result("#{get_xtrabackup_command()} --apply-log --defaults-file=#{@options[:my_cnf]} #{staging_dir}")
     
     log("Stop the MySQL server")
     cmd_result("#{@options[:mysql_service_command]} stop")
@@ -196,7 +205,7 @@ def restore
     cmd_result("rm -rf #{@options[:mysqllogdir]}/#{@options[:mysqllogpattern]}.*")
   
     # Copy the backup files to the mysql data directory
-    cmd_result("innobackupex-1.5.1 --ibbackup=xtrabackup_51 --copy-back #{staging_dir}")
+    cmd_result("innobackupex-1.5.1 --ibbackup=xtrabackup_51 --copy-back --defaults-file=#{@options[:my_cnf]} #{staging_dir}")
 
     # Fix the permissions and restart the service
     cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqldatadir]}")

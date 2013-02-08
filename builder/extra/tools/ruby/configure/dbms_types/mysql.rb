@@ -214,7 +214,12 @@ class MySQLInnoDBDataDirectory < MySQLConfigurePrompt
   
   def get_mysql_default_value
     begin
-      return get_datasource().get_value("SHOW VARIABLES LIKE 'innodb_data_home_dir'", "Value")
+      val = get_datasource().get_value("SHOW VARIABLES LIKE 'innodb_data_home_dir'", "Value")
+      unless val[0,1] == "/"
+        return @config.getProperty(get_member_key(REPL_MYSQL_DATADIR)) + "/" + val
+      else
+        return val
+      end
     rescue CommandError
     end
     
@@ -237,7 +242,12 @@ class MySQLInnoDBLogDirectory < MySQLConfigurePrompt
   
   def get_mysql_default_value
     begin
-      return get_datasource().get_value("SHOW VARIABLES LIKE 'innodb_log_group_home_dir'", "Value")
+      val = get_datasource().get_value("SHOW VARIABLES LIKE 'innodb_log_group_home_dir'", "Value")
+      unless val[0,1] == "/"
+        return @config.getProperty(get_member_key(REPL_MYSQL_DATADIR)) + "/" + val
+      else
+        return val
+      end
     rescue CommandError
     end
     

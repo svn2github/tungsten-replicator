@@ -29,6 +29,7 @@ mysqllogdir=/var/lib/mysql
 mysqllogpattern=mysql-bin
 mysqluser=mysql
 mysqlgroup=mysql
+my_cnf=/etc/my.cnf
 
 while [ $# -gt 0 ]
 do
@@ -63,30 +64,32 @@ do
   fi
 done
 
-# Note 1.
-# Do not use 'which' to determine where the 'service' command is.
-# The command will fail if 'service' is not in the PATH, and the whole script will fail.
-# Moreover, a simple 'sudo' will not get '/sbin' in $PATH, and the comamnd is likely to fail.
-#
-# Note 2.
-# Use '-x' to check for executables. Using '-f' will fail if the file is there but it is 
-# not executable.
-if [ ! -x $mysql_service_command ]
+# Unset e to avoid bombing out if service command not in path. 
+set +e
+service_command=`which service`
+set -e
+if [ ! -x "$service_command" ];
 then
-  service_command=/sbin/service
-  if [ -x $service_command ]
+  if [ -x "/etc/init.d/mysqld" ];
   then
-      mysql_service_command="$service_command mysql"
-  elif [ -x "/etc/init.d/mysqld" ]
+    mysql_service_command="/etc/init.d/mysqld"
+  elif [ -x "/etc/init.d/mysql" ];
   then
-      mysql_service_command="/etc/init.d/mysqld"
-  elif [ -x "/etc/init.d/mysql" ]
-  then
-      mysql_service_command="$/etc/init.d/mysql"
-  else
-      echo "Unable to determine the service command to start/stop mysql" >&2
-      exit 1
+    mysql_service_command="/etc/init.d/mysql"
   fi
+else
+  if [ ! -x "$mysql_service_command" ];
+  then
+    echo "Unable to determine the service command to start/stop mysql" >&2
+    exit 1
+  fi
+fi
+
+# Ensure my.cnf is set and can be found. 
+if [ ! -f "$my_cnf" ]; 
+then
+  echo "Unable to determine location of MySQL my.cnf file" >&2
+  exit 1
 fi
 
 # Handle operation. 
@@ -99,8 +102,8 @@ if [ "$operation" = "backup" ]; then
   rm -f $archive
 
   # Copy the database files and apply any pending log entries
-  innobackupex-1.5.1 --user=$user --password=$password --host=$host --port=$port --no-timestamp $directory
-  innobackupex-1.5.1 --apply-log --user=$user --password=$password --host=$host --port=$port $directory
+  innobackupex-1.5.1 --user=$user --password=$password --host=$host --port=$port --no-timestamp --defaults-file=$my_cnf $directory
+  innobackupex-1.5.1 --apply-log --user=$user --password=$password --host=$host --port=$port --defaults-file=$my_cnf $directory
 
   # Package up the files and remove the staging directory
   cd $directory
@@ -147,7 +150,7 @@ elif [ "$operation" = "restore" ]; then
   rm -rf $mysqllogdir/$mysqllogpattern.*
 
   # Copy the backup files to the mysql data directory
-  innobackupex-1.5.1 --ibbackup=xtrabackup_51 --copy-back $directory
+  innobackupex-1.5.1 --ibbackup=xtrabackup_51 --defaults-file=$my_cnf --copy-back $directory
 
   # Fix the permissions and restart the service
   chown -RL $mysqluser:$mysqlgroup $mysqldatadir
