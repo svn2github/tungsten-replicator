@@ -4,6 +4,8 @@ DBMS_MYSQL = "mysql"
 
 # MySQL-specific parameters
 REPL_MYSQL_DATADIR = "repl_datasource_mysql_data_directory"
+REPL_MYSQL_IBDATADIR = "repl_datasource_mysql_ibdata_directory"
+REPL_MYSQL_IBLOGDIR = "repl_datasource_mysql_iblog_directory"
 REPL_MYSQL_RO_SLAVE = "repl_mysql_ro_slave"
 REPL_MYSQL_SERVER_ID = "repl_mysql_server_id"
 REPL_MYSQL_ENABLE_ENUMTOSTRING = "repl_mysql_enable_enumtostring"
@@ -187,7 +189,7 @@ class MySQLDataDirectory < MySQLConfigurePrompt
   end
   
   def get_mysql_default_value
-    datadir = get_applier_datasource().get_value("SHOW VARIABLES LIKE 'datadir'", "Value")
+    datadir = get_datasource().get_value("SHOW VARIABLES LIKE 'datadir'", "Value")
     if datadir == nil
       raise "Unable to determine datadir"
     end
@@ -198,6 +200,60 @@ class MySQLDataDirectory < MySQLConfigurePrompt
   def update_deprecated_keys()
     replace_deprecated_key(get_member_key('repl_mysql_data_dir'))
     super()
+  end
+end
+
+class MySQLInnoDBDataDirectory < MySQLConfigurePrompt
+  include DatasourcePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_MYSQL_IBDATADIR, "MySQL InnoDB data directory", 
+      PV_FILENAME_OR_EMPTY)
+  end
+  
+  def get_mysql_default_value
+    begin
+      return get_datasource().get_value("SHOW VARIABLES LIKE 'innodb_data_home_dir'", "Value")
+    rescue CommandError
+    end
+    
+    return ""
+  end
+  
+  def required?
+    false
+  end
+end
+
+class MySQLInnoDBLogDirectory < MySQLConfigurePrompt
+  include DatasourcePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_MYSQL_IBLOGDIR, "MySQL InnoDB log directory", 
+      PV_FILENAME_OR_EMPTY)
+  end
+  
+  def get_mysql_default_value
+    begin
+      return get_datasource().get_value("SHOW VARIABLES LIKE 'innodb_log_group_home_dir'", "Value")
+    rescue CommandError
+    end
+    
+    return ""
+  end
+  
+  def enabled?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform))
+  end
+  
+  def enabled_for_config?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform))
+  end
+  
+  def required?
+    false
   end
 end
 

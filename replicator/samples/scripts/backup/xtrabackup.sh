@@ -23,6 +23,8 @@ directory=/tmp/innobackup
 archive=/tmp/innobackup.tar.gz
 mysql_service_command="/etc/init.d/mysql"
 mysqldatadir=/var/lib/mysql
+mysqlibdatadir=""
+mysqliblogdir=""
 mysqllogdir=/var/lib/mysql
 mysqllogpattern=mysql-bin
 mysqluser=mysql
@@ -53,7 +55,12 @@ done
 for i in `echo $options | tr '&' '\n'`
 do
   parts=(`echo $i | tr '=' '\n'`)
-  eval $parts=${parts[1]}
+  numparts=${#parts[@]}
+
+  if [ $numparts -gt 1 ]
+  then
+  	eval $parts=${parts[1]}
+  fi
 done
 
 # Note 1.
@@ -144,6 +151,15 @@ elif [ "$operation" = "restore" ]; then
 
   # Fix the permissions and restart the service
   chown -RL $mysqluser:$mysqlgroup $mysqldatadir
+  
+  if [ "$mysqlibdatadir" != "" ]; then
+	chown -RL $mysqluser:$mysqlgroup $mysqlibdatadir
+  fi
+
+  if [ "$mysqliblogdir" != "" ]; then
+	chown -RL $mysqluser:$mysqlgroup $mysqliblogdir
+  fi
+
   $mysql_service_command start 1>&2
 
   # Remove the staging directory

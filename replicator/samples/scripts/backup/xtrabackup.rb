@@ -20,6 +20,8 @@ INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
   :tungsten_backups => nil,
   :mysql_service_command => nil,
   :mysqldatadir => "/var/lib/mysql",
+  :mysqlibdatadir => "",
+  :mysqliblogdir => "",
   :mysqllogdir => "/var/lib/mysql",
   :mysqllogpattern => "mysql-bin",
   :mysqluser => "mysql",
@@ -198,6 +200,15 @@ def restore
 
     # Fix the permissions and restart the service
     cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqldatadir]}")
+    
+    if @options[:mysqlibdatadir].to_s() != ""
+      cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqlibdatadir]}")
+    end
+
+    if @options[:mysqliblogdir].to_s() != ""
+      cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqliblogdir]}")
+    end
+    
     cmd_result("#{@options[:mysql_service_command]} start")
     
     if staging_dir != "" && File.exists?(staging_dir)

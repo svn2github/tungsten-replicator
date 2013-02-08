@@ -11,11 +11,15 @@ system_require 'date'
 
 # Super class for property validators. 
 class PropertyValidator
-  def initialize(regex, message) 
+  def initialize(regex, message, ignore_blank_values = false) 
     @regex = Regexp.new(regex)
     @message = message
+    @ignore_blank_values = ignore_blank_values
   end
   def validate(value)
+    if value.to_s() == ""
+      return value
+    end
     if value =~ @regex
       return value
     end
@@ -163,6 +167,8 @@ PV_IDENTIFIER = PropertyValidator.new('[A-Za-z0-9_]+',
   "Value must consist only of letters, digits, and underscore (_)")
 PV_FILENAME = PropertyValidator.new('/[A-Za-z0-9_\.\/]+',
   "Value must be a valid filename")
+PV_FILENAME_OR_EMPTY = PropertyValidator.new('^/[A-Za-z0-9_\.\/]+',
+  "Value must be a valid filename", true)
 PV_SCRIPTNAME = PropertyValidator.new('[A-Za-z0-9_\.]+',
   "Value must be a valid script filename")
 PV_HOSTNAME = PropertyValidator.new('[A-Za-z0-9_.]+', 
