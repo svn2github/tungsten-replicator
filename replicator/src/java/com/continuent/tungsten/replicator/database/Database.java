@@ -48,7 +48,19 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange;
  */
 public interface Database
 {
-    /** Returns the type of DBMS behid the interface */
+    /** String to denote MySQL DBMS dialect in metadata. */
+    public static String MYSQL      = "mysql";
+
+    /** String to denote Oracle dialect in metadata. */
+    public static String ORACLE     = "oracle";
+
+    /** String to denote PostgreSQL dialect in metadata. */
+    public static String POSTGRESQL = "postgresql";
+
+    /** String to denote PostgreSQL dialect in metadata. */
+    public static String UNKNOWN    = "unknown";
+
+    /** Returns the type of DBMS behind the interface */
     public DBMS getType();
 
     /**
@@ -70,8 +82,8 @@ public interface Database
 
     /**
      * Determines whether this connection has superuser privileges (e.g., SYSDBA
-     * or SUPER depending on the DBMS type).  Superusers can create logins, 
-     * kill sessions, and manipulate replication.  
+     * or SUPER depending on the DBMS type). Superusers can create logins, kill
+     * sessions, and manipulate replication.
      * 
      * @param privileged If true this account is a superuser
      */
@@ -245,7 +257,7 @@ public interface Database
     public List<Session> listSessions() throws SQLException;
 
     /**
-     * Kills a particular session. 
+     * Kills a particular session.
      */
     public void kill(Session session) throws SQLException, ReplicatorException;
 

@@ -1075,7 +1075,10 @@ public class MySQLExtractor implements RawExtractor
         assertRelayLogsEnabled();
 
         // Extract the next event.
-        return extractEvent(binlogPosition);
+        DBMSEvent event = extractEvent(binlogPosition);
+        if (event != null)
+            event.setMetaDataOption(ReplOptionParams.DBMS_TYPE, Database.MYSQL);
+        return event;
     }
 
     /**

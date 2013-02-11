@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,12 +31,14 @@ import com.continuent.tungsten.common.cache.IndexedLRUCache;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.database.SqlOperation;
+import com.continuent.tungsten.replicator.database.SqlStatementParser;
 import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
@@ -66,6 +68,7 @@ public class ReplicateFilter implements Filter
     private String                   ignoreFilter;
 
     private String                   tungstenSchema;
+    private final SqlStatementParser parser = SqlStatementParser.getParser();
 
     // Cache to look up filtered tables.
     private IndexedLRUCache<Boolean> filterCache;
@@ -103,6 +106,16 @@ public class ReplicateFilter implements Filter
     }
 
     /**
+     * Sets the Tungsten schema, which we ignore to prevent problems with the
+     * replicator. This is mostly used for filter testing, which runs without a
+     * pipeline.
+     */
+    public void setTungstenSchema(String tungstenSchema)
+    {
+        this.tungstenSchema = tungstenSchema;
+    }
+
+    /**
      * Filters transactions using do and ignore rules. The logic is as follows.
      * <ol>
      * <li>If the operation matches a schema or table to ignore, drop it.</li>
@@ -118,6 +131,12 @@ public class ReplicateFilter implements Filter
             throws ReplicatorException, InterruptedException
     {
         ArrayList<DBMSData> data = event.getData();
+        String dbmsType;
+        if (event.getDBMSEvent() == null)
+            dbmsType = null;
+        else
+            dbmsType = event.getDBMSEvent().getMetadataOptionValue(
+                    ReplOptionParams.DBMS_TYPE);
 
         if (data == null)
             return event;
@@ -149,7 +168,17 @@ public class ReplicateFilter implements Filter
                 String schema = null;
                 String table = null;
 
+                // Make a best effort to get parsing metadata on the statement.
+                // Invoke parsing again if necessary.
                 Object parsingMetadata = sdata.getParsingMetadata();
+                if (parsingMetadata == null)
+                {
+                    String query = sdata.getQuery();
+                    parsingMetadata = parser.parse(query, dbmsType);
+                    sdata.setParsingMetadata(parsingMetadata);
+                }
+
+                // Usually we have parsing metadata at this point.
                 if (parsingMetadata != null
                         && parsingMetadata instanceof SqlOperation)
                 {
@@ -269,8 +298,11 @@ public class ReplicateFilter implements Filter
     public void configure(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
-        tungstenSchema = context.getReplicatorProperties().getString(
-                ReplicatorConf.METADATA_SCHEMA);
+        if (tungstenSchema == null)
+        {
+            tungstenSchema = context.getReplicatorProperties().getString(
+                    ReplicatorConf.METADATA_SCHEMA);
+        }
     }
 
     /**

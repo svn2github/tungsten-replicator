@@ -80,6 +80,12 @@ public class ReplOptionParams
     public static String       SERVER_ID               = "mysql_server_id";
 
     /**
+     * Names the source DBMS type so that we can parse and otherwise process
+     * transactions properly when they contain features.
+     */
+    public static String       DBMS_TYPE               = "dbms_type";
+
+    /**
      * Contains value "true" if the transaction is unsafe for bi-directional
      * replication.
      */
