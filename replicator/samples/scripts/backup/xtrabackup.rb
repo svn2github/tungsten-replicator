@@ -203,6 +203,14 @@ def restore
   
     cmd_result("rm -rf #{@options[:mysqldatadir]}/*")
     cmd_result("rm -rf #{@options[:mysqllogdir]}/#{@options[:mysqllogpattern]}.*")
+    
+    if @options[:mysqlibdatadir].to_s() != ""
+      cmd_result("rm -rf #{@options[:mysqlibdatadir]}/*")
+    end
+
+    if @options[:mysqliblogdir].to_s() != ""
+      cmd_result("rm -rf #{@options[:mysqliblogdir]}/*")
+    end
   
     # Copy the backup files to the mysql data directory
     cmd_result("innobackupex-1.5.1 --ibbackup=xtrabackup_51 --copy-back --defaults-file=#{@options[:my_cnf]} #{staging_dir}")

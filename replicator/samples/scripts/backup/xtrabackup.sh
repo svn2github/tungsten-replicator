@@ -149,6 +149,14 @@ elif [ "$operation" = "restore" ]; then
   rm -rf $mysqldatadir/*
   rm -rf $mysqllogdir/$mysqllogpattern.*
 
+  if [ "$mysqlibdatadir" != "" ]; then
+	rm -rf $mysqlibdatadir/*
+  fi
+
+  if [ "$mysqliblogdir" != "" ]; then
+	rm -rf $mysqliblogdir/*
+  fi
+
   # Copy the backup files to the mysql data directory
   innobackupex-1.5.1 --ibbackup=xtrabackup_51 --defaults-file=$my_cnf --copy-back $directory
 
