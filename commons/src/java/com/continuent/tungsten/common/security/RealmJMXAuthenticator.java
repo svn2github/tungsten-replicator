@@ -31,7 +31,9 @@ import javax.security.auth.Subject;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.JmxManager;
+import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
 
 /**
  * Custom Authentication Realm
@@ -42,19 +44,21 @@ import com.continuent.tungsten.common.jmx.JmxManager;
 public class RealmJMXAuthenticator implements JMXAuthenticator
 {
     private static final Logger logger                 = Logger.getLogger(JmxManager.class);
-    private TungstenProperties  passwordProps          = null;
+//    private TungstenProperties  passwordProps          = null;
 
     private AuthenticationInfo  authenticationInfo     = null;
+    private PasswordManager     passwordManager        = null;
 
     private static final String INVALID_CREDENTIALS    = "Invalid credentials";
     private static final String AUTHENTICATION_PROBLEM = "Error while trying to authenticate";
 
-    public RealmJMXAuthenticator(AuthenticationInfo authenticationInfo)
+    public RealmJMXAuthenticator(AuthenticationInfo authenticationInfo) throws ConfigurationException
     {
         this.authenticationInfo = authenticationInfo;
+        this.passwordManager    = new PasswordManager(authenticationInfo.getParentPropertiesFileLocation(), ClientApplicationType.RMI_JMX);
 
-        this.passwordProps = SecurityHelper
-                .loadPasswordsFromAuthenticationInfo(authenticationInfo);
+//        this.passwordProps = SecurityHelper
+//                .loadPasswordsFromAuthenticationInfo(authenticationInfo);
     }
 
     /**
@@ -78,10 +82,11 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         {
             // Password file syntax:
             // username=password
-            String goodPassword = this.passwordProps.get(username);
-            this.authenticationInfo.setPassword(goodPassword);
-            // Decrypt password if needed
-            goodPassword = this.authenticationInfo.getPassword();
+//            String goodPassword = this.passwordProps.get(username);
+            String goodPassword = this.passwordManager.getClearTextPasswordForUser(username);
+//            this.authenticationInfo.setPassword(goodPassword);
+//            // Decrypt password if needed
+//            goodPassword = this.authenticationInfo.getPassword();
 
             if (goodPassword.equals(password))
                 authenticationOK = true;

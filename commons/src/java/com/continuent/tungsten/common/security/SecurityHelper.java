@@ -137,6 +137,8 @@ public class SecurityHelper
                         false);
 
         // Retrieve properties
+        String securityPropertiesFileLocation = securityProperties
+                .getString(SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION);
         String passwordFileLocation = securityProperties
                 .getString(SecurityConf.SECURITY_PASSWORD_FILE_LOCATION);
         String accessFileLocation = securityProperties
@@ -153,6 +155,7 @@ public class SecurityHelper
                 SecurityConf.SECURITY_USERNAME, null, false);
 
         // Populate return object
+        authInfo.setParentPropertiesFileLocation(securityPropertiesFileLocation);
         authInfo.setAuthenticationNeeded(useAuthentication);
         authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
         authInfo.setUseEncryptedPasswords(useEncryptedPassword);
@@ -233,6 +236,10 @@ public class SecurityHelper
         logger.info(MessageFormat.format(
                 "Security parameters loaded from: {0}",
                 securityPropertiesFile.getPath()));
+        
+        // Update propertiesFileLocation with the location actualy used
+        securityProps.put(SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION, securityPropertiesFile.getAbsolutePath());
+        
         return securityProps;
     }
 

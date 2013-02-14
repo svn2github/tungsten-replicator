@@ -24,6 +24,7 @@ package com.continuent.tungsten.common.security;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
 
 import junit.framework.TestCase;
 
@@ -123,12 +124,54 @@ public class PasswordManagerTest extends TestCase
         }
         
         // Try to get password without having loaded the passwords
-        goodPassword = pwd.getPasswordForUser("tungsten");
+        goodPassword = pwd.getClearTextPasswordForUser("tungsten");
         assertNotNull(goodPassword);
         
         // Get a password for a non existing user
-        goodPassword = pwd.getPasswordForUser("non_existing_user");
+        goodPassword = pwd.getClearTextPasswordForUser("non_existing_user");
         assertNull(goodPassword);
     }
+    
+    /**
+     * Test retrieving passwords from file : Application Specific
+     * Passwords are returned in clear text even if they were encoded
+     * Decryption is done in the AuthenticationInfo class
+     * Gets application specific user
+     * 
+     * @throws ConfigurationException
+     */
+    public void testgetPasswordForUser_by_Application() throws ConfigurationException
+    {
+        PasswordManager pwd             = null;
+        String goodPassword             = null;
+        String goodEncryptedPassword    = null;
+        try
+        {
+            pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
+        }
+        catch (ConfigurationException e)
+        {
+            assertTrue(false);
+        }
+        
+        // Try to get password without having loaded the passwords
+        goodEncryptedPassword   = pwd.getEncryptedPasswordForUser("tungstenRMI");
+        goodPassword            = pwd.getClearTextPasswordForUser("tungstenRMI");
+        
+        assertNotNull(goodEncryptedPassword);                   // We should get something
+        assertNotNull(goodPassword);
+        
+        assertTrue(goodEncryptedPassword != goodPassword);      // Clear text and encyprted password should be different
+        
+        assertEquals("secret", goodPassword);                   // The expected clear text password = secret
+        
+
+        // Get a password for a non existing user
+        goodPassword = pwd.getClearTextPasswordForUser("non_existing_user");
+        assertNull(goodPassword);
+    }
+    
+    
+    
 
 }

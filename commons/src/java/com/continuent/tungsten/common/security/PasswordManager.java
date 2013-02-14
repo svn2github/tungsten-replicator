@@ -32,31 +32,60 @@ import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 
 /**
- * Class managing passwords in a file. Creates, deletes, updates
+ * Class managing passwords in a file. Retrieves, Creates, deletes, updates
  * 
  * @author <a href="mailto:ludovic.launer@continuent.com">Ludovic Launer</a>
  * @version 1.0
  */
 public class PasswordManager
 {
-    private static Logger      logger                         = Logger.getLogger(PasswordManager.class);
+    private static Logger logger = Logger.getLogger(PasswordManager.class);
+
+    /*
+     * Type of Client application. 
+     * This allows for application specific management of passwords
+     */
+    public enum ClientApplicationType
+    {
+        UNKNOWN,
+        RMI_JMX,                    // Any application: generic RMI+JMX
+        CONNECTOR                   // The Tungsten Connector
+    };
 
     // Authentication and Encryption information
-    private AuthenticationInfo authenticationInfo             = null;
-    private TungstenProperties passwordsProperties            = null;
+    private AuthenticationInfo authenticationInfo  = null;
+    private TungstenProperties passwordsProperties = null;
+    private ClientApplicationType clientApplicationType = null;
 
     /**
-     * Creates a new <code>PasswordManager</code> object Loads Security related
-     * properties from a file. File location =
-     * {clusterhome}/conf/security.properties
      * 
-     * @param securityPropertiesFileLocation location of the security.properties file.
-     *            If set to null will look for the default file.
+     * Creates a new <code>PasswordManager</code> object
+     * 
+    * @param securityPropertiesFileLocation location of the security.properties
+     *            file. If set to null will look for the default file.
      * @throws ConfigurationException
      */
     public PasswordManager(String securityPropertiesFileLocation)
             throws ConfigurationException
     {
+        this(securityPropertiesFileLocation, ClientApplicationType.UNKNOWN);
+    }
+    
+    /**
+     * Creates a new <code>PasswordManager</code> object Loads Security related
+     * properties from a file. File location =
+     * {clusterhome}/conf/security.properties
+     * 
+     * @param securityPropertiesFileLocation location of the security.properties
+     *            file. If set to null will look for the default file.
+     * @param clientApplicationType Type of client application. Used to retrieve application specific information (password, ...)
+     * @throws ConfigurationException
+     */
+    public PasswordManager(String securityPropertiesFileLocation, ClientApplicationType clientApplicationType)
+            throws ConfigurationException
+    {
+        this.clientApplicationType = clientApplicationType;
+        
         // --- Try to get Security information from properties file ---
         // If securityPropertiesFileLocation==null will try to locate
         // default file
@@ -80,7 +109,19 @@ public class PasswordManager
                     sre.getMessage()));
         }
     }
-
+    
+    /**
+     * Creates a new <code>PasswordManager</code> object
+     * 
+     * @param authenticationInfo the <code>AuthenticationInfo</code> object from which to retrieve properties
+     * @param clientApplicationType Type of client application. Used to retrieve application specific information (password, ...)
+     */
+    public PasswordManager(AuthenticationInfo authenticationInfo, ClientApplicationType clientApplicationType)
+    {
+        this.authenticationInfo     = authenticationInfo;
+        this.clientApplicationType  = clientApplicationType;
+    }
+    
     /**
      * Passwords loaded from file as TungstenProperties. Example:
      * getPasswordsAsTungstenProperties.get(username);
@@ -95,27 +136,76 @@ public class PasswordManager
         return passwordsProperties;
     }
 
+    
     /**
-     * Get clear text password for a username.
+     * Get clear text password for a username: decrypts password if needed
+     * 
+     * @param username the username for which to get the password
+     * @throws ConfigurationException
+     */
+    public String getClearTextPasswordForUser(String username) throws ConfigurationException
+    {
+        return this.getPasswordForUser(username, true);
+    }
+    
+    /**
+     * Get Encrypted (or "as it is") password for a user
+     * 
+     * @param username the username for which to get the password
+     * @throws ConfigurationException
+     */
+    public String getEncryptedPasswordForUser(String username) throws ConfigurationException
+    {
+        return this.getPasswordForUser(username, false);
+    }
+    
+    /**
+     * Get clear text password for a username: decrypts password if needed
      * The list of passwords is loaded from the file if it hasn't been done before
-     * @param username
+     * 
+     * @param username the username for which to get the password
+     * @param decryptPassword true of the password needs to be decrypted
      * @return String containing the password corresponding to the username
      * @throws ConfigurationException
      */
-    public String getPasswordForUser(String username) throws ConfigurationException
+    private String getPasswordForUser(String username, boolean decryptPassword) throws ConfigurationException
     {
-        String clearTextPassword = null;
+        String userPassword = null;
+        String _username = username;
+        
+        // --- Take application specific information into account ---
+        // Appends application name before the property
+        if (this.clientApplicationType!=null && this.clientApplicationType!=ClientApplicationType.UNKNOWN)
+            switch (this.clientApplicationType)
+            {
+                case RMI_JMX : 
+                    _username = SecurityConf.SECURITY_APPLICATION_RMI_JMX + "." + username;
+                    break;
+                case CONNECTOR:
+                    _username = SecurityConf.SECURITY_APPLICATION_CONNECTOR + "." + username;
+                    break;
+            }
+        
         // --- Load passwords from file if necessary
-        if (this.passwordsProperties==null)
+        if (this.passwordsProperties == null)
             this.loadPasswordsAsTungstenProperties();
-   
-        this.authenticationInfo.setUsername(username);
-        this.authenticationInfo.setPassword(this.passwordsProperties.get(username));
+
+        userPassword = this.passwordsProperties.get(_username);
         
-        clearTextPassword = this.authenticationInfo.getPassword();
-        
-        return clearTextPassword;
+        // --- Decrypt password if asked for ---
+        if (decryptPassword)
+        {
+            this.authenticationInfo.setUsername(_username);
+            this.authenticationInfo.setPassword(userPassword);
+
+            userPassword = this.authenticationInfo.getPassword();
+        }
+       
+
+        return userPassword;
     }
+    
+   
 
     public AuthenticationInfo getAuthenticationInfo()
     {

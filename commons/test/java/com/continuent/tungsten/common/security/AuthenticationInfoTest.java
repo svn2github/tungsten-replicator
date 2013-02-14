@@ -160,31 +160,5 @@ public class AuthenticationInfoTest extends TestCase
         assert (sreThrown);
     }
 
-    /**
-     * Try to get a clear text password from a file containing encrypted
-     * passwords
-     * 
-     * @throws ConfigurationException
-     */
-    public void testgetPassword() throws ConfigurationException
-    {
-        AuthenticationInfo authenticationInfo = SecurityHelper
-                .loadAuthenticationInformation("sample.security.properties",
-                        AUTH_USAGE.CLIENT_SIDE);
-        authenticationInfo.retrievePasswordFromFile();
-
-        // We shoudl be able to retrieve the encrypted password from the file
-        String encryptedPassword = authenticationInfo.getEncryptedPassword();
-        assertNotNull(encryptedPassword);
-
-        // We should be able to get the clear text passsword after decryption
-        String clearTextPassword = authenticationInfo.getPassword();
-        assertNotNull(clearTextPassword);
-
-        // Encrypted and decrypted passwords should be different
-        if (authenticationInfo.isUseEncryptedPasswords())
-            assertEquals(encryptedPassword.equals(clearTextPassword), false);
-
-    }
 
 }

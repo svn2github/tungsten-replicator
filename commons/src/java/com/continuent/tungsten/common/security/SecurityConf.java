@@ -30,6 +30,7 @@ package com.continuent.tungsten.common.security;
  */
 public class SecurityConf
 {
+    static public final String SECURITY_PROPERTIES_PARENT_FILE_LOCATION                              = "security.properties.parent.file.location";      // Location of the file where this is all coming from
     static public final String SECURITY_PROPERTIES_FILE_NAME                                         = "security.properties";
 
     /** Authentication and Encryption */
@@ -50,5 +51,9 @@ public class SecurityConf
     static public final String SECURITY_USE_ENCRYPTION_DEFAULT                                       = "false";
     static public final String SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT                    = "true";
     static public final String SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT = "false";
+
+    /** Application specific information */
+    static public final String SECURITY_APPLICATION_RMI_JMX                                          = "rmi_jmx";
+    static public final String SECURITY_APPLICATION_CONNECTOR                                        = "connector";
 
 }

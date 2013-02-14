@@ -289,11 +289,11 @@ public class JmxManager implements NotificationListener
             connector.start();
 
             logger.info(MessageFormat
-                    .format("JMXConnector: use.authentication={0} \t use.encryption={1}",
-                            (authenticationInfo != null) ? authenticationInfo
-                                    .isAuthenticationNeeded() : false,
-                            (authenticationInfo != null) ? authenticationInfo
-                                    .isEncryptionNeeded() : false));
+                    .format("JMXConnector: security.propoerties={0} \n\t use.authentication={1} \n\t use.tungsten.authenticationRealm.encrypted.password={2} \n\t use.encryption={3}",
+                            (authenticationInfo != null) ? authenticationInfo.getParentPropertiesFileLocation() : "No security.propoerties file found !...",
+                            (authenticationInfo != null) ? authenticationInfo.isAuthenticationNeeded() : false,
+                            (authenticationInfo != null) ? authenticationInfo.isUseEncryptedPasswords(): false,
+                            (authenticationInfo != null) ? authenticationInfo.isEncryptionNeeded() : false));
             logger.info(String.format("JMXConnector started at address %s",
                     serviceAddress));
 

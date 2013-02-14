@@ -41,6 +41,7 @@ public final class AuthenticationInfo
 {
     private static final Logger logger                         = Logger.getLogger(AuthenticationInfo.class);
     private final AUTH_USAGE    authUsage;
+    private String              parentPropertiesFileLocation    = null;    // Location of the file from which this was built
 
     private boolean             authenticationNeeded           = false;
     private boolean             encryptionNeeded               = false;
@@ -135,25 +136,25 @@ public final class AuthenticationInfo
         return jmxProperties;
     }
 
-    /**
-     * Retrieve (encrypted) password from file
-     * 
-     * @throws ConfigurationException
-     */
-    public void retrievePasswordFromFile() throws ConfigurationException
-    {
-        TungstenProperties passwordProps = SecurityHelper
-                .loadPasswordsFromAuthenticationInfo(this);
-        String username = this.getUsername();
-        String goodPassword = passwordProps.get(username);
-        this.password = goodPassword;
-
-        if (goodPassword == null)
-            throw new ConfigurationException(
-                    MessageFormat
-                            .format("Cannot find password for username= {0} \n PasswordFile={1}",
-                                    username, this.getPasswordFileLocation()));
-    }
+//    /**
+//     * Retrieve (encrypted) password from file
+//     * 
+//     * @throws ConfigurationException
+//     */
+//    public void retrievePasswordFromFile() throws ConfigurationException
+//    {
+//        TungstenProperties passwordProps = SecurityHelper
+//                .loadPasswordsFromAuthenticationInfo(this);
+//        String username = this.getUsername();
+//        String goodPassword = passwordProps.get(username);
+//        this.password = goodPassword;
+//
+//        if (goodPassword == null)
+//            throw new ConfigurationException(
+//                    MessageFormat
+//                            .format("Cannot find password for username= {0} \n PasswordFile={1}",
+//                                    username, this.getPasswordFileLocation()));
+//    }
 
     /**
      * Returns the decrypted password
@@ -320,6 +321,16 @@ public final class AuthenticationInfo
     public void setUseEncryptedPasswords(boolean useEncryptedPasswords)
     {
         this.useEncryptedPasswords = useEncryptedPasswords;
+    }
+
+    public String getParentPropertiesFileLocation()
+    {
+        return parentPropertiesFileLocation;
+    }
+
+    public void setParentPropertiesFileLocation(String parentPropertiesFileLocation)
+    {
+        this.parentPropertiesFileLocation = parentPropertiesFileLocation;
     }
 
 }
