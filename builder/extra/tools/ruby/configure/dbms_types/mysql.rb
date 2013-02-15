@@ -138,6 +138,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
 	  if @config.getProperty(REPL_MYSQL_ENABLE_SETTOSTRING) == "true"
       filters += ["settostring"]
     end
+    filters + super()
 	end
 
 	def get_applier_filters()
