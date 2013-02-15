@@ -64,12 +64,12 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * in process_tables_schemas parameter. Eg.:<br/>
  * replicator.filter.enumtostringfilter.process_tables_schemas=myschema.mytable1,myschema.mytable2
  * 
- * @author <a href="mailto:stephane.giron@continuent.com">Linas Virbalas</a>
+ * @author <a href="mailto:linas.virbalas@continuent.com">Linas Virbalas</a>
  * @version 1.0
  */
 public class EnumToStringFilter implements Filter
 {
-    private class TableWithEnums
+    static class TableWithEnums
     {
         Table                      table           = null;
         HashMap<Integer, String[]> enumDefinitions = null;
@@ -212,7 +212,7 @@ public class EnumToStringFilter implements Filter
                 for (OneRowChange orc : rdata.getRowChanges())
                     try
                     {
-                        checkForEnum(orc);
+                        checkForListType(orc);
                     }
                     catch (SQLException e)
                     {
@@ -292,6 +292,11 @@ public class EnumToStringFilter implements Filter
                         + defaultDB + "." + tableName + "'");
         }
     }
+
+    protected String[] parseListType(String listTypeDefinition)
+    {
+        return parseEnumeration(listTypeDefinition);
+    }
     
     /**
      * Parses MySQL enum type definition statement. Eg.:<br/>
@@ -306,24 +311,39 @@ public class EnumToStringFilter implements Filter
      */
     public static String[] parseEnumeration(String enumDefinition)
     {
+        return parseListDefString("enum", enumDefinition);
+    }
+
+    /**
+     * Parses strings of the following form:<br/>
+     * enum('val1','val2',...)<br/>
+     * set('val1','val2',...)
+     * 
+     * @param colType "enum" or "string"
+     * @param definition String like "enum('val1','val2',...)" or
+     *            "set('val1','val2',...)".
+     * @return Elements in the definition (val1,val2,...).
+     */
+    public static String[] parseListDefString(String colType, String definition)
+    {
         // Parse out what's inside brackets.
-        String keyword = "enum(";
-        int iA = enumDefinition.toLowerCase().indexOf(keyword);
-        int iB = enumDefinition.indexOf(')', iA);
-        String list = enumDefinition.substring(iA + keyword.length(), iB);
+        String keyword = colType + "(";
+        int iA = definition.toLowerCase().indexOf(keyword);
+        int iB = definition.indexOf(')', iA);
+        String list = definition.substring(iA + keyword.length(), iB);
 
         // Split by comma, remove quotes and save into array.
         String[] listArray = list.split(",");
-        String[] enumElements = new String[listArray.length];
+        String[] elements = new String[listArray.length];
         for (int i = 0; i < listArray.length; i++)
         {
             String elementQuoted = listArray[i];
             String element = elementQuoted.substring(1,
                     elementQuoted.length() - 1);
-            enumElements[i] = element;
+            elements[i] = element;
         }
 
-        return enumElements;
+        return elements;
     }
 
     /**
@@ -401,7 +421,7 @@ public class EnumToStringFilter implements Filter
                 if (logger.isDebugEnabled())
                     logger.debug(enumDefinition);
 
-                enumElements = parseEnumeration(enumDefinition);
+                enumElements = parseListType(enumDefinition);
             }
         }
         finally
@@ -432,11 +452,27 @@ public class EnumToStringFilter implements Filter
     }
 
     /**
-     * Checks for enum columns in the event. If found, transforms values from
+     * Checks for ENUM columns in the event. If found, transforms values from
      * integers to corresponding strings.
+     * 
+     * @param orc
+     * @throws SQLException
+     * @throws ReplicatorException
      */
-    private void checkForEnum(OneRowChange orc) throws SQLException,
+    protected void checkForListType(OneRowChange orc) throws SQLException,
             ReplicatorException
+    {
+        checkForListType(orc, "ENUM");
+    }
+
+    /**
+     * Checks for ENUM/SET type columns in the event. If found, transforms
+     * values from integers to corresponding strings.
+     * 
+     * @param type "ENUM" or "SET".
+     */
+    protected void checkForListType(OneRowChange orc, String type)
+            throws SQLException, ReplicatorException
     {
         String tableName = orc.getTableName();
 
@@ -446,9 +482,9 @@ public class EnumToStringFilter implements Filter
                         .contains((orc.getSchemaName() + "." + tableName)
                                 .toUpperCase())))
         {
-            if (logger.isInfoEnabled())
-                logger.info("Table " + orc.getSchemaName() + "." + tableName
-                        + " not taken into account by the EnumToStringFilter");
+            if (logger.isDebugEnabled())
+                logger.debug("Table " + orc.getSchemaName() + "." + tableName
+                        + " not taken into account");
             return;
         }
 
@@ -488,9 +524,8 @@ public class EnumToStringFilter implements Filter
         if (enumDefinitions != null)
         {
             if (logger.isDebugEnabled())
-                logger.debug("Using ENUM cache (columns: "
-                        + enumDefinitions.size() + ") @ "
-                        + table.getTable().getSchema() + "."
+                logger.debug("Using cache (columns: " + enumDefinitions.size()
+                        + ") @ " + table.getTable().getSchema() + "."
                         + table.getTable().getName());
         }
         else
@@ -501,12 +536,12 @@ public class EnumToStringFilter implements Filter
             {
                 if (col.getTypeDescription() != null)
                 {
-                    if (col.getTypeDescription().startsWith("ENUM"))
+                    if (col.getTypeDescription().startsWith(type))
                     {
                         if (logger.isDebugEnabled())
-                            logger.debug("ENUM @ " + col.getPosition() + " : "
-                                    + table.getTable().getSchema() + "."
-                                    + table.getTable().getName() + "."
+                            logger.debug(type + " @ " + col.getPosition()
+                                    + " : " + table.getTable().getSchema()
+                                    + "." + table.getTable().getName() + "."
                                     + col.getName());
                         String[] enumDefinition = retrieveEnumeration(table
                                 .getTable().getSchema()
@@ -533,7 +568,7 @@ public class EnumToStringFilter implements Filter
             }
             // Cache the retrieved definitions.
             if (logger.isDebugEnabled())
-                logger.debug("Saving ENUM definitions (columns: "
+                logger.debug("Saving " + type + " definitions (columns: "
                         + enumDefinitions.size() + ") to cache @ "
                         + table.getTable().getSchema() + "."
                         + table.getTable().getName());
@@ -542,7 +577,7 @@ public class EnumToStringFilter implements Filter
         if (enumDefinitions.size() == 0)
         {
             if (logger.isDebugEnabled())
-                logger.debug("No ENUM columns @ "
+                logger.debug("No " + type + " columns @ "
                         + table.getTable().getSchema() + "."
                         + table.getTable().getName());
             return;
@@ -559,7 +594,7 @@ public class EnumToStringFilter implements Filter
         transformColumns(keys, keyValues, enumDefinitions, "KEY");
     }
 
-    private void transformColumns(ArrayList<ColumnSpec> columns,
+    protected void transformColumns(ArrayList<ColumnSpec> columns,
             ArrayList<ArrayList<ColumnVal>> columnValues,
             HashMap<Integer, String[]> enumDefinitions, String typeCaption)
             throws ReplicatorException
