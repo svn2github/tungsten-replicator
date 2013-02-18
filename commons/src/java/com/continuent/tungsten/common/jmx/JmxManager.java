@@ -521,11 +521,11 @@ public class JmxManager implements NotificationListener
                 String[] credentials;
                 if (authInfo.isUseTungstenAuthenticationRealm())
                     credentials = new String[]{authInfo.getUsername(),
-                            authInfo.getPassword(),
+                            authInfo.getDecryptedPassword(),
                             AuthenticationInfo.TUNGSTEN_AUTHENTICATION_REALM};
                 else
                     credentials = new String[]{authInfo.getUsername(),
-                            authInfo.getPassword()};
+                            authInfo.getDecryptedPassword()};
 
                 env.put("jmx.remote.credentials", credentials);
             }

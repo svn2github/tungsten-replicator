@@ -162,7 +162,7 @@ public final class AuthenticationInfo
      * @return String containing the (if needed) decrypted password
      * @throws ConfigurationException
      */
-    public String getPassword() throws ConfigurationException
+    public String getDecryptedPassword() throws ConfigurationException
     {
         String clearTextPassword = this.password;
         // --- Try to decrypt the password ---
@@ -180,7 +180,7 @@ public final class AuthenticationInfo
      * @return the encrypted password if useEncryptedPasswords==true or the
      *         clear text password otherwise
      */
-    public String getEncryptedPassword()
+    public String getPassword()
     {
         return this.password;
     }

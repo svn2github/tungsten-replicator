@@ -22,16 +22,23 @@
 
 package com.continuent.tungsten.common.security;
 
+import java.text.MessageFormat;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.log4j.Logger;
+
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
 
 /**
  * Application to manage passwords and users
@@ -41,10 +48,13 @@ import org.apache.log4j.Logger;
  */
 public class PasswordManagerCtrl
 {
-    private static  Logger                  logger  = Logger.getLogger(PasswordManagerCtrl.class);
     
-    private         Options                 options = new Options();
-    private static  PasswordManagerCtrl     pwd;
+    private static  Logger                                  logger  = Logger.getLogger(PasswordManagerCtrl.class);
+    
+    private         Options                                 options                 = new Options();
+    private static  PasswordManagerCtrl                     pwd;
+    private static  PasswordManager.ClientApplicationType   clientApplicationType   = null;
+    public          PasswordManager                         passwordManager         = null;
     
     // -- Define constants for command line arguments ---
     private static final String _HELP = "help";
@@ -52,10 +62,12 @@ public class PasswordManagerCtrl
     private static final String _CREATE = "c";
     private static final String DELETE = "delete";
     private static final String _DELETE = "d";
-    private static final String UPDATE = "update";
-    private static final String _UPDATE = "u";
     private static final String FILE = "file";
     private static final String _FILE = "f";
+    private static final String TARGET_APPLICATION = "target";
+    private static final String _TARGET_APPLICATION = "t";
+    
+    static Option create;
 
     /**
      * Setup command line options
@@ -70,18 +82,23 @@ public class PasswordManagerCtrl
     
         // Mutually excluding options
         OptionGroup optionGroup = new OptionGroup( );
-        Option create = OptionBuilder.withLongOpt(CREATE).withArgName("username").hasArgs().withDescription("Creates a user").create(_CREATE);
+         create = OptionBuilder.withLongOpt(CREATE).hasArgs(2).withArgName("username> <password").withDescription("Creates or Updates a user").create(_CREATE);
         Option delete = OptionBuilder.withLongOpt(DELETE).withArgName("username").hasArgs().withDescription("Deletes a user").create(_DELETE);
-        Option update = OptionBuilder.withLongOpt(UPDATE).withArgName("username").hasArgs().withDescription("Updates a user").create(_UPDATE);
+        
+        
         
         optionGroup.addOption(create);
         optionGroup.addOption(delete);
-        optionGroup.addOption(update);
+        optionGroup.setRequired(true);      // At least 1 command required
+        
+        Option targetApplication = OptionBuilder.withLongOpt(TARGET_APPLICATION).withArgName("target").hasArgs().withDescription("Target application: " + getListOfClientApplicationType()).create(_TARGET_APPLICATION);
         
         // --- Add options to the list ---
         this.options.addOptionGroup(optionGroup);
         this.options.addOption(help);
         this.options.addOption(file);
+        
+        this.options.addOption(targetApplication);
     }
 
     /**
@@ -102,6 +119,12 @@ public class PasswordManagerCtrl
     public static void main(String argv[]) throws Exception
     {
         pwd = new PasswordManagerCtrl();
+        
+        // --- Options ---
+        ClientApplicationType   clientApplicationType           = null;
+        String                  securityPropertiesFileLocation  = null;
+        String                  username                        = null;
+        String                  password                        = null;
 
         try {
             CommandLineParser parser = new GnuParser();
@@ -109,24 +132,75 @@ public class PasswordManagerCtrl
             CommandLine line = parser.parse( pwd.options, argv );
 
             // --- Handle options ---
-            if (line.hasOption(_HELP) || line.getArgList().size()==0)
+            if (line.hasOption(_HELP))
             {
                 DisplayHelpAndExit();
             }
-            else if (line.hasOption(_CREATE))
-            {
-                
+            
+            // --- Optional arguments : Get options ---
+            if (line.hasOption(_TARGET_APPLICATION))                        // Target Application
+            {  
+                String target = line.getOptionValue(TARGET_APPLICATION);
+                clientApplicationType = PasswordManagerCtrl.getClientApplicationType(target);
             }
+            if (line.hasOption(_FILE))                                      // security.properties file location
+            {  
+                securityPropertiesFileLocation = line.getOptionValue(_FILE);
+            }
+            if (line.hasOption(_CREATE))                                    // Make sure username + password are provided
+            {   
+                String[] createArgs = line.getOptionValues(_CREATE);
+                if (createArgs.length<2)
+                    throw new MissingArgumentException(create);
+                
+                username = createArgs[0];
+                password = createArgs[1];
+            }
+            
+            
+            try
+            {
+                pwd.passwordManager = new PasswordManager(securityPropertiesFileLocation, clientApplicationType);
+            }
+            catch (ConfigurationException ce)
+            {
+                logger.error(MessageFormat.format("Could not retrieve configuration information: {0}\n Try to specify a security.properties file location or have the cluster.home variable set.", ce.getMessage()));
+                System.exit(0);
+            }
+            
+
+            // --- Perform commands ---
+            
+            // ######### Create ##########
+            if (line.hasOption(_CREATE))
+            {
+                try
+                {
+                    pwd.passwordManager.setPasswordForUser(username, password);
+                    System.out.println(MessageFormat.format("User created successfuly: {0}", username));
+                }
+                catch (Exception e)
+                {
+                    logger.error(MessageFormat.format("Error while creating user: {0}", e.getMessage()));
+                }
+            }
+            
+            // ########## DELETE ##########
             else if (line.hasOption(_DELETE))
             {
+                username = line.getOptionValue(_DELETE);
                 
-            }
-            else if (line.hasOption(_UPDATE))
-            {
-                
+                try
+                {
+                    pwd.passwordManager.deleteUser(username);
+                    System.out.println(MessageFormat.format("User deleted successfuly: {0}", username));
+                }
+                catch (Exception e)
+                {
+                    logger.error(MessageFormat.format("Error while deleting user: {0}", e.getMessage()));
+                }
             }
            
-            
            
         }
         catch( ParseException exp ) {
@@ -134,6 +208,48 @@ public class PasswordManagerCtrl
             
             DisplayHelpAndExit();
         }
+    }
+    
+    
+    /**
+     * Get the list of ClientApplicationType as a string
+     * 
+     * @return String containing all possible lower-cased application types
+     */
+    private static String getListOfClientApplicationType()
+    {
+        String listApplicationType = "";
+        
+        
+       for (ClientApplicationType appType: ClientApplicationType.values())
+       {
+           listApplicationType += ( (listApplicationType.isEmpty()?"":" | ") + appType.toString().toLowerCase() );
+       }
+       listApplicationType.trim();
+        
+        return listApplicationType;
+    }
+    
+    /**
+     * Get the application type argument.
+     * Populates the <code>clientApplicationType</code> property
+     * 
+     * @param commandLineTargetApplicationType the argument provided on the command line
+     * @return a ClientApplicationType
+     * @throws UnrecognizedOptionException if the cast could not be made
+     */
+    private static ClientApplicationType getClientApplicationType(String commandLineTargetApplicationType) throws UnrecognizedOptionException
+    {
+        try
+        {
+            clientApplicationType = ClientApplicationType.fromString(commandLineTargetApplicationType);
+        }
+        catch (IllegalArgumentException iae)
+        {
+            throw new UnrecognizedOptionException(MessageFormat.format("The target application type does not exist: {0}", commandLineTargetApplicationType));
+        }
+        
+        return clientApplicationType;
     }
     
     /**

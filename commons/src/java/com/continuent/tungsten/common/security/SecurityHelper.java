@@ -27,6 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.MessageFormat;
 
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
@@ -43,6 +44,58 @@ import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 public class SecurityHelper
 {
     private static final Logger logger = Logger.getLogger(SecurityHelper.class);
+    
+    
+    /**
+     * Save passwords from a TungstenProperties into a file
+     * 
+     * @param passwordsProperties containing logins as key and passwords as values
+     * @param authenticationInfo containing password file location
+     */
+    public static void saveCredentialsFromAuthenticationInfo(AuthenticationInfo authenticationInfo) throws ServerRuntimeException
+    {
+        String passwordFileLocation = authenticationInfo.getPasswordFileLocation();
+        
+        try
+        {
+            String username = authenticationInfo.getUsername();
+            String password = authenticationInfo.getPassword();
+            
+            PropertiesConfiguration props = new PropertiesConfiguration(passwordFileLocation);      // Use Apache commons-configuration: preserves comments in .properties !
+            props.setProperty(username, password);
+            props.save();
+        }
+        catch (org.apache.commons.configuration.ConfigurationException ce)
+        {
+          logger.error("Error while saving properties for file:" + authenticationInfo.getPasswordFileLocation());
+          logger.debug(ce.getMessage());
+          throw new ServerRuntimeException("Error while saving Credentials: " + ce.getMessage());
+        }
+    }
+    
+    /**
+     * Delete a user and password from a file
+     * 
+     * @param authenticationInfo containing password file location
+     */
+    public static void deleteUserFromAuthenticationInfo(AuthenticationInfo authenticationInfo) throws ServerRuntimeException
+    {
+        String username             = authenticationInfo.getUsername();
+        String passwordFileLocation = authenticationInfo.getPasswordFileLocation();
+        
+        try
+        {
+            PropertiesConfiguration props = new PropertiesConfiguration(passwordFileLocation);
+            props.clearProperty(username);
+            props.save();
+        }
+        catch (org.apache.commons.configuration.ConfigurationException ce)
+        {
+          logger.error("Error while saving properties for file:" + authenticationInfo.getPasswordFileLocation());
+          logger.debug(ce.getMessage());
+          throw new ServerRuntimeException("Error while saving Credentials: " + ce.getMessage());
+        }
+    }
 
     /**
      * Loads passwords from a TungstenProperties from a .properties file
@@ -80,7 +133,6 @@ public class SecurityHelper
             throw new ServerRuntimeException("Unable to read password file: "
                     + e.getMessage());
         }
-
     }
 
     /**

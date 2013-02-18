@@ -172,6 +172,68 @@ public class PasswordManagerTest extends TestCase
     }
     
     
+    /**
+     * Test creating / updating / deleting passwords from file
+     * 
+     * @throws ConfigurationException
+     */
+    public void testSavePasswordForUser_by_Application() throws ConfigurationException
+    {
+        PasswordManager pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
+        
+        // -- Try to create a new username=password
+        try
+        {
+            pwd.setPasswordForUser("ludovic", "ludovic_password");
+        }
+        catch (Exception e)
+        {
+            assertTrue(false);                      // Password saved without any Exception
+        }
+       
+        // --- Try to retrieve what we've just stored ---
+        pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
+        String retrievePassword = pwd.getClearTextPasswordForUser("ludovic");
+        assertEquals("ludovic_password", retrievePassword);
+        
+        // --- Try to update exising password ---
+        pwd.setPasswordForUser("ludovic", "my_new_password");
+        
+        // --- Again, try to retrieve the new password ---
+        pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
+        retrievePassword = pwd.getClearTextPasswordForUser("ludovic");
+        assertEquals("my_new_password", retrievePassword); 
+        
+        // ##### Backward compatibility ###
+        // --- Retrieve the list of passwords using standard TungstenProperties ---
+        // This tests the backward compatibility with the TungstenProperties reader. Apache adds a space after the key and before the value: key = value
+        pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
+
+        // List of passwords is popualted once we have loaded it
+        TungstenProperties passwdProps = pwd.loadPasswordsAsTungstenProperties();
+        assertEquals(true, passwdProps.size() != 0);
+        
+        // And we can retrieve a password for an existing user
+        String goodPassword = passwdProps.get(pwd.getApplicationSpecificUsername("ludovic"));
+        assertNotNull(goodPassword);
+        // ################################
+        
+        // --- Try to delete the created user ---
+        try
+        {
+            pwd.deleteUser("ludovic");
+        }
+        catch (Exception e)
+        {
+            assertTrue(false);                      // Password saved without any Exception
+        }
+        
+        // --- Check that the user does not exist anymore ---
+        pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
+        retrievePassword = pwd.getClearTextPasswordForUser("ludovic");
+        assertNull(retrievePassword);               // The user should not be there anymore
+    }
+    
     
 
 }
