@@ -136,7 +136,9 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
             for (int i = 1; i < columns.size(); i++)
             {
                 sb.append(separator);
+                sb.append('`');
                 sb.append(columns.get(i).getName());
+                sb.append('`');
             }
 
             return sb.toString();
