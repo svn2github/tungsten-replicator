@@ -50,6 +50,10 @@ class String
   end
 end
 
+class Logger
+  NOTICE = 1.5
+end
+
 DEFAULTS = "__defaults__"
 
 # Define operating system names.
@@ -294,7 +298,7 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
     end
     
     info("")
-    info("Deployment finished")
+    notice("Deployment finished")
   end
   
   # Handle the remote side of the validation_handler->run function
@@ -431,8 +435,8 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
       @options.display_help = true
       @options.display_preview = true
     }
-    opts.on("-i", "--interactive")    {|val| @options.interactive = true}
-    opts.on("-n", "--info")           {@options.output_threshold = Logger::INFO}
+    opts.on("-n", "-i", "--info")           {@options.output_threshold = Logger::INFO}
+    opts.on("--notice")               {@options.output_threshold = Logger::NOTICE}
     opts.on("-q", "--quiet")          {@options.output_threshold = Logger::WARN}
     opts.on("-v", "--verbose")        {@options.output_threshold = Logger::DEBUG}
     opts.on("--no-validation")        {|val| @options.no_validation = true }
@@ -740,6 +744,10 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
     write(message, Logger::INFO, hostname)
   end
   
+  def notice(message, hostname = nil)
+    write(message, Logger::NOTICE, hostname)
+  end
+  
   def warning(message, hostname = nil)
     write(message, Logger::WARN, hostname)
   end
@@ -761,6 +769,7 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
     when Logger::ERROR then prefix = "ERROR"
     when Logger::WARN then prefix = "WARN "
     when Logger::DEBUG then prefix = "DEBUG"
+    when Logger::NOTICE then prefix = "NOTE"
     else
       prefix = "INFO "
     end

@@ -64,10 +64,13 @@ class ConfigureDeploymentHandler
       result = @deployment_method.deploy_config(config)
     else
       extra_options = ["--package #{Configurator.instance.package.class.name}"]
-      if Configurator.instance.enable_log_level?(Logger::DEBUG)
+      if Configurator.instance.options.output_threshold == Logger::DEBUG
         extra_options << "-v"
-      end
-      unless Configurator.instance.enable_log_level?(Logger::INFO)
+      elsif Configurator.instance.options.output_threshold == Logger::NOTICE
+        extra_options << "--notice"
+      elsif Configurator.instance.options.output_threshold == Logger::INFO
+        extra_options << "--info"
+      else
         extra_options << "-q"
       end
       

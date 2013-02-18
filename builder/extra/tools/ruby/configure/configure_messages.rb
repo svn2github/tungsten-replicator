@@ -77,6 +77,10 @@ module ConfigureMessages
     RemoteError
   end
   
+  def notice(message)
+    Configurator.instance.notice(message, get_message_hostname())
+  end
+  
   def debug(message)
     Configurator.instance.debug(message, get_message_hostname())
   end

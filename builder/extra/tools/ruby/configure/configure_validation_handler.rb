@@ -104,10 +104,13 @@ class ConfigureValidationHandler
           
           # Invoke ValidationChecks on the remote server
           extra_options = ["--package #{Configurator.instance.package.class.name}"]
-          if Configurator.instance.enable_log_level?(Logger::DEBUG)
+          if Configurator.instance.options.output_threshold == Logger::DEBUG
             extra_options << "-v"
-          end
-          unless Configurator.instance.enable_log_level?(Logger::INFO)
+          elsif Configurator.instance.options.output_threshold == Logger::NOTICE
+            extra_options << "--notice"
+          elsif Configurator.instance.options.output_threshold == Logger::INFO
+            extra_options << "--info"
+          else
             extra_options << "-q"
           end
           ConfigureValidationHandler.get_skipped_validation_classes.each{
