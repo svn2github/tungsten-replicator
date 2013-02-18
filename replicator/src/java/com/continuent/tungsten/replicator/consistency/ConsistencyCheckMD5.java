@@ -43,12 +43,11 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
 {
     private static final long   serialVersionUID = 8055678665808795613L;
 
-    private static Logger       logger           = Logger
-                                                         .getLogger(ConsistencyCheckMD5.class);
+    private static Logger       logger           = Logger.getLogger(ConsistencyCheckMD5.class);
 
     private int                 rowFrom          = ConsistencyTable.ROW_UNSET;
     private int                 rowLimit         = ConsistencyTable.ROW_UNSET;
-    
+
     private boolean             checkColumnNames;
     private boolean             checkColumnTypes;
 
@@ -78,7 +77,6 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
     }
 
     /**
-     * 
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.consistency.ConsistencyCheckAbstract#getRowOffset()
@@ -89,7 +87,6 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
     }
 
     /**
-     * 
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.consistency.ConsistencyCheckAbstract#getRowLimit()
@@ -114,7 +111,7 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
                 return ConsistencyCheckMySQL(conn);
             case ORACLE :
                 return ConsistencyCheckOracle(conn);
-            case POSTGRESQL:
+            case POSTGRESQL :
                 return ConsistencyCheckPostgreSQL(conn);
             case DERBY :
                 throw new UnsupportedOperationException("Not implemented.");
@@ -122,25 +119,25 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         // TODO Auto-generated method stub
         return null;
     }
-    
+
     /**
      * Generates a separated list of column names.
+     * 
+     * @param conn
      */
-    private String columnsWithSeparator(ArrayList<Column> columns, String separator)
+    private String columnsWithSeparator(Database conn,
+            ArrayList<Column> columns, String separator)
     {
         if (columns != null && columns.size() > 0)
         {
             StringBuffer sb = new StringBuffer();
 
-            sb.append(columns.get(0).getName());
+            sb.append(conn.getDatabaseObjectName(columns.get(0).getName()));
             for (int i = 1; i < columns.size(); i++)
             {
                 sb.append(separator);
-                sb.append('`');
-                sb.append(columns.get(i).getName());
-                sb.append('`');
+                sb.append(conn.getDatabaseObjectName(columns.get(i).getName()));
             }
-
             return sb.toString();
         }
         else
@@ -150,9 +147,9 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
     }
 
     // a helper function to create a comma-spearated list of columns
-    private String columnsMySQL(ArrayList<Column> columns)
+    private String columnsMySQL(Database conn, ArrayList<Column> columns)
     {
-        return columnsWithSeparator(columns, ",");
+        return columnsWithSeparator(conn, columns, ",");
     }
 
     /**
@@ -199,11 +196,11 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
     {
         String schemaName = table.getSchema();
         String tableName = table.getName();
-        String allColumns = columnsMySQL(table.getAllColumns());
+        String allColumns = columnsMySQL(conn, table.getAllColumns());
         String keyColumns = null;
         if (table.getPrimaryKey() != null)
         {
-            keyColumns = columnsMySQL(table.getPrimaryKey().getColumns());
+            keyColumns = columnsMySQL(conn, table.getPrimaryKey().getColumns());
         }
 
         //
@@ -226,8 +223,7 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         sb.append("SELECT ");
         sb.append("COUNT(*) AS this_cnt,");
         sb.append(" IFNULL("); // TREP-67, TREP-268
-        sb
-                .append("RIGHT(MAX(@crc := CONCAT(LPAD(@cnt := @cnt + 1, 16, '0'), MD5(CONCAT(@crc, MD5(CONCAT_WS('");
+        sb.append("RIGHT(MAX(@crc := CONCAT(LPAD(@cnt := @cnt + 1, 16, '0'), MD5(CONCAT(@crc, MD5(CONCAT_WS('");
         sb.append(CONCAT_SEPARATOR);
         sb.append("',");
         sb.append(allColumns);
@@ -302,13 +298,14 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
     {
         String schemaName = table.getSchema();
         String tableName = table.getName();
-        String allColumns = columnsWithSeparator(table.getAllColumns(), " || ',' || ");
+        String allColumns = columnsWithSeparator(conn, table.getAllColumns(),
+                " || ',' || ");
         String keyColumns = null;
         if (table.getPrimaryKey() != null)
         {
-            keyColumns = columnsMySQL(table.getPrimaryKey().getColumns());
+            keyColumns = columnsMySQL(conn, table.getPrimaryKey().getColumns());
         }
-        
+
         // TODO: unhardcode the "tungsten." schema name in SQL statements
         // bellow, as it might be defined differently under properties.
 
@@ -316,8 +313,7 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         sb.append("SELECT ");
         sb.append("COUNT(*) AS this_cnt,");
         sb.append(" COALESCE("); // TREP-67, TREP-268
-        sb
-                .append("tungsten.right(MAX(tungsten.set_crc(tungsten.concat(LPAD(tungsten.inc_cnt()::text, 16, '0'), MD5(tungsten.concat(tungsten.get_crc(), MD5(");
+        sb.append("tungsten.right(MAX(tungsten.set_crc(tungsten.concat(LPAD(tungsten.inc_cnt()::text, 16, '0'), MD5(tungsten.concat(tungsten.get_crc(), MD5(");
         sb.append(allColumns);
         sb.append(")))))), 32)");
         sb.append(", (SELECT colcrc FROM tungsten_consistency_check_vars))");
@@ -347,56 +343,53 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         try
         {
             Statement st = conn.createStatement();
-            
+
             // Define generic string functions needed for consistency check SQL:
-            st
-                    .execute("CREATE OR REPLACE FUNCTION tungsten.right(text, integer)\n"
-                            + "RETURNS text AS $$\n"
-                            + "  SELECT substring($1 FROM pg_catalog.length($1) + 1 - $2);\n"
-                            + "$$ IMMUTABLE STRICT LANGUAGE SQL;");
-            st
-                    .execute("CREATE OR REPLACE FUNCTION tungsten.concat(text, text)\n"
-                            + "RETURNS text AS $$\n"
-                            + "SELECT $1 || $2;\n"
-                            + "$$ IMMUTABLE STRICT LANGUAGE sql;");
+            st.execute("CREATE OR REPLACE FUNCTION tungsten.right(text, integer)\n"
+                    + "RETURNS text AS $$\n"
+                    + "  SELECT substring($1 FROM pg_catalog.length($1) + 1 - $2);\n"
+                    + "$$ IMMUTABLE STRICT LANGUAGE SQL;");
+            st.execute("CREATE OR REPLACE FUNCTION tungsten.concat(text, text)\n"
+                    + "RETURNS text AS $$\n"
+                    + "SELECT $1 || $2;\n"
+                    + "$$ IMMUTABLE STRICT LANGUAGE sql;");
 
             if (checkColumnNames || checkColumnTypes)
             {
                 logger.warn("Column name and type checking is not implemented for PostgreSQL!");
-                //if (logger.isDebugEnabled())
-                //    logger.debug("SET @colcrc := MD5('"
-                //            + columnInfoMySQL(table.getAllColumns()) + "')");
-                //st.execute("SET @colcrc := MD5('"
-                //        + columnInfoMySQL(table.getAllColumns()) + "')");
+                // if (logger.isDebugEnabled())
+                // logger.debug("SET @colcrc := MD5('"
+                // + columnInfoMySQL(table.getAllColumns()) + "')");
+                // st.execute("SET @colcrc := MD5('"
+                // + columnInfoMySQL(table.getAllColumns()) + "')");
             }
             else
             {
-                // TODO: Include column names and their types in the MD5 calculation
+                // TODO: Include column names and their types in the MD5
+                // calculation
                 // (TREP-268) or just an empty string if settings are not
-                // to check for column names/types (TREP-67).      
+                // to check for column names/types (TREP-67).
             }
-            
+
             // Clear temporary variables' table:
             st.execute("DROP TABLE IF EXISTS tungsten_consistency_check_vars;");
             st.execute("CREATE TEMP TABLE tungsten_consistency_check_vars AS SELECT 0::bigint AS cnt, ''::text AS colcrc, ''::text AS crc;");
-            
+
             // Define functions for operating on temporary variables:
             st.execute("CREATE OR REPLACE FUNCTION tungsten.get_crc()\n"
                     + "RETURNS char(32) AS $$\n"
                     + "  SELECT crc FROM tungsten_consistency_check_vars;\n"
                     + "$$ LANGUAGE sql;");
-            st
-                    .execute("CREATE OR REPLACE FUNCTION tungsten.set_crc(value text)\n"
-                            + "RETURNS char(32) AS $$\n"
-                            + "  UPDATE tungsten_consistency_check_vars SET crc = $1;\n"
-                            + "  SELECT $1;\n" + "$$ LANGUAGE sql;");
-            st
-                    .execute("CREATE OR REPLACE FUNCTION tungsten.inc_cnt()\n"
-                            + "RETURNS bigint AS $$\n"
-                            + "  UPDATE tungsten_consistency_check_vars SET cnt = cnt + 1;\n"
-                            + "  SELECT cnt FROM tungsten_consistency_check_vars;\n"
-                            + "$$ LANGUAGE sql;");
-            
+            st.execute("CREATE OR REPLACE FUNCTION tungsten.set_crc(value text)\n"
+                    + "RETURNS char(32) AS $$\n"
+                    + "  UPDATE tungsten_consistency_check_vars SET crc = $1;\n"
+                    + "  SELECT $1;\n" + "$$ LANGUAGE sql;");
+            st.execute("CREATE OR REPLACE FUNCTION tungsten.inc_cnt()\n"
+                    + "RETURNS bigint AS $$\n"
+                    + "  UPDATE tungsten_consistency_check_vars SET cnt = cnt + 1;\n"
+                    + "  SELECT cnt FROM tungsten_consistency_check_vars;\n"
+                    + "$$ LANGUAGE sql;");
+
             // Finally, execute the consistency check SQL!
             ResultSet rs = st.executeQuery(sb.toString());
             if (logger.isDebugEnabled())
