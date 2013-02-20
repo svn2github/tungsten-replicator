@@ -11,6 +11,11 @@
   Transforms MySQL table definition (DDL) to Oracle dialect. Reports errors
   (ERROR) and warnings (WARN).
   
+  Notes:
+  
+  * ENUM -> VARCHAR2(longest ENUM element) - use EnumToStringFilter.
+  * SET -> VARCHAR2(4000) - use SetToStringFilter.
+  
 *### Counting tables.
 #if ( !$counter )
   #set ( $counter = 1 )
@@ -30,6 +35,7 @@ dbName = $dbName
 
 CREATE TABLE ##
 $table.getName()##
+#if ( $table.getName().substring(0, 1).matches("[0-9]") ) /* ERROR: table starts with a number, use rename option and a filter */ #end
 #if ( $table.getName().length() > 30 ) /* ERROR: table name exceeds 30 characters, use rename option and a filter */ #end
 #if ( $reservedWordsOracle.contains($table.getName().toUpperCase()) ) /* ERROR: table name is a reserved word, use rename option and a filter */ #end
 
@@ -61,6 +67,8 @@ NUMBER(5, 0)##
 NUMBER(7, 0)##
 #elseif ( $col.getTypeDescription().startsWith("INT") )
 NUMBER(10, 0)##
+#elseif ( $col.getTypeDescription().startsWith("DECIMAL(") )## DECIMAL(p,s)
+$col.getTypeDescription().replaceFirst("DECIMAL","NUMBER")##
 #elseif ( $col.getTypeDescription().startsWith("VARCHAR") )
 #if ( $col.getLength() <= 4000 )
 VARCHAR2($col.getLength())##
@@ -70,10 +78,18 @@ VARCHAR2($col.getLength())##
 $col.getTypeDescription()##
 #elseif ( $col.getTypeDescription().contains("TEXT") )## TINYTEXT, TEXT, MEDIUMTEXT, LONGTEXT
 CLOB##
-#elseif ( $col.getTypeDescription().contains("FLOAT") )
+#elseif ( $col.getTypeDescription().contains("BLOB") )## BLOB, MEDIUMBLOB, LONGBLOB
+BLOB##
+#elseif ( $col.getTypeDescription().startsWith("FLOAT") )
 $col.getTypeDescription()##
+#elseif ( $col.getTypeDescription().startsWith("DOUBLE") )
+NUMBER##
 #elseif ( $col.getTypeDescription().startsWith("ENUM") )
 VARCHAR2($enum.largestElementLen($col.getTypeDescription())) /* $col.getTypeDescription() */##
+#elseif ( $col.getTypeDescription().startsWith("SET") )
+VARCHAR2(4000) /* $col.getTypeDescription() */##
+#elseif ( $col.getTypeDescription().equals("BIT(1)") )
+NUMBER(1) /* $col.getTypeDescription() - no constraints for 0 or 1 */##
 #else
 $col.getTypeDescription() /* ERROR: unrecognized (type=$col.getType(), length=$col.getLength()) */#end##
 #if( $colTruncated ) /* WARN: truncated column name exceeding 30 characters ($col.getName()) */#end##
