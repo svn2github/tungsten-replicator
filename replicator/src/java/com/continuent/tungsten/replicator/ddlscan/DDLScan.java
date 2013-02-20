@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import org.apache.log4j.Logger;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.Template;
@@ -40,6 +39,7 @@ import org.apache.velocity.runtime.log.Log4JLogChute;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
+import com.continuent.tungsten.replicator.database.OracleDatabase;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.filter.EnumToStringFilter;
@@ -52,18 +52,18 @@ import com.continuent.tungsten.replicator.filter.EnumToStringFilter;
  */
 public class DDLScan
 {
-    private static Logger logger   = Logger.getLogger(DDLScan.class);
+    private String            url                 = null;
+    private String            dbName              = null;
+    private String            user                = null;
+    private String            pass                = null;
 
-    private String        url      = null;
-    private String        dbName   = null;
-    private String        user     = null;
-    private String        pass     = null;
+    private Template          template            = null;
 
-    private Template      template = null;
+    private Database          db                  = null;
 
-    private Database      db       = null;
+    private ArrayList<String> reservedWordsOracle = null;
 
-    VelocityEngine        velocity = null;
+    VelocityEngine            velocity            = null;
 
     /**
      * Creates a new <code>DDLScan</code> object from provided JDBC URL
@@ -92,6 +92,10 @@ public class DDLScan
     {
         db = DatabaseFactory.createDatabase(url, user, pass);
         db.connect();
+        
+        // Prepare reserved words lists.
+        OracleDatabase oracle = new OracleDatabase();
+        reservedWordsOracle = oracle.getReservedWords();
 
         // Configure and initialize Velocity engine. Using ourselves as a
         // logger.
@@ -180,6 +184,7 @@ public class DDLScan
         // Some handy utilities.
         context.put("enum", EnumToStringFilter.class);
         context.put("date", new java.util.Date()); // Current time.
+        context.put("reservedWordsOracle", reservedWordsOracle);
 
         // Iterate through all available tables in the database.
         for (Table table : tables)

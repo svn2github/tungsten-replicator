@@ -1242,4 +1242,12 @@ public abstract class AbstractDatabase implements Database
         return name;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public ArrayList<String> getReservedWords()
+    {
+        throw new UnsupportedOperationException(
+                "List of reserved words is not implemented");
+    }
 }

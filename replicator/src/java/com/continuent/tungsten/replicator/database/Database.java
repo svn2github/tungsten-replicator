@@ -568,4 +568,15 @@ public interface Database
      * @return A property configured CsvWriter instance
      */
     public CsvWriter getCsvWriter(BufferedWriter writer);
+    
+    /**
+     * Returns a list of reserved words used by the DBMS, which cannot be used
+     * as table and column names.<br/>
+     * Words are expected to be upper case and applications checking with
+     * something similar to
+     * getReservedWords().contains(table.getName().toUpperCase()).
+     * 
+     * @return A list of reserved words.
+     */
+    public ArrayList<String> getReservedWords();
 }

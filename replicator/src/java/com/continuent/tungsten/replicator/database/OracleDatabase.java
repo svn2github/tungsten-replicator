@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 
@@ -51,6 +52,27 @@ public class OracleDatabase extends AbstractDatabase
     private static Logger             logger                     = Logger.getLogger(OracleDatabase.class);
     private Hashtable<Integer, Table> tablesCache;
     private String                    colList;
+
+    /** A list of words that can't be used in table and column names. */
+    private static final ArrayList<String> reservedWords              = new ArrayList<String>(
+                                                                              Arrays.asList(new String[]{
+            "ACCESS", "ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC",
+            "AUDIT", "BETWEEN", "BY", "CHAR", "CHECK", "CLUSTER", "COLUMN",
+            "COMMENT", "COMPRESS", "CONNECT", "CREATE", "CURRENT", "DATE",
+            "DECIMAL", "DEFAULT", "DELETE", "DESC", "DISTINCT", "DROP", "ELSE",
+            "EXCLUSIVE", "EXISTS", "FILE", "FLOAT", "FOR", "FROM", "GRANT",
+            "GROUP", "HAVING", "IDENTIFIED", "IMMEDIATE", "IN", "INCREMENT",
+            "INDEX", "INITIAL", "INSERT", "INTEGER", "INTERSECT", "INTO", "IS",
+            "LEVEL", "LIKE", "LOCK", "LONG", "MAXEXTENTS", "MINUS", "MLSLABEL",
+            "MODE", "MODIFY", "NOAUDIT", "NOCOMPRESS", "NOT", "NOWAIT", "NULL",
+            "NUMBER", "OF", "OFFLINE", "ON", "ONLINE", "OPTION", "OR", "ORDER",
+            "PCTFREE", "PRIOR", "PRIVILEGES", "PUBLIC", "RAW", "RENAME",
+            "RESOURCE", "REVOKE", "ROW", "ROWID", "ROWNUM", "ROWS", "SELECT",
+            "SESSION", "SET", "SHARE", "SIZE", "SMALLINT", "START",
+            "SUCCESSFUL", "SYNONYM", "SYSDATE", "TABLE", "THEN", "TO",
+            "TRIGGER", "UID", "UNION", "UNIQUE", "UPDATE", "USER", "VALIDATE",
+            "VALUES", "VARCHAR", "VARCHAR2", "VIEW", "WHENEVER", "WHERE",
+            "WITH"                                                            }));
 
     public OracleDatabase()
     {
@@ -773,5 +795,20 @@ public class OracleDatabase extends AbstractDatabase
             }
 
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see <a
+     *      href="http://docs.oracle.com/cd/B19306_01/server.102/b14200/ap_keywd.htm">Oracle
+     *      Docs</a>
+     */
+    @Override
+    public ArrayList<String> getReservedWords()
+    {
+        // We could query V$RESERVED_WORDS catalog to get reserved words, but
+        // usually we don't have permissions to do that.
+        return reservedWords;
     }
 }

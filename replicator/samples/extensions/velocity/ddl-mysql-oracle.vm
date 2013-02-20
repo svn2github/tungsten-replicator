@@ -8,7 +8,8 @@
  
   Velocity template for Tungsten.
   
-  Transforms MySQL table definition (DDL) to Oracle dialect.
+  Transforms MySQL table definition (DDL) to Oracle dialect. Reports errors
+  (ERROR) and warnings (WARN).
   
 *### Counting tables.
 #if ( !$counter )
@@ -27,11 +28,27 @@ dbName = $dbName
 */
 #end
 
-CREATE TABLE $table.getName()
+CREATE TABLE ##
+$table.getName()##
+#if ( $table.getName().length() > 30 ) /* ERROR: table name exceeds 30 characters, use rename option and a filter */ #end
+#if ( $reservedWordsOracle.contains($table.getName().toUpperCase()) ) /* ERROR: table name is a reserved word, use rename option and a filter */ #end
+
 (
 ## Columns.
 #foreach ( $col in $table.getAllColumns() )
-  $col.getName() ## 
+#set ( $colTruncated = false )
+#set ( $colReserved = false )
+#if ( $col.getName().length() > 30 )
+#set ( $colTruncated = true )
+  $col.getName().substring(0, 30) ##
+#else
+#if ( $reservedWordsOracle.contains($col.getName().toUpperCase()) )
+#set ( $colReserved = true )
+  $col.getName()_ ##
+#else
+  $col.getName() ##
+#end
+#end
 #if ( $col.getTypeDescription().contains("DATE") || $col.getTypeDescription().contains("TIME") )
 DATE##
 #elseif ( $col.getTypeDescription().startsWith("BIGINT") )
@@ -59,8 +76,10 @@ $col.getTypeDescription()##
 VARCHAR2($enum.largestElementLen($col.getTypeDescription())) /* $col.getTypeDescription() */##
 #else
 $col.getTypeDescription() /* ERROR: unrecognized (type=$col.getType(), length=$col.getLength()) */#end##
-#if( $foreach.hasNext || $table.getPrimaryKey() ),
-#end
+#if( $colTruncated ) /* WARN: truncated column name exceeding 30 characters ($col.getName()) */#end##
+#if( $colReserved ) /* WARN: changed column name because of reserved word ($col.getName()) */#end##
+#if( $foreach.hasNext || $table.getPrimaryKey() ),#end
+
 #end
 ## Primary key.
 #if ( $table.getPrimaryKey() )

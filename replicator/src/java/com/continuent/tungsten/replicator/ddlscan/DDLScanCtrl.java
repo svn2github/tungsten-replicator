@@ -33,8 +33,6 @@ import java.io.Writer;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
-
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.exec.ArgvIterator;
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -50,7 +48,6 @@ import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
  */
 public class DDLScanCtrl
 {
-    private static Logger         logger            = Logger.getLogger(DDLScanCtrl.class);
     /**
      * Default path to replicator.properties if user not specified other.
      */
