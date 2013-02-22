@@ -86,10 +86,6 @@ public class EventGenerationHelper
             String table, String[] names, Object[] values, int fragNo,
             boolean lastFrag)
     {
-        // Create an array to hold data.
-
-        // Create structure to hold row change data.
-
         // Create row change data. This will contain a set of updates.
         OneRowChange rowChange = generateRowChange(schema, table,
                 RowChangeData.ActionType.INSERT);
