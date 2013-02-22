@@ -1,4 +1,4 @@
-# Commands to execute upon connection to Vertica. 
+# Commands to execute upon connection to Vertica 5.
 
 # Ensures projections are ready. 
 SELECT implement_temp_design('')

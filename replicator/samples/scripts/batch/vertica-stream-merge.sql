@@ -1,4 +1,4 @@
-# Merge script for Vertica. 
+# Merge script for Vertica 5 with streaming interface. 
 #
 # Load CSV to staging table.  This must be processed with a streaming loader
 # so that CSV goes through the connectivity APIs rather than being read from

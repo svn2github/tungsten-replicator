@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -146,6 +146,18 @@ public class CommitSeqnoTable
         pkey.AddColumn(commitSeqnoTableTaskId);
         commitSeqnoTable.AddKey(pkey);
 
+        if (database instanceof GreenplumDatabase)
+        {
+            // Specify distribution column for the table.
+            ((GreenplumDatabase) database).setDistributedBy(schema,
+                    commitSeqnoTable.getName(), GREENPLUM_DISTRIBUTED_BY);
+        }
+
+    }
+
+    // Set up prepared statements.
+    private void prepareStatements() throws SQLException
+    {
         // Prepare SQL.
         lastSeqnoQuery = database
                 .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency from "
@@ -169,13 +181,6 @@ public class CommitSeqnoTable
                 + commitSeqnoTableExtractTimestamp.getName() + "=? " + "WHERE "
                 + commitSeqnoTableTaskId.getName() + "=?");
 
-        if (database instanceof GreenplumDatabase)
-        {
-            // Specify distribution column for the table.
-            ((GreenplumDatabase) database).setDistributedBy(schema,
-                    commitSeqnoTable.getName(), GREENPLUM_DISTRIBUTED_BY);
-        }
-
     }
 
     /**
@@ -191,6 +196,9 @@ public class CommitSeqnoTable
         if (logger.isDebugEnabled())
             logger.debug("Initializing " + TABLE_NAME + " table");
         database.createTable(commitSeqnoTable, false, tableType);
+
+        // Prepare statements so that we can run SQL commands.
+        prepareStatements();
 
         // If necessary, add a dummy first row. There are some extra
         // steps in this process but they do no harm.
@@ -250,6 +258,9 @@ public class CommitSeqnoTable
      */
     public void prepare(int taskId) throws SQLException, ReplicatorException
     {
+        // Prepare statements.
+        prepareStatements();
+
         // Ensure there is a row for this task ID.
         if (lastCommitSeqno(taskId) == null)
         {

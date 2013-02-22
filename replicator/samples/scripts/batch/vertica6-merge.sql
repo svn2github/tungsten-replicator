@@ -1,4 +1,4 @@
-# Merge script for Vertica 5. 
+# Merge script for Vertica 6. 
 
 # Load data to staging table.  The CSV file must be local to the Vertica 
 # server in Vertica V4 and V5. 

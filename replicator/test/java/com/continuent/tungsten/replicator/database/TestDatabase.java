@@ -301,7 +301,7 @@ public class TestDatabase
         Column myClob = new Column("my_clob", Types.CLOB);
         Column myBlob = new Column("my_blob", Types.BLOB);
 
-        Table testColumnTypes = new Table("tungsten", "test_column_types");
+        Table testColumnTypes = new Table(schema, "test_column_types");
         testColumnTypes.AddColumn(myInt);
         testColumnTypes.AddColumn(myBigInt);
         testColumnTypes.AddColumn(myChar);
@@ -360,7 +360,7 @@ public class TestDatabase
         Column historyTstamp = new Column("tstamp", Types.VARCHAR, 32);
         Column historyStatement = new Column("statement", Types.BLOB);
 
-        Table history = new Table("tungsten", "history");
+        Table history = new Table(schema, "history");
         history.AddColumn(historySeqno);
         history.AddColumn(historyTstamp);
         history.AddColumn(historyStatement);
@@ -375,7 +375,7 @@ public class TestDatabase
         Key seqnoSecondary = new Key(Key.Unique);
         seqnoSecondary.AddColumn(seqnoTrxid);
 
-        Table seqno = new Table("tungsten", "seqno");
+        Table seqno = new Table(schema, "seqno");
         seqno.AddColumn(seqnoSeqno);
         seqno.AddColumn(seqnoTrxid);
         seqno.AddKey(seqnoPrimary);
@@ -429,6 +429,61 @@ public class TestDatabase
         // In Oracle this should casue a DELETE, INSERT */
         // In MySQL this should casue a REPLACE INTO */
         db.replace(seqno);
+
+        db.disconnect();
+    }
+
+    /**
+     * Ensure we can connect and manipulate SQL. These calls are similar to
+     * those used in the THL and appliers. This checks that we can set up tables
+     * on data warehouses like Vertica which need to have projections defined
+     * before tables can be used. Empty tables are a special case that causes
+     * problems on Vertica 6.
+     */
+    @Test
+    public void testEmptyTableOperations() throws Exception
+    {
+        // Define and create a simple table.
+        Column id = new Column("id", Types.BIGINT);
+        Column data = new Column("data", Types.VARCHAR, 32);
+
+        Table empty = new Table(schema, "empty");
+        empty.AddColumn(id);
+        empty.AddColumn(data);
+
+        Key emptyPrimary = new Key(Key.Primary);
+        emptyPrimary.AddColumn(id);
+        empty.AddKey(emptyPrimary);
+
+        // Open database and connect.
+        Database db = DatabaseFactory.createDatabase(url, user, password);
+        db.connect();
+
+        // Create empty table.
+        db.createTable(empty, true);
+
+        // Try to select from the table.
+        db.execute("select * from " + empty.fullyQualifiedName());
+
+        // Try to delete from the table, first a single row followed by all
+        // rows.
+        id.setValue(1);
+        int rowsDeleted1 = db.delete(empty, false);
+        Assert.assertEquals(0, rowsDeleted1);
+        int rowsDeleted2 = db.delete(empty, true);
+        Assert.assertEquals(0, rowsDeleted2);
+
+        // Try to update the table.
+        id.setValue(1);
+        data.setValue("something");
+        int rowsUpdated = db.update(empty, empty.getPrimaryKey().getColumns(),
+                empty.getNonKeyColumns());
+        Assert.assertEquals(0, rowsUpdated);
+
+        // Replace row in seqno with last values of all columns.
+        // In Oracle this should casue a DELETE, INSERT */
+        // In MySQL this should casue a REPLACE INTO */
+        db.replace(empty);
 
         db.disconnect();
     }
