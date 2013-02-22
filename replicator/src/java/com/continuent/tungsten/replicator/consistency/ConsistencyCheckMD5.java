@@ -233,6 +233,14 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         sb.append(schemaName);
         sb.append('.');
         sb.append(tableName);
+        if (rowFrom >= 0)
+        {
+            sb.append(" LIMIT ");
+            sb.append(rowFrom);
+            sb.append(',');
+            sb.append(rowLimit);
+        }
+        sb.append(" LOCK IN SHARE MODE) AS tungsten_consistency_check_tmp");
         sb.append(" ORDER BY ");
         if (keyColumns != null)
         {
@@ -242,14 +250,6 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         {
             sb.append(allColumns);
         }
-        if (rowFrom >= 0)
-        {
-            sb.append(" LIMIT ");
-            sb.append(rowFrom);
-            sb.append(',');
-            sb.append(rowLimit);
-        }
-        sb.append(" LOCK IN SHARE MODE) AS tungsten_consistency_check_tmp");
 
         try
         {
