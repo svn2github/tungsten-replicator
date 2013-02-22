@@ -1268,7 +1268,7 @@ def scp_result(local_file, remote_file, host, user)
     raise MessageError.new("Net::SCP was unable to connect to #{host} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.")
   rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
     raise MessageError.new("Net::SCP was unable to connect to #{host} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.")
-  else
+  rescue Exception => e
     raise RemoteCommandError.new(user, host, "scp #{local_file} #{ssh_user}@#{host}:#{remote_file}", nil, '')
   end
 end
