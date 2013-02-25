@@ -289,7 +289,6 @@ cp extra/README.LICENSES $reldir
 
 reldir_replicator=$reldir/tungsten-replicator
 replicator_bin=$reldir_replicator/bin/replicator
-replicator_wrapper_conf=$reldir_replicator/conf/wrapper.conf
 
 echo "### Replicator: pointing to centralized Java Service Wrapper binaries"
 fixWrapperBin $replicator_bin
@@ -322,6 +321,7 @@ chmod 755 $reldir/old-configure-service
 
 echo "# Copying in Ruby configuration libraries"
 cp -r $extra_cluster_home/lib $cluster_home
+cp -r $extra_cluster_home/samples $cluster_home
 
 echo "### Creating tools"
 tools_dir=$reldir/tools

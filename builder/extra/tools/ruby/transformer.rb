@@ -142,15 +142,30 @@ class Transformer
         
         "#{line_keys[0][0]}=#{@fixed_replacements[line_keys[0][0]]}"
       else
-        line.gsub!(/@\{[A-Za-z\._]+\}/){
+        line.gsub!(/@\{(\#\()?([A-Za-z\._]+)(\|)?([A-Za-z0-9\._\-\=\?\&]*)?(\))?\}/){
           |match|
-          r = method.call(match.tr("\@{}", "").split("."))
+          functionMarker = $1
+          orMarker = $3
+          orValue = $4
+          r = method.call($2.split("."))
           
           if r.is_a?(Array)
-            r.join(',')
-          else
-            r
+            r = r.join(',')
           end
+          
+          if r.to_s() == "" && orMarker == "|"
+            r = orValue
+          end
+          
+          if functionMarker == "#("
+            if r == ""
+              r = "#"
+            else
+              r = ""
+            end
+          end
+          
+          r
         }
         
         line_keys = line.scan(/^[#]?([a-zA-Z0-9\._-]+)=(.*)/)

@@ -188,6 +188,20 @@ module ConfigureDeploymentCore
     @config.getProperty(DEPLOYMENT_HOST)
   end
   
+  def transform_values(matches)
+	  case matches.at(0)
+    when "HOST"
+      v = @config.getTemplateValue(get_host_key(Kernel.const_get(matches[1])), method(:transform_values))
+    else
+      v = @config.getTemplateValue(matches.map{
+        |match|
+        Kernel.const_get(match)
+      }, method(:transform_values))
+    end
+    
+    return v
+	end
+  
   def is_connector?
     false
   end

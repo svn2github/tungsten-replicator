@@ -234,6 +234,24 @@ class RootCommandPrefixPrompt < ConfigurePrompt
   end
 end
 
+class JavaGarbageCollection < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_JAVA_ENABLE_CONCURRENT_GC, "Replicator Java uses concurrent garbage collection",
+      PV_BOOLEAN, "false")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "true"
+      ""
+    else
+      "#"
+    end
+  end
+end
+
 class ReplicationRMIPort < ConfigurePrompt
   include ClusterHostPrompt
   
@@ -439,6 +457,14 @@ class ReplicationAPI < ConfigurePrompt
 
   def initialize
     super(REPL_API, "Enable the replication API", PV_BOOLEAN, "false")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "true"
+      ""
+    else
+      "#"
+    end
   end
 end
 
