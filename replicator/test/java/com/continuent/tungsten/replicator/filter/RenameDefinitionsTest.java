@@ -117,6 +117,13 @@ public class RenameDefinitionsTest extends TestCase
     public void testUnsupportedDefinition2() throws IOException
     {
         testInvalidFormat(
+                "schemax,tabler,cols,schemaxx,tablerr,cols",
+                "Exception not thrown on a request to move column to a different schema & table, which is unsupported");
+    }
+
+    public void testUnsupportedDefinition3() throws IOException
+    {
+        testInvalidFormat(
                 "*,tableq,cols,-,tableqq,colss",
                 "Exception not thrown on a request to move column to a different table and rename, which is unsupported");
     }
@@ -196,6 +203,7 @@ public class RenameDefinitionsTest extends TestCase
             ReplicatorException
     {
         PrintWriter out = new PrintWriter(new FileWriter(definitionsFile));
+        out.println("# By the way, testing comment with commas, commas.");
         out.println("schemaz,tableq,cola,-,-,colaa");
         out.println("schemaz,tablew,cols,-,-,colss");
         out.println("schemaz,tablee,*,-,tableee,-");
@@ -489,6 +497,9 @@ public class RenameDefinitionsTest extends TestCase
                 renameDefinitions.getNewTableName("schemaz", "tableq"));
     }
 
+    /**
+     * Tests in-line comments with following commas.
+     */
     public void testCommentWithComma() throws IOException, ReplicatorException
     {
         // TODO: use Robert's CSV reader which better supports comments, etc.
@@ -569,4 +580,35 @@ public class RenameDefinitionsTest extends TestCase
                 renameDefinitions.shouldRenameColumn("any", "many"));
     }
 
+    public void testCaseSensitivity() throws IOException, ReplicatorException
+    {
+        String error1 = "Rename definition doesn't match rename result";
+        String error2 = "Rename not case sensitive any more";
+
+        PrintWriter out = new PrintWriter(new FileWriter(definitionsFile));
+        out.println("schemaz,*,*,schemazz,-,-");
+        out.println("schemax,tableq,*,-,tableqq,-");
+        out.println("schemac,tablew,cola,-,-,colaa");
+        out.close();
+
+        RenameDefinitions renameDefinitions = new RenameDefinitions(
+                definitionsFile);
+        renameDefinitions.parseFile();
+
+        // Expected to be renamed.
+        assertEquals(error1, "schemazz",
+                renameDefinitions.getNewSchemaName("schemaz", "anytable"));
+        assertEquals(error1, "tableqq",
+                renameDefinitions.getNewTableName("schemax", "tableq"));
+        assertEquals(error1, "colaa",
+                renameDefinitions.getNewColumnName("schemac", "tablew", "cola"));
+
+        // Expected to be left as is.
+        assertNull(error2,
+                renameDefinitions.getNewSchemaName("schemaZ", "anytable"));
+        assertNull(error2,
+                renameDefinitions.getNewTableName("schemax", "tableQq"));
+        assertNull(error2,
+                renameDefinitions.getNewColumnName("schemac", "tablew", "colA"));
+    }
 }

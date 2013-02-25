@@ -205,6 +205,43 @@ public class RenameFilterTest extends TestCase
                 "name", "color", "colk"});
     }
 
+    public void testRenameComposite() throws ReplicatorException,
+            InterruptedException, IOException
+    {
+        // Prepare rename definitions file.
+        PrintWriter out = new PrintWriter(new FileWriter(definitionsFile));
+        out.println("scheman,*,*,scheman2,-,- # Casual tables moved out.");
+        out.println("scheman,tabley,*,-,tabley2,- # But one table is left.");
+        out.println("scheman,tabley,colj,-,-,colj2");
+        out.println("scheman,tabley,colk,-,-,colk2");
+        out.println("scheman,tableu,*,scheman3,tableu2,- # Another special table.");
+        out.println("schemam,*,*,schemam2,-,-");
+        out.println("schemam,tableu,*,schemam2,tableu2,-");
+        out.println("schemam,tableu,colj,-,-,colj2");
+        out.close();
+
+        // Instantiate the filter.
+        RenameFilter rf = new RenameFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setDefinitionsFile(definitionsFile);
+        filterHelper.setFilter(rf);
+
+        // Expected to be renamed.
+        assertColumnChanged("scheman", "casualtable", new String[]{"id"},
+                "scheman2", "casualtable", new String[]{"id"});
+        assertColumnChanged("scheman", "tabley", new String[]{"id", "colk",
+                "colj"}, "scheman", "tabley2", new String[]{"id", "colk2",
+                "colj2"});
+        assertColumnChanged("scheman", "tableu", new String[]{"id", "temp"},
+                "scheman3", "tableu2", new String[]{"id", "temp"});
+        assertColumnChanged("schemam", "tableu", new String[]{"id", "colk",
+                "colj"}, "schemam2", "tableu2", new String[]{"id", "colk",
+                "colj2"});
+        assertColumnChanged("schemam", "anytable", new String[]{"id", "colk",
+                "colj"}, "schemam2", "anytable", new String[]{"id", "colk",
+                "colj"});
+    }
+
     /**
      * @param expectedColumns if null, don't compare column changes.
      */
