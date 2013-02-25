@@ -361,7 +361,12 @@ public class RenameDefinitions
             if (rename == null)
                 continue;
             else
-                return rename.getNewTable();
+            {
+                if (leaveOriginal(rename.getNewTable()))
+                    return null;
+                else
+                    return rename.getNewTable();
+            }
         }
         return null;
     }

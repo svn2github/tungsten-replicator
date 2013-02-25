@@ -91,7 +91,10 @@ public class EventGenerationHelper
                 RowChangeData.ActionType.INSERT);
 
         // Add specifications and values for keys. This is the before value.
-        rowChange.setKeySpec(generateSpec(rowChange, names));
+        // Key specs are for DELETEs and UPDATEs.
+        // rowChange.setKeySpec(generateSpec(rowChange, names));
+        // INSERTs have column specs.
+        rowChange.setColumnSpec(generateSpec(rowChange, names));
         rowChange.setColumnValues(generateValues(rowChange, values));
 
         // Wrap the row change in a change set.
@@ -134,11 +137,11 @@ public class EventGenerationHelper
                 names.length);
 
         // Iterate through the name array, adding a specification for each.
-        for (int i = 0; i < specArray.size(); i++)
+        for (int i = 0; i < names.length; i++)
         {
             ColumnSpec colSpec = oneRowChange.new ColumnSpec();
             colSpec.setIndex(1);
-            colSpec.setName("c1");
+            colSpec.setName(names[i]);
             colSpec.setType(Types.VARCHAR);
             specArray.add(colSpec);
         }
