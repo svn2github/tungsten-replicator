@@ -199,13 +199,12 @@
     <target name="dist-bin" depends="jar"
             description="--> build binary distribution">
         <mkdir dir="${dist.dir}"/>
-        <!-- No scripts at bin directory at the moment that we should care about
-    	<copy filtering="true"
-              file="bin/tungsten.sh"
-              tofile="${dist.dir}/bin/tungsten.sh">
+        <!-- Copy scripts from bin directory -->
+    	<copy todir="${dist.dir}/bin/">
+    		<fileset dir="bin/"/>
         </copy>
-        <chmod dir="${dist.dir}/bin" perm="ugo+rx" includes="*.sh"/>
-        -->
+        <chmod dir="${dist.dir}/bin" perm="ugo+rx" includes="*"/>
+        
         <copy todir="${dist.dir}/lib">
             <fileset dir="${jars.dir}"/>
         </copy>
@@ -225,7 +224,7 @@
     <target name="dist-src" depends="jar"
             description="--> build source distribution">
         <mkdir dir="${dist.src.dir}"/>
-        <!-- No scripts at bin directory at the moment -->
+    	<!-- Create bin directory for scripts -->
         <mkdir dir="${dist.src.dir}/bin"/>
 
         <copy todir="${dist.src.dir}">
