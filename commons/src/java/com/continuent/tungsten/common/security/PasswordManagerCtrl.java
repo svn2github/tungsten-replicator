@@ -177,7 +177,7 @@ public class PasswordManagerCtrl
                 try
                 {
                     pwd.passwordManager.setPasswordForUser(username, password);
-                    System.out.println(MessageFormat.format("User created successfuly: {0}", username));
+                    logger.info(MessageFormat.format("User created successfuly: {0}", username));
                 }
                 catch (Exception e)
                 {
@@ -193,7 +193,7 @@ public class PasswordManagerCtrl
                 try
                 {
                     pwd.passwordManager.deleteUser(username);
-                    System.out.println(MessageFormat.format("User deleted successfuly: {0}", username));
+                    logger.info(MessageFormat.format("User deleted successfuly: {0}", username));
                 }
                 catch (Exception e)
                 {
@@ -204,7 +204,7 @@ public class PasswordManagerCtrl
            
         }
         catch( ParseException exp ) {
-            System.out.println(exp.getMessage());
+            logger.error(exp.getMessage());
             
             DisplayHelpAndExit();
         }

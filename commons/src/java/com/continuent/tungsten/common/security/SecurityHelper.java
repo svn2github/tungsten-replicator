@@ -86,6 +86,14 @@ public class SecurityHelper
         try
         {
             PropertiesConfiguration props = new PropertiesConfiguration(passwordFileLocation);
+            
+            // --- Check that the user exists ---
+            String usernameInFile = props.getString(username);
+            if (usernameInFile==null)
+            {
+                throw new ServerRuntimeException(MessageFormat.format("Username does not exist: {0}", username));
+            }
+            
             props.clearProperty(username);
             props.save();
         }

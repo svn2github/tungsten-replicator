@@ -218,6 +218,17 @@ public class PasswordManagerTest extends TestCase
         assertNotNull(goodPassword);
         // ################################
         
+        // --- Try to delete a non existing user ---
+        try
+        {
+            pwd.deleteUser("non_existing_user");
+            assertTrue(false);                      // We should not get there as there should be an exception raised
+        }
+        catch (Exception e)
+        {
+            assertTrue(true);                      // An exception was raised: that's fine
+        }
+        
         // --- Try to delete the created user ---
         try
         {
