@@ -30,6 +30,9 @@ SQL generated on $date by ./ddlscan utility of Tungsten
 url = $url
 user = $user
 dbName = $dbName
+#if( $renameDefinitions )
+rename = $renameDefinitions.getDefinitionsFile()
+#end
 */
 #end
 

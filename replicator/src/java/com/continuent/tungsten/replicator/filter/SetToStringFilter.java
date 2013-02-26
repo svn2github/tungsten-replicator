@@ -176,7 +176,7 @@ public class SetToStringFilter extends EnumToStringFilter
     {
         return EnumToStringFilter.parseListDefString("set", setDefinition);
     }
-    
+
     /**
      * Transforms a binary map encoded in a long type, eg.:<br/>
      * 011101<br/>
@@ -187,7 +187,7 @@ public class SetToStringFilter extends EnumToStringFilter
      *      type</a>
      * @param setDefs String values of each bit. For the above example:
      *            a,b,c,d,e,f.
-     * @param A bitmap to decode.
+     * @param currentValue A bitmap to decode.
      * @return A comma-separated list of decoded values, eg.: "a,c,d,e".
      */
     public static String binarySetMapToString(String[] setDefs,

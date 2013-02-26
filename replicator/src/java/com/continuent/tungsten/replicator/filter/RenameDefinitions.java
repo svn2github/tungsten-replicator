@@ -112,6 +112,14 @@ public class RenameDefinitions
     {
         this.definitionFile = definitionFile;
     }
+    
+    /**
+     * Returns rename definitions file name used.
+     */
+    public String getDefinitionsFile()
+    {
+        return definitionFile;
+    }
 
     /**
      * Removes trailing spaces and comments from a column.

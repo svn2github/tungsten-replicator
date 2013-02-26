@@ -37,12 +37,14 @@ import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.log.Log4JLogChute;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.OracleDatabase;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.filter.EnumToStringFilter;
+import com.continuent.tungsten.replicator.filter.RenameDefinitions;
 
 /**
  * Main DDLScan functionality is programmed here.
@@ -64,6 +66,7 @@ public class DDLScan
     private ArrayList<String> reservedWordsOracle = null;
 
     VelocityEngine            velocity            = null;
+    RenameDefinitions         renameDefinitions   = null;
 
     /**
      * Creates a new <code>DDLScan</code> object from provided JDBC URL
@@ -144,13 +147,40 @@ public class DDLScan
             throw new ReplicatorException("Problem parsing the template", pee);
         }
     }
+    
+    /**
+     * Tries to load rename definitions file. It will be used for all subsequent
+     * scan calls.
+     * 
+     * @throws ReplicatorException On parsing or CSV format errors.
+     * @throws IOException If file cannot be read.
+     * @see #resetRenameDefinitions()
+     * @see #scan(String, Writer)
+     */
+    public void parseRenameDefinitions(String definitionsFile)
+            throws ReplicatorException, IOException
+    {
+        renameDefinitions = new RenameDefinitions(definitionsFile);
+        renameDefinitions.parseFile();
+    }
+    
+    /**
+     * Stop using rename definitions file for future scan(...) calls.
+     * 
+     * @see #parseRenameDefinitions(String)
+     * @see #scan(String, Writer)
+     */
+    public void resetRenameDefinitions()
+    {
+        renameDefinitions = null;
+    }
 
     /**
      * Scans and extracts metadata from the database of requested tables. Calls
      * merge(...) against each found table.
      * 
-     * @param tables Regular expression enable list of tables to find or null
-     *            for all tables.
+     * @param tablesToFind Regular expression enable list of tables to find or
+     *            null for all tables.
      * @param writer Writer object to use for appending rendered template. Make
      *            sure to initialize it before and flush/close it after
      *            manually.
@@ -181,6 +211,9 @@ public class DDLScan
         // Database object.
         context.put("db", db);
 
+        // RenameDefinitions object used (if any).
+        context.put("renameDefinitions", renameDefinitions);
+
         // Some handy utilities.
         context.put("enum", EnumToStringFilter.class);
         context.put("date", new java.util.Date()); // Current time.
@@ -189,14 +222,54 @@ public class DDLScan
         // Iterate through all available tables in the database.
         for (Table table : tables)
         {
+            // Is this table requested by the user?
             if (tableMatcher == null
                     || tableMatcher.match(table.getSchema(), table.getName()))
             {
+                // If requested, do the renaming.
+                rename(table);
+
+                // Velocity merge.
                 merge(context, table, writer);
             }
         }
 
         return writer.toString();
+    }
+
+    /**
+     * If renameDefinitions object is prepared, does the lookup and renaming of
+     * schema, table and columns. Nothing is done if renameDefinitions is null.
+     * 
+     * @see #parseRenameDefinitions(String)
+     */
+    private void rename(Table table)
+    {
+        if (renameDefinitions != null)
+        {
+            // Rename columns.
+            for (Column col : table.getAllColumns())
+            {
+                String newColName = renameDefinitions.getNewColumnName(
+                        table.getSchema(), table.getName(), col.getName());
+                if (newColName != null)
+                    col.setName(newColName);
+            }
+
+            // Get new table name if there's a request.
+            String newTableName = renameDefinitions.getNewTableName(
+                    table.getSchema(), table.getName());
+
+            // Get new schema name if there's a request.
+            String newSchemaName = renameDefinitions.getNewSchemaName(
+                    table.getSchema(), table.getName());
+
+            // Finally, do the actual renaming of schema and table.
+            if (newTableName != null)
+                table.setTable(newTableName);
+            if (newSchemaName != null)
+                table.setSchema(newSchemaName);
+        }
     }
 
     /**

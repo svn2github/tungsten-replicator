@@ -72,6 +72,8 @@ public class DDLScanCtrl
 
     private String                tables            = null;
 
+    private String                renameDefinitions = null;
+
     private String                templateFile      = null;
     private String                outFile           = null;
 
@@ -85,8 +87,8 @@ public class DDLScanCtrl
      * @throws Exception
      */
     public DDLScanCtrl(String url, String user, String pass, String db,
-            String tables, String templateFile, String outFile)
-            throws Exception
+            String tables, String templateFile, String outFile,
+            String renameDefinitions) throws Exception
     {
         // JDBC connection string.
         this.url = url;
@@ -100,6 +102,9 @@ public class DDLScanCtrl
         // Output file.
         this.templateFile = templateFile;
         this.outFile = outFile;
+
+        // Rename definitions file.
+        this.renameDefinitions = renameDefinitions;
     }
 
     public void prepare() throws ReplicatorException, InterruptedException
@@ -111,6 +116,8 @@ public class DDLScanCtrl
             println("db = " + db);
             println("user = " + user);
             println("template = " + templateFile);
+            if (renameDefinitions != null)
+                println("rename = " + renameDefinitions);
         }
 
         try
@@ -134,13 +141,36 @@ public class DDLScanCtrl
     /**
      * Scans the database for requested objects and generates output through a
      * template.
+     * 
+     * @return false, if there were unexpected errors (eg. template not found).
      */
-    public void scanAndGenerate() throws InterruptedException,
+    public boolean scanAndGenerate() throws InterruptedException,
             ReplicatorException, SQLException, IOException
     {
         Writer writer = null;
 
-        scanner.parseTemplate(templateFile);
+        try
+        {
+            scanner.parseTemplate(templateFile);
+        }
+        catch (ReplicatorException e)
+        {
+            println(e.getMessage());
+            return false;
+        }
+
+        if (renameDefinitions != null)
+        {
+            try
+            {
+                scanner.parseRenameDefinitions(renameDefinitions);
+            }
+            catch (IOException e)
+            {
+                println(e.getMessage());
+                return false;
+            }
+        }
 
         if (outFile == null)
             writer = new StringWriter();
@@ -157,6 +187,8 @@ public class DDLScanCtrl
             println(writer.toString());
         else
             println("rendered to = " + outFile);
+
+        return true;
     }
 
     public void release()
@@ -216,6 +248,7 @@ public class DDLScanCtrl
             String tables = null;
             String db = null;
             String outFile = null;
+            String renameDefinitions = null;
 
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
@@ -268,18 +301,27 @@ public class DDLScanCtrl
                     if (argvIterator.hasNext())
                         outFile = argvIterator.next();
                 }
+                else if ("-rename".equals(curArg))
+                {
+                    if (argvIterator.hasNext())
+                        renameDefinitions = argvIterator.next();
+                }
+                else if ("-help".equals(curArg))
+                {
+                    printHelp();
+                    succeed();
+                }
                 else if (curArg.startsWith("-"))
-                    fatal("Unrecognized option: " + curArg, null);
+                {
+                    println("Unrecognized option: " + curArg);
+                    printHelp();
+                    fail();
+                }
                 else
                     command = curArg;
             }
 
-            if (command != null && "help".equals(command))
-            {
-                printHelp();
-                succeed();
-            }
-            else if (templateFile == null)
+            if (templateFile == null)
             {
                 println("Template file is not provided! Use -template parameter.");
                 printHelp();
@@ -354,7 +396,7 @@ public class DDLScanCtrl
 
             // Construct DDLScanCtrl from JDBC URL credentials.
             DDLScanCtrl ddlScanManager = new DDLScanCtrl(url, user, pass, db,
-                    tables, templateFile, outFile);
+                    tables, templateFile, outFile, renameDefinitions);
 
             if (tables == null && outFile != null)
                 println("Tables not specified - extracting everything!");
@@ -410,12 +452,13 @@ public class DDLScanCtrl
         println("  -url jdbcUrl   - JDBC connection string (use single quotes to escape)");
         println("Schema scan specification:");
         println("  -tables regex  - Regular expression enabled list defining tables to find");
+        println("  -rename file   - Definitions file for renaming schemas, tables and columns");
         println("Global options:");
         println("  -db db         - Database to use (will substitute "
                 + DBNAME_VAR + " in the URL, if needed)");
         println("  -template file - Specify template file to render");
         println("  -out file      - Render to file (print to stdout if not specified)");
-        println("  help           - Print this help display");
+        println("  -help          - Print this help display");
     }
 
     /**

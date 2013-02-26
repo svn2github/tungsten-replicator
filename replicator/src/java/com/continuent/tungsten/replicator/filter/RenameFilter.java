@@ -66,7 +66,7 @@ public class RenameFilter implements Filter
     /**
      * Sets the path to rename definition file.
      * 
-     * @param schemaNameSuffix Path to file.
+     * @param definitionsFile Path to file.
      */
     public void setDefinitionsFile(String definitionsFile)
     {
