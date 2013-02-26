@@ -29,6 +29,7 @@ import java.io.PrintWriter;
 
 import junit.framework.TestCase;
 
+import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 
@@ -45,6 +46,8 @@ import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
  */
 public class RenameFilterTest extends TestCase
 {
+    private static Logger            logger          = Logger.getLogger(RenameFilterTest.class);
+
     private FilterVerificationHelper filterHelper    = new FilterVerificationHelper();
     private EventGenerationHelper    eventHelper     = new EventGenerationHelper();
 
@@ -71,6 +74,28 @@ public class RenameFilterTest extends TestCase
     {
         File file = new File(definitionsFile);
         file.delete();
+    }
+
+    /**
+     * Verify that the filter raises exception if no definitions file is
+     * provided.
+     */
+    public void testUnspecifiedProperties() throws Exception
+    {
+        RenameFilter rf = new RenameFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        try
+        {
+            filterHelper.setFilter(rf);
+            filterHelper.done();
+
+            fail("Exception not thrown during configure though definitionsFile property was not set");
+        }
+        catch (ReplicatorException e)
+        {
+            // OK - it should have threw an exception.
+            logger.info(e);
+        }
     }
 
     /**

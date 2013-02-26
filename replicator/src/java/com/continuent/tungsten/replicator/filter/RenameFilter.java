@@ -203,6 +203,11 @@ public class RenameFilter implements Filter
             tungstenSchema = context.getReplicatorProperties().getString(
                     ReplicatorConf.METADATA_SCHEMA);
         }
+        if (definitionsFile == null)
+        {
+            throw new ReplicatorException(
+                    "definitionsFile property not set - specify a path to CSV file");
+        }
     }
 
     /**
