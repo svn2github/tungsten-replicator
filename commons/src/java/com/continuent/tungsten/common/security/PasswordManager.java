@@ -246,7 +246,7 @@ public class PasswordManager
      * Takes into account application specific configuration and add prefix to link username to an application
      * 
      * @param username the username to refactor for the current application
-     * @return
+     * @return username with the application specific suffix
      */
     public String getApplicationSpecificUsername(String username)
     {

@@ -49,7 +49,6 @@ public class SecurityHelper
     /**
      * Save passwords from a TungstenProperties into a file
      * 
-     * @param passwordsProperties containing logins as key and passwords as values
      * @param authenticationInfo containing password file location
      */
     public static void saveCredentialsFromAuthenticationInfo(AuthenticationInfo authenticationInfo) throws ServerRuntimeException
