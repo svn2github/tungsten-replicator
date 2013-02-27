@@ -149,6 +149,11 @@ public class Directory extends ResourceTree
     private static Directory                                 _instance            = null;
 
     private static CommandLineParser                         parser               = new CommandLineParser();
+    
+    public Directory()
+    {
+        
+    }
 
     /**
      * Returns a global instance. This is the standard method to access a single

@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.continuent.tungsten.common.cluster.resource.Resource;
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
 
@@ -37,6 +39,7 @@ import com.continuent.tungsten.common.cluster.resource.ResourceType;
 @SuppressWarnings("rawtypes")
 public class ResourceNode implements Comparable, Serializable
 {
+    static private Logger            logger           = Logger.getLogger(ResourceNode.class);
     /**
      * 
      */
