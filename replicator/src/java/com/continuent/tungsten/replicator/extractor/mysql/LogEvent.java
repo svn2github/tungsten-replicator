@@ -447,10 +447,15 @@ public abstract class LogEvent
         {
             if (!alreadyLogged)
             {
-                logger.warn("Trying to read more bytes (" + length
-                        + ") than available in the file (" + available + " in "
-                        + binlog.getFileName()
-                        + ")... waiting for data to be available");
+                if (logger.isDebugEnabled())
+                {
+                    // This conditions appears commonly on slow file systems,
+                    // hence should be a debug message.
+                    logger.debug("Trying to read more bytes (" + length
+                            + ") than available in the file (" + available
+                            + " in " + binlog.getFileName()
+                            + ")... waiting for data to be available");
+                }
                 alreadyLogged = true;
             }
 
