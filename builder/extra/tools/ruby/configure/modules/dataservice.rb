@@ -448,7 +448,11 @@ class ReplicationServiceTHLMasterURI < ConfigurePrompt
     hosts.each{
       |host|
       
-      values << "thl://#{host}:#{port}/"
+      if host.index(':') == nil
+        values << "thl://#{host}:#{port}/"
+      else
+        values << "thl://#{host}"
+      end
     }
     
     return values.join(",")
