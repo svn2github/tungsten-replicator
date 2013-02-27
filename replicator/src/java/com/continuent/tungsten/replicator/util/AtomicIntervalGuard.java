@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -335,13 +335,19 @@ public class AtomicIntervalGuard<D>
     /**
      * Wait until the minimum time in array is greater than or equal to the
      * request time.
+     * 
+     * @param time Return if this time is less than or equal to the trailing
+     *            commit timestamp
+     * @param seqno Return if this seqno is less than or equal to the trailing
+     *            seqno
      */
-    public synchronized long waitMinTime(long time) throws InterruptedException
+    public synchronized long waitMinTime(long time, long seqno)
+            throws InterruptedException
     {
         assertArrayReady();
-        while (time > head.time)
+        while (time > head.time && seqno > head.seqno)
         {
-            wait();
+            wait(1000);
         }
         return head.time;
     }

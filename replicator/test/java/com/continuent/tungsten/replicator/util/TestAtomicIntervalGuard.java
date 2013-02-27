@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -183,7 +183,7 @@ public class TestAtomicIntervalGuard extends TestCase
             }
             // Verify time interval.
             long minimumTime = Math.max(time - 20, 0);
-            long tailTime = ati.waitMinTime(minimumTime);
+            long tailTime = ati.waitMinTime(minimumTime, seqno);
             assertEquals("Tail time at iteration: " + i, minimumTime, tailTime);
         }
     }
@@ -214,7 +214,7 @@ public class TestAtomicIntervalGuard extends TestCase
             long seqno = counter.incrAndGetSeqno();
             if (seqno >= 500000)
                 break;
-            ati.waitMinTime(Math.max(seqno - 5000, 0));
+            ati.waitMinTime(Math.max(seqno - 5000, 0), seqno);
             if (seqno % 50000 == 0)
             {
                 double elapsed = (System.currentTimeMillis() - startMillis) / 1000.0;

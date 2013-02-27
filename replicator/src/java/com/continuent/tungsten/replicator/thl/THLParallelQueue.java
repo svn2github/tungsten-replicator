@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -105,6 +105,7 @@ public class THLParallelQueue implements ParallelStore
     // the time interval between most and least advanced read threads.
     private AtomicIntervalGuard<?>    intervalGuard;
     private long                      lastTimestampMillis = -1;
+    private long                      lastSeqno = -1;
     private long                      intervalCheckMillis;
     private long                      maxOfflineMillis;
 
@@ -370,7 +371,7 @@ public class THLParallelQueue implements ParallelStore
                             + " high time="
                             + intervalGuard.getHiTime());
                 }
-                intervalGuard.waitMinTime(minimumTimeMillis);
+                intervalGuard.waitMinTime(minimumTimeMillis, lastSeqno);
             }
 
             // Remember the time of this check.
@@ -378,6 +379,7 @@ public class THLParallelQueue implements ParallelStore
 
             // Update the event timestamp so we are ready for the next check.
             lastTimestampMillis = event.getExtractedTstamp().getTime();
+            lastSeqno = event.getSeqno();
         }
 
         // Advance the head seqno counter. This allows all eligible threads
