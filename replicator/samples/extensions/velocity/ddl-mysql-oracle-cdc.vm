@@ -19,17 +19,10 @@
   
 *##parse("includes/ddl-header.vm")
 
+$table.setTable($table.getName().concat("_CDC"))
 #parse("includes/ddl-mysql-oracle-table.vm")
-## Primary key.
-#if ( $table.getPrimaryKey() )
-  PRIMARY KEY (##
-#foreach ( $key in $table.getPrimaryKey().getColumns() )
-$key.getName()##
-#if( $foreach.hasNext ), #else)#end
-#end
-#else
-
-  /* ERROR: table must have a primary key! */##
-#end
-
+## CDC (logging) columns.
+  CDC_OP_TYPE VARCHAR(1), /* CDC column */
+  CDC_TIMESTAMP TIMESTAMP, /* CDC column */
+  CDC_SEQUENCE_NUMBER NUMBER PRIMARY KEY /* CDC column */
 );
