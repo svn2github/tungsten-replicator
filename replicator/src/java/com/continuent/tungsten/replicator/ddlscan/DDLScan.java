@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.Template;
@@ -131,7 +132,8 @@ public class DDLScan
     /**
      * Compiles the given Velocity template file.
      */
-    public void parseTemplate(String templateFile) throws ReplicatorException
+    public void parseTemplate(String templateFile)
+            throws ReplicatorException
     {
         try
         {
@@ -181,12 +183,14 @@ public class DDLScan
      * 
      * @param tablesToFind Regular expression enable list of tables to find or
      *            null for all tables.
+     * @param templateOptions Options (option->value) to pass to the template.
      * @param writer Writer object to use for appending rendered template. Make
      *            sure to initialize it before and flush/close it after
      *            manually.
      * @return Rendered template data.
      */
-    public String scan(String tablesToFind, Writer writer)
+    public String scan(String tablesToFind,
+            Hashtable<String, String> templateOptions, Writer writer)
             throws ReplicatorException, InterruptedException, SQLException,
             IOException
     {
@@ -202,6 +206,12 @@ public class DDLScan
         // the Velocity engine gets the data to resolve the references in
         // the template.
         VelocityContext context = new VelocityContext();
+
+        // User options passed to the template.
+        for (String option : templateOptions.keySet())
+        {
+            context.put(option, templateOptions.get(option));
+        }
 
         // Source connection details.
         context.put("dbName", dbName);

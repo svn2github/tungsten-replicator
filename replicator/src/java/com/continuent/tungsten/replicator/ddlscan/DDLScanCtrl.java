@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.sql.SQLException;
+import java.util.Hashtable;
 import java.util.Properties;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
@@ -75,6 +76,7 @@ public class DDLScanCtrl
     private String                renameDefinitions = null;
 
     private String                templateFile      = null;
+    Hashtable<String, String>     templateOptions   = null;
     private String                outFile           = null;
 
     private DDLScan               scanner           = null;
@@ -88,7 +90,8 @@ public class DDLScanCtrl
      */
     public DDLScanCtrl(String url, String user, String pass, String db,
             String tables, String templateFile, String outFile,
-            String renameDefinitions) throws Exception
+            String renameDefinitions, Hashtable<String, String> templateOptions)
+            throws Exception
     {
         // JDBC connection string.
         this.url = url;
@@ -99,8 +102,9 @@ public class DDLScanCtrl
         this.db = db;
         this.tables = tables;
 
-        // Output file.
+        // Template, options and output file.
         this.templateFile = templateFile;
+        this.templateOptions = templateOptions;
         this.outFile = outFile;
 
         // Rename definitions file.
@@ -116,6 +120,10 @@ public class DDLScanCtrl
             println("db = " + db);
             println("user = " + user);
             println("template = " + templateFile);
+            for (String option : templateOptions.keySet())
+            {
+                println("  " + option + " = " + templateOptions.get(option));
+            }
             if (renameDefinitions != null)
                 println("rename = " + renameDefinitions);
         }
@@ -177,7 +185,7 @@ public class DDLScanCtrl
         else
             writer = new BufferedWriter(new FileWriter(new File(outFile)));
 
-        scanner.scan(tables, writer);
+        scanner.scan(tables, templateOptions, writer);
 
         // Flush and cleanup.
         writer.flush();
@@ -250,6 +258,9 @@ public class DDLScanCtrl
             String outFile = null;
             String renameDefinitions = null;
 
+            // Options to pass to template.
+            Hashtable<String, String> templateOptions = new Hashtable<String, String>();
+
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
             String curArg = null;
@@ -305,6 +316,25 @@ public class DDLScanCtrl
                 {
                     if (argvIterator.hasNext())
                         renameDefinitions = argvIterator.next();
+                }
+                else if ("-opt".equals(curArg))
+                {
+                    // Option to pass to the template.
+                    if (argvIterator.hasNext())
+                    {
+                        String option = argvIterator.next();
+                        String value = "";
+                        if (argvIterator.hasNext())
+                            value = argvIterator.next();
+                        templateOptions.put(option, value);
+                    }
+                    else
+                    {
+                        println("To pass an option to a template: -opt <option> <value>");
+                        println("To ask a template to describe itself: -opt help");
+                        printHelp();
+                        fail();
+                    }
                 }
                 else if ("-help".equals(curArg))
                 {
@@ -396,7 +426,8 @@ public class DDLScanCtrl
 
             // Construct DDLScanCtrl from JDBC URL credentials.
             DDLScanCtrl ddlScanManager = new DDLScanCtrl(url, user, pass, db,
-                    tables, templateFile, outFile, renameDefinitions);
+                    tables, templateFile, outFile, renameDefinitions,
+                    templateOptions);
 
             if (tables == null && outFile != null)
                 println("Tables not specified - extracting everything!");
@@ -441,23 +472,24 @@ public class DDLScanCtrl
     protected static void printHelp()
     {
         println("DDLScan Utility");
-        println("Syntax: ddlscan [connection|conf-options] [scan-spec] -db <db> -template <file> [out-options]");
+        println("Syntax: ddlscan [conf|conn] [scan-spec] -db <db> -template <file> [template-options] [out]");
         println("Conf options:");
         println("  -conf path     - Path to a static-<svc>.properties file to read JDBC");
-        println("                   connection address and credentials OR");
+        println("     OR            connection address and credentials or:");
         println("  -service name  - Name of a replication service instead of path to config");
         println("OR connection options:");
         println("  -user user     - JDBC username");
         println("  -pass secret   - JDBC password");
         println("  -url jdbcUrl   - JDBC connection string (use single quotes to escape)");
         println("Schema scan specification:");
-        println("  -tables regex  - Regular expression enabled list defining tables to find");
-        println("  -rename file   - Definitions file for renaming schemas, tables and columns");
+        println(" [-tables regex] - Regular expression enabled list defining tables to find");
+        println(" [-rename file]  - Definitions file for renaming schemas, tables and columns");
         println("Global options:");
         println("  -db db         - Database to use (will substitute "
                 + DBNAME_VAR + " in the URL, if needed)");
         println("  -template file - Specify template file to render");
-        println("  -out file      - Render to file (print to stdout if not specified)");
+        println(" [-opt opt val]  - Option(s) to pass to template, try: -opt help me");
+        println(" [-out file]     - Render to file (print to stdout if not specified)");
         println("  -help          - Print this help display");
     }
 

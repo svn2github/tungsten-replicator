@@ -1,0 +1,8 @@
+Transforms MySQL table definition (DDL) to Oracle dialect. Reports errors
+(ERROR) and warnings (WARN).
+  
+Notes:
+  
+  * ENUM -> VARCHAR2(longest ENUM element) - use EnumToStringFilter.
+  * SET -> VARCHAR2(4000) - use SetToStringFilter.
+  * Use "-rename" option together with RenameFilter.

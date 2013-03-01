@@ -6,35 +6,29 @@
   Initial developer(s): Robert Hodges, Linas Virbalas
   Contributor(s):
  
-  Velocity template to generate staging tables for Tungsten Replicaotr. 
+*##parse("includes/table-counter.vm")
+## Print header or help above the first table.
+#if ( $counter == 1 )
+#if( $help )
+Velocity template to generate staging tables for Tungsten Replicaotr. 
   
-  Transforms MySQL table definition (DDL) to Vertica staging tables.
-  Reports errors (ERROR) and warnings (WARN).  Column mappings
-  generally map to those used by Tungsten Replicator.
+Transforms MySQL table definition (DDL) to Vertica staging tables.
+Reports errors (ERROR) and warnings (WARN).  Column mappings
+generally map to those used by Tungsten Replicator.
 
-  Notes:
+Notes:
 
   * Each table definition gets a default projection at table creation time
-    through use of ORDER BY clause on tungsten_seqno and tungsten_row_id. 
-
-*### Counting tables.  
-#if ( !$counter )
-  #set ( $counter = 1 )
+    through use of ORDER BY clause on tungsten_seqno and tungsten_row_id.
 #else
-  #set( $counter = $counter + 1 )
-#end
-## Print header above the first table.  
-#if ( $counter == 1 )
-/* 
-SQL generated on $date by ./ddlscan utility of Tungsten
-
-url = $url
-user = $user
-dbName = $dbName
-*/
-
+#parse("includes/ddl-header.vm")
 CREATE SCHEMA $table.getSchema()##
 ;
+#end
+#end
+## Stop processing if help requested.
+#if( $help )
+#stop
 #end
 
 DROP TABLE ##

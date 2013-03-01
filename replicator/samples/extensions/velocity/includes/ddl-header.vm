@@ -1,11 +1,3 @@
-## Counting tables.
-#if ( !$counter )
-  #set ( $counter = 1 )
-#else
-  #set( $counter = $counter + 1 )
-#end
-## Print header above the first table.
-#if ( $counter == 1 )
 /*
 SQL generated on $date by ./ddlscan utility of Tungsten
 
@@ -16,4 +8,3 @@ dbName = $dbName
 rename = $renameDefinitions.getDefinitionsFile()
 #end
 */
-#end
