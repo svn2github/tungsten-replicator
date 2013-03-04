@@ -116,6 +116,7 @@ public class OpenReplicatorManagerCtrl
         println("  -host name                   - Host name of replicator [default: localhost]");
         println("  -port number                 - Port number of replicator [default: 10000]");
         println("  -service name                - Name of replicator service [default: none]");
+        println("                                 (Added implicitly if only one service was defined)");
         println("  -verbose                     - Print verbose messages");
         println("  -retry N                     - Retry connections up to N times [default: 10]");
 //TODO: uncomment when releasing security related features
@@ -145,7 +146,7 @@ public class OpenReplicatorManagerCtrl
         println("  restore [-uri uri] [-limit s]    - Restore database");
         println("  setrole -role role [-uri uri]    - Set replicator role");
         println("  start                        - Start start replication service");
-        println("  status [-name {channel-assignments|services|shards|stages|stores|watches}] ");
+        println("  status [-name {channel-assignments|services|shards|stages|stores|tasks|watches}] ");
         println("                               - Print replicator status information");
         println("  stop [-y]                    - Stop replication service");
         println("  wait -state s [-limit s]     - Wait up to s seconds for replicator state s");
