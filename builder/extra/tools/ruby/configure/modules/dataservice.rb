@@ -93,7 +93,7 @@ module ReplicationServicePrompt
       @config.getProperty([DATASOURCES, ds_key, REPL_DBHOST]),
       @config.getProperty([DATASOURCES, ds_key, REPL_DBPORT]),
       @config.getProperty([DATASOURCES, ds_key, REPL_DBLOGIN]),
-      @config.getProperty([DATASOURCES, ds_key, REPL_DBPASSWORD]), @config)
+      @config.getProperty([DATASOURCES, ds_key, REPL_DBPASSWORD]), @config, ds_key)
   end
   
   def get_command_line_argument()

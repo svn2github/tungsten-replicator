@@ -1,12 +1,13 @@
 class ConfigureDatabasePlatform
-  attr_reader :username, :password, :host, :port
+  attr_reader :username, :password, :host, :port, :ds_alias
   
-  def initialize(host, port, username, password, config)
+  def initialize(host, port, username, password, config, ds_alias)
     @host = host
     @port = port
     @username = username
     @password = password
     @config = config
+    @ds_alias = ds_alias
   end
   
   def get_uri_scheme
@@ -217,9 +218,9 @@ class ConfigureDatabasePlatform
     ["innodb"]
   end
   
-  def self.build(scheme, host, port, username, password, config)
+  def self.build(scheme, host, port, username, password, config, ds_alias)
     klass = self.get_class(scheme)
-    return klass.new(host, port, username, password, config)
+    return klass.new(host, port, username, password, config, ds_alias)
   end
   
   def self.get_class(scheme)
@@ -240,7 +241,7 @@ class ConfigureDatabasePlatform
 
       self.subclasses.each{
         |klass|
-        o = klass.new(nil, nil, nil, nil, nil)
+        o = klass.new(nil, nil, nil, nil, nil, nil)
         @database_classes[o.get_uri_scheme()] = klass
       }
     end

@@ -68,7 +68,7 @@ module ReplicationServiceValidationCheck
       @config.getProperty([DATASOURCES, ds, REPL_DBHOST]),
       @config.getProperty([DATASOURCES, ds, REPL_DBPORT]),
       @config.getProperty([DATASOURCES, ds, REPL_DBLOGIN]),
-      @config.getProperty([DATASOURCES, ds, REPL_DBPASSWORD]), @config)
+      @config.getProperty([DATASOURCES, ds, REPL_DBPASSWORD]), @config, ds)
   end
   
   def get_extractor_datasource
@@ -83,7 +83,7 @@ module ReplicationServiceValidationCheck
         @config.getProperty([DATASOURCES, ds, REPL_DBHOST]),
         @config.getProperty([DATASOURCES, ds, REPL_DBPORT]),
         @config.getProperty([DATASOURCES, ds, REPL_DBLOGIN]),
-        @config.getProperty([DATASOURCES, ds, REPL_DBPASSWORD]), @config)
+        @config.getProperty([DATASOURCES, ds, REPL_DBPASSWORD]), @config, ds)
     else
       get_applier_datasource()
     end

@@ -40,7 +40,7 @@ module DatasourcePrompt
       @config.getProperty(get_member_key(REPL_DBHOST)),
       @config.getProperty(get_member_key(REPL_DBPORT)),
       @config.getProperty(get_member_key(REPL_DBLOGIN)),
-      @config.getProperty(get_member_key(REPL_DBPASSWORD)), @config)
+      @config.getProperty(get_member_key(REPL_DBPASSWORD)), @config, get_member())
   end
   
   def get_command_line_argument()

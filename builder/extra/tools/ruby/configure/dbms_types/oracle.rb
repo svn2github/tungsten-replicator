@@ -7,6 +7,7 @@ REPL_ORACLE_HOME = "repl_oracle_home"
 REPL_ORACLE_LICENSE = "repl_oracle_license"
 REPL_ORACLE_SCHEMA = "repl_oracle_schema"
 REPL_ORACLE_LICENSED_SLAVE = "repl_oracle_licensed_slave"
+REPL_ORACLE_SCAN = "repl_datasource_oracle_scan"
 
 class OracleDatabasePlatform < ConfigureDatabasePlatform
   def get_uri_scheme
@@ -21,8 +22,20 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
     "none|script"
   end
   
+  def get_applier_template
+    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+      "tungsten-replicator/samples/conf/appliers/#{get_uri_scheme()}.tpl"
+    else
+      "tungsten-replicator/samples/conf/appliers/oracle-scan.tpl"
+    end
+	end
+  
   def get_thl_uri
-	  "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
+    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+	    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
+    else
+  	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
+	  end
 	end
   
   def get_default_port
@@ -34,11 +47,19 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getBasicJdbcUrl()
-    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}"
+    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+      "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}"
+    else
+  	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}"
+    end
   end
   
   def getJdbcUrl()
-    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
+    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+	    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
+    else
+  	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
+	  end
   end
   
   def getJdbcDriver()
@@ -119,6 +140,18 @@ class OracleService < OracleConfigurePrompt
   def initialize
     super(REPL_ORACLE_SERVICE, "Oracle Service", 
       PV_IDENTIFIER)
+  end
+end
+
+class OracleSCAN < OracleConfigurePrompt
+  include DatasourcePrompt
+  
+  def initialize
+    super(REPL_ORACLE_SCAN, "Oracle SCAN", PV_IDENTIFIER)
+  end
+  
+  def required?
+    false
   end
 end
 
