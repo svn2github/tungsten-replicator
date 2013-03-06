@@ -15,8 +15,6 @@ operation=
 options=
 properties=
 
-user=root
-password=
 host=localhost
 port=3306
 directory=/tmp/innobackup
@@ -102,8 +100,8 @@ if [ "$operation" = "backup" ]; then
   rm -f $archive
 
   # Copy the database files and apply any pending log entries
-  innobackupex-1.5.1 --user=$user --password=$password --host=$host --port=$port --no-timestamp --defaults-file=$my_cnf $directory
-  innobackupex-1.5.1 --apply-log --user=$user --password=$password --host=$host --port=$port --defaults-file=$my_cnf $directory
+  innobackupex-1.5.1 --defaults-file=$my_cnf --host=$host --port=$port --no-timestamp $directory
+  innobackupex-1.5.1 --apply-log --defaults-file=$my_cnf --host=$host --port=$port $directory
 
   # Package up the files and remove the staging directory
   cd $directory
@@ -139,7 +137,7 @@ elif [ "$operation" = "restore" ]; then
   # We are expecting the exit code to be 3 so we have to turn off the 
   # error trapping
   set +e
-  `mysql -u$user -p$password -h$host -P$port -e "select 1"` > /dev/null 2>&1
+  `mysql --defaults-file=$my_cnf -h$host -P$port -e "select 1"` > /dev/null 2>&1
   if [ $? -ne 1 ]; then
     echo "Unable to properly shutdown the MySQL service" >&2
     exit 1

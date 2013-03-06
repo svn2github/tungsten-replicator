@@ -12,8 +12,6 @@ INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
 @properties = nil
 
 @options = {
-  :user => "root",
-  :password => nil,
   :host => "localhost",
   :port => "3306",
   :directory => nil,
@@ -196,7 +194,7 @@ def restore
     begin
       # Verify that the stop command worked properly
       # We are expecting an error so we have to catch the exception
-      cmd_result("mysql -u#{@options[:user]} -p#{@options[:password]} -h#{@options[:host]} --port=#{@options[:port]} -e \"select 1\" > /dev/null 2>&1")
+      cmd_result("mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:host]} --port=#{@options[:port]} -e \"select 1\" > /dev/null 2>&1")
       raise "Unable to properly shutdown the MySQL service"
     rescue CommandError
     end
@@ -392,7 +390,7 @@ def build_timestamp_id(prefix)
 end
 
 def get_xtrabackup_command
-  "innobackupex-1.5.1 --user=#{@options[:user]} --password=#{@options[:password]} --host=#{@options[:host]} --port=#{@options[:port]}"
+  "innobackupex-1.5.1 --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]}"
 end
 
 def cmd_result(command)

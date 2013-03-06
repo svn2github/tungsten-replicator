@@ -18,6 +18,7 @@ REPL_MYSQL_XTRABACKUP_TMP_DIR = "repl_mysql_xtrabackup_tmp_dir"
 REPL_MYSQL_XTRABACKUP_TMP_FILE = "repl_mysql_xtrabackup_tmp_file"
 REPL_MYSQL_USE_BYTES_FOR_STRING = "repl_mysql_use_bytes_for_string"
 REPL_MYSQL_CONF = "repl_datasource_mysql_conf"
+REPL_MYSQL_SERVICE_CONF = "repl_datasource_mysql_service_conf"
 
 class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def get_uri_scheme
@@ -285,6 +286,19 @@ class MySQLConfFile < ConfigurePrompt
   
   def enabled_for_config?
     super() && (get_datasource().is_a?(MySQLDatabasePlatform))
+  end
+end
+
+class MySQLServiceConfigFile < ConfigurePrompt
+  include DatasourcePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_MYSQL_SERVICE_CONF, "Path to my.cnf file customized for this service", PV_FILENAME)
+  end
+  
+  def get_default_value
+    @config.getProperty([HOSTS, get_host_alias(), HOME_DIRECTORY]) + "/share/.my.#{get_member()}.cnf"
   end
 end
 
@@ -918,6 +932,21 @@ module ConfigureDeploymentStepMySQL
   def deploy_replication_dataservice()
     if ["xtrabackup", "xtrabackup-incremental"].include?(@config.getProperty(REPL_BACKUP_METHOD))
       mkdir_if_absent(@config.getProperty(REPL_MYSQL_XTRABACKUP_DIR))
+    end
+    
+    ads = get_applier_datasource()
+    if ads.is_a?(MySQLDatabasePlatform)
+      File.open(@config.getProperty(get_applier_key(REPL_MYSQL_SERVICE_CONF)), "w") {
+        |file|
+        file.puts("[client]")
+        file.puts("user=#{ads.username}")
+        file.puts("password=#{ads.password}")
+        file.puts("")
+        
+        if @config.getPropertyOr(get_applier_key(REPL_MYSQL_CONF), "") != ""
+          file.puts("!include #{@config.getProperty(get_applier_key(REPL_MYSQL_CONF))}")
+        end
+      }
     end
     
     super()
