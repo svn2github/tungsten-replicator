@@ -21,6 +21,8 @@
 
 package com.continuent.tungsten.common.tdf;
 
+import javax.ws.rs.core.Response;
+
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import junit.framework.TestCase;
@@ -39,7 +41,7 @@ public class TdfApiResponseTest extends TestCase
      * 
      * @throws Exception
      */
-    public void testgetOutputPayloadClass() throws Exception
+    public void testgetOutputPayloadClass()
     {
        TdfApiResponse apires = new TdfApiResponse();
        
@@ -55,6 +57,32 @@ public class TdfApiResponseTest extends TestCase
            assertTrue("The returned Type is not the same as the original Object", false);
     }
 
+    /**
+     * Tests that the getReturnMessage returns a message when a valid http returnCode is set
+     * 
+     * @throws Exception
+     */
+    public void testgetReturnMessage() 
+    {
+        TdfApiResponse apiResponse = new TdfApiResponse.Builder()
+        .returnCode(Response.Status.OK.getStatusCode())
+        .outputPayload(new String("dummy"))
+        .build(); 
+       assertNotNull(apiResponse.getReturnMessage());           // OK:200 should deliver a "OK" message
+       
+       apiResponse = new TdfApiResponse.Builder()
+       .returnCode(999)
+       .outputPayload(new String("dummy"))
+       .build(); 
+       assertNull(apiResponse.getReturnMessage());              // 999 does not correspond to a known http error code: no returnMessage
+       
+       apiResponse = new TdfApiResponse.Builder()
+       .returnCode(999)
+       .returnMessage("User provided return message")
+       .outputPayload(new String("dummy"))
+       .build(); 
+       assertNotNull(apiResponse.getReturnMessage());           // Return message provided by the user
+    }
     
 
 }

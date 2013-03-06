@@ -22,6 +22,18 @@
 package com.continuent.tungsten.common.tdf;
 
 import java.net.URI;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.NewCookie;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.Variant;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
@@ -35,26 +47,48 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class TdfApiResponse
 {
+   
+    protected URI     requestURI         = null;    /** The initial request URI as sent to the API */
+    protected Object  inputObject        = null;    /** The input object passed as a parameter to the API */
+    protected URI     responseURI        = null;    /** Return message related to the returnCode and adding more information */
+    protected Integer returnCode         = null;    /** The response Object providing the API return value */ 
+    protected String  returnMessage      = null;    /** The type of the outputPayload Object */
+    protected Object  outputPayload      = null;
 
-    /** The initial request URI as sent to the API */
-    protected URI requestURI  = null;
-    /** The input object passed as a parameter to the API */
-    protected Object      inputObject = null;
+    private Class<?>  outputPayloadClass = null;
 
-    protected URI responseURI = null;
     /**
-     * The HTTP return code
-     * @see <a href="http://en.wikipedia.org/wiki/List_of_HTTP_status_codes">HTTP return codes</a>
+     * Creates a new <code>TdfApiResponse</code> object
      */
-    protected Integer     returnCode  = null;
-    /** Return message related to the returnCode and adding more information*/
-    protected String returnMessage = null;
-    /** The response Object providing the API return value*/
-    protected Object outputPayload = null;
-    /** The type of the outputPayload Object*/
-    private Class<?> outputPayloadClass= null;
-    
-    
+    public TdfApiResponse()
+    {
+    }
+
+    /**
+     * Creates a new <code>TdfApiResponse</code> object
+     * 
+     * @param requestURI The URI corresponding to the submitted request.
+     */
+    public TdfApiResponse(URI requestURI)
+    {
+        this.requestURI = requestURI;
+    }
+
+    /**
+     * Creates a new <code>TdfApiResponse</code> object.
+     * private constructor to enforce object creation through builder
+     * @param builder
+     */
+    private TdfApiResponse(Builder builder)
+    {
+        this.requestURI = builder.requestURI;
+        this.inputObject = builder.inputObject;
+        this.responseURI = builder.responseURI;
+        this.returnCode = builder.returnCode;
+        this.returnMessage = builder.returnMessage;
+        this.outputPayload = builder.outputPayload;
+    }
+
     /**
      * Returns the outputPayloadClass value.
      * 
@@ -62,121 +96,84 @@ public class TdfApiResponse
      */
     public Class<?> getOutputPayloadClass()
     {
-        this.outputPayloadClass = (this.outputPayload==null)? null : outputPayload.getClass();
+        this.outputPayloadClass = (this.outputPayload == null)
+                ? null
+                : outputPayload.getClass();
         return outputPayloadClass;
     }
     
     /**
-     * Returns the requestURI value.
+     * Get the returnMessage.
+     * If null, tries to get the return Message from the returnCode.
      * 
-     * @return Returns the requestURI.
-     */
-    public URI getRequestURI()
-    {
-        return requestURI;
-    }
-    /**
-     * Sets the requestURI value.
-     * 
-     * @param requestURI The requestURI to set.
-     */
-    public void setRequestURI(URI requestURI)
-    {
-        this.requestURI = requestURI;
-    }
-    /**
-     * Returns the inputObject value.
-     * 
-     * @return Returns the inputObject.
-     */
-    public Object getInputObject()
-    {
-        return inputObject;
-    }
-    /**
-     * Sets the inputObject value.
-     * 
-     * @param inputObject The inputObject to set.
-     */
-    public void setInputObject(Object inputObject)
-    {
-        this.inputObject = inputObject;
-    }
-    /**
-     * Returns the responseURI value.
-     * 
-     * @return Returns the responseURI.
-     */
-    public URI getResponseURI()
-    {
-        return responseURI;
-    }
-    /**
-     * Sets the responseURI value.
-     * 
-     * @param responseURI The responseURI to set.
-     */
-    public void setResponseURI(URI responseURI)
-    {
-        this.responseURI = responseURI;
-    }
-    /**
-     * Returns the returnCode value.
-     * 
-     * @return Returns the returnCode.
-     */
-    public Integer getReturnCode()
-    {
-        return returnCode;
-    }
-    /**
-     * Sets the returnCode value.
-     * 
-     * @param returnCode The returnCode to set.
-     */
-    public void setReturnCode(Integer returnCode)
-    {
-        this.returnCode = returnCode;
-    }
-    /**
-     * Returns the returnMessage value.
-     * 
-     * @return Returns the returnMessage.
+     * @return the returnMessage as set by the user, or as derived from the returnCode
      */
     public String getReturnMessage()
     {
-        return returnMessage;
+        if (this.returnMessage==null && this.returnCode!=null)
+        {
+            Status status = Response.Status.fromStatusCode(this.returnCode);
+            this.returnMessage = (status!=null)? status.getReasonPhrase() : null;
+        }
+            
+        return this.returnMessage;
     }
+    
+   
+    public URI getRequestURI()                          {return requestURI;}
+    public void setRequestURI(URI requestURI)           {this.requestURI = requestURI; }
+
+    public Object getInputObject()                      {return inputObject;}
+    public void setInputObject(Object inputObject)      {this.inputObject = inputObject;}
+
+    public URI getResponseURI()                         {return responseURI;}
+    public void setResponseURI(URI responseURI)         {this.responseURI = responseURI;}
+
+    public Integer getReturnCode()                      {return returnCode;}
+    public void setReturnCode(Integer returnCode)       {this.returnCode = returnCode;}
+
+//    public String getReturnMessage()                    {return returnMessage;}
+    public void setReturnMessage(String returnMessage)  {this.returnMessage = returnMessage;}
+
+    public Object getOutputPayload()                    {return outputPayload;}
+    public void setOutputPayload(Object outputPayload)  {this.outputPayload = outputPayload;}
+
+    // ################################################################################ Builder for TdfApiResponse #################################################################
     /**
-     * Sets the returnMessage value.
+     * Builder class for a TdfApiResponse
      * 
-     * @param returnMessage The returnMessage to set.
+     * @author <a href="mailto:ludovic.launer@continuent.com">Ludovic Launer</a>
+     * @version 1.0
      */
-    public void setReturnMessage(String returnMessage)
+    public static class Builder
     {
-        this.returnMessage = returnMessage;
+
+        private URI     requestURI    = null;
+        private Object  inputObject   = null;
+        private URI     responseURI   = null;
+        private Integer returnCode    = null;
+        private String  returnMessage = null;
+        private Object  outputPayload = null;
+
+        // builder methods for setting property
+        public Builder requestURI(      URI     requestURI)     {this.requestURI    = requestURI;       return this;}
+        public Builder inputObject(     Object  inputObject)    {this.inputObject   = inputObject;      return this;}
+        public Builder responseURI(     URI     responseURI)    {this.responseURI   = responseURI;      return this;}
+        public Builder returnCode(      Integer returnCode)     {this.returnCode    = returnCode;       return this;}
+        public Builder returnMessage(   String  returnMessage)  {this.returnMessage = returnMessage;    return this;}
+        public Builder outputPayload(   Object  outputPayload)  {this.outputPayload = outputPayload;    return this;}
+
+       
+        /**
+         * Build a TdfApiResponse
+         * 
+         * @return fully built object
+         */
+        public TdfApiResponse build()
+        {
+            return new TdfApiResponse(this);
+        }
+        
     }
-    /**
-     * Returns the outputPayload value.
-     * 
-     * @return Returns the outputPayload.
-     */
-    public Object getOutputPayload()
-    {
-        return outputPayload;
-    }
-    /**
-     * Sets the outputPayload value.
-     * 
-     * @param outputPayload The outputPayload to set.
-     */
-    public void setOutputPayload(Object outputPayload)
-    {
-        this.outputPayload = outputPayload;
-    }
-    
-    
-    
-    
 
 }
