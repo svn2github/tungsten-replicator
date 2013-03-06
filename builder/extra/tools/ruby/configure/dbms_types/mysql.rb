@@ -776,9 +776,9 @@ class MySQLSettingsCheck < ConfigureValidationCheck
     
     info("Checking innodb_flush_log_at_trx_commit")
     innodb_flush_log_at_trx_commit = get_applier_datasource.get_value("show variables like 'innodb_flush_log_at_trx_commit'", "Value")
-    if innodb_flush_log_at_trx_commit == nil || innodb_flush_log_at_trx_commit != "2"
+    if innodb_flush_log_at_trx_commit == nil || innodb_flush_log_at_trx_commit != "1"
       warning("The value of innodb_flush_log_at_trx_commit is wrong for #{get_applier_datasource.get_connection_summary()}")
-      help("Add \"innodb_flush_log_at_trx_commit=2\" to the MySQL configuration file for #{get_applier_datasource.get_connection_summary()}")
+      help("Add \"innodb_flush_log_at_trx_commit=1\" to the MySQL configuration file for #{get_applier_datasource.get_connection_summary()}")
     end
     
     info("Checking max_allowed_packet")
