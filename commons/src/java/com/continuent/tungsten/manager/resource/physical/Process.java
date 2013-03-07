@@ -22,6 +22,9 @@
 
 package com.continuent.tungsten.manager.resource.physical;
 
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
 
 import com.continuent.tungsten.common.cluster.resource.Resource;
@@ -33,12 +36,17 @@ public class Process extends Resource
     /**
      * 
      */
-    private static final long serialVersionUID = 1L;
-    private String            service          = null;
-    private int               port             = 0;
-    private String            member           = null;
+    private static final long     serialVersionUID = 1L;
+    private String                service          = null;
+    private int                   port             = 0;
+    private String                member           = null;
 
-    JMXConnector              connection       = null;
+    private JMXConnector          connection       = null;
+    private MBeanServerConnection server           = null;
+
+    private static AtomicLong     currentEpoch     = new AtomicLong(0);
+
+    private long                  epoch            = -1L;
 
     public Process(String name) throws ResourceException
     {
@@ -46,6 +54,7 @@ public class Process extends Resource
         this.setService(name);
         this.childType = ResourceType.RESOURCE_MANAGER;
         this.isContainer = true;
+        this.setEpoch(currentEpoch.incrementAndGet());
     }
 
     public String getMember()
@@ -96,6 +105,61 @@ public class Process extends Resource
     public void setConnection(JMXConnector connection)
     {
         this.connection = connection;
+    }
+
+    /**
+     * Returns the server value.
+     * 
+     * @return Returns the server.
+     */
+    public MBeanServerConnection getServer()
+    {
+        return server;
+    }
+
+    /**
+     * Sets the server value.
+     * 
+     * @param server The server to set.
+     */
+    public void setServer(MBeanServerConnection server)
+    {
+        this.server = server;
+    }
+
+    /**
+     * Returns the connection value.
+     * 
+     * @return Returns the connection.
+     */
+    public JMXConnector getConnection()
+    {
+        return connection;
+    }
+
+    /**
+     * Returns the epoch value.
+     * 
+     * @return Returns the epoch.
+     */
+    public long getEpoch()
+    {
+        return epoch;
+    }
+
+    /**
+     * Sets the epoch value.
+     * 
+     * @param epoch The epoch to set.
+     */
+    public void setEpoch(long epoch)
+    {
+        this.epoch = epoch;
+    }
+
+    public String toString()
+    {
+        return String.format("%s@%s(%d)", getName(), getMember(), getEpoch());
     }
 
 }

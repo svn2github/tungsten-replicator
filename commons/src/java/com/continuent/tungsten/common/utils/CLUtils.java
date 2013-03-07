@@ -443,11 +443,16 @@ public class CLUtils implements Serializable
         boolean isComposite = dsProps.getBoolean(DataSource.ISCOMPOSITE,
                 "false", false);
 
+        String fullRole = String
+                .format("%s%s", (dsProps.getInt(DataSource.PRECEDENCE) == -1
+                        ? "ARCHIVE "
+                        : ""), dsProps.getString(DataSource.ROLE));
+
         String dsHeader = String.format("%s%s(%s:%s%s%s) %s", dsProps
                 .getString("name"), modifiedSign(wasModified), String.format(
-                "%s%s", (isComposite ? "composite " : ""),
-                dsProps.getString("role")), dsProps.getString("state"),
-                failureInfo, additionalInfo, connectionStats);
+                "%s%s", (isComposite ? "composite " : ""), fullRole), dsProps
+                .getString("state"), failureInfo, additionalInfo,
+                connectionStats);
 
         String alertMessage = dsProps.getString(DataSource.ALERT_MESSAGE, "",
                 false);

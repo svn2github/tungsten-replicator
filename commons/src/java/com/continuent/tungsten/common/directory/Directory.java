@@ -149,10 +149,10 @@ public class Directory extends ResourceTree
     private static Directory                                 _instance            = null;
 
     private static CommandLineParser                         parser               = new CommandLineParser();
-    
+
     public Directory()
     {
-        
+
     }
 
     /**
@@ -928,6 +928,23 @@ public class Directory extends ResourceTree
     }
 
     /**
+     * @param map
+     * @return
+     * @throws DirectoryNotFoundException
+     */
+    private ResourceNode getLast(Map<String, ResourceNode> map)
+            throws DirectoryNotFoundException
+    {
+        ResourceNode lastNode = null;
+        for (ResourceNode node : map.values())
+        {
+            lastNode = node;
+        }
+        
+        return lastNode;
+    }
+
+    /**
      * @param path
      * @return
      * @throws DirectoryNotFoundException
@@ -1488,7 +1505,7 @@ public class Directory extends ResourceTree
         StringBuilder builder = new StringBuilder();
 
         int entryCount = 0;
-        
+
         Collections.sort(entries);
 
         for (ResourceNode entry : entries)
