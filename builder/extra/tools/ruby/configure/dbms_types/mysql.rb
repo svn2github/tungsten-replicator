@@ -294,11 +294,11 @@ class MySQLServiceConfigFile < ConfigurePrompt
   include ConstantValueModule
   
   def initialize
-    super(REPL_MYSQL_SERVICE_CONF, "Path to my.cnf file customized for this service", PV_FILENAME)
+    super(REPL_MYSQL_SERVICE_CONF, "Path to my.cnf file customized for this datasource", PV_FILENAME)
   end
   
-  def get_default_value
-    @config.getProperty([HOSTS, get_host_alias(), HOME_DIRECTORY]) + "/share/.my.#{get_member()}.cnf"
+  def get_template_value(transform_values_method)
+    @config.getProperty(HOME_DIRECTORY) + "/share/.my.#{get_member()}.cnf"
   end
 end
 
@@ -936,7 +936,7 @@ module ConfigureDeploymentStepMySQL
     
     ads = get_applier_datasource()
     if ads.is_a?(MySQLDatabasePlatform)
-      File.open(@config.getProperty(get_applier_key(REPL_MYSQL_SERVICE_CONF)), "w") {
+      File.open(@config.getTemplateValue(get_applier_key(REPL_MYSQL_SERVICE_CONF)), "w") {
         |file|
         file.puts("[client]")
         file.puts("user=#{ads.username}")

@@ -165,9 +165,9 @@ PV_BOOLEAN = BooleanValidator.new()
 PV_CONFIRMATION = ConfirmationValueValidator.new()
 PV_IDENTIFIER = PropertyValidator.new('[A-Za-z0-9_]+', 
   "Value must consist only of letters, digits, and underscore (_)")
-PV_FILENAME = PropertyValidator.new('/[A-Za-z0-9_\.\/]+',
+PV_FILENAME = PropertyValidator.new('/[A-Za-z0-9\-_\.\/]+',
   "Value must be a valid filename")
-PV_FILENAME_OR_EMPTY = PropertyValidator.new('^/[A-Za-z0-9_\.\/]+',
+PV_FILENAME_OR_EMPTY = PropertyValidator.new('^/[A-Za-z0-9\-_\.\/]+',
   "Value must be a valid filename", true)
 PV_SCRIPTNAME = PropertyValidator.new('[A-Za-z0-9_\.]+',
   "Value must be a valid script filename")
