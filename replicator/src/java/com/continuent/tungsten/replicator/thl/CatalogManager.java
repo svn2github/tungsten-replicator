@@ -47,17 +47,23 @@ import com.continuent.tungsten.replicator.shard.ShardTable;
  */
 public class CatalogManager
 {
-    private static Logger     logger           = Logger.getLogger(CatalogManager.class);
+    private static Logger     logger = Logger.getLogger(CatalogManager.class);
 
-    private ReplicatorRuntime runtime          = null;
-    private String            metadataSchema   = null;
-    private Database          conn             = null;
-    private CommitSeqnoTable  commitSeqnoTable = null;
-    private ShardChannelTable channelTable     = null;
+    private ReplicatorRuntime runtime;
+    private String            url;
+    private String            user;
+    private String            password;
+    private String            metadataSchema;
+    private String            vendor;
+    private boolean           privileged;
+
+    // private Database conn;
+    private CommitSeqnoTable  commitSeqnoTable;
+    private ShardChannelTable channelTable;
 
     // Dummy task ID. This is used for updates of the trep_commit_seqno when
     // operating as a master.
-    private int               taskId           = 0;
+    private int               taskId = 0;
 
     /**
      * Creates a new Catalog manager.
@@ -71,7 +77,7 @@ public class CatalogManager
     }
 
     /**
-     * Connect to database
+     * Set DBMS connection information. Connections will be allocated as needed.
      * 
      * @param url Database url
      * @param user Database user name
@@ -87,23 +93,43 @@ public class CatalogManager
     public void connect(String url, String user, String password,
             String metadataSchema, String vendor) throws ReplicatorException
     {
+        this.url = url;
+        this.user = user;
+        this.password = password;
         this.metadataSchema = metadataSchema;
-        // Create the database handle
+        this.vendor = vendor;
+        this.privileged = runtime.isMaster()
+                || runtime.isPrivilegedSlaveUpdate();
+    }
+
+    /**
+     * Returns a connection using the current URL information.
+     * 
+     * @throws THLException
+     */
+    private Database getConnection() throws THLException
+    {
         try
         {
-            // Check to see if we have a privileged account.
-            boolean privileged = runtime.isMaster()
-                    || runtime.isPrivilegedSlaveUpdate();
-
             // Connect and log updates only if requested.
-            conn = DatabaseFactory.createDatabase(url, user, password,
+            Database conn = DatabaseFactory.createDatabase(url, user, password,
                     privileged, vendor);
             conn.connect(runtime.logReplicatorUpdates());
+            return conn;
         }
         catch (SQLException e)
         {
-            throw new THLException(e);
+            throw new THLException("Unable to connect to DBMS: url=" + url
+                    + " message=" + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Releases a connection.
+     */
+    private void releaseConnection(Database conn)
+    {
+        conn.close();
     }
 
     /**
@@ -114,6 +140,8 @@ public class CatalogManager
      */
     public void prepareSchema(PluginContext context) throws ReplicatorException
     {
+        // Allocate a connection to the DBMS.
+        Database conn = getConnection();
         try
         {
             // Set default schema if supported.
@@ -166,6 +194,9 @@ public class CatalogManager
         {
             throw new THLException(e);
         }
+
+        // Should release connection here but we do not or it will cause updates
+        // on trep_commit_seqno to fail.
     }
 
     /**
@@ -191,14 +222,18 @@ public class CatalogManager
     {
         // Reduce tasks in task table if possible. If tasks are reduced,
         // clear the channel table.
+        Database conn = null;
         try
         {
             // Check if table is null (this happens if database is not
             // available)
             if (commitSeqnoTable != null)
             {
+                // Get a connection first...
+                conn = getConnection();
+
                 int channels = context.getChannels();
-                boolean reduced = commitSeqnoTable.reduceTasks(channels);
+                boolean reduced = commitSeqnoTable.reduceTasks(conn, channels);
 
                 if (reduced && channelTable != null)
                 {
@@ -206,15 +241,15 @@ public class CatalogManager
                 }
             }
         }
-        catch (SQLException e)
+        catch (Exception e)
         {
             logger.warn("Unable to reduce tasks information", e);
         }
-
-        // Clean up JDBC connection.
-        if (conn != null)
-            conn.close();
-        conn = null;
+        finally
+        {
+            if (conn != null)
+                releaseConnection(conn);
+        }
     }
 
     /**

@@ -387,7 +387,7 @@ public class CommitSeqnoTable
      * operation allows the table to convert to a different number of apply
      * threads.
      */
-    public boolean reduceTasks(int channels) throws SQLException
+    public boolean reduceTasks(Database conn, int channels) throws SQLException
     {
         boolean reduced = false;
         boolean hasTask0 = false;
@@ -400,7 +400,7 @@ public class CommitSeqnoTable
         try
         {
             // Scan task positions.
-            allSeqnosQuery = database
+            allSeqnosQuery = conn
                     .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, task_id, applied_latency from "
                             + schema + "." + TABLE_NAME);
             String lastEventId = null;
@@ -448,7 +448,7 @@ public class CommitSeqnoTable
             else
             {
                 // Reduce rows.
-                deleteQuery = database.prepareStatement("DELETE FROM " + schema
+                deleteQuery = conn.prepareStatement("DELETE FROM " + schema
                         + "." + TABLE_NAME + " WHERE task_id > 0");
                 int reducedRows = deleteQuery.executeUpdate();
                 logger.info("Reduced " + reducedRows + " task entries: "
