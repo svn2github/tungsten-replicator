@@ -899,11 +899,11 @@ public class Directory extends ResourceTree
                 if (foundNode == null)
                 {
                     throw new DirectoryNotFoundException(String.format(
-                            "element '%s' not found in path '%s'",
+                            "element '%s' not found in path '%s' while searching for entry '%s'",
                             element,
                             formatPath(
                                     getAbsolutePath(getRootNode(),
-                                            nodeToSearch, true), true)));
+                                            nodeToSearch, true), true), path));
                 }
 
                 nodeToSearch = foundNode;
