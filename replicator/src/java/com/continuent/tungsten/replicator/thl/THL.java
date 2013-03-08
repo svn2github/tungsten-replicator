@@ -295,6 +295,9 @@ public class THL implements Store
      */
     public long getMaxStoredSeqno()
     {
+        if (diskLog == null)
+            return -1;
+        
         return diskLog.getMaxSeqno();
     }
 
@@ -303,6 +306,9 @@ public class THL implements Store
      */
     public long getMinStoredSeqno()
     {
+        if (diskLog == null)
+            return -1;
+        
         return diskLog.getMinSeqno();
     }
 
