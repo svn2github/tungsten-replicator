@@ -37,7 +37,9 @@ NUMBER(10, 0)##
 $col.getTypeDescription().replaceFirst("DECIMAL","NUMBER").replaceFirst(" UNSIGNED","")##
 #elseif ( $col.getTypeDescription().startsWith("VARCHAR") )
 #if ( $col.getLength() <= 4000 )
-VARCHAR2($col.getLength())##
+#set ( $newLength = $col.getLength() * 2 )
+#if ( $newLength > 4000 ) #set ( $newLength = 4000 ) #end
+VARCHAR2($newLength CHAR) /* $col.getTypeDescription() */ ##
 #{else}CLOB /* WARN: too long ($col.getLength()) for Oracle VARCHAR2, using CLOB instead */##
 #end
 #elseif ( $col.getTypeDescription().startsWith("CHAR") )
