@@ -922,10 +922,32 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                         lastEvent.getEpochNumber());
                 statusProps.setString(Replicator.APPLIED_LAST_EVENT_ID,
                         lastEvent.getEventId());
+                
+                long minStoredSeqno = -1;
+                long maxStoredSeqno = -1;
+                
+                /*
+                 * Workaround for race condition that causes
+                 * a NullPointerException in THL if replicator
+                 * is going offline while status() is being called.
+                 */
+                try
+                {
+                   minStoredSeqno =  pipeline.getMinStoredSeqno();
+                   maxStoredSeqno = pipeline.getMaxStoredSeqno();
+                }
+                catch(Exception e)
+                {
+                    if (!(e instanceof NullPointerException))
+                    {
+                        throw e;
+                    }
+                }
+                
                 statusProps.setLong(Replicator.MIN_STORED_SEQNO,
-                        pipeline.getMinStoredSeqno());
+                        minStoredSeqno);
                 statusProps.setLong(Replicator.MAX_STORED_SEQNO,
-                        pipeline.getMaxStoredSeqno());
+                        maxStoredSeqno);
                 statusProps.setDouble(Replicator.APPLIED_LATENCY,
                         pipeline.getApplyLatency());
                 Timestamp commitTime = lastEvent.getExtractedTstamp();
