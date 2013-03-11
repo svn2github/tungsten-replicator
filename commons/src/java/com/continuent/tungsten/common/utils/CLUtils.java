@@ -613,14 +613,27 @@ public class CLUtils implements Serializable
 
         if (role.equals("slave") || role.equals("relay"))
         {
-            String masterUri = replProps
-                    .getString(Replicator.MASTER_CONNECT_URI);
+            final String prefix = "thl://";
+
+            String masterUri = replProps.getString(
+                    Replicator.MASTER_CONNECT_URI).trim();
+            
             // don't display the port
-            int lastIdx = masterUri.indexOf(":", "thl://".length());
+            int lastIdx = masterUri.indexOf(":", prefix.length());
+            
+            // if we don't have a ':' at the end, maybe a '/'?
             if (lastIdx == -1)
             {
-                lastIdx = masterUri.lastIndexOf("/");
+                lastIdx = masterUri.indexOf("/", prefix.length());
             }
+            
+            // If we don't have either, we just go to the end of the string
+            if (lastIdx == -1)
+            {
+                lastIdx = masterUri.length();
+            }
+               
+               
             masterReplicator = ", master="
                     + masterUri.substring(masterUri.indexOf("//") + 2, lastIdx);
         }
