@@ -443,16 +443,15 @@ public class CLUtils implements Serializable
         boolean isComposite = dsProps.getBoolean(DataSource.ISCOMPOSITE,
                 "false", false);
 
-        String fullRole = String
-                .format("%s%s", (dsProps.getInt(DataSource.PRECEDENCE) == -1
-                        ? "ARCHIVE "
-                        : ""), dsProps.getString(DataSource.ROLE));
+        String fullState = String.format("%s%s", dsProps
+                .getString(DataSource.STATE), (dsProps
+                .getInt(DataSource.PRECEDENCE) == -1 ? ":ARCHIVE " : ""));
 
         String dsHeader = String.format("%s%s(%s:%s%s%s) %s", dsProps
                 .getString("name"), modifiedSign(wasModified), String.format(
-                "%s%s", (isComposite ? "composite " : ""), fullRole), dsProps
-                .getString("state"), failureInfo, additionalInfo,
-                connectionStats);
+                "%s%s", (isComposite ? "composite " : ""),
+                dsProps.getString(DataSource.ROLE)), fullState, failureInfo,
+                additionalInfo, connectionStats);
 
         String alertMessage = dsProps.getString(DataSource.ALERT_MESSAGE, "",
                 false);
@@ -617,23 +616,22 @@ public class CLUtils implements Serializable
 
             String masterUri = replProps.getString(
                     Replicator.MASTER_CONNECT_URI).trim();
-            
+
             // don't display the port
             int lastIdx = masterUri.indexOf(":", prefix.length());
-            
+
             // if we don't have a ':' at the end, maybe a '/'?
             if (lastIdx == -1)
             {
                 lastIdx = masterUri.indexOf("/", prefix.length());
             }
-            
+
             // If we don't have either, we just go to the end of the string
             if (lastIdx == -1)
             {
                 lastIdx = masterUri.length();
             }
-               
-               
+
             masterReplicator = ", master="
                     + masterUri.substring(masterUri.indexOf("//") + 2, lastIdx);
         }
