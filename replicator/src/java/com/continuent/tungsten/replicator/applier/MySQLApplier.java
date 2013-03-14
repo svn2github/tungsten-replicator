@@ -188,6 +188,8 @@ public class MySQLApplier extends JdbcApplier
 
         Column column = new Column(columnName, dataType, false, isSigned);
         column.setTypeDescription(typeDesc);
+        column.setLength(rs.getLong("column_size"));
+
         return column;
     }
 
@@ -233,7 +235,7 @@ public class MySQLApplier extends JdbcApplier
 
             if (columnSpec.isUnsigned() && isNegative)
             {
-                switch (columnSpec.getLength())
+                switch ((int) columnSpec.getLength())
                 {
                     case 1 :
                         valToInsert = TINYINT_MAX_VALUE + 1 + extractedVal;

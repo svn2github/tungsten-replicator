@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -297,8 +298,20 @@ public class MySQLDrizzleApplier extends MySQLApplier
         else if (columnSpec.getType() == Types.VARCHAR
                 && value.getValue() instanceof byte[])
         {
-            prepStatement
-                    .setString(bindLoc, hexdump((byte[]) value.getValue()));
+            int length = ((byte[]) value.getValue()).length;
+
+            if (columnSpec.getTypeDescription().startsWith("BINARY")
+                    && length < columnSpec.getLength())
+            {
+                ByteBuffer bb = ByteBuffer.allocate(columnSpec.getLength());
+                bb.put((byte[]) value.getValue());
+                for (int i = 0; length + i < columnSpec.getLength(); i++)
+                    bb.put("\0".getBytes());
+                prepStatement.setString(bindLoc, hexdump(bb.array()));
+            }
+            else
+                prepStatement.setString(bindLoc,
+                        hexdump((byte[]) value.getValue()));
         }
         else if (columnSpec.getType() == Types.BLOB
                 && value.getValue() instanceof SerialBlob

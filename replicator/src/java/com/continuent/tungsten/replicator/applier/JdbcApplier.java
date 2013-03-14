@@ -464,6 +464,8 @@ public class JdbcApplier implements RawApplier
                     cv.setName(column.getName());
                     cv.setSigned(column.isSigned());
                     cv.setTypeDescription(column.getTypeDescription());
+                    if (cv.getLength() == 0)
+                        cv.setLength((int) column.getLength());
 
                     // Check whether column is real blob on the applier side
                     if (cv.getType() == Types.BLOB)
@@ -482,6 +484,8 @@ public class JdbcApplier implements RawApplier
                     cv.setName(column.getName());
                     cv.setSigned(column.isSigned());
                     cv.setTypeDescription(column.getTypeDescription());
+                  if (cv.getLength() == 0)
+                        cv.setLength((int) column.getLength());
 
                     // Check whether column is real blob on the applier side
                     if (cv.getType() == Types.BLOB)
