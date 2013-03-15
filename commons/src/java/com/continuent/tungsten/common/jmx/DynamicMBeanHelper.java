@@ -167,14 +167,15 @@ public class DynamicMBeanHelper implements Serializable
         builder.append(String.format("ObjectName=%s\n%s\n", objName,
                 classNameOnly(className)));
 
-        if (true)
-            return builder.toString();
+// TODO: should this code be removed completely ?
+//        if (true)
+//            return builder.toString();
 
-        for (DynamicMBeanOperation method : methods.values())
-        {
-            builder.append(String.format("\t%s\n", method));
-        }
-
+//        for (DynamicMBeanOperation method : methods.values())
+//        {
+//            builder.append(String.format("\t%s\n", method));
+//        }
+//
         return builder.toString();
     }
 
