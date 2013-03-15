@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -106,7 +106,7 @@ public class JmxManager implements NotificationListener
     }
 
     /**
-     * Creates an instance to manage a JMX service TODO: beanPort parameter
+     * Creates an instance to manage a JMX service
      * 
      * @param host The host name or IP to use
      * @param registryPort The JMX server RMI registryPort
@@ -114,15 +114,12 @@ public class JmxManager implements NotificationListener
      */
     public JmxManager(String host, int registryPort, String serviceName)
     {
-        this.host = host;
-        this.registryPort = registryPort;
-        this.serviceName = serviceName;
-        JmxManager.beanPort = -1;
+        this(host, registryPort + 1, registryPort, serviceName);
     }
 
     /**
-     * Creates an instance to manage a JMX service TODO: beanPort parameter.
-     * Called when using authentication (and) encryption
+     * Creates an instance to manage a JMX service Called when using
+     * authentication (and) encryption
      * 
      * @see <a
      *      href="http://download.java.net/jdk8/docs/technotes/guides/jmx/tutorial/security.html">JMX
@@ -135,10 +132,7 @@ public class JmxManager implements NotificationListener
     public JmxManager(String host, int registryPort, String serviceName,
             TungstenProperties tungstenProperty)
     {
-        this.host = host;
-        this.registryPort = registryPort;
-        this.serviceName = serviceName;
-        JmxManager.beanPort = -1;
+        this(host, registryPort, serviceName);
 
         // Authentication and encryption parameters
         if (tungstenProperty != null)
