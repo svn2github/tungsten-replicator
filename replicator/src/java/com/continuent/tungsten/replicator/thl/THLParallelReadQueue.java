@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-2012 Continuent Inc.
+ * Copyright (C) 2011-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -39,6 +39,7 @@ import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeaderData;
 import com.continuent.tungsten.replicator.event.ReplEvent;
+import com.continuent.tungsten.replicator.util.AtomicIntervalGuard;
 import com.continuent.tungsten.replicator.util.WatchPredicate;
 
 /**
@@ -89,6 +90,9 @@ public class THLParallelReadQueue
     private volatile boolean                           lastFrag     = true;
     private volatile ReplDBMSHeader                    lastHeader   = null;
 
+    // Interval guard for reporting our position.
+    private AtomicIntervalGuard<?>                     intervalGuard;
+
     // Statistical counters.
     private AtomicLong                                 acceptCount  = new AtomicLong(
                                                                             0);
@@ -112,14 +116,17 @@ public class THLParallelReadQueue
      * @param startingSeqno Sequence number of next transaction
      * @param syncInterval Interval at which to generate synchronization events
      * @param lastHeader Header of last transaction processed before start
+     * @param intervalGuard Interval guard to track read position
      */
     public THLParallelReadQueue(int taskId, int maxSize, int maxControlEvents,
-            long startingSeqno, int syncInterval, ReplDBMSHeader lastHeader)
+            long startingSeqno, int syncInterval, ReplDBMSHeader lastHeader,
+            AtomicIntervalGuard<?> intervalGuard)
     {
         // Set starting parameters.
         this.taskId = taskId;
         this.readSeqno = startingSeqno;
         this.syncInterval = syncInterval;
+        this.intervalGuard = intervalGuard;
 
         // Instantiate queues.
         this.eventQueue = new LinkedBlockingQueue<ReplEvent>(maxSize);
@@ -452,7 +459,33 @@ public class THLParallelReadQueue
      */
     public ReplEvent take() throws InterruptedException
     {
-        return eventQueue.take();
+        // If there is nothing in the queue yet, remove this task
+        // from interval tracking.
+        if (eventQueue.size() == 0)
+            intervalGuard.unreport(this.taskId);
+
+        // Grab the next event.
+        ReplEvent event = eventQueue.take();
+
+        // Report the event we are processing to interval tracking.
+        if (event instanceof ReplDBMSEvent)
+        {
+            ReplDBMSEvent rde = (ReplDBMSEvent) event;
+            intervalGuard.report(taskId, rde.getSeqno(), rde
+                    .getExtractedTstamp().getTime());
+        }
+        else if (event instanceof ReplControlEvent)
+        {
+            ReplControlEvent rce = (ReplControlEvent) event;
+            if (rce.getHeader() != null)
+            {
+                intervalGuard.report(taskId, rce.getHeader().getSeqno(), rce
+                        .getHeader().getExtractedTstamp().getTime());
+            }
+        }
+
+        // Finally, return the event we just found.
+        return event;
     }
 
     /**

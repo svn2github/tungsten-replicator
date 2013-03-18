@@ -49,8 +49,22 @@ import com.continuent.tungsten.replicator.util.AtomicIntervalGuard;
 import com.continuent.tungsten.replicator.util.WatchPredicate;
 
 /**
- * Implements an parallel event store. This queue has no memory beyond its
- * current contents.
+ * Implements a parallel event store based on on-disk queues. On-disk queues
+ * work by managing a set of threads that read from the THL in parallel on
+ * behalf of the next stage and populate queues for each applier task. This
+ * class is responsible for setting up the task threads as well as the queues
+ * they feed, ensuring that queues do not get too far apart when executing, and
+ * to handle control events including getting apply tasks to commit their
+ * restart position both at regular intervals as well as prior to clean
+ * shutdown.
+ * <p/>
+ * Applier tasks are known as "channels" in replicator end-user documentation.
+ * <p/>
+ * This class makes a very strong assumption that shard IDs are correctly
+ * assigned in prior stages. If not, parallelization may fail due to conflicts
+ * when transactions are assigned to incorrect channels. This in turn can lead
+ * to apply failing on slaves in such a way that the slave must be
+ * resynchronized with its master to continue.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
@@ -65,7 +79,8 @@ public class THLParallelQueue implements ParallelStore
     private int                       maxControlEvents    = 1000;
     private int                       partitions          = 1;
     private int                       syncInterval        = 5000;
-    private int                       maxOfflineInterval  = 300;
+    private int                       maxOfflineInterval  = 10;
+    private int                       maxDelayInterval    = 60;
     private String                    thlStoreName        = "thl";
 
     // Plugin context in case we need to make inquiries.
@@ -104,10 +119,8 @@ public class THLParallelQueue implements ParallelStore
     // Control data to enforce maximum offline interval. These variables limit
     // the time interval between most and least advanced read threads.
     private AtomicIntervalGuard<?>    intervalGuard;
-    private long                      lastTimestampMillis = -1;
-    private long                      lastSeqno = -1;
-    private long                      intervalCheckMillis;
     private long                      maxOfflineMillis;
+    private long                      maxDelayMillis;
 
     public String getName()
     {
@@ -147,6 +160,9 @@ public class THLParallelQueue implements ParallelStore
         return partitioner;
     }
 
+    /**
+     * Sets the instance used to assign events to partitions (channels).
+     */
     public void setPartitioner(Partitioner partitioner)
     {
         this.partitioner = partitioner;
@@ -157,6 +173,10 @@ public class THLParallelQueue implements ParallelStore
         return partitionerClass;
     }
 
+    /**
+     * Sets the name of the class used to assign events to partitions
+     * (channels).
+     */
     public void setPartitionerClass(String partitionerClass)
     {
         this.partitionerClass = partitionerClass;
@@ -183,10 +203,34 @@ public class THLParallelQueue implements ParallelStore
         return maxOfflineInterval;
     }
 
-    /** Sets the maximum number of seconds for a clean shutdown. */
+    /**
+     * Sets the maximum number of seconds for a clean shutdown. This is
+     * maintained by keeping the THL read tasks from getting too far apart from
+     * each other.
+     */
     public void setMaxOfflineInterval(int maxOfflineInterval)
     {
         this.maxOfflineInterval = maxOfflineInterval;
+    }
+
+    public int getMaxDelayInterval()
+    {
+        return maxDelayInterval;
+    }
+
+    /**
+     * Sets the maximum number of seconds to delay before allowing transactions
+     * to continue even when they would cause maxOfflineInterval to be exceeded.
+     */
+    public void setMaxDelayInterval(int maxDelayInterval)
+    {
+        this.maxDelayInterval = maxDelayInterval;
+    }
+
+    /** Returns the current head seqno to which read tasks may advance. */
+    public long getHeadSeqno()
+    {
+        return this.headSeqnoCounter.getSeqno();
     }
 
     /** Sets the last header processed. This is required for restart. */
@@ -339,47 +383,81 @@ public class THLParallelQueue implements ParallelStore
             }
         }
 
-        // Check the thread read interval once per second of elapsed
-        // time between complete transactions. This check ropes in threads that
+        // Check the thread read interval. This check ropes in threads that
         // have exceeded the maximum online interval between highest and lowest
         // threads. The check must occur on the event that begins a transaction
-        // or a deadlock can occur on fragmented transactions.
-        //
-        // (BEWARE: If you do this check on fragmented events within
-        // long transactions it can lead to deadlocks if the timestamps on
-        // fragmented events deviate more than maxOfflineMillis from the last
-        // reported transaction.)
-        long currentTimeMillis = System.currentTimeMillis();
-        if (currentTimeMillis - intervalCheckMillis >= 1000
-                && event.getFragno() == 0)
+        // or a deadlock can occur on fragmented transactions that block
+        // waiting for additional fragments to be permitted through.
+        if (event.getFragno() == 0)
         {
             // If we have a previously recorded event timestamp, it is
             // now time to see how our threads are doing and ensure nobody
             // is too far behind.
-            if (lastTimestampMillis >= 0)
+            long lastTimestampMillis = event.getExtractedTstamp().getTime();
+            if (logger.isDebugEnabled())
             {
-                long minimumTimeMillis = Math.max(lastTimestampMillis
-                        - maxOfflineMillis, 0);
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("Ensuring threads meet min offline wait: minimumTimeMillis="
-                            + minimumTimeMillis
-                            + " low seqno="
-                            + intervalGuard.getLowSeqno()
-                            + " low time="
-                            + intervalGuard.getLowTime()
-                            + " high time="
-                            + intervalGuard.getHiTime());
-                }
-                intervalGuard.waitMinTime(minimumTimeMillis, lastSeqno);
+                logger.debug("Ensuring threads meet min offline wait: event timestamp="
+                        + lastTimestampMillis
+                        + " low seqno="
+                        + intervalGuard.getLowSeqno()
+                        + " low time="
+                        + intervalGuard.getLowTime()
+                        + " high time="
+                        + intervalGuard.getHiTime());
             }
 
-            // Remember the time of this check.
-            intervalCheckMillis = currentTimeMillis;
+            // Initiate a loop to wait until our current timestamp is within
+            // maxOfflineMillis of the oldest seqno currently being
+            // processed. To avoid stalls we will release the event anyway
+            // after waiting for maxDelayInterval seconds.
+            long waitStartMillis = System.currentTimeMillis();
+            while (true)
+            {
+                // Get the timestamp of the lowest sequence number currently
+                // being processed.
+                long lowSeqnoMillis = intervalGuard.getLowTime();
 
-            // Update the event timestamp so we are ready for the next check.
-            lastTimestampMillis = event.getExtractedTstamp().getTime();
-            lastSeqno = event.getSeqno();
+                // If the time is -1, the array is empty, which means
+                // all channels are idle. We can proceed.
+                if (lowSeqnoMillis == -1)
+                {
+                    if (logger.isDebugEnabled())
+                        logger.debug("Proceeding as interval array is empty");
+                    break;
+                }
+
+                // Compute the difference between the lagging timestamp and
+                // our current timestamp.
+                long interval = lastTimestampMillis - lowSeqnoMillis;
+                if (interval <= maxOfflineMillis)
+                {
+                    if (logger.isDebugEnabled())
+                        logger.debug("Proceeding after interval reaches 0");
+                    break;
+                }
+
+                // Finally, we go to sleep for 100 milliseconds
+                Thread.sleep(100);
+
+                // After sleeping for a while, we now check the current time
+                // to see how long we have been delaying. Note that we have
+                // a condition to break if time moves backwards. This
+                // protects our algorithm in case the system clock is reset
+                // for any reason.
+                long currentTimeMillis = System.currentTimeMillis();
+                long delayMillis = currentTimeMillis - waitStartMillis;
+                if (delayMillis > maxDelayMillis
+                        || currentTimeMillis < waitStartMillis)
+                {
+                    logger.info("Releasing event to parallel queue after delay interval expired; if this message appears commonly you should consider increasing maxOfflineInterval: seqno="
+                            + event.getSeqno()
+                            + " maxDelayInterval="
+                            + maxDelayInterval
+                            + " maxOfflineInterval="
+                            + maxOfflineInterval);
+                    break;
+                }
+            }
         }
 
         // Advance the head seqno counter. This allows all eligible threads
@@ -585,6 +663,7 @@ public class THLParallelQueue implements ParallelStore
         // partitions.
         intervalGuard = new AtomicIntervalGuard<Object>(partitions);
         maxOfflineMillis = maxOfflineInterval * 1000;
+        maxDelayMillis = maxDelayInterval * 1000;
     }
 
     /**
@@ -721,12 +800,14 @@ public class THLParallelQueue implements ParallelStore
         props.setInt("queues", partitions);
         props.setInt("syncInterval", syncInterval);
         props.setInt("maxOfflineInterval", maxOfflineInterval);
+        props.setInt("maxDelayInterval", maxDelayInterval);
         props.setDouble("estimatedOfflineInterval",
                 ((double) intervalGuard.getInterval()) / 1000.0);
         props.setBoolean("serialized", this.criticalPartition >= 0);
         props.setLong("serializationCount", serializationCount);
         props.setBoolean("stopRequested", stopRequested);
         props.setInt("criticalPartition", criticalPartition);
+        props.setString("intervalGuard", intervalGuard.toString());
         for (int i = 0; i < readTasks.size(); i++)
         {
             props.setString("store." + i, readTasks.get(i).toString());

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-12 Continuent Inc.
+ * Copyright (C) 2011-13 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -133,7 +133,8 @@ public class THLParallelReadTask implements Runnable
     {
         // Set up the read queue.
         this.readQueue = new THLParallelReadQueue(taskId, maxSize,
-                maxControlEvents, restartSeqno, syncInterval, lastHeader);
+                maxControlEvents, restartSeqno, syncInterval, lastHeader,
+                intervalGuard);
 
         // Connect to the log.
         connection = thl.connect(true);
@@ -156,8 +157,6 @@ public class THLParallelReadTask implements Runnable
                 try
                 {
                     response = partitioner.partition(header, taskId);
-                    intervalGuard.report(taskId, header.getSeqno(), header
-                            .getExtractedTstamp().getTime());
                 }
                 catch (THLException e)
                 {

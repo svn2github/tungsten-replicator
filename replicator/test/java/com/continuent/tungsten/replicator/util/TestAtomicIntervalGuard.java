@@ -158,6 +158,58 @@ public class TestAtomicIntervalGuard extends TestCase
     }
 
     /**
+     * Show that inserting and removing (unreporting) values results in correct
+     * orderings of remaining values;
+     */
+    public void testInsertRemove() throws Exception
+    {
+        // Allocate interval array and threads to live in it.
+        AtomicIntervalGuard<String> ati = new AtomicIntervalGuard<String>(4);
+        Integer[] t = {new Integer(0), new Integer(1), new Integer(2)};
+
+        // Insert into an empty list and then remove.
+        ati.report(t[0], 2, 20, "2");
+        ati.unreport(t[0]);
+        ati.validate();
+        assertEquals("empty list", 0, ati.size());
+        assertEquals("No high seqno", -1, ati.getHiSeqno());
+        assertEquals("No low seqno", -1, ati.getLowSeqno());
+        assertEquals("Interval is zero", 0, ati.getInterval());
+
+        // Insert three reports, then remove the head entry.
+        ati.report(t[0], 1, 10, "1");
+        ati.report(t[1], 4, 40, "4");
+        ati.report(t[2], 3, 30, "3");
+        ati.unreport(t[0]);
+        ati.validate();
+        assertEquals("two items in list", 2, ati.size());
+        assertEquals("Head #1", 3, ati.getLowSeqno());
+        assertEquals("Tail #1", 4, ati.getHiSeqno());
+        assertEquals("Head #1 -datum", "3", ati.getLowDatum());
+        assertEquals("Tail #1 -datum", "4", ati.getHiDatum());
+
+        // Insert head back into the list and then remove the tail.
+        ati.report(t[0], 1, 20, "1");
+        ati.unreport(t[1]);
+        ati.validate();
+        assertEquals("two items in list", 2, ati.size());
+        assertEquals("Head #2", 1, ati.getLowSeqno());
+        assertEquals("Tail #2", 3, ati.getHiSeqno());
+        assertEquals("Head #2 -datum", "1", ati.getLowDatum());
+        assertEquals("Tail #2 -datum", "3", ati.getHiDatum());
+
+        // Insert tail back into the list and then remove the middle.
+        ati.report(t[1], 4, 45, "4");
+        ati.unreport(t[2]);
+        ati.validate();
+        assertEquals("two items in list", 2, ati.size());
+        assertEquals("Head #3", 1, ati.getLowSeqno());
+        assertEquals("Tail #3", 4, ati.getHiSeqno());
+        assertEquals("Head #3 -datum", "1", ati.getLowDatum());
+        assertEquals("Tail #3 -datum", "4", ati.getHiDatum());
+    }
+
+    /**
      * Show that time intervals are correctly calculated and that we can wait
      * for them.
      */

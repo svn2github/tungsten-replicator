@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -132,7 +132,7 @@ public class THLParallelQueueHelper
         builder.setProperty(ReplicatorConf.SERVICE_NAME, "test");
         builder.setRole("master");
         builder.setProperty(ReplicatorConf.METADATA_SCHEMA, schemaName);
-        builder.addPipeline("master", "feed1, feed2",
+        builder.addPipeline("master", "thl-to-q,q-to-mq",
                 "thl,thl-queue, multi-queue");
 
         // Define stores.
@@ -156,8 +156,8 @@ public class THLParallelQueueHelper
                 partitionsAsString);
 
         // Feed1 stage components.
-        builder.addStage("feed1", "thl-extract", "thl-queue-apply", null);
-        builder.addProperty("stage", "feed1", "blockCommitRowCount",
+        builder.addStage("thl-to-q", "thl-extract", "thl-queue-apply", null);
+        builder.addProperty("stage", "thl-to-q", "blockCommitRowCount",
                 blockCommitAsString);
         builder.addComponent("extractor", "thl-extract",
                 THLStoreExtractor.class);
@@ -168,10 +168,10 @@ public class THLParallelQueueHelper
                 "thl-queue");
 
         // Feed2 stage components.
-        builder.addStage("feed2", "thl-queue-extract", "multi-queue-apply",
+        builder.addStage("q-to-mq", "thl-queue-extract", "multi-queue-apply",
                 null);
-        builder.addProperty("stage", "feed2", "taskCount", partitionsAsString);
-        builder.addProperty("stage", "feed2", "blockCommitRowCount",
+        builder.addProperty("stage", "q-to-mq", "taskCount", partitionsAsString);
+        builder.addProperty("stage", "q-to-mq", "blockCommitRowCount",
                 blockCommitAsString);
         builder.addComponent("extractor", "thl-queue-extract",
                 THLParallelQueueExtractor.class);

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -161,6 +162,16 @@ public class InMemoryMultiQueue implements Store
     public ReplDBMSEvent get(int taskId) throws InterruptedException
     {
         return queues.get(taskId).take();
+    }
+
+    /**
+     * Removes and returns next event from the queue, waiting up to specified
+     * number of milliseconds. Returns null if nothing is read in this time.
+     */
+    public ReplDBMSEvent get(int taskId, long waitMillis)
+            throws InterruptedException
+    {
+        return queues.get(taskId).poll(waitMillis, TimeUnit.MILLISECONDS);
     }
 
     /**
