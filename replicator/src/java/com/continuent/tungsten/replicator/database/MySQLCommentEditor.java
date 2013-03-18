@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2011-2012 Continuent Inc.
+ * Copyright (C) 2011-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -237,6 +237,12 @@ public class MySQLCommentEditor implements SqlCommentEditor
      */
     private String processDropTable(String statement, String comment)
     {
+        // Ensure we don't edit in the values twice. Look for the edit
+        // values and skip out if they are already there.
+        if (statement.contains(" TUNGSTEN_INFO.`"))
+            return statement;
+
+        // Now process the edit, since it has not been done before.
         Matcher m = ifExistsPattern.matcher(statement);
         boolean foundIfExists = m.find();
         if (foundIfExists)

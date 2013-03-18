@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -139,20 +139,22 @@ public class TestSqlCommentEditor
     }
 
     /**
-     * Test adding and recognizing comments on stored procedure definitions.
+     * Test adding and recognizing comments on drop table statements.
      */
     @Test
     public void testDropTable() throws Exception
     {
-        String[] cmds = {"DROP TABLE foo", "DROP TABLE IF EXISTS foo",
-                "drop table if exists `bar`.`foo`",
-                "DROP /*!40005 TEMPORARY */ TABLE IF EXISTS `T`,`pertinent_bugs`"};
+        String[] cmds = {
+                "DROP /*!40005 TEMPORARY */ TABLE IF EXISTS `T`,`pertinent_bugs`",
+                "DROP TABLE foo", "DROP TABLE IF EXISTS foo",
+                "drop table if exists `bar`.`foo`"};
         String comment = "mysvc";
         String commentRegex = "TUNGSTEN_INFO.`[([a-zA-Z0-9-_]+)]`";
         editor.setCommentRegex(commentRegex);
 
         for (String cmd : cmds)
         {
+            // Ensure basic comments are correct.
             SqlOperation op = matcher.match(cmd);
             String newCmd = editor.addComment(cmd, op, comment);
             String foundComment = editor.fetchComment(newCmd, op);
@@ -163,6 +165,12 @@ public class TestSqlCommentEditor
                     newCmd.length() > cmd.length()
                             || newCmd.indexOf("TUNGSTEN_INFO") > 0);
             Assert.assertEquals("Found original comment", comment, foundComment);
+
+            // Ensure we don't add them twice.
+            SqlOperation op2 = matcher.match(newCmd);
+            String newCmd2 = editor.addComment(newCmd, op2, comment);
+            Assert.assertEquals("Checking for double add of comments", newCmd,
+                    newCmd2);
         }
     }
 
