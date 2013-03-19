@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2012 Continuent Inc.
+ * Copyright (C) 2012-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -149,6 +149,26 @@ public class THLParallelQueueSerializationTest
     public void testSerializeUnknown() throws Exception
     {
         String[] shards = {"#UNKNOWN"};
+        execSerializationTest("testSerializeUnknown", 5, shards);
+    }
+
+    /**
+     * Verify that empty string shard ID is serialized without blocking.
+     */
+    @Test
+    public void testSerializeEmptyString() throws Exception
+    {
+        String[] shards = {""};
+        execSerializationTest("testSerializeEmptyString", 5, shards);
+    }
+
+    /**
+     * Verify that a null shardId is serialized.
+     */
+    @Test
+    public void testSerializeNullShard() throws Exception
+    {
+        String[] shards = {null};
         execSerializationTest("testSerializeUnknown", 5, shards);
     }
 
@@ -480,8 +500,7 @@ public class THLParallelQueueSerializationTest
     }
 
     /**
-     * Execute a generate serialization test TODO: execSerializationTest
-     * definition.
+     * Execute a generate serialization test.
      * 
      * @param name Name of the test
      * @param channelCount Number of channels
@@ -514,7 +533,7 @@ public class THLParallelQueueSerializationTest
         RandomCommitAction ca = new RandomCommitAction(100);
         mq.setCommitAction(ca);
 
-        // Distribute transactions as follows: write 100 db0/db1 transactions,
+        // Distribute transactions as follows: write transactions,
         // then insert an #UNKOWN transaction to trigger serialization.
         int serialized = 0;
         String lastShardId = null;
@@ -528,11 +547,25 @@ public class THLParallelQueueSerializationTest
             conn.store(thlEvent, false);
             conn.commit();
 
-            // Count number of times we expect to serialized. Multiple
+            // Count number of times we expect to serialize. Multiple
             // #UNKNOWN events in a row do not count.
             if ("#UNKNOWN".equals(shardId)
                     && (lastShardId == null || !lastShardId.equals(shardId)))
+            {
+                // #UNKNOWN events should serialize
                 serialized++;
+            }
+            else if ("".equals(shardId)
+                    && (lastShardId == null || !lastShardId.equals(shardId)))
+            {
+                // Empty strings should always serialize.
+                serialized++;
+            }
+            else if (shardId == null && (lastShardId != null || i == 0))
+            {
+                // Likewise null shardId should serialize.
+                serialized++;
+            }
 
             // Remember the last shardId.
             lastShardId = shardId;

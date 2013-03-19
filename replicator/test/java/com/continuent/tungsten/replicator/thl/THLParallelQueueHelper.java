@@ -232,8 +232,11 @@ public class THLParallelQueueHelper
                 t, true, timestamp);
         ReplDBMSEvent replDbmsEvent = new ReplDBMSEvent(seqno, fragNo,
                 lastFrag, "NONE", 0, timestamp, dbmsEvent);
-        replDbmsEvent.getDBMSEvent().addMetadataOption(
-                ReplOptionParams.SHARD_ID, shardId);
+        if (shardId != null)
+        {
+            replDbmsEvent.getDBMSEvent().addMetadataOption(
+                    ReplOptionParams.SHARD_ID, shardId);
+        }
         return replDbmsEvent;
     }
 

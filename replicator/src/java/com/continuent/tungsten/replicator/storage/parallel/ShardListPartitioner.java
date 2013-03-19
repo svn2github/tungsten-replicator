@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -133,8 +133,17 @@ public class ShardListPartitioner implements Partitioner
         if (shardTable == null)
             initialize();
 
-        // See if there is an explicit partition assignment.
+        // Fetch the shard ID.
         String shardId = event.getShardId();
+
+        // Shard IDs may not be a blank string. Ensure that these
+        // serialize.
+        if ("".equals(shardId.trim()))
+        {
+            shardId = ReplOptionParams.SHARD_ID_UNKNOWN;
+        }
+
+        // See if there is an explicit partition assignment.
         Integer partition = shardTable.get(shardId);
 
         // If not, either assign to the default partition or hash.

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-12 Continuent Inc.
+ * Copyright (C) 2011-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -67,6 +67,13 @@ public class HashPartitioner implements Partitioner
             throws ReplicatorException
     {
         String shardId = event.getShardId();
+
+        // Shard IDs may not be a blank string. Ensure that these
+        // serialize.
+        if ("".equals(shardId.trim()))
+        {
+            shardId = ReplOptionParams.SHARD_ID_UNKNOWN;
+        }
 
         // Compute the partition.
         if (taskId > availablePartitions)
