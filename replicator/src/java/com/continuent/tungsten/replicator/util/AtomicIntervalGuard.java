@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.replicator.util;
 
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -422,8 +423,15 @@ public class AtomicIntervalGuard<D>
         if (array.size() > 0)
         {
             sb.append(" low_seqno=").append(head.seqno);
+            sb.append(" low_timestamp=").append(new Timestamp(head.time));
             sb.append(" hi_seqno=").append(tail.seqno);
-            sb.append(" time_interval=").append(tail.time - head.time);
+            sb.append(" hi_timestamp=").append(new Timestamp(tail.time));
+            sb.append(" time_interval=").append(tail.time - head.time)
+                    .append("ms");
+        }
+        else
+        {
+            sb.append(" (array is empty)");
         }
         return sb.toString();
     }

@@ -49,6 +49,7 @@ import com.continuent.tungsten.replicator.storage.CommitAction;
 import com.continuent.tungsten.replicator.storage.InMemoryMultiQueue;
 import com.continuent.tungsten.replicator.storage.InMemoryTransactionalQueue;
 import com.continuent.tungsten.replicator.thl.log.LogConnection;
+import com.continuent.tungsten.replicator.util.AtomicIntervalGuard;
 
 /**
  * Implements a test of the max offline interval in parallel replication.
@@ -204,6 +205,8 @@ public class THLParallelQueueIntervalTest
 
         // Fetch references to stores.
         THL thl = (THL) pipeline.getStore("thl");
+        THLParallelQueue tpq = (THLParallelQueue) pipeline
+                .getStore("thl-queue");
         InMemoryMultiQueue mq = (InMemoryMultiQueue) pipeline
                 .getStore("multi-queue");
 
@@ -221,12 +224,17 @@ public class THLParallelQueueIntervalTest
         produceEvent(conn, 3, "db1", new Timestamp(baseTimeMillis
                 + (offset++ * 3000)));
 
+        // Double-check that transaction 2 is the oldest transaction and that
+        // 3 is the newest transaction.
+        confirmHiSeqno(tpq, 3, 2000);
+        confirmLowSeqno(tpq, 2, 2000);
+
         // Load a third, later transaction on a different shard that should
         // go through the last channel. This should block.
         produceEvent(conn, 4, "db2", new Timestamp(baseTimeMillis
                 + (offset++ * 3000)));
         ReplDBMSEvent rde2 = mq.get(2, 1000);
-        Assert.assertNull("Should not return a value", rde2);
+        assertNullTransaction(rde2, tpq);
 
         // Allow the oldest pending transaction (seqno=2) to commit into the
         // multi-queue. Confirm this allows the blocked db2 transaction to
@@ -260,6 +268,8 @@ public class THLParallelQueueIntervalTest
 
         // Fetch references to stores.
         THL thl = (THL) pipeline.getStore("thl");
+        THLParallelQueue tpq = (THLParallelQueue) pipeline
+                .getStore("thl-queue");
         InMemoryMultiQueue mq = (InMemoryMultiQueue) pipeline
                 .getStore("multi-queue");
 
@@ -275,6 +285,8 @@ public class THLParallelQueueIntervalTest
         produceEvent(conn, 2, "db0", new Timestamp(baseTimeMillis));
         produceEvent(conn, 3, "db1", new Timestamp(baseTimeMillis
                 - (120 * 1000)));
+        confirmHiSeqno(tpq, 3, 2000);
+        confirmLowSeqno(tpq, 2, 2000);
         produceEvent(conn, 4, "db2", new Timestamp(baseTimeMillis + 1));
 
         // Confirm that the shard 2 transaction goes through immediately.
@@ -291,7 +303,7 @@ public class THLParallelQueueIntervalTest
         // because the transaction on shard 1 has a very old timestamp.
         produceEvent(conn, 5, "db2", new Timestamp(baseTimeMillis + 2));
         rde2 = mq.get(2, 1000);
-        Assert.assertNull("Should not return a value", rde2);
+        assertNullTransaction(rde2, tpq);
 
         // Allow the transaction on shard 1 to commit into the multi-queue.
         // At that point all transactions should clear.
@@ -327,6 +339,8 @@ public class THLParallelQueueIntervalTest
 
         // Fetch references to stores.
         THL thl = (THL) pipeline.getStore("thl");
+        THLParallelQueue tpq = (THLParallelQueue) pipeline
+                .getStore("thl-queue");
         InMemoryMultiQueue mq = (InMemoryMultiQueue) pipeline
                 .getStore("multi-queue");
 
@@ -344,6 +358,12 @@ public class THLParallelQueueIntervalTest
         produceEvent(conn, 3, "db1", new Timestamp(baseTimeMillis
                 + (offset++ * 6000)));
 
+        // Double-check that transaction 2 is the oldest transaction and that
+        // 3 is the newest transaction. The interval guard updates
+        // asynchronously so a slow processor can cause scheduling problems.
+        confirmHiSeqno(tpq, 3, 2000);
+        confirmLowSeqno(tpq, 2, 2000);
+
         // Load a third, later transaction on a different shard that should
         // go through the last channel. This should block, because it is 12
         // seconds behind the last transaction.
@@ -354,8 +374,9 @@ public class THLParallelQueueIntervalTest
         // the delay timeout for the parallel queue. We use 1 second. This
         // should fail because the parallel queue is blocked by the previous
         // two transactions.
+        // logger.info("Confirming that most recent transaction is blocked...");
         ReplDBMSEvent rde2 = mq.get(2, 1000);
-        Assert.assertNull("Should not return a value", rde2);
+        assertNullTransaction(rde2, tpq);
 
         // Try again with a longer timeout. This should work because the
         // parallel queue will allow the transaction to move forward despite
@@ -363,6 +384,8 @@ public class THLParallelQueueIntervalTest
         rde2 = mq.get(2, 10000);
         Assert.assertNotNull("db2 should commit after delay timeout", rde2);
         Assert.assertEquals("Checking seqno", 4, rde2.getSeqno());
+        logger.info("Queue unblocked transaction after a wait period...seqno="
+                + rde2.getSeqno());
     }
 
     /**
@@ -714,5 +737,66 @@ public class THLParallelQueueIntervalTest
         }
         Assert.assertFalse("Did not expect to commit through seqno=" + seqno,
                 reached);
+    }
+
+    /**
+     * Waits for a particular high seqno in the THL interval guard structure.
+     */
+    private void confirmHiSeqno(THLParallelQueue tpq, long seqno,
+            long waitMillis) throws Exception
+    {
+        AtomicIntervalGuard<?> intervalGuard = tpq.getIntervalGuard();
+        long currentSeqno;
+        long startMillis = System.currentTimeMillis();
+        while ((currentSeqno = intervalGuard.getHiSeqno()) != seqno)
+        {
+            if (System.currentTimeMillis() - startMillis > waitMillis)
+                throw new Exception(
+                        "Timed out waiting for interval guard to reach expected high seqno: expected seqno="
+                                + seqno + " actual value=" + currentSeqno);
+            Thread.sleep(100);
+        }
+        logger.info("Confirmed hi sequence number in interval guard structure: seqno="
+                + seqno);
+    }
+
+    /**
+     * Waits for a particular high seqno in the THL interval guard structure.
+     */
+    private void confirmLowSeqno(THLParallelQueue tpq, long seqno,
+            long waitMillis) throws Exception
+    {
+        AtomicIntervalGuard<?> intervalGuard = tpq.getIntervalGuard();
+        long currentSeqno;
+        long startMillis = System.currentTimeMillis();
+        while ((currentSeqno = intervalGuard.getLowSeqno()) != seqno)
+        {
+            if (System.currentTimeMillis() - startMillis > waitMillis)
+                throw new Exception(
+                        "Timed out waiting for interval guard to reach expected low seqno: expected seqno="
+                                + seqno + " actual value=" + currentSeqno);
+            Thread.sleep(100);
+        }
+        logger.info("Confirmed low sequence number in interval guard structure: seqno="
+                + seqno);
+    }
+
+    /**
+     * Ensures that an event is null and prints a meaningful transaction
+     */
+    private void assertNullTransaction(ReplDBMSEvent rde, THLParallelQueue tpq)
+            throws Exception
+    {
+        if (rde != null)
+        {
+            logger.error("Transaction is not blocked! Parallel queue status: "
+                    + tpq.status().toString());
+            throw new Exception(
+                    "Parallel queue unexpectedly released a transaction that should be blocked: seqno="
+                            + rde.getSeqno()
+                            + " timestamp="
+                            + rde.getExtractedTstamp());
+        }
+
     }
 }

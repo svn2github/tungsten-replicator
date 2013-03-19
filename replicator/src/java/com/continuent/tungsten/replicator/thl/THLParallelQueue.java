@@ -233,6 +233,12 @@ public class THLParallelQueue implements ParallelStore
         return this.headSeqnoCounter.getSeqno();
     }
 
+    /** Returns the interval guard structure that tracks positions of channels. */
+    public AtomicIntervalGuard<?> getIntervalGuard()
+    {
+        return intervalGuard;
+    }
+
     /** Sets the last header processed. This is required for restart. */
     public void setLastHeader(int taskId, ReplDBMSHeader header)
             throws ReplicatorException
@@ -451,10 +457,14 @@ public class THLParallelQueue implements ParallelStore
                 {
                     logger.info("Releasing event to parallel queue after delay interval expired; if this message appears commonly you should consider increasing maxOfflineInterval: seqno="
                             + event.getSeqno()
+                            + " timestamp="
+                            + event.getExtractedTstamp()
                             + " maxDelayInterval="
                             + maxDelayInterval
                             + " maxOfflineInterval="
                             + maxOfflineInterval);
+                    logger.info("Diagnostic information on interval guard: ["
+                            + intervalGuard.toString() + "]");
                     break;
                 }
             }
