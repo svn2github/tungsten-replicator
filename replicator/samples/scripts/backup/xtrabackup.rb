@@ -65,6 +65,10 @@ def run
     end
   else
     FileUtils.mkdir_p(@options[:directory])
+    # Change the directory ownership if run with sudo
+    if ENV.has_key?('SUDO_USER')
+      cmd_result("chown -R #{ENV['SUDO_USER']}: #{@options[:directory]}")
+    end
   end
   
   if @options[:my_cnf] == nil
