@@ -293,22 +293,22 @@ public class THL implements Store
     /**
      * Return max stored sequence number.
      */
-    public long getMaxStoredSeqno()
+    public synchronized long getMaxStoredSeqno()
     {
         if (diskLog == null)
             return -1;
-        
+
         return diskLog.getMaxSeqno();
     }
 
     /**
      * Return minimum stored sequence number.
      */
-    public long getMinStoredSeqno()
+    public synchronized long getMinStoredSeqno()
     {
         if (diskLog == null)
             return -1;
-        
+
         return diskLog.getMinSeqno();
     }
 
@@ -558,7 +558,7 @@ public class THL implements Store
      * @see com.continuent.tungsten.replicator.storage.Store#status()
      */
     @Override
-    public TungstenProperties status()
+    public synchronized TungstenProperties status()
     {
         TungstenProperties props = new TungstenProperties();
         props.setLong(Replicator.MIN_STORED_SEQNO, getMinStoredSeqno());
