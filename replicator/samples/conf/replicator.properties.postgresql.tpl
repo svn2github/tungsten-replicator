@@ -53,7 +53,7 @@ replicator.resourcePrecedence=99
 replicator.backup.agents=@{APPLIER.REPL_DBBACKUPAGENTS}
 
 # Default backup agent.
-replicator.backup.default=@{APPLIER.REPL_DBDEFAULTBACKUPAGENT}
+replicator.backup.default=@{REPL_BACKUP_METHOD}
 
 @{REPL_SVC_BACKUP_CONFIG}
 
