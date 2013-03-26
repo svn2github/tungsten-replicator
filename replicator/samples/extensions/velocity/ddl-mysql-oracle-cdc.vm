@@ -23,9 +23,6 @@ Resulting tables have CDC columns added.
 #parse("includes/ddl-mysql-oracle-help.vm")
 #else
 #parse("includes/ddl-header.vm")
-#if ( $schemaSuffix )
-#set ( $dbName = $dbName + $schemaSuffix ) 
-#end
 #end
 #end
 ## Stop processing if help requested.
@@ -33,6 +30,9 @@ Resulting tables have CDC columns added.
 #stop
 #end
 
+#if ( $schemaSuffix )
+$table.setSchema($table.getSchema().concat($schemaSuffix))## 
+#end
 #if( $tableSuffix )
 $table.setTable($table.getName().concat($tableSuffix))##
 #end
