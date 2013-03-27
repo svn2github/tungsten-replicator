@@ -61,10 +61,12 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class CDCMetadataFilter implements Filter
 {
-    private static Logger           logger = Logger.getLogger(CDCMetadataFilter.class);
+    private static Logger           logger            = Logger.getLogger(CDCMetadataFilter.class);
 
     private String                  schemaNameSuffix;
     private String                  tableNameSuffix;
+    private String                  toSingleSchema;
+    private long                    sequenceBeginning = 1;
 
     /**
      * Cache of last sequence numbers in a given change table:</br>
@@ -96,13 +98,34 @@ public class CDCMetadataFilter implements Filter
 
     /**
      * Sets the tableNameSuffix value. Eg. if tabe name is FOO and suffix
-     * is set to CD, then change rows will be saved in table FOO_CD.
+     * is set to _CD, then change rows will be saved in table FOO_CD.
      * 
      * @param tableNameSuffix The tableNameSuffix to set.
      */
     public void setTableNameSuffix(String tableNameSuffix)
     {
         this.tableNameSuffix = tableNameSuffix;
+    }
+    
+    /**
+     * It is possibly to have all CDC tables in a single schema.
+     * 
+     * @param toSingleSchema Schema where all change tables are expected to be.
+     */
+    public void setToSingleSchema(String toSingleSchema)
+    {
+        this.toSingleSchema = toSingleSchema;
+    }
+
+    /**
+     * Which CDC sequence number to begin with, if CDC sequence number cannot be
+     * determined (eg. no CDC data yet exists).
+     * 
+     * @param sequenceBeginning CDC sequence number.
+     */
+    public void setSequenceBeginning(long sequenceBeginning)
+    {
+        this.sequenceBeginning = sequenceBeginning;
     }
 
     /**
@@ -136,7 +159,16 @@ public class CDCMetadataFilter implements Filter
                         continue;
                     }
 
-                    String schemaCDC = orc.getSchemaName() + schemaNameSuffix;
+                    // Rename schema.
+                    String schemaCDC;
+                    if (toSingleSchema != null && toSingleSchema.length() > 0)
+                        schemaCDC = toSingleSchema;
+                    else
+                        schemaCDC = orc.getSchemaName();
+                    if (schemaNameSuffix != null
+                            && schemaNameSuffix.length() > 0)
+                        schemaCDC.concat(schemaNameSuffix);
+                    // Rename table.
 					String tableCDC = orc.getTableName() + tableNameSuffix;
 
 					OneRowChange cdcRowChangeData = new OneRowChange(schemaCDC,
@@ -287,9 +319,11 @@ public class CDCMetadataFilter implements Filter
                 else
                 {
                     if (logger.isDebugEnabled())
-                        logger.debug("Max sequence number couldn't be determined, using 1 instead. Query used: "
+                        logger.debug("Max sequence number couldn't be determined, using "
+                                + sequenceBeginning
+                                + " instead. Query used: "
                                 + query);
-                    seqCache.put(schemaTable, (long) 1);
+                    seqCache.put(schemaTable, sequenceBeginning);
                 }
             }
             catch (SQLException e)
