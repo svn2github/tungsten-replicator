@@ -167,9 +167,9 @@ public class CDCMetadataFilter implements Filter
                         schemaCDC = orc.getSchemaName();
                     if (schemaNameSuffix != null
                             && schemaNameSuffix.length() > 0)
-                        schemaCDC.concat(schemaNameSuffix);
+                        schemaCDC = schemaCDC.concat(schemaNameSuffix);
                     // Rename table.
-					String tableCDC = orc.getTableName() + tableNameSuffix;
+                    String tableCDC = orc.getTableName() + tableNameSuffix;
 
 					OneRowChange cdcRowChangeData = new OneRowChange(schemaCDC,
 							tableCDC, ActionType.INSERT);
@@ -311,9 +311,14 @@ public class CDCMetadataFilter implements Filter
             {
                 st = conn.createStatement();
                 rs = st.executeQuery(query);
+                
+                long lastSeq = 0;
                 if (rs.next())
+                    lastSeq = rs.getLong(1);
+                
+                // Was there a valid seqno in the table?
+                if (lastSeq != 0)
                 {
-                    long lastSeq = rs.getLong(1);
                     seqCache.put(schemaTable, lastSeq);
                 }
                 else
