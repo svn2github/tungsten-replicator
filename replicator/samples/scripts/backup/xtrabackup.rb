@@ -5,6 +5,7 @@ require "optparse"
 require "pp"
 require "pathname"
 require "fileutils"
+require "date"
 
 INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
 
@@ -17,18 +18,17 @@ INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
   :directory => nil,
   :tungsten_backups => nil,
   :mysql_service_command => nil,
-  :mysqldatadir => "/var/lib/mysql",
-  :mysqlibdatadir => "",
-  :mysqliblogdir => "",
   :mysqllogdir => "/var/lib/mysql",
   :mysqllogpattern => "mysql-bin",
   :mysqluser => "mysql",
   :mysqlgroup => "mysql",
   :incremental => "false",
+  :tar => "false",
   :my_cnf => nil
 }
 
 def run
+  log("Begin #{$0} #{ARGV.join(' ')}")
   # Convert arguments with a single dash to have two
   args = ARGV.dup
   args.map!{ |arg|
@@ -59,6 +59,7 @@ def run
   }
   opts.parse!(args)
   
+  # Make sure the xtrabackup storage directory is created properly
   if File.exist?(@options[:directory])
     unless File.directory?(@options[:directory])
       raise "The path #{@options[:directory]} is not a directory"
@@ -79,13 +80,30 @@ def run
     end
   end
   
+  # Read data locations from the my.cnf file
+  @options[:mysqldatadir] = get_mysql_option("datadir")
+  @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
+  @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")
+  
+  log("Operation: #{@op}")
+  log("Options:")
+  @options.each{
+    |k,v|
+    log("    #{k} => #{v}")
+  }
+  
   if @op == :backup
-    backup()
+    if @options[:tar] == "true"
+      backup_tar()
+    else
+      backup()
+    end
   elsif @op == :restore
     restore()
   else
     raise "You must specify -backup or -restore"
   end
+  log("Finish #{$0} #{ARGV.join(' ')}")
   
   exit 0
 end
@@ -101,12 +119,12 @@ def backup
       begin
         # Find the most recent xtrabackup directory which we will start from
         most_recent_dir = get_last_backup()
-        
+      
         # Check that the lineage for this directory is intact
         # If it cannot find the full backup that the most recent snapshot is
         # based on, we need to do a full backup instead.
         lineage = get_snapshot_lineage(most_recent_dir)
-        
+      
         storage_dir = execute_backup(most_recent_dir)
       rescue BrokenLineageError => ble
         log(ble.message)
@@ -149,15 +167,22 @@ def execute_backup(incremental_basedir = nil)
   id = build_timestamp_id((incremental_basedir == nil ? "full" : "incr"))
   storage_dir = @options[:directory] + "/" + id
   
+  additional_args = []
+  additional_args << "--no-timestamp"
+    
   if incremental_basedir == nil
     log("Create full backup in #{storage_dir}")
-    cmd_result("#{get_xtrabackup_command()} --no-timestamp #{storage_dir}")
+    
+    cmd_result("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{storage_dir}")
   else
+    additional_args << "--incremental"
+    
     incremental_lsn = read_property_from_file("to_lsn", incremental_basedir.to_s + "/xtrabackup_checkpoints")
+    additional_args << "--incremental-lsn=#{incremental_lsn}"
     
     log("Create an incremental backup from LSN #{incremental_lsn} in #{storage_dir}")
     # Copy the database files and apply any pending log entries
-    cmd_result("#{get_xtrabackup_command()} --no-timestamp --defaults-file=#{@options[:my_cnf]} #{storage_dir} --incremental --incremental-lsn=#{incremental_lsn}")
+    cmd_result("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{storage_dir}")
     
     File.symlink(incremental_basedir, storage_dir + "/#{INCREMENTAL_BASEDIR_FILE}")
   end
@@ -165,57 +190,115 @@ def execute_backup(incremental_basedir = nil)
   return storage_dir
 end
 
+def backup_tar()
+  begin
+    validate_backup_options()
+    cleanup_xtrabackup_storage()
+
+    id = build_timestamp_id("full")
+    tar_file = @options[:directory] + "/" + id + ".tar"
+  
+    additional_args = []
+    additional_args << "--no-timestamp"
+    additional_args << "--stream=tar"
+  
+    log("Create full backup in #{tar_file}")  
+    cmd_result("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{@options[:directory]} > #{tar_file}")
+    
+    # Change the directory ownership if run with sudo
+    if ENV.has_key?('SUDO_USER')
+      cmd_result("chown -R #{ENV['SUDO_USER']}: #{tar_file}")
+    end
+    
+    # Write the directory name to the final storage file
+    cmd_result("echo \"file=#{tar_file}\" > #{@properties}")
+  rescue => e
+    log("Error: #{e.message}")
+    
+    if tar_file && File.exists?(tar_file)
+      log("Remove #{tar_file} due to the error")
+      cmd_result("rm #{tar_file}")
+    end
+    
+    raise e
+  end
+end
+
 def restore
   begin
     validate_restore_options()
     
     storage_file = cmd_result(". #{@properties}; echo $file")
-    restore_directory = cmd_result("cat #{storage_file}")
     
-    log("Restore from #{restore_directory}")
-    lineage = get_snapshot_lineage(restore_directory)
-
+    # If the tungsten_restore_to_datadir file exists, we will restore to the
+    # datadir. This can't work if innodb_data_home_dir or innodb_log_group_home_dir 
+    # are in the my.cnf file because the files need to go to different directories
+    if File.exist?("#{@options[:mysqldatadir]}/tungsten_restore_to_datadir")
+      restore_to_datadir = true
+      
+      if @options[:mysqlibdatadir].to_s() != "" || @options[:mysqliblogdir].to_s() != ""
+        raise("Unable to restore to #{@options[:mysqldatadir]} because #{@options[:my_cnf]} includes a definition for 'innodb_data_home_dir' or 'innodb_log_group_home_dir'")
+      end
+    else
+      restore_to_datadir = false
+    end
+    
+    # Does this version of innobackupex-1.5.1 support the faster 
+    # --move-back instead of --copy-back
+    supports_move_back = cmd_result("#{get_xtrabackup_command()} --help | grep -e\"\-\-move\-back\" | wc -l")
+    if supports_move_back == "1"
+      supports_move_back = true
+    else
+      supports_move_back = false
+    end
+    
     id = build_timestamp_id("restore")
-    staging_dir = @options[:directory] + "/" + id
+    if restore_to_datadir == true
+      empty_mysql_directory()
+      
+      staging_dir = @options[:mysqldatadir]
+    else
+      staging_dir = @options[:directory] + "/" + id
+    end
+    FileUtils.mkdir_p(staging_dir)
     
-    fullbackup_dir = lineage.shift()
-    log("Copy the full base directory '#{fullbackup_dir}' to the staging directory '#{staging_dir}'")
-    cmd_result("cp -r #{fullbackup_dir} #{staging_dir}")
-    log("Apply the redo-log to #{staging_dir}")
-    cmd_result("#{get_xtrabackup_command()} --apply-log --redo-only --defaults-file=#{@options[:my_cnf]}  #{staging_dir}")
-    
-    lineage.each{
-      |incremental_dir|
-      log("Apply the incremental updates from #{incremental_dir}")
-      cmd_result("#{get_xtrabackup_command()} --apply-log --incremental-dir=#{incremental_dir} --defaults-file=#{@options[:my_cnf]} #{staging_dir}")
-    }
-    
-    cmd_result("#{get_xtrabackup_command()} --apply-log --defaults-file=#{@options[:my_cnf]} #{staging_dir}")
-    
-    log("Stop the MySQL server")
-    cmd_result("#{@options[:mysql_service_command]} stop")
+    if @options[:tar] == "true"
+      log("Unpack '#{storage_file}' to the staging directory '#{staging_dir}'")
+      cmd_result("cd #{staging_dir}; tar -xif #{storage_file}")
+    else
+      restore_directory = cmd_result("cat #{storage_file}")
 
-    begin
-      # Verify that the stop command worked properly
-      # We are expecting an error so we have to catch the exception
-      cmd_result("mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:host]} --port=#{@options[:port]} -e \"select 1\" > /dev/null 2>&1")
-      raise "Unable to properly shutdown the MySQL service"
-    rescue CommandError
-    end
-  
-    cmd_result("rm -rf #{@options[:mysqldatadir]}/*")
-    cmd_result("rm -rf #{@options[:mysqllogdir]}/#{@options[:mysqllogpattern]}.*")
+      log("Restore from #{restore_directory}")
+        
+      lineage = get_snapshot_lineage(restore_directory)
+      fullbackup_dir = lineage.shift()
+      log("Copy the full base directory '#{fullbackup_dir}' to the staging directory '#{staging_dir}'")
+      cmd_result("cp -r #{fullbackup_dir}/* #{staging_dir}")
+        
+      log("Apply the redo-log to #{staging_dir}")
+      cmd_result("#{get_xtrabackup_command()} --apply-log --redo-only #{staging_dir}")
     
-    if @options[:mysqlibdatadir].to_s() != ""
-      cmd_result("rm -rf #{@options[:mysqlibdatadir]}/*")
+      lineage.each{
+        |incremental_dir|
+        log("Apply the incremental updates from #{incremental_dir}")
+        cmd_result("#{get_xtrabackup_command()} --apply-log --incremental-dir=#{incremental_dir} #{staging_dir}")
+      }
     end
-
-    if @options[:mysqliblogdir].to_s() != ""
-      cmd_result("rm -rf #{@options[:mysqliblogdir]}/*")
-    end
+    
+    log("Finish preparing #{staging_dir}")
+    cmd_result("#{get_xtrabackup_command()} --apply-log #{staging_dir}")
   
-    # Copy the backup files to the mysql data directory
-    cmd_result("innobackupex-1.5.1 --ibbackup=xtrabackup_51 --copy-back --defaults-file=#{@options[:my_cnf]} #{staging_dir}")
+    unless restore_to_datadir == true
+      empty_mysql_directory()
+
+      # Copy the backup files to the mysql data directory
+      if supports_move_back == true
+        restore_cmd = "--move-back"
+      else
+        restore_cmd = "--copy-back"
+      end
+      cmd_result("#{get_xtrabackup_command()} #{restore_cmd} #{staging_dir}")
+    end
 
     # Fix the permissions and restart the service
     cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqldatadir]}")
@@ -230,19 +313,43 @@ def restore
     
     cmd_result("#{@options[:mysql_service_command]} start")
     
-    if staging_dir != "" && File.exists?(staging_dir)
+    if restore_to_datadir == false && staging_dir != "" && File.exists?(staging_dir)
       log("Cleanup #{staging_dir}")
       cmd_result("rm -r #{staging_dir}")
     end
   rescue => e
     log("Error: #{e.message}")
     
-    if staging_dir != "" && File.exists?(staging_dir)
+    if restore_to_datadir == false && staging_dir != "" && File.exists?(staging_dir)
       log("Remove #{staging_dir} due to the error")
       cmd_result("rm -r #{staging_dir}")
     end
     
     raise e
+  end
+end
+
+def empty_mysql_directory
+  log("Stop the MySQL server")
+  cmd_result("#{@options[:mysql_service_command]} stop")
+
+  begin
+    # Verify that the stop command worked properly
+    # We are expecting an error so we have to catch the exception
+    cmd_result("#{get_mysql_command()} -e \"select 1\" > /dev/null 2>&1")
+    raise "Unable to properly shutdown the MySQL service"
+  rescue CommandError
+  end
+  
+  cmd_result("rm -rf #{@options[:mysqldatadir]}/*")
+  cmd_result("rm -rf #{@options[:mysqllogdir]}/#{@options[:mysqllogpattern]}.*")
+
+  if @options[:mysqlibdatadir].to_s() != ""
+    cmd_result("rm -rf #{@options[:mysqlibdatadir]}/*")
+  end
+
+  if @options[:mysqliblogdir].to_s() != ""
+    cmd_result("rm -rf #{@options[:mysqliblogdir]}/*")
   end
 end
 
@@ -393,8 +500,12 @@ def build_timestamp_id(prefix)
   return prefix + "_xtrabackup_" + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
 end
 
+def get_mysql_command
+  "mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:host]} --port=#{@options[:port]}"
+end
+
 def get_xtrabackup_command
-  "innobackupex-1.5.1 --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]}"
+  "innobackupex-1.5.1 --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]} --ibbackup=xtrabackup_51"
 end
 
 def cmd_result(command)
@@ -410,6 +521,20 @@ def cmd_result(command)
   end
   
   return result
+end
+
+def get_mysql_option(opt)
+  begin
+    val = cmd_result("my_print_defaults --config-file=#{@options[:my_cnf]} mysqld | grep -e'^--#{opt.gsub(/[\-\_]/, "[-_]")}'")
+  rescue CommandError => ce
+    if ce.rc == 256
+      return nil
+    else
+      raise ce
+    end
+  end
+  
+  return val.split("=")[1]
 end
 
 class CommandError < StandardError
@@ -436,7 +561,7 @@ def usage()
 end
 
 def log(msg)
-  $stderr.puts(msg)
+  $stderr.puts(DateTime.now.to_s + " " + msg)
 end
 
 class Pathname

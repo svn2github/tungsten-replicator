@@ -60,7 +60,7 @@ public class FileBackupLocator implements BackupLocator
 
     public void release()
     {
-        if (deleteOnRelease)
+        if (deleteOnRelease && backup.exists())
         {
             backup.delete();
         }

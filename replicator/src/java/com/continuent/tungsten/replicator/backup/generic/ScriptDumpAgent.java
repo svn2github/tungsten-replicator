@@ -83,6 +83,7 @@ public class ScriptDumpAgent extends AbstractBackupAgent
     private String        commandPrefix    = "";
     private String        options;
     private boolean       hotBackupEnabled = false;
+    private String        logFilename      = null;
 
     private ProcessHelper processHelper;
 
@@ -129,6 +130,16 @@ public class ScriptDumpAgent extends AbstractBackupAgent
     {
         this.hotBackupEnabled = hotBackupEnabled;
     }
+    
+    public String getLogFilename()
+    {
+        return logFilename;
+    }
+
+    public void setLogFilename(String logFilename)
+    {
+        this.logFilename = logFilename;
+    }
 
     /**
      * Run backup by invoking a script. {@inheritDoc}
@@ -143,6 +154,8 @@ public class ScriptDumpAgent extends AbstractBackupAgent
         File outputProperties = null;
         File dumpFile = null;
         BackupLocator locator = null;
+        File logFile = null;
+        
         try
         {
             // Generate file to which script must write file location.
@@ -159,12 +172,22 @@ public class ScriptDumpAgent extends AbstractBackupAgent
                 cmdList.add("-options");
                 cmdList.add(options);
             }
+            
             String[] backupCmd = new String[cmdList.size()];
             backupCmd = cmdList.toArray(backupCmd);
 
             // Execute the command.
-            processHelper.exec("Dumping database using custom script",
-                    backupCmd);
+            if (getLogFilename() != null)
+            {
+                logFile = new File(getLogFilename());
+                processHelper.exec("Dumping database using custom script",
+                        backupCmd, null, logFile, logFile, false, false);
+            }
+            else
+            {
+                processHelper.exec("Dumping database using custom script",
+                        backupCmd);
+            }
 
             // Find out where the dump file is.
             TungstenProperties props = new TungstenProperties();
@@ -239,6 +262,7 @@ public class ScriptDumpAgent extends AbstractBackupAgent
     {
         File inputProperties = null;
         FileOutputStream fos = null;
+        File logFile = null;
 
         try
         {
@@ -272,8 +296,17 @@ public class ScriptDumpAgent extends AbstractBackupAgent
                 restoreCmd = cmdList.toArray(restoreCmd);
 
                 // Execute the command.
-                processHelper.exec("Restoring database using custom script",
-                        restoreCmd);
+                if (getLogFilename() != null)
+                {
+                    logFile = new File(getLogFilename());
+                    processHelper.exec("Restoring database using custom script",
+                            restoreCmd, null, logFile, logFile, false, false);
+                }
+                else
+                {
+                    processHelper.exec("Restoring database using custom script",
+                            restoreCmd);
+                }
             }
             finally
             {

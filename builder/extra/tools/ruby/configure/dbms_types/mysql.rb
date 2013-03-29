@@ -26,7 +26,13 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def get_default_backup_method
-    "mysqldump"
+    path_to_xtrabackup = cmd_result("which innobackupex-1.5.1", true)
+	  
+	  if path_to_xtrabackup.to_s() != ""
+	    "xtrabackup-full"
+	  else
+	    "mysqldump"
+	  end
   end
   
   def get_valid_backup_methods
@@ -151,6 +157,41 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
       filters += ["noonlykeywords"]
    end
 	 filters + ["mysqlsessions"] + super()
+	end
+	
+	def get_backup_agents()
+	  agent = @config.getProperty(REPL_BACKUP_METHOD)
+	  path_to_xtrabackup = cmd_result("which innobackupex-1.5.1", true)
+	  
+	  if agent == "script"
+	    agents = ["script"]
+	  else
+	    agents = []
+	  end
+	  
+	  if path_to_xtrabackup.to_s() != ""
+	    agents << "xtrabackup-full"
+	    agents << "xtrabackup-incremental"
+	    agents << "xtrabackup"
+  	  agents << "mysqldump"
+  	else  
+  	  agents << "mysqldump"
+  	  agents << "xtrabackup-full"
+	    agents << "xtrabackup-incremental"
+	    agents << "xtrabackup"
+	  end
+	  
+	  return agents
+	end
+	
+	def get_default_backup_agent()
+    path_to_xtrabackup = cmd_result("which innobackupex-1.5.1", true)
+	  
+	  if path_to_xtrabackup.to_s() != ""
+	    "xtrabackup-full"
+	  else
+	    "mysqldump"
+	  end
 	end
 end
 

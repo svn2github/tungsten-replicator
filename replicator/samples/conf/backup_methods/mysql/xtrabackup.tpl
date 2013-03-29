@@ -1,19 +1,6 @@
-# Xtrabackup Agent--Executes a script that uses xtrabackup to backup or restore. 
 replicator.backup.agent.xtrabackup=com.continuent.tungsten.replicator.backup.generic.ScriptDumpAgent
-replicator.backup.agent.xtrabackup.script=${replicator.home.dir}/samples/scripts/backup/xtrabackup.sh
+replicator.backup.agent.xtrabackup.script=${replicator.home.dir}/samples/scripts/backup/xtrabackup.rb
 replicator.backup.agent.xtrabackup.commandPrefix=@{REPL_BACKUP_COMMAND_PREFIX}
 replicator.backup.agent.xtrabackup.hotBackupEnabled=true
-# Xtrabackup can handle the following options
-#   user            - The mysql user to use during backup [default: root]
-#   password        - The password for the mysql user [default: ]
-#		host						- The hostname for the database server [default: localhost]
-#		port						- The port for the database server [default: 3306]
-#   directory       - A working directory to stage backup files in [default: /tmp/innobackup]
-#   archive         - A non-existing file that will be created to package the backup files [default: /tmp/innobackup.tar]
-#   service         - The name of the mysql service [default: mysql]
-#   mysqldatadir    - The absolute path for the mysql data directory [default: /var/lib/mysql]
-#   mysqluser       - The os user that mysql runs as [default: mysql]
-#   mysqlgroup      - The os group that mysql runs as [default: mysql]
-#		mysql_service_comand	- The command to call when stopping/starting MySQL [default: /etc/init.d/mysql]
-# replicator.backup.agent.xtrabackup.options=user=tungsten&password=secret&directory=/tmp/backup
-replicator.backup.agent.xtrabackup.options=host=${replicator.global.db.host}&port=${replicator.global.db.port}&directory=@{REPL_MYSQL_XTRABACKUP_TMP_DIR}&archive=@{REPL_MYSQL_XTRABACKUP_TMP_FILE}&mysqllogdir=@{APPLIER.REPL_MASTER_LOGDIR}&mysqllogpattern=@{APPLIER.REPL_MASTER_LOGPATTERN}&mysqldatadir=@{APPLIER.REPL_MYSQL_DATADIR}&mysqlibdatadir=@{APPLIER.REPL_MYSQL_IBDATADIR}&mysqliblogdir=@{APPLIER.REPL_MYSQL_IBLOGDIR}&mysql_service_command=@{APPLIER.REPL_BOOT_SCRIPT}&my_cnf=@{APPLIER.REPL_MYSQL_SERVICE_CONF}
+replicator.backup.agent.xtrabackup.logFilename=${replicator.home.dir}/log/xtrabackup.log
+replicator.backup.agent.xtrabackup.options=host=${replicator.global.db.host}&port=${replicator.global.db.port}&directory=@{REPL_MYSQL_XTRABACKUP_DIR}&tungsten_backups=@{SERVICE.REPL_BACKUP_STORAGE_DIR}&mysqllogdir=@{APPLIER.REPL_MASTER_LOGDIR}&mysqllogpattern=@{APPLIER.REPL_MASTER_LOGPATTERN}&mysql_service_command=@{APPLIER.REPL_BOOT_SCRIPT}&my_cnf=@{APPLIER.REPL_MYSQL_SERVICE_CONF}&tar=true

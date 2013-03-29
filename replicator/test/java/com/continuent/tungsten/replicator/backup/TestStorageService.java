@@ -98,9 +98,11 @@ public class TestStorageService extends TestCase
         assertEquals("Final backups should be 1", 1, agent.list().length);
         for (int i = 0; i < backupSpecStore.getBackupLocators().size(); i++)
         {
-            compareFile(backupSpecStore.getBackupLocators().get(i)
+            long retrieveLength = backupSpecRetrieve.getBackupLocators().get(i)
+                    .getContents().length();
+            compareFileLengths(backupSpecStore.getBackupLocators().get(i)
                     .getContents(), backupSpecRetrieve.getBackupLocators().get(
-                    i).getContents());
+                    i).getContents(), 10000, retrieveLength);
         }
         agent.release();
     }
@@ -350,6 +352,18 @@ public class TestStorageService extends TestCase
             throw new Exception("Files have different length: in="
                     + in.getAbsolutePath() + " length=" + in.length() + " out="
                     + out.getAbsolutePath() + " length=" + out.length());
+        }
+    }
+    
+    // Compare two files and throw exception if they are not equal.
+    protected void compareFileLengths(File in, File out, 
+            long inLength, long outLength) throws Exception
+    {
+        if (inLength != outLength)
+        {
+            throw new Exception("Files have different length: in="
+                    + in.getAbsolutePath() + " length=" + inLength + " out="
+                    + out.getAbsolutePath() + " length=" + outLength);
         }
     }
 }

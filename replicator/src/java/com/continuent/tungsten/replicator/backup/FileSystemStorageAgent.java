@@ -294,7 +294,14 @@ public class FileSystemStorageAgent implements StorageAgent
         {
             fromFile = locator.getContents();
             toFile = new File(directory, prefix + "-" + fromFile.getName());
-            long crc = copyFile(fromFile, toFile);
+            
+            // Attempt to rename the file first, otherwise copy it
+            long crc = renameFile(fromFile, toFile);
+            if (crc == -1)
+            {
+                crc = copyFile(fromFile, toFile);
+            }
+            
             logger
                     .info("Stored backup storage file: file="
                             + toFile.getAbsolutePath() + " length="
@@ -555,6 +562,79 @@ public class FileSystemStorageAgent implements StorageAgent
             {
             }
         }
+    }
+    
+    // Attempt to rename the file and return the CRC, return -1 if
+    // there is a failure
+    protected long renameFile(File fromFile, File toFile) throws BackupException
+    {
+        FileInputStream fis = null;
+        CRC32 crc = new CRC32();
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Renaming file: from=" + fromFile.getAbsolutePath()
+                    + " to=" + toFile.getAbsolutePath());
+        }
+        
+        long fromFileLength = fromFile.length();
+        // Attempt to rename the file. This will be faster than a copy
+        // if the paths are on the same filesystem
+        if (fromFile.renameTo(toFile) != true)
+        {
+            return -1;
+        }
+        
+        // Open the destination path to calculate the CRC
+        try
+        {
+            fis = new FileInputStream(toFile);
+        }
+        catch (IOException e)
+        {
+            throw new BackupException(formatErrorMessage(
+                    "Unable to open input file for calculating CRC", null, toFile), e);
+        }
+
+        // Copy contents byte-for-byte.
+        long read = 0;
+        try
+        {
+            byte[] data = new byte[BUFFER_SIZE];
+            int len = -1;
+            while ((len = fis.read(data)) > -1)
+            {
+                crc.update(data, 0, len);
+                read += len;
+            }
+        }
+        catch (IOException e)
+        {
+            throw new BackupException(formatErrorMessage(
+                    "File CRC calculation failed", null, toFile), e);
+        }
+        finally
+        {
+            try
+            {
+                fis.close();
+            }
+            catch (IOException e)
+            {
+            }
+        }
+
+        // Ensure that bytes written match the expected length of the file.
+        if (read != toFile.length())
+        {
+            throw new BackupException(
+                    "Read file length does not match size of input file: input file="
+                            + fromFile.getAbsolutePath() + " input length="
+                            + fromFileLength + " read length=" + read);
+        }
+
+        // Return the CRC value.
+        return crc.getValue();
     }
 
     // Copy from one file to another, returning the CRC of the file.
