@@ -332,6 +332,12 @@ cp $extra_tools/tungsten-installer $tools_dir
 cp $extra_tools/update $tools_dir
 rsync -Ca $extra_tools/ruby $tools_dir
 
+if [ ${INCLUDE_TPM} -eq 1 ]
+then
+	cp $extra_tools/tpm $tools_dir
+	rsync -Ca $extra_tools/ruby-tpm $tools_dir
+fi
+
 ##########################################################################
 # Create manifest file.
 ##########################################################################
@@ -545,10 +551,19 @@ then
   mkdir -p ${reldir_tools}
   mkdir -p ${reldir_tools}/.runtime
 
-  cp $extra_tools/configure $reldir_tools
-  cp $extra_tools/tungsten-installer $reldir_tools
+	cp $extra_tools/configure $reldir_tools
+	cp $extra_tools/configure-service $reldir_tools
+	cp $extra_tools/tungsten-installer $reldir_tools
+	cp $extra_tools/update $reldir_tools
   rsync -Ca $extra_tools/ruby $reldir_tools
   rsync -Ca $extra_tools/ruby-tools-only/* $reldir_tools/ruby/
+
+  if [ ${INCLUDE_TPM} -eq 1 ]
+	then
+		cp $extra_tools/tpm $reldir_tools
+		rsync -Ca $extra_tools/ruby-tpm $reldir_tools
+	  rsync -Ca $extra_tools/ruby-tools-only/* $reldir_tools/ruby-tpm/
+	fi
 
   cp -rf ${reldir} ${reldir_tools}/.runtime
   cp -rf ${reldir}/.man* ${reldir_tools}
