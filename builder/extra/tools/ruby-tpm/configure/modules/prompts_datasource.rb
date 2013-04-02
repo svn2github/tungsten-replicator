@@ -44,8 +44,16 @@ module DatasourcePrompt
     [HOSTS, host_alias, key]
   end
   
+  def get_dataservice_alias
+    @config.getProperty(get_member_key(DEPLOYMENT_DATASERVICE))
+  end
+  
   def get_dataservice_key(key)
-    [DATASERVICES, @config.getProperty(get_member_key(DEPLOYMENT_DATASERVICE)), key]
+    [DATASERVICES, get_dataservice_alias(), key]
+  end
+  
+  def get_topology
+    Topology.build(get_dataservice_alias(), @config)
   end
   
   def get_userid
@@ -324,7 +332,11 @@ class DirectDatasourceDBHost < ConfigurePrompt
   end
 
   def load_default_value
-    @default = @config.getProperty(get_dataservice_key(DATASERVICE_MASTER_MEMBER))
+    if get_topology().is_a?(DirectTopology)
+      @default = @config.getProperty(get_dataservice_key(DATASERVICE_MASTER_MEMBER))
+    else
+      @default = @config.getProperty(get_member_key(REPL_DBHOST))
+    end
   end
 
   def allow_group_default

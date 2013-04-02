@@ -36,4 +36,4 @@ SKIP_SOURCE=1
 SKIP_TOOLS=1
 
 # Include the tpm script and code
-INCLUDE_TPM=0
+INCLUDE_TPM=1

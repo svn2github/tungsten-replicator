@@ -9,6 +9,10 @@ REPL_ORACLE_SCHEMA = "repl_oracle_schema"
 REPL_ORACLE_LICENSED_SLAVE = "repl_oracle_licensed_slave"
 REPL_ORACLE_SCAN = "repl_datasource_oracle_scan"
 
+EXTRACTOR_REPL_ORACLE_SERVICE = "repl_direct_datasource_oracle_service"
+EXTRACTOR_REPL_ORACLE_SCAN = "repl_direct_datasource_oracle_scan"
+
+
 class OracleDatabasePlatform < ConfigureDatabasePlatform
   def get_uri_scheme
     DBMS_ORACLE
@@ -152,6 +156,35 @@ class OracleSCAN < OracleConfigurePrompt
   
   def required?
     false
+  end
+end
+
+class OracleExtractorService < OracleConfigurePrompt
+  include DatasourcePrompt
+  
+  def initialize
+    super(EXTRACTOR_REPL_ORACLE_SERVICE, "Oracle Service", 
+      PV_IDENTIFIER)
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_member_key(REPL_ORACLE_SERVICE))
+  end
+end
+
+class OracleExtractorSCAN < OracleConfigurePrompt
+  include DatasourcePrompt
+  
+  def initialize
+    super(EXTRACTOR_REPL_ORACLE_SCAN, "Oracle SCAN", PV_IDENTIFIER)
+  end
+  
+  def required?
+    false
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_member_key(REPL_ORACLE_SCAN))
   end
 end
 
