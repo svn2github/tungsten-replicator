@@ -26,7 +26,7 @@ module ConfigureDeploymentStepReplicationDataservice
     when "APPLIER"
       v = @config.getTemplateValue(get_service_key(Kernel.const_get(matches[1])), method(:transform_replication_dataservice_values))
     when "EXTRACTOR"
-      v = @config.getTemplateValue(get_service_key(Kernel.const_get(matches[1])), method(:transform_replication_dataservice_values))
+      v = @config.getTemplateValue(get_service_key(Kernel.const_get("EXTRACTOR_" + matches[1])), method(:transform_replication_dataservice_values))
     when "SERVICE"
       v = @config.getTemplateValue(get_service_key(Kernel.const_get(matches[1])), method(:transform_replication_dataservice_values))
     when "HOST"

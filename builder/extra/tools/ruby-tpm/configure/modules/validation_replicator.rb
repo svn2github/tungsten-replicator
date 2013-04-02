@@ -389,6 +389,10 @@ class DatasourceBootScriptCheck < ConfigureValidationCheck
       end
     end
   end
+  
+  def enabled?
+    return (super() && get_topology().use_management?())
+  end
 end
 
 class ParallelReplicationCheck < ConfigureValidationCheck

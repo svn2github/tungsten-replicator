@@ -271,8 +271,7 @@ class ReplicationServiceRole < ConfigurePrompt
   
   def initialize
     super(REPL_ROLE, "What is the replication role for this service? (#{REPL_ROLE_M}|#{REPL_ROLE_S}|#{REPL_ROLE_R})",
-      PropertyValidator.new("#{REPL_ROLE_M}|#{REPL_ROLE_S}|#{REPL_ROLE_R}",
-      "Value must be #{REPL_ROLE_M}, #{REPL_ROLE_S} or #{REPL_ROLE_R}"), REPL_ROLE_S)
+      nil, REPL_ROLE_S)
   end
   
   def load_default_value

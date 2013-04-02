@@ -300,7 +300,7 @@ class DirectDatasourceDBType < ConfigurePrompt
     validator = PropertyValidator.new(ConfigureDatabasePlatform.get_types().join("|"), 
       "Value must be #{ConfigureDatabasePlatform.get_types().join(',')}")
       
-    super(REPL_DIRECT_DBTYPE, "Database type (#{ConfigureDatabasePlatform.get_types().join(',')})", 
+    super(EXTRACTOR_REPL_DBTYPE, "Database type (#{ConfigureDatabasePlatform.get_types().join(',')})", 
         validator)
   end
   
@@ -320,11 +320,11 @@ class DirectDatasourceDBHost < ConfigurePrompt
   include DatasourcePrompt
 
   def initialize
-    super(REPL_DIRECT_DBHOST, "Database server hostname", PV_HOSTNAME)
+    super(EXTRACTOR_REPL_DBHOST, "Database server hostname", PV_HOSTNAME)
   end
 
   def load_default_value
-    @default = @config.getPropertyOr(get_host_key(HOST), Configurator.instance.hostname())
+    @default = @config.getProperty(get_dataservice_key(DATASERVICE_MASTER_MEMBER))
   end
 
   def allow_group_default
@@ -336,24 +336,28 @@ class DirectDatasourceDBPort < ConfigurePrompt
   include DatasourcePrompt
 
   def initialize
-    super(REPL_DIRECT_DBPORT, "Database server port", PV_INTEGER)
+    super(EXTRACTOR_REPL_DBPORT, "Database server port", PV_INTEGER)
   end
 
   def load_default_value
     @default = get_datasource().get_default_port()
   end
 
-  PortForConnectors.register(REPL_SERVICES, REPL_DIRECT_DBPORT)
-  PortForManagers.register(REPL_SERVICES, REPL_DIRECT_DBPORT)
+  PortForConnectors.register(REPL_SERVICES, EXTRACTOR_REPL_DBPORT)
+  PortForManagers.register(REPL_SERVICES, EXTRACTOR_REPL_DBPORT)
 end
 
 class DirectDatasourceDBUser < ConfigurePrompt
   include DatasourcePrompt
 
   def initialize
-    super(REPL_DIRECT_DBLOGIN, "Database login for Tungsten", 
+    super(EXTRACTOR_REPL_DBLOGIN, "Database login for Tungsten", 
       PV_IDENTIFIER, Configurator.instance.whoami())
     override_command_line_argument("direct-replication-user")
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_member_key(REPL_DBLOGIN))
   end
 end
 
@@ -361,9 +365,13 @@ class DirectDatasourceDBPassword < ConfigurePrompt
   include DatasourcePrompt
 
   def initialize
-    super(REPL_DIRECT_DBPASSWORD, "Database password", 
+    super(EXTRACTOR_REPL_DBPASSWORD, "Database password", 
       PV_ANY, "")
     override_command_line_argument("direct-replication-password")
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_member_key(REPL_DBPASSWORD))
   end
 end
 
@@ -371,7 +379,7 @@ class DirectDatasourceMasterLogDirectory < ConfigurePrompt
   include DatasourcePrompt
   
   def initialize
-    super(REPL_DIRECT_MASTER_LOGDIR, "Master log directory", 
+    super(EXTRACTOR_REPL_MASTER_LOGDIR, "Master log directory", 
       PV_FILENAME)
   end
   
@@ -388,7 +396,7 @@ class DirectDatasourceMasterLogPattern < ConfigurePrompt
   include DatasourcePrompt
   
   def initialize
-    super(REPL_DIRECT_MASTER_LOGPATTERN, "Master log filename pattern", PV_ANY)
+    super(EXTRACTOR_REPL_MASTER_LOGPATTERN, "Master log filename pattern", PV_ANY)
   end
   
   def load_default_value
@@ -404,7 +412,7 @@ class DirectDatasourceDisableRelayLogs < ConfigurePrompt
   include DatasourcePrompt
   
   def initialize
-    super(REPL_DISABLE_DIRECT_RELAY_LOGS, "Disable the use of relay-logs?",
+    super(EXTRACTOR_REPL_DISABLE_RELAY_LOGS, "Disable the use of relay-logs?",
       PV_BOOLEAN, "false")
   end
   
