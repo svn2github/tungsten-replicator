@@ -391,7 +391,9 @@ class DatasourceBootScriptCheck < ConfigureValidationCheck
   end
   
   def enabled?
-    return (super() && get_topology().use_management?())
+    return (super() && (get_topology().use_management?() || 
+      (@config.getPropertyOr(get_member_key(REPL_BACKUP_METHOD), "") =~ /xtrabackup/))
+    )
   end
 end
 
