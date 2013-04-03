@@ -149,6 +149,14 @@ module ClusterCommandModule
     }
     opts.on(*arguments) {
       |val|
+      
+      if defaults_only?() && prompt.is_a?(GroupConfigurePromptMember)
+        unless prompt.allow_group_default()
+          error("The \"--#{prompt.get_command_line_argument()}\" argument is not supported in the `tpm configure defaults` command.")
+          next
+        end
+      end
+      
       if (av = prompt.get_command_line_argument_value()) != nil
         if val == nil
           val = av
@@ -159,12 +167,12 @@ module ClusterCommandModule
         validated = prompt.accept?(val)
       rescue => e
         error("Unable to parse \"--#{prompt.get_command_line_argument()}\": #{e.message}")
-        return
+        next
       end
       
       if Configurator.instance.is_locked?() && prompt.allow_inplace_upgrade?() == false
         error("Unable to accept \"--#{prompt.get_command_line_argument()}\" in an installed directory.  Try running 'tpm update' from a staging directory.")
-        return
+        next
       end
       
       if prompt.is_a?(GroupConfigurePromptMember) && prompt.allow_group_default()

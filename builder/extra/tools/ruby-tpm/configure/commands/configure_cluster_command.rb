@@ -5,14 +5,6 @@ class ConfigureDataServiceCommand
   
   CONFIGURE_DEFAULTS = "defaults"
   
-  def use_prompt?(prompt)
-    if defaults_only?() && prompt.is_a?(GroupConfigurePromptMember)
-      (prompt.enabled_for_command_line?() && prompt.allow_group_default())
-    else
-      prompt.enabled_for_command_line?()
-    end
-  end
-  
   def defaults_only?
     (subcommand() == CONFIGURE_DEFAULTS)
   end
