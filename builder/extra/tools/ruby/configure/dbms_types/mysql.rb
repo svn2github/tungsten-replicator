@@ -28,7 +28,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def get_default_backup_method
     path_to_xtrabackup = cmd_result("which innobackupex-1.5.1", true)
 	  
-	  if path_to_xtrabackup.to_s() != ""
+	  if path_to_xtrabackup.to_s() != "" && @config.getProperty(ROOT_PREFIX) != "false"
 	    "xtrabackup-full"
 	  else
 	    "mysqldump"
