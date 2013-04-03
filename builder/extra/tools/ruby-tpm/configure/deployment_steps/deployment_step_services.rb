@@ -107,6 +107,17 @@ module ConfigureDeploymentStepServices
         warning("Unable to ping the host on #{match[0]}")
       }
     end
+    
+    if is_replicator?() && replicator_is_running?()
+      begin
+        error_lines = cmd_result("#{get_trepctl_cmd()} services | grep ERROR | wc -l")
+        if error_lines.to_i() > 0
+          error("At least one replication service has experienced an error")
+        end
+      rescue CommandError
+        error("Unable to check if the replication services are working properly")
+      end
+    end
   end
   
   def config_wrapper
