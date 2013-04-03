@@ -319,8 +319,10 @@ module ClusterCommandModule
             @config.override([MANAGERS, hs_alias], @manager_options.getProperty([MANAGERS, DEFAULTS]))
             @config.override([MANAGERS, hs_alias], @manager_options.getProperty([MANAGERS, COMMAND]))
           end
-          @config.override([REPL_SERVICES, hs_alias], @replication_options.getProperty([REPL_SERVICES, DEFAULTS]))
-          @config.override([REPL_SERVICES, hs_alias], @replication_options.getProperty([REPL_SERVICES, COMMAND]))
+          if topology.use_replicator?()
+            @config.override([REPL_SERVICES, hs_alias], @replication_options.getProperty([REPL_SERVICES, DEFAULTS]))
+            @config.override([REPL_SERVICES, hs_alias], @replication_options.getProperty([REPL_SERVICES, COMMAND]))
+          end
         }
         
         connector_hosts.each{
@@ -462,8 +464,10 @@ module ClusterCommandModule
       @config.override([DATASERVICE_CONNECTOR_OPTIONS, dataservice_alias], @connector_options.getProperty([CONNECTORS, DEFAULTS]))
       @config.override([DATASERVICE_CONNECTOR_OPTIONS, dataservice_alias], @connector_options.getProperty([CONNECTORS, COMMAND]))
     end
-    @config.override([DATASERVICE_REPLICATION_OPTIONS, dataservice_alias], @replication_options.getProperty([REPL_SERVICES, DEFAULTS]))
-    @config.override([DATASERVICE_REPLICATION_OPTIONS, dataservice_alias], @replication_options.getProperty([REPL_SERVICES, COMMAND]))
+    if topology.use_replicator?()
+      @config.override([DATASERVICE_REPLICATION_OPTIONS, dataservice_alias], @replication_options.getProperty([REPL_SERVICES, DEFAULTS]))
+      @config.override([DATASERVICE_REPLICATION_OPTIONS, dataservice_alias], @replication_options.getProperty([REPL_SERVICES, COMMAND]))
+    end
   end
   
   def clean_cluster_configuration
@@ -506,6 +510,9 @@ module ClusterCommandModule
       unless topology.use_connector?()
         option_groups.delete(DATASERVICE_CONNECTOR_OPTIONS)
       end
+      unless topology.use_replicator?()
+        option_groups.delete(DATASERVICE_REPLICATION_OPTIONS)
+      end
       option_groups.each{
         |dso_key, group_name|
         
@@ -536,8 +543,10 @@ module ClusterCommandModule
           @config.setProperty([MANAGERS, hs_alias, DEPLOYMENT_HOST], h_alias)
           @config.setProperty([MANAGERS, hs_alias, DEPLOYMENT_DATASERVICE], ds_alias)
         end
-        @config.setProperty([REPL_SERVICES, hs_alias, DEPLOYMENT_HOST], h_alias)
-        @config.setProperty([REPL_SERVICES, hs_alias, DEPLOYMENT_DATASERVICE], ds_alias)
+        if topology.use_replicator?()
+          @config.setProperty([REPL_SERVICES, hs_alias, DEPLOYMENT_HOST], h_alias)
+          @config.setProperty([REPL_SERVICES, hs_alias, DEPLOYMENT_DATASERVICE], ds_alias)
+        end
       }
       
       @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS], "").split(",").each{

@@ -144,6 +144,7 @@ class Configurator
   CURRENT_RELEASE_DIRECTORY = "tungsten"
   SERVICE_CONFIG_PREFIX = "service_"
   DEFAULTS_FILENAME = "tungsten_global_args"
+  REPLICATOR_PROFILES = "REPLICATOR_PROFILES"
   PROFILES_VARIABLE = "CONTINUENT_PROFILES"
   
   # Initialize configuration arguments.
@@ -471,7 +472,7 @@ class Configurator
       if @options.config.index("/")
         @options.config=File.expand_path(@options.config)
       else
-        profiles_dir = ENV[PROFILES_VARIABLE]
+        profiles_dir = @command.get_profiles_dir()
         if profiles_dir.to_s() != ""
           @options.config = File.expand_path("#{profiles_dir}/#{@options.config}")
         end

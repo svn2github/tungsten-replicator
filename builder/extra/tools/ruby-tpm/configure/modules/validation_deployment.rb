@@ -240,7 +240,7 @@ class HomeDirectoryCheck < ConfigureValidationCheck
   end
   
   def enabled?
-    @config.getProperty(HOME_DIRECTORY) != nil
+    super() && @config.getProperty(HOME_DIRECTORY) != nil
   end
 end
 

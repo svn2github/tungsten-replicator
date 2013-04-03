@@ -10,6 +10,10 @@ module Topology
     false
   end
   
+  def use_replicator?
+    true
+  end
+  
   def use_management?
     false
   end

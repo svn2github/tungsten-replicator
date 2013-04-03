@@ -670,7 +670,7 @@ module ConfigureCommand
   end
   
   def get_default_config_file
-    profiles_dir = ENV[Configurator::PROFILES_VARIABLE]
+    profiles_dir = get_profiles_dir()
     
     if Configurator.instance.is_locked?()
       val = "#{Configurator.instance.get_base_path()}/#{Configurator::HOST_CONFIG}"
@@ -732,8 +732,23 @@ module ConfigureCommand
     info("Configuration saved to #{Configurator.instance.get_config_filename()}")
   end
   
+  def get_profiles_dir
+    profiles_dir = nil
+    unless Configurator.instance.is_enterprise?()
+      profiles_dir = ENV[Configurator::REPLICATOR_PROFILES]
+      
+      if profiles_dir.to_s() == ""
+        profiles_dir = ENV[Configurator::PROFILES_VARIABLE]
+      end
+    else
+      profiles_dir = ENV[Configurator::PROFILES_VARIABLE]
+    end
+    
+    profiles_dir
+  end
+  
   def get_number_of_saved_configs
-    profiles_dir = ENV[Configurator::PROFILES_VARIABLE]
+    profiles_dir = get_profiles_dir()
     
     if profiles_dir.to_s() == ""
       return 0
