@@ -123,7 +123,7 @@ public class JdbcApplier implements RawApplier
      * because some statements may be very large. TODO: make this configurable
      * via replicator.properties
      */
-    protected int                     maxSQLLogLength            = 1000;
+    protected int                     maxSQLLogLength            = 3000;
 
     private TableMetadataCache        tableMetadataCache;
 
