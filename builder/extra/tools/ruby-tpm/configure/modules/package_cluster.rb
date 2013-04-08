@@ -141,6 +141,10 @@ module ClusterCommandModule
     super()
   end
   
+  def defaults_only?
+    false
+  end
+  
   def add_prompt(opts, prompt, config_obj, prefix = [])
     arguments = ["--#{prompt.get_command_line_argument()} [String]"]
     prompt.get_command_line_aliases().each{
