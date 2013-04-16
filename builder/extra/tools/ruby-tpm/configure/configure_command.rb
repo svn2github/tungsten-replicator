@@ -186,6 +186,10 @@ module ConfigureCommand
     []
   end
   
+  def require_all_command_dataservices?
+    true
+  end
+  
   def command_dataservices(ds_list = nil)
     if ds_list != nil
       missing_dataservices = []
@@ -203,7 +207,7 @@ module ConfigureCommand
         end
       }
       
-      unless missing_dataservices.empty?()
+      if require_all_command_dataservices?() && missing_dataservices.empty?() != true
         raise "These data services are not defined in the configuration file: #{missing_dataservices.join(',')}"
       end
     end

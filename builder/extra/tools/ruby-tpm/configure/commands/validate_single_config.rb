@@ -46,6 +46,10 @@ class ValidateConfigCommand
     puts Marshal.dump(result)
   end
   
+  def require_all_command_dataservices?
+    false
+  end
+  
   def allow_multiple_tpm_commands?
     true
   end

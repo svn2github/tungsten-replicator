@@ -56,6 +56,10 @@ class LoadConfigCommand
     puts Marshal.dump(get_remote_result())
   end
   
+  def require_all_command_dataservices?
+    false
+  end
+  
   def get_message_host_key
     @config.getProperty(DEPLOYMENT_HOST)
   end

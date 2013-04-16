@@ -251,7 +251,7 @@ end
 
 class ReplicationServiceType < ConfigurePrompt
   include ReplicationServicePrompt
-  include ConstantValueModule
+  include AdvancedPromptModule
   
   def initialize
     super(REPL_SVC_SERVICE_TYPE, "What is the replication service type? (local|remote)", 
@@ -267,7 +267,7 @@ end
 
 class ReplicationServiceRole < ConfigurePrompt
   include ReplicationServicePrompt
-  include ConstantValueModule
+  include AdvancedPromptModule
   
   def initialize
     super(REPL_ROLE, "What is the replication role for this service? (#{REPL_ROLE_M}|#{REPL_ROLE_S}|#{REPL_ROLE_R})",
@@ -275,8 +275,8 @@ class ReplicationServiceRole < ConfigurePrompt
   end
   
   def load_default_value
-      topology = Topology.build(get_dataservice_alias(), @config)
-      @default = topology.get_role(@config.getProperty(get_host_key(HOST)))
+    topology = Topology.build(get_dataservice_alias(), @config)
+    @default = topology.get_role(@config.getProperty(get_host_key(HOST)))
   end
 end
 
@@ -323,11 +323,11 @@ class ReplicationServiceTHLMaster < ConfigurePrompt
   end
     
   def enabled?
-    super() && @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_S
+    super() && [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
   end
   
   def get_template_value(transform_values_method)
-    if @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_S
+    if [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
       return super(transform_values_method)
     else
       relay_source = @config.getProperty(get_dataservice_key(DATASERVICE_RELAY_SOURCE))
@@ -355,11 +355,11 @@ class ReplicationServiceTHLMasterPort < ConfigurePrompt
   end
   
   def enabled?
-    super() && @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_S
+    super() && [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
   end
   
   def get_template_value(transform_values_method)
-    if @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_S
+    if [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
       return super(transform_values_method)
     else
       relay_source = @config.getProperty(get_dataservice_key(DATASERVICE_RELAY_SOURCE))

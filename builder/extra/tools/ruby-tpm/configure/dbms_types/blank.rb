@@ -15,6 +15,10 @@ class BlankDatabasePlatform < ConfigureDatabasePlatform
     ""
   end
   
+  def get_thl_uri
+    ""
+  end
+  
   def get_default_start_script
     nil
   end

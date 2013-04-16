@@ -634,7 +634,7 @@ class HostDefaultDataserviceName < ConfigurePrompt
     @default = DEFAULT_SERVICE_NAME
     
     non_cluster_ds_alias = nil
-    @config.getPropertyOr([REPL_SERVICES], {}).each_key{
+    @config.getNestedPropertyOr([REPL_SERVICES], {}).each_key{
       |rs_alias|
       if rs_alias == DEFAULTS
         next
@@ -686,7 +686,7 @@ class DatasourceDBType < ConfigurePrompt
       "Value must be #{ConfigureDatabasePlatform.get_types().join(',')}")
       
     super(REPL_DBTYPE, "Database type (#{ConfigureDatabasePlatform.get_types().join(',')})", 
-        validator, "mysql")
+        validator)
   end
   
   def load_default_value
@@ -696,7 +696,11 @@ class DatasourceDBType < ConfigurePrompt
     when "enterprisedb"
       @default = "postgresql-wal"
     else
-      @default = "mysql"
+      if @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_ARCHIVE
+        @default = ""
+      else
+        @default = "mysql"
+      end
     end
   end
   

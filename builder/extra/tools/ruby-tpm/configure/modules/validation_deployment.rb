@@ -1231,3 +1231,31 @@ class GlobalHostAddressesCheck < ConfigureValidationCheck
     }
   end
 end
+
+class ConflictingReplicationServiceTHLPortsCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  include ReplicatorEnabledCheck
+  
+  def set_vars
+    @title = "Conflicting THL listening port check"
+  end
+  
+  def validate
+    thl_ports = {}
+    
+    @config.getNestedPropertyOr([REPL_SERVICES], {}).each_key{
+      |rs_alias|
+      if rs_alias == DEFAULTS
+        next
+      end
+      
+      thl_port = @config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_THL_PORT])
+      
+      if thl_ports.has_key?(thl_port)
+        error("The #{@config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE])} has a conflicting THL port with #{thl_ports[thl_port]}")
+      else
+        thl_ports[thl_port] = @config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE])
+      end
+    }
+  end
+end

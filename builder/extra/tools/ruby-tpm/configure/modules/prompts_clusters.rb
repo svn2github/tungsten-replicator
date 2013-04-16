@@ -279,6 +279,10 @@ class ClusterMasterHost < ConfigurePrompt
       error("Unable to deploy the #{@config.getProperty(get_member_key(DATASERVICENAME))} dataservice with multiple masters")
     end
   end
+  
+  def required?
+    super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true")
+  end
 end
 
 class ClusterConnectors < ConfigurePrompt
@@ -338,7 +342,7 @@ class ClusterWitnesses < ConfigurePrompt
   end
   
   def required?
-    get_topology().use_management?()
+    super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true") && get_topology().use_management?()
   end
 end
 
