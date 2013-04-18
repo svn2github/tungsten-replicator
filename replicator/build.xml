@@ -37,6 +37,7 @@
     <property name="test.src.dir" value="test/java"/>
     <property name="lib-ext.dir" value="lib-ext"/>
 	<property name="samples.dir" value="samples"/>
+	<property name="scripts.dir" value="scripts"/>
     <property name="classes.dir" value="${build.dir}/java/classes"/>
     <property name="test.classes.dir" value="${build.dir}/test/classes"/>
     <property name="test.reports" value="${build.dir}/reports"/>
@@ -278,6 +279,14 @@
 	<chmod dir="${dist.dir}/samples/scripts/backup" perm="ugoa+rx" includes="*.rb"/>
         <mkdir dir="${dist.dir}/log"/>
         <mkdir dir="${dist.dir}/var"/>
+    	
+		<mkdir dir="${dist.dir}/scripts"/>
+        <copy todir="${dist.dir}/scripts">
+            <fileset dir="${scripts.dir}">
+            	<include name="*/**"/>
+            </fileset>
+        </copy>
+        <chmod dir="${dist.dir}/scripts" perm="ugoa+rx" includes="**/*.sh"/>
     </target>
 
     <target name="refresh-services" description="--> refresh JWS scripts and libraries">
@@ -321,6 +330,7 @@
             <tarfileset dir="${dist.dir}" mode="755" prefix="${build.name}">
                 <include name="bin/*"/>
                 <include name="samples/**/*.sh"/>
+            	<include name="scripts/**/*.sh"/>
                 <exclude name="bin/*.bat"/>
             </tarfileset>
             <tarfileset dir="${dist.dir}" prefix="${build.name}">
@@ -329,11 +339,13 @@
             <tarfileset dir="${dist.dir}" prefix="${build.name}">
                 <exclude name="bin/**"/>
                 <exclude name="samples/**/*.sh"/>
+            	<exclude name="scripts/**/*.sh"/>
             </tarfileset>
         </tar>
         <zip destfile="${dist.dir}.zip" basedir="${dist.dir}" includes="tungsten/**">
             <zipfileset dir="${dist.dir}" filemode="755" prefix="${build.name}">
                 <include name="samples/**/*.sh"/>
+            	<include name="scripts/**/*.sh"/>
                 <include name="bin/*"/>
             </zipfileset>
             <zipfileset dir="${dist.dir}" prefix="${build.name}">
