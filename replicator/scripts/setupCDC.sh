@@ -138,6 +138,9 @@ RC=$?
 [ ${RC} -ne 0 ] && echo "ERROR: [$RC] sqlplus statement failed" && exit 1
 echo "Done."
 
-sqlplus -S $sys_user/$syspass AS SYSDBA @determine_capture_position.sql ${CHANGE_SET}
-RC=$?
-[ ${RC} -ne 0 ] && echo "ERROR: [$RC] sqlplus statement failed" && exit 1
+if [ "$cdc_type" = "HOTLOG_SOURCE" ]
+then
+   sqlplus -S $sys_user/$syspass AS SYSDBA @determine_capture_position.sql ${CHANGE_SET}
+   RC=$?
+   [ ${RC} -ne 0 ] && echo "ERROR: [$RC] sqlplus statement failed" && exit 1
+fi

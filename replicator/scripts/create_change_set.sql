@@ -10,21 +10,20 @@ DECLARE
 DEBUG_LVL number := 1; -- 1 : INFO (default) , 2 : DEBUG (more verbose)
 
 v_user varchar2(30) := '&1';
-v_version varchar2(17);
-i_version number;
-
 /* 
 Change CDC type as desired :
 - SYNC_SOURCE : synchronous capture
 - HOTLOG_SOURCE : asynchronous capture (HOTLOG)
 */
 v_cdc_type varchar(30) := '&2';
-
-v_sync boolean := (v_cdc_type = 'SYNC_SOURCE');
-
 v_tungsten_user varchar2(30) := '&3';
-
+v_pub_user varchar2(100):= '&4';
 v_change_set_name varchar2(30) := UPPER('&5');
+
+b_sync boolean := (v_cdc_type = 'SYNC_SOURCE');
+
+v_version varchar2(17);
+i_version number;
 v_table_name varchar2(40);
 v_column_name varchar2(100);
 v_column_type varchar(50);
@@ -32,15 +31,9 @@ column_type_len integer;
 column_prec integer;
 column_scale integer;
 v_column_list varchar(10000);
-v_create_ct_statement varchar2(10000);
 v_column_names varchar2(4000);
 
-v_pub_user varchar2(100):= '&4';
-v_quoted_user varchar2(100);
-v_quoted_ct_name varchar2(100);
-v_quoted_cs_name varchar2(100);
-v_quoted_schema varchar2(100);
-v_quoted_table varchar2(100);
+
 err_found boolean := false;
 warn_found boolean := false;
 
@@ -58,11 +51,7 @@ SELECT version into v_version from v$instance;
 DBMS_OUTPUT.PUT_LINE ('Oracle version : ' || v_version);
 i_version := TO_NUMBER(SUBSTR(v_version, 1, INSTR(v_version, '.') -1));
 
-v_quoted_schema := '''' || v_user || '''';
-v_quoted_cs_name := '''' || v_change_set_name || ''''; 
-v_quoted_user := '''' || v_pub_user  || '''';
-
-IF v_sync THEN
+IF b_sync THEN
 DBMS_OUTPUT.PUT_LINE ('Setting Up Synchronous Data Capture ' || v_change_set_name  || ' for Oracle ' || TO_CHAR(i_version)); 
 DBMS_CDC_PUBLISH.CREATE_CHANGE_SET(change_set_name => v_change_set_name, description => 'Change set used by Tungsten Replicator', change_source_name =>v_cdc_type);
 ELSE
@@ -184,42 +173,7 @@ IF tableCount > 0 THEN
          
          /* Create the change table */
          IF LENGTH(v_column_list) > 0 THEN
-            IF DEBUG_LVL > 1 THEN      
-               DBMS_OUTPUT.PUT_LINE ('Processing ' || v_user || '.' || v_table_name || '(' || v_column_list || ')');
-            ELSE
-               DBMS_OUTPUT.PUT ('Processing ' || v_user || '.' || v_table_name);
-            END IF;
-      
-            v_column_list := '''' || v_column_list || '''';
-            v_quoted_table := '''' || v_table_name  || '''';
-            v_quoted_ct_name := '''CT_' || SUBSTR(v_table_name, 1, 22)  || '''';
-
-            IF v_sync THEN
-               IF i_version > 10 THEN
-                  v_create_ct_statement :='BEGIN DBMS_CDC_PUBLISH.CREATE_CHANGE_TABLE(owner=>'||v_quoted_user||', change_table_name=> '||v_quoted_ct_name||', change_set_name=>'|| v_quoted_cs_name ||', source_schema=>'|| v_quoted_schema ||', source_table=>'|| v_quoted_table ||', column_type_list => '|| v_column_list||', capture_values => ''both'',  rs_id => ''y'', row_id => ''n'', user_id => ''n'', timestamp => ''n'', object_id => ''n'', source_colmap => ''y'', target_colmap => ''y'', DDL_MARKERS=> ''n'', options_string=>''TABLESPACE ' || v_pub_user ||''');END;';
-               ELSE
-                  v_create_ct_statement :='BEGIN DBMS_CDC_PUBLISH.CREATE_CHANGE_TABLE(owner=>'||v_quoted_user||', change_table_name=> '||v_quoted_ct_name||', change_set_name=>'|| v_quoted_cs_name ||', source_schema=>'|| v_quoted_schema ||', source_table=>'|| v_quoted_table ||', column_type_list => '|| v_column_list||', capture_values => ''both'',  rs_id => ''y'', row_id => ''n'', user_id => ''n'', timestamp => ''n'', object_id => ''n'', source_colmap => ''y'', target_colmap => ''y'', options_string=>''TABLESPACE ' || v_pub_user ||''');END;';
-               END IF;
-            ELSE
-               v_create_ct_statement :='BEGIN DBMS_CDC_PUBLISH.CREATE_CHANGE_TABLE(owner=>'||v_quoted_user||', change_table_name=> '||v_quoted_ct_name||', change_set_name=>'|| v_quoted_cs_name ||', source_schema=>'|| v_quoted_schema ||', source_table=>'|| v_quoted_table ||', column_type_list => '|| v_column_list||', capture_values => ''both'',  rs_id => ''y'', row_id => ''n'', user_id => ''n'', timestamp => ''n'', object_id => ''n'', source_colmap => ''n'', target_colmap => ''y'', options_string=>''TABLESPACE ' || v_pub_user ||''');END;';
-            END IF;
-      
-            BEGIN
-               IF DEBUG_LVL > 1 THEN      
-                  DBMS_OUTPUT.PUT_LINE (v_create_ct_statement);
-                  DBMS_OUTPUT.PUT_LINE ('/');
-               END IF;
-
-               EXECUTE IMMEDIATE v_create_ct_statement;
-               IF DEBUG_LVL > 1 THEN
-                  DBMS_OUTPUT.PUT_LINE ('Running GRANT SELECT ON '|| 'CT_' || SUBSTR(v_table_name, 1, 22) || ' TO ' || v_tungsten_user);
-               END IF;
-               EXECUTE IMMEDIATE 'GRANT SELECT ON '|| 'CT_' || SUBSTR(v_table_name, 1, 22) || ' TO ' || v_tungsten_user;
-               DBMS_OUTPUT.PUT_LINE(' -> ' ||  v_quoted_ct_name || ' : OK');   
-            EXCEPTION WHEN OTHERS THEN
-               DBMS_OUTPUT.PUT_LINE(' -> ' || v_quoted_ct_name || ' : ERROR (' ||SUBSTR(SQLERRM, 1, 100) || ')');
-               err_found := TRUE;
-            END;
+           @@create_change_table.sql
          END IF;
       END LOOP;
       CLOSE C1;
@@ -287,56 +241,14 @@ ELSE
 
          /* Create the change table */
          IF LENGTH(v_column_list) > 0 THEN
-            IF DEBUG_LVL > 1 THEN      
-               DBMS_OUTPUT.PUT_LINE ('Processing ' || v_user || '.' || v_table_name || '(' || v_column_list || ')');
-            ELSE
-               DBMS_OUTPUT.PUT ('Processing ' || v_user || '.' || v_table_name);
-            END IF;
-      
-            v_column_list := '''' || v_column_list || '''';
-            v_quoted_table := '''' || v_table_name  || '''';
-            v_quoted_ct_name := '''CT_' || SUBSTR(v_table_name, 1, 22)  || '''';
-
-            IF v_sync THEN
-               IF i_version > 10 THEN
-                  v_create_ct_statement :='BEGIN DBMS_CDC_PUBLISH.CREATE_CHANGE_TABLE(owner=>'||v_quoted_user||', change_table_name=> '||v_quoted_ct_name||', change_set_name=>'|| v_quoted_cs_name ||', source_schema=>'|| v_quoted_schema ||', source_table=>'|| v_quoted_table ||', column_type_list => '|| v_column_list||', capture_values => ''both'',  rs_id => ''y'', row_id => ''n'', user_id => ''n'', timestamp => ''n'', object_id => ''n'', source_colmap => ''y'', target_colmap => ''y'', DDL_MARKERS=> ''n'', options_string=>''TABLESPACE ' || v_pub_user ||''');END;';
-               ELSE
-                  v_create_ct_statement :='BEGIN DBMS_CDC_PUBLISH.CREATE_CHANGE_TABLE(owner=>'||v_quoted_user||', change_table_name=> '||v_quoted_ct_name||', change_set_name=>'|| v_quoted_cs_name ||', source_schema=>'|| v_quoted_schema ||', source_table=>'|| v_quoted_table ||', column_type_list => '|| v_column_list||', capture_values => ''both'',  rs_id => ''y'', row_id => ''n'', user_id => ''n'', timestamp => ''n'', object_id => ''n'', source_colmap => ''y'', target_colmap => ''y'', options_string=>''TABLESPACE ' || v_pub_user ||''');END;';
-               END IF;
-            ELSE
-               v_create_ct_statement :='BEGIN DBMS_CDC_PUBLISH.CREATE_CHANGE_TABLE(owner=>'||v_quoted_user||', change_table_name=> '||v_quoted_ct_name||', change_set_name=>'|| v_quoted_cs_name ||', source_schema=>'|| v_quoted_schema ||', source_table=>'|| v_quoted_table ||', column_type_list => '|| v_column_list||', capture_values => ''both'',  rs_id => ''y'', row_id => ''n'', user_id => ''n'', timestamp => ''n'', object_id => ''n'', source_colmap => ''n'', target_colmap => ''y'', options_string=>''TABLESPACE ' || v_pub_user ||''');END;';
-            END IF;
-            
-            DECLARE
-               createdSCN number;
-            BEGIN
-               IF DEBUG_LVL > 1 THEN      
-                  DBMS_OUTPUT.PUT_LINE (v_create_ct_statement);
-               END IF;
-
-               EXECUTE IMMEDIATE v_create_ct_statement;
-               IF DEBUG_LVL > 1 THEN
-                  DBMS_OUTPUT.PUT_LINE ('Running GRANT SELECT ON '|| 'CT_' || SUBSTR(v_table_name, 1, 22) || ' TO ' || v_tungsten_user);
-               END IF;
-               EXECUTE IMMEDIATE 'GRANT SELECT ON '|| 'CT_' || SUBSTR(v_table_name, 1, 22) || ' TO ' || v_tungsten_user;
-               
-               IF not v_sync THEN
-                  DBMS_OUTPUT.PUT_LINE(' -> ' ||  v_quoted_ct_name || ' : created' );
-               ELSE
-                  SELECT CREATED_SCN INTO createdSCN FROM change_tables WHERE CHANGE_SET_NAME=v_change_set_name and CHANGE_TABLE_NAME='CT_' || SUBSTR(v_table_name, 1, 22);
-                  DBMS_OUTPUT.PUT_LINE(' -> ' ||  v_quoted_ct_name || ' : created at SCN ' || createdSCN);
-               END IF;
-            EXCEPTION WHEN OTHERS THEN
-               DBMS_OUTPUT.PUT_LINE(' -> ' || v_quoted_ct_name || ' : ERROR (' ||SUBSTR(SQLERRM, 1, 100) || ')');
-               err_found := TRUE;
-            END;
+           @@create_change_table.sql
          END IF;
       END LOOP;
       CLOSE C1;
    END;
 END IF;
 
-IF not v_sync THEN
+IF not b_sync THEN
    DBMS_OUTPUT.PUT_LINE ('Enabling change set : ' || v_change_set_name);
    DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name => v_change_set_name,enable_capture => 'y');
 /* 
