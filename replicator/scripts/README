@@ -1,0 +1,31 @@
+1. Update configure file setupCDC.conf
+
+This requires the following properties to be updated :
+
+sys_user		->	oracle user that can connectas sysdba
+					leave it empty if you can connect as '/ as sysdba'
+				
+source_user		->	user which owns tables that needs to get replicated
+
+pub_user		->	user that will publish change data to tungsten
+
+pub_password	->	publisher password
+
+tungsten_user	->	user used by tungsten to fetch change data (aka CDC subscriber)
+
+tungsten_pwd	->	tungsten user password
+
+2. Run setupCDC.sh
+
+Before running this script, you should create a tablespace for publisher.
+Here is an example how it can be done:
+
+CREATE TABLESPACE "GRANITT_PUB" DATAFILE '/oracle/GRANITT_PUB' SIZE 10485760 AUTOEXTEND ON NEXT 1048576 MAXSIZE 32767M NOLOGGING ONLINE PERMANENT BLOCKSIZE 8192 EXTENT MANAGEMENT LOCAL AUTOALLOCATE DEFAULT NOCOMPRESS SEGMENT SPACE MANAGEMENT AUTO;
+
+3. Changing source_user
+
+In case you need to change the source_user after setupCDC.sh was already
+setup, execute the tools/cleanup.sql script. Otherwise, you might get an
+error similar to this:
+
+ORA-31411: change set TUNGSTEN_CHANGE_SET is referenced by a change table
