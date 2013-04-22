@@ -34,13 +34,13 @@ module RemoteCommand
     target_user = @config.getProperty([HOSTS, deployment_host, USERID])
     target_home_directory = @config.getProperty([HOSTS, deployment_host, CURRENT_RELEASE_DIRECTORY])
     default_host = nil
-    override_differences = false
+    @override_differences = false
     
     opts=OptionParser.new
     opts.on("--default-host String")            { |val|
       if target_hosts.include?(val)
         default_host = val
-        override_differences = true
+        @override_differences = true
       else
         error("Unable to find the default host (#{val}) in the list of hosts to be included")
       end
@@ -167,7 +167,7 @@ module RemoteCommand
               # If it already exists in final_props, we need to make sure 
               # there is a match in the values
               unless final_props[key][g_alias] == g_props
-                unless override_differences == true
+                unless @override_differences == true
                   error "The values for #{key}.#{g_alias} do not match between #{target_host} and the other hosts.  Make sure these values match in the #{Configurator::HOST_CONFIG} file on each host."
                   has_differences = true
                 end

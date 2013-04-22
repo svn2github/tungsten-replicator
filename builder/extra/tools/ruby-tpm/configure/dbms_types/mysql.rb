@@ -285,6 +285,10 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
 	  
 	  run("SET SQL_LOG_BIN=0; CREATE SCHEMA #{schema_name}; USE #{schema_name}; source #{sql_file};")
   end
+  
+  def drop_tungsten_schema(schema_name)
+    self.run("drop schema if exists #{schema_name}")
+  end
 end
 
 #

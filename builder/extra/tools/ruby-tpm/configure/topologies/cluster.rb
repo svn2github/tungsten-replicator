@@ -18,4 +18,7 @@ if Configurator.instance.is_enterprise?()
       true
     end
   end
+else
+  class ClusterTopology
+  end
 end

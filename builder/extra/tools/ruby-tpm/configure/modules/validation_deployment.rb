@@ -478,6 +478,7 @@ class SudoCheck < ConfigureValidationCheck
       error("Unable to run 'sudo which'")
       add_help()
     else
+      # Get the allowed sudo settings and commands
       sudo_output = cmd_result("sudo -l")
       if sudo_output =~ /requiretty/
         unless sudo_output =~ /!requiretty/
@@ -1257,5 +1258,42 @@ class ConflictingReplicationServiceTHLPortsCheck < ConfigureValidationCheck
         thl_ports[thl_port] = @config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE])
       end
     }
+  end
+end
+
+class MissingReplicationServiceConfigurationCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  include ReplicatorEnabledCheck
+  
+  def set_vars
+    @title = "Looking for existing replication services that are not in the configuration"
+    self.extend(TungstenUpdateCheck)
+  end
+  
+  def validate
+    existing_static_files = {}
+    Dir.glob("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/conf/static-*") {
+      |fname|
+      existing_static_files[File.basename(fname)] = true
+    }
+    
+    @config.getNestedPropertyOr([REPL_SERVICES], {}).each_key{
+      |rs_alias|
+      static_filename = File.basename(@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_CONFIG_FILE]))
+      
+      if existing_static_files.has_key?(static_filename)
+        existing_static_files.delete(static_filename)
+      end
+    }
+    
+    existing_static_files.each_key{
+      |filename|
+      
+      error("The configuration file #{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/conf/#{filename} exists and represents a replication service that does not appear in this configuration")
+    }
+    
+    unless is_valid?()
+      help("Run the `tpm delete-service` command to remove this service from the configuration")
+    end
   end
 end

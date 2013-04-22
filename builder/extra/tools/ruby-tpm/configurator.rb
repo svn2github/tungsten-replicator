@@ -120,6 +120,7 @@ CONTINUENT_ROOT_VARIABLE = "CONTINUENT_ROOT"
 CONTINUENT_ROOT_ARGUMENT = "--home-directory"
 CONTINUENT_ENVIRONMENT_SCRIPT = "share/env.sh"
 
+DELETE_REPLICATION_POSITION = "delete_replication_position"
 RESTART_REPLICATORS = "restart_replicators"
 RESTART_MANAGERS = "restart_managers"
 RESTART_CONNECTORS = "restart_connectors"

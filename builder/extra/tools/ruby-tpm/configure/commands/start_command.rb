@@ -2,6 +2,10 @@ class StartCommand
   include ConfigureCommand
   include RemoteCommand
   include ClusterCommandModule
+  
+  unless Configurator.instance.is_locked?()
+    include RequireDataserviceArgumentModule
+  end
 
   FROM_EVENT = "from_event"
   FROM_MASTER_BACKUP_EVENT = "from_master_backup_event"

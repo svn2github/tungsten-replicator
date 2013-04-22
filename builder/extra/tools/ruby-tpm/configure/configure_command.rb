@@ -368,7 +368,7 @@ module ConfigureCommand
         return true
       end
       
-      if get_deployment_configurations().size() == 0
+      if get_deployment_configurations().size() == 0 && Configurator.instance.is_locked?() != true
         error("Unable to find any host configurations for the data service specified.  Check the list of configured data services by running 'tools/tpm query dataservices'.")
         return false
       end
@@ -419,8 +419,6 @@ module ConfigureCommand
       end
 
       unless skip_deployment?()
-        distribute_log?(true)
-        
         # Execute the deployment of each configuration object for the deployment
         debug("Deploy the configuration on each host")
         unless deploy()

@@ -249,6 +249,10 @@ module ConfigureDeploymentCore
     @watchfiles << path
   end
   
+  def get_original_watch_file(file)
+    File.dirname(file) + "/." + File.basename(file) + ".orig"
+  end
+  
   def add_log_file(log_file)
     basename = File.basename(log_file)
     unless File.exists?("#{@config.getProperty(LOGS_DIRECTORY)}/#{basename}")

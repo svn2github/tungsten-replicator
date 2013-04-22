@@ -3,6 +3,10 @@ class RestartCommand
   include RemoteCommand
   include ClusterCommandModule
   
+  unless Configurator.instance.is_locked?()
+    include RequireDataserviceArgumentModule
+  end
+  
   def skip_prompts?
     true
   end

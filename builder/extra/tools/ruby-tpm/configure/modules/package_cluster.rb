@@ -10,6 +10,11 @@ module ClusterCommandModule
     @manager_options = Properties.new()
     @connector_options = Properties.new()
     @replication_options = Properties.new()
+    
+    @add_members = nil
+    @remove_members = nil
+    @add_connectors = nil
+    @remove_connectors = nil
   end
   
   def get_prompts
@@ -131,6 +136,28 @@ module ClusterCommandModule
       
       add_prompt(opts, prompt, @replication_options, [REPL_SERVICES])
     }
+    
+    unless defaults_only?
+      opts.on("--members+ String") {
+        |val|
+        @add_members = val.split(",")
+      }
+      opts.on("--members- String") {
+        |val|
+        @remove_members = val.split(",")
+      }
+      
+      if Configurator.instance.is_enterprise?()
+        opts.on("--connectors+ String") {
+          |val|
+          @add_connectors = val.split(",")
+        }
+        opts.on("--connectors- String") {
+          |val|
+          @remove_connectors = val.split(",")
+        }
+      end
+    end
 
     return Configurator.instance.run_option_parser(opts, arguments)
   end
@@ -218,6 +245,10 @@ module ClusterCommandModule
       @manager_options,
       @connector_options,
       @replication_options,
+      @add_members,
+      @remove_members,
+      @add_connectors,
+      @remove_connectors,
       fixed_properties(),
       removed_properties(),
       ConfigureValidationHandler.get_skipped_validation_classes(),
@@ -227,7 +258,7 @@ module ClusterCommandModule
     ].each{
       |opts|
       
-      unless opts.empty?()
+      unless opts == nil || opts.empty?()
         all_empty = false
       end
     }
@@ -251,6 +282,33 @@ module ClusterCommandModule
       @config.setProperty([DATASERVICES, dataservice_alias, DATASERVICENAME], dataservice_alias)
       @config.override([DATASERVICES, dataservice_alias], @dataservice_options.getPropertyOr([DATASERVICES, DEFAULTS]))
       @config.override([DATASERVICES, dataservice_alias], @dataservice_options.getPropertyOr([DATASERVICES, COMMAND]))
+      
+      unless @add_members == nil
+        current_members = @config.getPropertyOr([DATASERVICES, dataservice_alias, DATASERVICE_MEMBERS], "").split(",")
+        updated_members = (current_members + @add_members)
+        @config.setProperty([DATASERVICES, dataservice_alias, DATASERVICE_MEMBERS], updated_members.join(","))
+      end
+      unless @remove_members == nil
+        current_members = @config.getPropertyOr([DATASERVICES, dataservice_alias, DATASERVICE_MEMBERS], "").split(",")
+        updated_members = current_members.delete_if{
+          |h|
+          @remove_members.include?(h)
+        }
+        @config.setProperty([DATASERVICES, dataservice_alias, DATASERVICE_MEMBERS], updated_members.join(","))
+      end
+      unless @add_connectors == nil
+        current_connectors = @config.getPropertyOr([DATASERVICES, dataservice_alias, DATASERVICE_CONNECTORS], "").split(",")
+        updated_connectors = (current_connectors + @add_connectors)
+        @config.setProperty([DATASERVICES, dataservice_alias, DATASERVICE_CONNECTORS], updated_connectors.join(","))
+      end
+      unless @remove_connectors == nil
+        current_connectors = @config.getPropertyOr([DATASERVICES, dataservice_alias, DATASERVICE_CONNECTORS], "").split(",")
+        updated_connectors = current_connectors.delete_if{
+          |h|
+          @remove_connectors.include?(h)
+        }
+        @config.setProperty([DATASERVICES, dataservice_alias, DATASERVICE_CONNECTORS], updated_connectors.join(","))
+      end
       
       topology = Topology.build(dataservice_alias, @config)
       if @config.getProperty([DATASERVICES, dataservice_alias, DATASERVICE_IS_COMPOSITE]) == "true"
@@ -1037,7 +1095,7 @@ module ClusterCommandModule
       config_obj.getPropertyOr([SYSTEM] + path, {}).delete_if{
         |g_alias, g_props|
 
-        (config_obj.getNestedProperty(path).has_key?(g_alias) != true)
+        (config_obj.getNestedPropertyOr(path, {}).has_key?(g_alias) != true)
       }
     }
     
@@ -1108,16 +1166,18 @@ module ClusterCommandModule
       
       h_alias = cfg.getProperty(DEPLOYMENT_HOST)
 
-      if @promotion_settings.getProperty([h_alias, RESTART_CONNECTORS]) == false
-        display_promote_connectors = true
-      end
-      
-      if @promotion_settings.getProperty([h_alias, ACTIVE_DIRECTORY_PATH]) && @promotion_settings.getProperty([h_alias, CONNECTOR_ENABLED]) == "true"
-        unless @promotion_settings.getProperty([h_alias, CONNECTOR_IS_RUNNING]) == "true"
+      if cfg.getProperty(HOST_ENABLE_CONNECTOR) == "true"
+        if @promotion_settings.getProperty([h_alias, RESTART_CONNECTORS]) == false
           display_promote_connectors = true
         end
-      elsif cfg.getProperty(SVC_START) != "true"
-        display_promote_connectors = true
+      
+        if @promotion_settings.getProperty([h_alias, ACTIVE_DIRECTORY_PATH]) && @promotion_settings.getProperty([h_alias, CONNECTOR_ENABLED]) == "true"
+          unless @promotion_settings.getProperty([h_alias, CONNECTOR_IS_RUNNING]) == "true"
+            display_promote_connectors = true
+          end
+        elsif cfg.getProperty(SVC_START) != "true"
+          display_promote_connectors = true
+        end
       end
     }
     if display_promote_connectors == true

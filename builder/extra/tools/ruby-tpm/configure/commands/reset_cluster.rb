@@ -110,9 +110,7 @@ module ResetClusterDeploymentStep
         end
         
         ds = get_applier_datasource(rs_alias)
-        if ds.is_a?(MySQLDatabasePlatform)
-          ds.run("drop schema #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA])}")
-        end
+        ds.drop_tungsten_schema(@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA]))
         
         thl_dir = @config.getProperty([REPL_SERVICES, rs_alias, REPL_LOG_DIR])
         if get_additional_property(ResetClusterCommand::DELETE_LOGS) == "true"

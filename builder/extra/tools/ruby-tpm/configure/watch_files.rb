@@ -12,6 +12,10 @@ class WatchFiles
           current_file = line
           original_file = File.dirname(line) + "/." + File.basename(line) + ".orig"
           
+          unless File.exist?(original_file)
+            next
+          end
+          
           Configurator.instance.info("Compare #{current_file} to #{original_file}")
           begin
             file_differences = cmd_result("diff -u #{original_file} #{current_file}")
@@ -42,6 +46,10 @@ class WatchFiles
           end
           current_file = line
           original_file = File.dirname(line) + "/." + File.basename(line) + ".orig"
+          
+          unless File.exist?(original_file)
+            next
+          end
           
           Configurator.instance.debug("Compare #{current_file} to #{original_file}")
           begin

@@ -34,7 +34,7 @@ module ConfigureDeploymentStepServices
     @watchfiles.uniq().each{
       |file|
       
-      FileUtils.cp(file, File.dirname(file) + "/." + File.basename(file) + ".orig")
+      FileUtils.cp(file, get_original_watch_file(file))
       if file =~ /#{prepare_dir}/
         file_to_watch = file.sub(prepare_dir, "")
         if file_to_watch[0, 1] == "/"

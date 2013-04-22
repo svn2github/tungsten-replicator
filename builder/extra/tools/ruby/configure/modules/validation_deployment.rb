@@ -331,6 +331,7 @@ class SudoCheck < ConfigureValidationCheck
       error "Sudo is not setup correctly"
       add_help()
     else
+      # Get the allowed sudo settings and commands
       sudo_output = cmd_result("sudo -l")
       
       if sudo_output =~ /requiretty/

@@ -109,6 +109,10 @@ class ConfigureDatabasePlatform
     raise "Undefined function: #{self.class.name}.create_tungsten_schema"
   end
   
+  def drop_tungsten_schema(schema_name = nil)
+    Configurator.instance.warning("Unable to drop the tungsten schema #{schema_name} for #{self.class.name}")
+  end
+  
   def get_default_backup_method
     "none"
   end

@@ -4,7 +4,6 @@ class UpdateCommand
   if Configurator.instance.is_locked?() == false
     include RemoteCommand
     include ResetBasenamePackageModule
-    include RequireDataserviceArgumentModule
   end
   
   include ClusterCommandModule
@@ -29,18 +28,6 @@ class UpdateCommand
         @promotion_settings.setProperty([h_alias, RESTART_CONNECTORS], false)
       end
     }
-  end
-  
-  def require_dataservice?
-    if super() == true
-      if @load_remote_config == true
-        return false
-      else
-        return true
-      end
-    else
-      return false
-    end
   end
 
   def parsed_options?(arguments)
