@@ -116,6 +116,14 @@ class DeleteServiceIsNotClustering < ConfigureValidationCheck
       end
     }
   end
+  
+  def enabled?
+    if [DeleteReplicationServiceCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
+      return (super() && true)
+    end
+    
+    return false
+  end
 end
 
 module DeleteReplicationServiceDeploymentStep
