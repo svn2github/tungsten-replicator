@@ -286,14 +286,18 @@ class ReverseEngineerCommand
   end
   
   def self.display_command
-    false
+    true
   end
   
   def self.get_command_name
-    'reverse'
+    'dump'
+  end
+  
+  def self.get_command_aliases
+    ['reverse']
   end
   
   def self.get_command_description
-    "Build the 'tpm configure' commands required to recreate the configuration"
+    "Display the 'tpm configure' commands required to recreate the configuration"
   end
 end

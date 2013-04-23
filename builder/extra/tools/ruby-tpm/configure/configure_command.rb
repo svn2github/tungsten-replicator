@@ -780,6 +780,10 @@ module ConfigureCommand
         if klass.get_command_name() == command
           return klass
         end
+        
+        if klass.get_command_aliases().include?(command)
+          return klass
+        end
       rescue NoMethodError
       end
     }
