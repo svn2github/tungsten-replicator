@@ -1026,6 +1026,10 @@ module ClusterCommandModule
         next
       end
       
+      if config_obj.getProperty([DATASERVICES, ds_alias, DATASERVICEALIAS]) != nil
+        config_obj.setProperty([DATASERVICES, ds_alias, DATASERVICENAME], config_obj.getProperty([DATASERVICES, ds_alias, DATASERVICEALIAS]))
+      end
+      
       if config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_IS_COMPOSITE]) == "true"
         comp_ds_list = config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_COMPOSITE_DATASOURCES], "").split(",")
         

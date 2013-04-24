@@ -130,6 +130,39 @@ class DataServiceName < ConfigurePrompt
   end
 end
 
+class DataServiceAlias < ConfigurePrompt
+  include ClusterPrompt
+  
+  def initialize
+    super(DATASERVICEALIAS, "Replication alias of this dataservice", PV_IDENTIFIER)
+    self.extend(NotTungstenUpdatePrompt)
+    override_command_line_argument("service-alias")
+  end
+  
+  def validate_value(value)
+    topology = get_topology()
+    if topology.is_a?(ClusterTopology)
+      error("The --service-alias argument is not supported for clustered dataservices")
+    end
+  end
+  
+  def allow_group_default
+    false
+  end
+  
+  def enabled_for_dataservice?
+    true
+  end
+  
+  def required?
+    false
+  end
+  
+  def load_default_value
+    @default = get_topology().get_dataservice_alias()
+  end
+end
+
 class ClusterName < ConfigurePrompt
   include ClusterPrompt
   include ConstantValueModule
@@ -482,9 +515,9 @@ class DataserviceSchema < ConfigurePrompt
     parent_dataservice = @config.getProperty(get_member_key(DATASERVICE_PARENT_DATASERVICE), true)
     
     if parent_dataservice == nil
-      @default = "tungsten_#{get_member()}"
+      @default = "tungsten_#{@config.getProperty(get_member_key(DATASERVICENAME))}"
     else
-      @default = "tungsten_#{parent_dataservice}"
+      @default = "tungsten_#{@config.getProperty([DATASERVICES, parent_dataservice, DATASERVICENAME])}"
     end
   end
 end

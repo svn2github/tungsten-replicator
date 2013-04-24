@@ -44,6 +44,10 @@ module Topology
     end
   end
   
+  def get_dataservice_alias
+    nil
+  end
+  
   def _splice_hosts_port(hosts, default_port)
     values = []
     
