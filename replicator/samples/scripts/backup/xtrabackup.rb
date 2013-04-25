@@ -24,7 +24,8 @@ INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
   :mysqlgroup => "mysql",
   :incremental => "false",
   :tar => "false",
-  :my_cnf => nil
+  :my_cnf => nil,
+  :restore_to_datadir => "false"
 }
 
 def run
@@ -234,13 +235,13 @@ def restore
     # datadir. This can't work if innodb_data_home_dir or innodb_log_group_home_dir 
     # are in the my.cnf file because the files need to go to different directories
     if File.exist?("#{@options[:mysqldatadir]}/tungsten_restore_to_datadir")
-      restore_to_datadir = true
-      
+      @options[:restore_to_datadir] = "true"
+    end
+    
+    if @options[:restore_to_datadir] == "true"  
       if @options[:mysqlibdatadir].to_s() != "" || @options[:mysqliblogdir].to_s() != ""
         raise("Unable to restore to #{@options[:mysqldatadir]} because #{@options[:my_cnf]} includes a definition for 'innodb_data_home_dir' or 'innodb_log_group_home_dir'")
       end
-    else
-      restore_to_datadir = false
     end
     
     # Does this version of innobackupex-1.5.1 support the faster 
@@ -253,7 +254,7 @@ def restore
     end
     
     id = build_timestamp_id("restore")
-    if restore_to_datadir == true
+    if @options[:restore_to_datadir] == "true"
       empty_mysql_directory()
       
       staging_dir = @options[:mysqldatadir]
@@ -288,7 +289,7 @@ def restore
     log("Finish preparing #{staging_dir}")
     cmd_result("#{get_xtrabackup_command()} --apply-log #{staging_dir}")
   
-    unless restore_to_datadir == true
+    unless @options[:restore_to_datadir] == "true"
       empty_mysql_directory()
 
       # Copy the backup files to the mysql data directory
@@ -313,14 +314,14 @@ def restore
     
     cmd_result("#{@options[:mysql_service_command]} start")
     
-    if restore_to_datadir == false && staging_dir != "" && File.exists?(staging_dir)
+    if @options[:restore_to_datadir] == "false" && staging_dir != "" && File.exists?(staging_dir)
       log("Cleanup #{staging_dir}")
       cmd_result("rm -r #{staging_dir}")
     end
   rescue => e
     log("Error: #{e.message}")
     
-    if restore_to_datadir == false && staging_dir != "" && File.exists?(staging_dir)
+    if @options[:restore_to_datadir] == "false" && staging_dir != "" && File.exists?(staging_dir)
       log("Remove #{staging_dir} due to the error")
       cmd_result("rm -r #{staging_dir}")
     end

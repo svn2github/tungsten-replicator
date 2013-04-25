@@ -16,6 +16,7 @@ REPL_MYSQL_XTRABACKUP_DIR = "repl_mysql_xtrabackup_dir"
 REPL_MYSQL_XTRABACKUP_FILE = "repl_mysql_xtrabackup_file"
 REPL_MYSQL_XTRABACKUP_TMP_DIR = "repl_mysql_xtrabackup_tmp_dir"
 REPL_MYSQL_XTRABACKUP_TMP_FILE = "repl_mysql_xtrabackup_tmp_file"
+REPL_MYSQL_XTRABACKUP_RESTORE_TO_DATADIR = "repl_xtrabackup_restore_to_datadir"
 REPL_MYSQL_USE_BYTES_FOR_STRING = "repl_mysql_use_bytes_for_string"
 REPL_MYSQL_CONF = "repl_datasource_mysql_conf"
 REPL_MYSQL_SERVICE_CONF = "repl_datasource_mysql_service_conf"
@@ -515,6 +516,14 @@ class MySQLXtrabackupTempFile < ConfigurePrompt
     else
       return nil
     end
+  end
+end
+
+class MySQLXtrabackupRestoreToDataDir < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(REPL_MYSQL_XTRABACKUP_RESTORE_TO_DATADIR, "Restore directly to the MySQL data directory by default", PV_BOOLEAN, "false")
   end
 end
 
