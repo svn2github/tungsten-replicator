@@ -478,6 +478,10 @@ class MasterPreferredRole < ConfigurePrompt
     super(REPL_MASTER_PREFERRED_ROLE, "Preferred role for master THL when connecting as a slave (master, slave, etc.)",
       PV_ANY, "")
   end
+  
+  def get_default_value
+    @default = get_topology().master_preferred_role()
+  end
 end
 
 class ReplicationServiceChannels < ConfigurePrompt

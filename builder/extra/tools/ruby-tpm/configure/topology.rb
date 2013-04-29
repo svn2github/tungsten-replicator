@@ -48,6 +48,10 @@ module Topology
     nil
   end
   
+  def master_preferred_role
+    ""
+  end
+  
   def _splice_hosts_port(hosts, default_port)
     values = []
     

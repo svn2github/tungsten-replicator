@@ -53,6 +53,10 @@ class ClusterSlaveTopology
     return REPL_ROLE_S
   end
   
+  def master_preferred_role
+    return REPL_ROLE_S
+  end
+  
   def self.get_name
     'cluster-slave'
   end
