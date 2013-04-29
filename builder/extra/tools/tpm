@@ -18,4 +18,4 @@ THOME=`dirname $0`
 cd $THOME
 
 # Run the installation with appropriate include for Ruby install files. 
-$RUBY -Iruby-tpm -Iruby-tpm/lib ruby-tpm/configure.rb $*
+$RUBY -Iruby-tpm -Iruby-tpm/lib -I../cluster-home/lib/ruby ruby-tpm/configure.rb $*

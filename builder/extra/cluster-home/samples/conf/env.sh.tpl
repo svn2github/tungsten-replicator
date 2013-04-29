@@ -16,7 +16,82 @@ set_tungsten_env() {
 		return 1
 	fi
 
-	export PATH=$PATH:$CONTINUENT_ROOT/tungsten/tungsten-replicator/bin:$CONTINUENT_ROOT/tungsten/cluster-home/bin:$CONTINUENT_ROOT/share:$CONTINUENT_ROOT/tungsten/tools@{ADDITIONAL_PATH}
+	export PATH=$PATH:$CONTINUENT_ROOT/tungsten/tungsten-manager/bin:$CONTINUENT_ROOT/tungsten/tungsten-replicator/bin:$CONTINUENT_ROOT/tungsten/cluster-home/bin:$CONTINUENT_ROOT/tungsten/tungsten-connector/bin:$CONTINUENT_ROOT/share:$CONTINUENT_ROOT/tungsten/tools@{ADDITIONAL_PATH}
+	
+	
+	_cctrl()
+  {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="-admin -expert -host -logical -multi -no-history -physical -port -proxy"
+
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
+  }
+	complete -F _cctrl cctrl
+	
+	_trepctl()
+  {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    trepctl_opts="-host -port -service -verbose -retry"
+    trepctl_commands="version services capabilities shutdown kill backup clear configure flush heartbeat offline offline-deferred online purge reset restore setrole start status stop wait check shard"
+    trepctl_shutdown="-y"
+    trepctl_kill="-y"
+    trepctl_backup="-backup -storage -limit"
+    trepctl_flush="-limit"
+    trepctl_heartbeat="-name"
+    trepctl_offline="-immediate"
+    trepctl_offline_deferred="-at-seqno -at-event -at-heartbeat"
+    trepctl_online="-force -from-event -base-seqno -skip-seqno -until-seqno -until-event -until-heartbeat -until-time"
+    trepctl_purge="-y -limit"
+    trepctl_reset="-y"
+    trepctl_restore="-uri -limit"
+    trepctl_setrole="-role -uri"
+    trepctl_status="-name channel-assignments services shards stages stores tasks watches"
+    trepctl_stop="-y"
+    trepctl_wait="-state -applied -limit"
+    trepctl_check="-limit -method"
+    trepctl_shard="-list -insert -update -delete"
+
+    if [ $COMP_CWORD -eq 1 ]; then
+      COMPREPLY=( $(compgen -W "${trepctl_opts} ${trepctl_commands}" -- ${cur}) )
+      return 0
+    else
+      eval opts='$trepctl_'${COMP_WORDS[1]}
+      COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+      return 0
+    fi
+  }
+  complete -F _trepctl trepctl
+  
+  
+	_thl()
+  {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    thl_options="-conf -service"
+    thl_commands="list index purge info help"
+    thl_list="-low -high -by -sql -charset -hex -file"
+    thl_purge="-low -high -y -seqno"
+    
+    if [ $COMP_CWORD -eq 1 ]; then
+      COMPREPLY=( $(compgen -W "${thl_commands} ${thl_options}" -- ${cur}) )
+      return 0
+    else
+      eval opts='$thl_'${COMP_WORDS[1]}
+      COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+      return 0
+    fi
+  }
+  complete -F _thl thl
+	
 	return 0
 }
 

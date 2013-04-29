@@ -313,11 +313,6 @@ mkdir -p $cluster_home/lib
 echo "# Moving wrapper libraries"
 
 echo "### Adding configuration files"
-echo "# Adding and setting permissions for configure script"
-cp $extra_cluster_home/old-configure $reldir
-chmod 755 $reldir/old-configure
-cp $extra_cluster_home/old-configure-service $reldir
-chmod 755 $reldir/old-configure-service
 
 echo "# Copying in Ruby configuration libraries"
 cp -r $extra_cluster_home/lib $cluster_home
@@ -459,14 +454,8 @@ reldir_replicator=$reldir/tungsten-replicator
 echo "### Adding extra bin scripts for replicator plugins"
 cp -r $extra_ent_replicator/bin/pg $reldir_replicator/bin
 
-echo "### Adding extra conf files for PostgreSQL"
-cp $extra_ent_replicator/conf/sample.* $reldir_replicator/conf
-
 echo "### Copying in Ruby replication plugin libraries"
 cp -r $extra_ent_replicator/lib/ruby $reldir_replicator/lib
-
-echo "### Copying in Python replication plugin libraries"
-cp -r $extra_ent_replicator/lib/python $reldir_replicator/lib
 
 echo "### Copying in extra sample scripts"
 cp -r $extra_ent_replicator/samples $reldir_replicator

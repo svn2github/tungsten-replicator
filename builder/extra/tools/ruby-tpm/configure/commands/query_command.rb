@@ -9,11 +9,12 @@ class QueryCommand
   QUERY_DATASERVICES = "dataservices"
   QUERY_STAGING = "staging"
   QUERY_DEFAULT = "default"
+  QUERY_VALUES = "values"
   QUERY_MODIFIED_FILES = "modified-files"
   QUERY_USERMAP = "usermap"
   
   def allowed_subcommands
-    [QUERY_VERSION, QUERY_MANIFEST, QUERY_CONFIG, QUERY_TOPOLOGY, QUERY_DATASERVICES, QUERY_STAGING, QUERY_DEFAULT, QUERY_MODIFIED_FILES, QUERY_USERMAP]
+    [QUERY_VERSION, QUERY_MANIFEST, QUERY_CONFIG, QUERY_TOPOLOGY, QUERY_DATASERVICES, QUERY_STAGING, QUERY_DEFAULT, QUERY_VALUES, QUERY_MODIFIED_FILES, QUERY_USERMAP]
   end
   
   def allow_multiple_tpm_commands?
@@ -38,6 +39,8 @@ class QueryCommand
       output_staging()
     when QUERY_DEFAULT
       output_defaults()
+    when QUERY_VALUES
+      output_values()
     when QUERY_MODIFIED_FILES
       output_modified_files()
     when QUERY_USERMAP
@@ -56,6 +59,9 @@ class QueryCommand
     
     if subcommand() == QUERY_DEFAULT
       @default_arguments = remainder
+      remainder = []
+    elsif subcommand() == QUERY_VALUES
+      @values_arguments = remainder
       remainder = []
     end
     
@@ -161,6 +167,16 @@ class QueryCommand
     }
     
     puts JSON.pretty_generate(default_matches)
+  end
+  
+  def output_values
+    values_matches = {}
+    @values_arguments.each{
+      |a|
+      values_matches[a] = @config.getProperty(a)
+    }
+    
+    puts JSON.pretty_generate(values_matches)
   end
   
   def allow_command_line_cluster_options?
