@@ -1103,14 +1103,14 @@ class MySQLSettingsCheck < ConfigureValidationCheck
   def validate
     info("Checking sync_binlog setting")
     sync_binlog = get_applier_datasource.get_value("show variables like 'sync_binlog'", "Value")
-    if sync_binlog == nil || sync_binlog != "0"
-      warning("We suggest adding \"sync_binlog=0\" to the MySQL configuration file for #{get_applier_datasource.get_connection_summary()}")
+    if sync_binlog == nil || sync_binlog == "0"
+      warning("\"sync_binlog\" is set to 0 in the MySQL configuration file for #{get_applier_datasource.get_connection_summary()} this setting can lead to possible data loss in a server failure")
     end
     
     info("Checking innodb_flush_log_at_trx_commit")
     innodb_flush_log_at_trx_commit = get_applier_datasource.get_value("show variables like 'innodb_flush_log_at_trx_commit'", "Value")
-    if innodb_flush_log_at_trx_commit == nil || innodb_flush_log_at_trx_commit == "0" || innodb_flush_log_at_trx_commit == "2"
-      warning("We suggest setting \"innodb_flush_log_at_trx_commit\" to 1 in the MySQL configuration file for #{get_applier_datasource.get_connection_summary()}")
+    if innodb_flush_log_at_trx_commit == nil || innodb_flush_log_at_trx_commit == "0" 
+      warning(" \"innodb_flush_log_at_trx_commit\" is set to 0 in the MySQL configuration file for #{get_applier_datasource.get_connection_summary()} this setting can lead to possible data loss in a server failure")
     end
     
     info("Checking max_allowed_packet")
