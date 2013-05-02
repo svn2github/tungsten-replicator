@@ -1,4 +1,29 @@
 class TungstenScript
+  def run
+    if TU.display_help?()
+      display_help()
+      cleanup(0)
+    end
+  end
+  
+  def display_help
+    unless get_description() == nil
+      TU.output(TU.wrapped_lines(get_description()))
+      TU.output("")
+    end
+    
+    TU.display_help()
+    TU.write_header("Script Options", nil)
+    display_script_help()
+  end
+  
+  def get_description
+    nil
+  end
+  
+  def display_script_help
+  end
+  
   def cleanup(code = 0)
     exit(code)
   end
