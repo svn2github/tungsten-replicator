@@ -160,3 +160,42 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
     super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true")
   end
 end
+
+class OldServicesRunningCheck < ConfigureValidationCheck
+  include CommitValidationCheck
+  
+  def set_vars
+    @title = "Check for Tungsten services running outside of the current install directory"
+  end
+  
+  def validate
+    current_release_directory = @config.getProperty(CURRENT_RELEASE_DIRECTORY)
+    if File.exists?(current_release_directory)
+      current_release_target_dir = File.readlink(current_release_directory)
+    else
+      return
+    end
+    
+    current_pid_files = cmd_result("find #{@config.getProperty(HOME_DIRECTORY)}/#{RELEASES_DIRECTORY_NAME} -name *.pid").split("\n")
+    allowed_pid_files = []
+    if @config.getProperty(HOST_ENABLE_REPLICATOR) == "true"
+      allowed_pid_files << "#{current_release_target_dir}/tungsten-replicator/var/treplicator.pid"
+    end
+    if @config.getProperty(HOST_ENABLE_MANAGER) == "true"
+      allowed_pid_files << "#{current_release_target_dir}/tungsten-manager/var/tmanager.pid"
+    end
+    if @config.getProperty(HOST_ENABLE_CONNECTOR) == "true"
+      allowed_pid_files << "#{current_release_target_dir}/tungsten-connector/var/tconnector.pid"
+    end
+    
+    extra_pid_files = current_pid_files - allowed_pid_files
+    extra_pid_files.each{
+      |p|
+      match = p.match(/([\/a-zA-Z0-9\-\._]*)\/tungsten-([a-zA-Z]*)\//)
+      if match
+        error("There is an extra #{match[2]} running in #{match[1]}")
+        help("shell> #{match[1]}/tungsten-#{match[2]}/bin/#{match[2]} stop; #{current_release_directory}/tungsten-#{match[2]}/bin/#{match[2]} start")
+      end
+    }
+  end
+end

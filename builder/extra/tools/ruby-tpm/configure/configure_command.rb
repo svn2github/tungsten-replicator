@@ -434,7 +434,7 @@ module ConfigureCommand
 
         debug("Validate that the deployment is ready to be committed")
         unless validate_commit()
-          write_header("Commit validation failed", Logger::ERROR)
+          write_header(validation_commit_error_header(), Logger::ERROR)
           output_errors()
 
           unless forced?()
@@ -467,6 +467,10 @@ module ConfigureCommand
 
     output_completion_text()
     return true
+  end
+  
+  def validation_commit_error_header
+    "Commit validation failed"
   end
   
   def load_prompts

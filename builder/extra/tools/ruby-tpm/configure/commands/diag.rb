@@ -8,6 +8,7 @@ class DiagnosticCommand
   def initialize(config)
     super(config)
     @skip_prompts = true
+    @force = true
   end
   
   def allow_command_line_cluster_options?
@@ -18,7 +19,8 @@ class DiagnosticCommand
     [
       ActiveDirectoryIsRunningCheck.new(),
       ClusterStatusCheck.new(),
-      ClusterDiagnosticCheck.new()
+      ClusterDiagnosticCheck.new(),
+      OldServicesRunningCheck.new()
     ]
   end
   
@@ -63,6 +65,10 @@ class DiagnosticCommand
     end
     
     return remainder
+  end
+  
+  def validation_commit_error_header
+    "Errors found during diagnostic test"
   end
   
   def output_completion_text
