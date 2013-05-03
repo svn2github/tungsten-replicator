@@ -309,7 +309,7 @@ class HomeDirectoryPrompt < ConfigurePrompt
     super(value)
     
     if value == Configurator.instance.get_base_path()
-      error("You must specify a separate location to deploy Tungsten Enterprise")
+      error("You must specify a separate location to deploy Continuent Tungsten")
     end
   end
   

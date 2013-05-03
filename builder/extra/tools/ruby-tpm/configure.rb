@@ -6,8 +6,8 @@
 #
 
 # == Synopsis 
-#   Automatic configuration script for Tungsten Enterprise.  Run this 
-#   script after unpacking the Tungsten Enterprise release.  You can 
+#   Automatic configuration script for Continuent Tungsten.  Run this 
+#   script after unpacking the Continuent Tungsten release.  You can 
 #   rerun configuration using the tungsten.cfg only using the -b option. 
 #
 # == Author

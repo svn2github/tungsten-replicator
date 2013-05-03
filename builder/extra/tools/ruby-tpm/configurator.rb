@@ -1150,7 +1150,11 @@ class Configurator
   end
   
   def product_name
-    "Tungsten " + TUNGSTEN_ENTERPRISE
+    if is_enterprise?()
+      "Continuent Tungsten"
+    else
+      "Tungsten Replicator"
+    end
   end
   
   def version
