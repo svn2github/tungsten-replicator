@@ -161,6 +161,7 @@ end
 
 class DatasourceDBPassword < ConfigurePrompt
   include DatasourcePrompt
+  include ManagerRestart
   
   def initialize
     super(REPL_DBPASSWORD, "Database password", 
