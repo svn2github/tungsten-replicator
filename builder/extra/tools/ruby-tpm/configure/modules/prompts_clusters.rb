@@ -413,6 +413,15 @@ class ClusterRelaySource < ConfigurePrompt
     false
   end
   
+  def accept?(raw_value)
+    v = super(raw_value)
+    unless v == nil
+      v = to_identifier(v)
+    end
+    
+    return v
+  end
+  
   def validate_value(value)
     if value.to_s() == ""
       return
@@ -585,6 +594,15 @@ class DataserviceCompositeDatasources < ConfigurePrompt
       "Data services that should be added to this composite data service",
       PV_ANY)
     override_command_line_argument("composite-datasources")
+  end
+  
+  def accept?(raw_value)
+    v = super(raw_value)
+    unless v == nil
+      v = v.split(",").map!{|ds| to_identifier(ds)}.join(",")
+    end
+    
+    return v
   end
   
   def validate_value(value)
