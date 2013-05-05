@@ -23,7 +23,6 @@ package com.continuent.tungsten.common.security;
 
 import junit.framework.TestCase;
 
-import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 

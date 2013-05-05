@@ -21,12 +21,12 @@
 
 package com.continuent.tungsten.common.security;
 
+import junit.framework.TestCase;
+
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
-
-import junit.framework.TestCase;
 
 /**
  * Implements a simple unit test for AuthenticationInfo
@@ -46,6 +46,7 @@ public class PasswordManagerTest extends TestCase
     public void testCreatePasswordManager() throws ConfigurationException
     {
         // This file should load just fine
+        @SuppressWarnings("unused")
         PasswordManager pwd = new PasswordManager("sample.security.properties");
         assertTrue(true);
 

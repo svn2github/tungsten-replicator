@@ -23,8 +23,6 @@ package com.continuent.tungsten.common.tdf;
 
 import javax.ws.rs.core.Response;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-
 import junit.framework.TestCase;
 
 /**
