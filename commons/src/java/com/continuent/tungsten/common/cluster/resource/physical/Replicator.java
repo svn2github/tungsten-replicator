@@ -126,6 +126,9 @@ public class Replicator
     /** Current replicator state. */
     public static final String STATE                       = "state";
 
+    /** Pending replicator state following current state transition. */
+    public static final String TRANSITIONING_TO            = "transitioningTo";
+
     /** Source ID used to mark events for this replicator. */
     public static final String SOURCEID                    = "sourceId";
 
