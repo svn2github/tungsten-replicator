@@ -58,6 +58,10 @@ public class InMemoryMultiQueue implements Store
     private ReplDBMSHeader[]                   lastHeader;
     private long                               transactionCount = 0;
 
+    // Metadata tag used to recognize it's time to fail. If this is set in the 
+    // event metadata we will fail.  
+    private static final String                FAILURE_TAG      = "fail";
+
     /**
      * {@inheritDoc}
      * 
@@ -131,11 +135,19 @@ public class InMemoryMultiQueue implements Store
     }
 
     /**
-     * Puts an event in the queue, blocking if it is full.
+     * Puts an event in the queue, blocking if it is full. This call fails if
+     * failAll is true, which can be used to test error handling.
      */
     public void put(int taskId, ReplDBMSEvent event)
-            throws InterruptedException
+            throws InterruptedException, ReplicatorException
     {
+        // See if we want to fail now.
+        String failTag = event.getDBMSEvent().getMetadataOptionValue(
+                FAILURE_TAG);
+        if (failTag != null)
+            throw new ReplicatorException("Failure triggered by " + FAILURE_TAG
+                    + "=" + failTag);
+
         // Insert into the queue.
         queues.get(taskId).put(event);
         transactionCount++;

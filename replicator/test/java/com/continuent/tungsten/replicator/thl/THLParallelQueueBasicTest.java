@@ -49,6 +49,7 @@ import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.management.MockEventDispatcher;
 import com.continuent.tungsten.replicator.management.MockOpenReplicatorContext;
 import com.continuent.tungsten.replicator.pipeline.Pipeline;
+import com.continuent.tungsten.replicator.pipeline.Stage;
 import com.continuent.tungsten.replicator.storage.CommitAction;
 import com.continuent.tungsten.replicator.storage.InMemoryMultiQueue;
 import com.continuent.tungsten.replicator.storage.Store;
@@ -268,6 +269,98 @@ public class THLParallelQueueBasicTest
     }
 
     /**
+     * Verify that a parallel THL with multiple channels properly do not commit
+     * additional transactions after a failure. This includes not committing any
+     * partial transactions if only a fragment has arrived before the error.
+     * <p/>
+     * This test uses 3 channels with partitioning on shard name. We write and
+     * read directly to/from the linked THL and THLParallelQueue to confirm
+     * behavior.
+     */
+    @Test
+    public void testMultiChannelErrorHandling() throws Exception
+    {
+        logger.info("##### testMultiChannelErrorHandling #####");
+
+        // Set up and prepare pipeline.
+        TungstenProperties conf = helper.generateTHLParallelPipeline(
+                "testMultiChannelBasic", 3, 50, 100, true);
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        runtime.configure();
+        runtime.prepare();
+        pipeline = runtime.getPipeline();
+        pipeline.start(new MockEventDispatcher());
+
+        // Fetch references to stores.
+        THL thl = (THL) pipeline.getStore("thl");
+        InMemoryMultiQueue mq = (InMemoryMultiQueue) pipeline
+                .getStore("multi-queue");
+
+        // Write events to the THL with three different shard IDs.
+        LogConnection conn = thl.connect(false);
+        for (int i = 0; i < 90; i++)
+        {
+            ReplDBMSEvent rde = helper.createEvent(i, "db" + (i % 3));
+            if (i == 50 && (i % 3) > 0)
+            {
+                // Fail on the 2nd fragment of seqno 50.
+                rde.getDBMSEvent().setMetaDataOption("fail", "true");
+            }
+            else if (i > 50)
+            {
+                // Fail on any transaction whose seqno is > 50.
+                rde.getDBMSEvent().setMetaDataOption("fail", "true");
+            }
+
+            THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+            conn.store(thlEvent, false);
+        }
+        conn.commit();
+        thl.disconnect(conn);
+
+        // Confirm that apply tasks shut down within 10 seconds. Note that the
+        // pipeline itself does not "fail" because we don't have a state machine
+        // available to prompt a shutdown after errors arise.
+        long startTime = System.currentTimeMillis();
+        Stage qToMq = pipeline.getStage("q-to-mq");
+        while (10000 > (System.currentTimeMillis() - startTime))
+        {
+            if (qToMq.isShutdown())
+            {
+                logger.info("Stage q-to-mq shut down in "
+                        + (System.currentTimeMillis() - startTime)
+                        + " milliseconds");
+                break;
+            }
+            else
+                Thread.sleep(1000);
+        }
+        Assert.assertTrue("Final stage should be shut down", qToMq.isShutdown());
+
+        // Confirm that no event greater than 49 reaches the multi-queue
+        // even if we wait for it.
+        long maxSeqno = -1;
+        for (int q = 0; q < 3; q++)
+        {
+            for (int i = 0; i < 30; i++)
+            {
+                ReplDBMSEvent rde2 = (ReplDBMSEvent) mq.peek(q);
+                if (rde2 == null)
+                    break;
+                else
+                {
+                    rde2 = (ReplDBMSEvent) mq.get(q);
+                    if (rde2.getSeqno() > maxSeqno)
+                        maxSeqno = rde2.getSeqno();
+                }
+            }
+        }
+        Assert.assertTrue("Checking max seqno more than 40", maxSeqno >= 40);
+        Assert.assertTrue("Checking max seqno less than 50", maxSeqno < 50);
+    }
+
+    /**
      * Verify that a parallel queue with a single partition does not fail or
      * stall when it receives events having commit times that are separated by
      * an amount greater than the maxOfflineInterval value.
@@ -407,16 +500,17 @@ public class THLParallelQueueBasicTest
                 }
             }
         }
-        
-        // Send along a heartbeat event to flush through transactions. 
+
+        // Send along a heartbeat event to flush through transactions.
         seqno++;
-        ReplDBMSEvent rde = helper.createEvent(seqno, (short) 0,
-                true, "end", new Timestamp(startTimestamp));
-        rde.getDBMSEvent().addMetadataOption(ReplOptionParams.HEARTBEAT, "heartbeat");
+        ReplDBMSEvent rde = helper.createEvent(seqno, (short) 0, true, "end",
+                new Timestamp(startTimestamp));
+        rde.getDBMSEvent().addMetadataOption(ReplOptionParams.HEARTBEAT,
+                "heartbeat");
         THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
         conn.store(thlEvent, false);
 
-        // Commit and close the THL store. 
+        // Commit and close the THL store.
         conn.commit();
         thl.disconnect(conn);
 
@@ -435,8 +529,8 @@ public class THLParallelQueueBasicTest
             long firstSeqno, long lastSeqno) throws InterruptedException,
             ExecutionException, TimeoutException
     {
-        Future<ReplDBMSHeader> wait = pipeline
-                .watchForProcessedSequenceNumber(lastSeqno);
+        Future<ReplDBMSHeader> wait = pipeline.watchForCommittedSequenceNumber(
+                lastSeqno, false);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         Assert.assertEquals("Expected " + (lastSeqno + 1) + " server events",
                 lastSeqno, lastEvent.getSeqno());

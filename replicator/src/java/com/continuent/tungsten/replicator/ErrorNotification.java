@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,18 +23,24 @@
 package com.continuent.tungsten.replicator;
 
 import com.continuent.tungsten.fsm.core.Event;
+import com.continuent.tungsten.fsm.event.CriticalEvent;
 import com.continuent.tungsten.fsm.event.OutOfBandEvent;
 
 /**
  * This class defines a ErrorNotification, which denotes a severe replication
  * error that causes replication to fail. It implements the OutOfBandEvent
  * interface to ensure it is processed out-of-band no matter how it is submitted
- * to the state machine.
+ * to the state machine. It also implements critical event so that event
+ * processing is not interrupted, which prevents race conditions around
+ * shutdown.
  * 
  * @author <a href="mailto:teemu.ollakka@continuent.com">Teemu Ollakka</a>
  * @version 1.0
  */
-public class ErrorNotification extends Event implements OutOfBandEvent
+public class ErrorNotification extends Event
+        implements
+            OutOfBandEvent,
+            CriticalEvent
 {
     private final String userMessage;
     private final long   seqno;

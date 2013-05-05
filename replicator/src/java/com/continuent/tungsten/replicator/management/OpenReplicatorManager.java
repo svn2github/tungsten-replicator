@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1640,6 +1640,16 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         return this.sm.getState().getName();
     }
 
+    @MethodDesc(description = "Get the prospective state of the replicator if there is a transition in progress", usage = "getPendingTransition")
+    public String transitioningTo()
+    {
+        State pendingState = this.sm.getPendingState();
+        if (pendingState == null)
+            return "";
+        else
+            return pendingState.getName();
+    }
+
     @MethodDesc(description = "Gets the time replicator has been in current state", usage = "getTimeInStateSeconds")
     public double getTimeInStateSeconds()
     {
@@ -1885,7 +1895,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             pluginStatus.put(Replicator.TIME_IN_STATE_SECONDS,
                     Double.toString(getTimeInStateSeconds()));
             pluginStatus.put(Replicator.STATE, getState());
-
+            pluginStatus.put(Replicator.TRANSITIONING_TO, transitioningTo());
             pluginStatus.put(Replicator.RMI_PORT,
                     Integer.toString(getRmiPort()));
             pluginStatus.put(Replicator.PENDING_EXCEPTION_MESSAGE,

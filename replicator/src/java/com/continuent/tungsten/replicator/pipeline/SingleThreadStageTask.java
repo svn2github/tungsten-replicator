@@ -164,7 +164,20 @@ public class SingleThreadStageTask implements Runnable
         taskProgress.begin();
         context = stage.getPluginContext();
 
-        runTask();
+        try
+        {
+            runTask();
+        }
+        catch (Throwable t)
+        {
+            // This catch block should not be normally reachable except if
+            // failure recovery generates an exception. We need to try to
+            // log the exception for later fault diagnosis and report an error.
+            String msg = "Stage task error recovery failed: stage="
+                    + stage.getName() + " message=" + t.getMessage();
+            logger.error(msg, t);
+            dispatchErrorNotification(msg, null, t);
+        }
 
         logInfo("Terminating processing for stage task thread", null);
         ReplDBMSHeader lastEvent = stage.getProgressTracker()
@@ -231,7 +244,7 @@ public class SingleThreadStageTask implements Runnable
                     {
                         if (logger.isDebugEnabled())
                             logger.debug(message, e);
-                        eventDispatcher.put(new ErrorNotification(message, e));
+                        dispatchErrorNotification(message, null, e);
                         break;
                     }
                     else
@@ -494,41 +507,64 @@ public class SingleThreadStageTask implements Runnable
         }
         catch (ApplierException e)
         {
-            String message = "Event application failed: seqno="
-                    + event.getSeqno() + " fragno=" + event.getFragno()
-                    + " message=" + e.getMessage();
-            logError(message, e);
-            dispatchErrorEvent(new ErrorNotification(message, event.getSeqno(),
-                    event.getEventId(), e));
+            // Something happened to our target. Construct an appropriate
+            // message.
+            String message;
+            if (event == null)
+            {
+                message = "Event application failed: seqno=(unavailable) message="
+                        + e.getMessage();
+            }
+            else
+            {
+                message = "Event application failed: seqno=" + event.getSeqno()
+                        + " fragno=" + event.getFragno() + " message="
+                        + e.getMessage();
+            }
 
-            // Roll back to prevent partial writes (should not be possible but
-            // might happen).
-            emergencyRollback();
+            // Now shut down cleanly.
+            emergencyRollback(message, event, e);
         }
         catch (Throwable e)
         {
             // An unexpected error occurred.
-            String msg = "Stage task failed: " + stage.getName();
+            String message;
             if (event == null)
             {
-                dispatchErrorEvent(new ErrorNotification(msg, e));
+                message = "Stage task failed: " + stage.getName();
             }
             else
             {
-                dispatchErrorEvent(new ErrorNotification(msg, event.getSeqno(),
-                        event.getEventId(), e));
+                message = "Stage task failed: stage=" + stage.getName()
+                        + " seqno=" + +event.getSeqno() + " fragno="
+                        + event.getFragno();
             }
-            logger.info("Unexpected error: " + msg, e);
 
-            // Roll back to prevent partial writes (should not be possible but
-            // might happen).
-            emergencyRollback();
+            // Now shut down cleanly.
+            emergencyRollback(message, event, e);
         }
     }
 
-    // Roll back following an unexpected failure.
-    private void emergencyRollback()
+    /**
+     * Roll back following an unexpected failure. This takes care of error
+     * logging, rollback, and dispatching error notification to shut down the
+     * pipeline.
+     * 
+     * @param message Message to print in the log
+     * @param event Current transaction fragment or null if not available
+     * @param t The exception that prompted a rollback
+     */
+    private void emergencyRollback(String message, ReplDBMSEvent event,
+            Throwable t)
     {
+        // Print the error to get as much information into the log as possible.
+        logError(message, t);
+
+        // Now roll back suppressing exceptions. Interrupts can be ignored
+        // as the thread will end shortly anyway. Other errors can be ignored
+        // since rollback might not work due to the original error, e.g. a
+        // server going away. In both cases we write messages to ensure there
+        // is full diagnostic information for post-mortem analysis.
         logger.info("Performing emergency rollback of applied changes");
         try
         {
@@ -539,10 +575,15 @@ public class SingleThreadStageTask implements Runnable
             logWarn("Task cancelled while trying to rollback following cancellation",
                     null);
         }
-        catch (Throwable t)
+        catch (Throwable t1)
         {
-            logWarn("Emergency rollback failed", t);
+            logWarn("Emergency rollback failed", t1);
         }
+
+        // Finally, dispatch a notification to stop the pipeline. We need to be
+        // very sure preceding code suppresses exceptions so we can get to this
+        // point.
+        dispatchErrorNotification(message, event, t);
     }
 
     // Utility routine to update position. This routine knows about control
@@ -677,12 +718,33 @@ public class SingleThreadStageTask implements Runnable
         blockEventCount = 0;
     }
 
-    // Utility routine to log error event with exception handling.
-    private void dispatchErrorEvent(ErrorNotification en)
+    /**
+     * Utility routine to generate an error notification while trapping
+     * interrupts. This is a terminal call and the caller thread *MUST* exit
+     * unconditionally after making it. Interrupt suppression allows the caller
+     * to complete any logging that may be necessary to diagnose the failure or
+     * provide user-visible information.
+     * 
+     * @param message Error message
+     * @param event Event associated with the error or null if no such event
+     *            exists
+     * @param t Throwable that generated the error
+     */
+    private void dispatchErrorNotification(String message, ReplDBMSEvent event,
+            Throwable t)
     {
+        logInfo("Dispatching error event: " + message, null);
         try
         {
-            eventDispatcher.put(en);
+            if (event == null)
+            {
+                eventDispatcher.put(new ErrorNotification(message, t));
+            }
+            else
+            {
+                eventDispatcher.put(new ErrorNotification(message, event
+                        .getSeqno(), event.getEventId(), t));
+            }
         }
         catch (InterruptedException e)
         {

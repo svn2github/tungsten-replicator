@@ -293,23 +293,27 @@ public class THL implements Store
     /**
      * Return max stored sequence number.
      */
-    public synchronized long getMaxStoredSeqno()
+    public long getMaxStoredSeqno()
     {
-        if (diskLog == null)
+        // This prevents race conditions when going offline.
+        DiskLog localCopy = diskLog;
+        if (localCopy == null)
             return -1;
-
-        return diskLog.getMaxSeqno();
+        else
+            return localCopy.getMaxSeqno();
     }
 
     /**
      * Return minimum stored sequence number.
      */
-    public synchronized long getMinStoredSeqno()
+    public long getMinStoredSeqno()
     {
-        if (diskLog == null)
+        // This prevents race conditions when going offline.
+        DiskLog localCopy = diskLog;
+        if (localCopy == null)
             return -1;
-
-        return diskLog.getMinSeqno();
+        else
+            return localCopy.getMinSeqno();
     }
 
     /**

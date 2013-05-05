@@ -71,7 +71,7 @@ public class Stage implements ReplicatorPlugin
     long                              applySkipCount      = 0;
     private SortedSet<Long>           seqnosToBeSkipped;
 
-    private Pipeline                  pipeline            = null;
+    private final Pipeline            pipeline;
 
     /**
      * Creates a new stage instance.
