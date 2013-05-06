@@ -1165,6 +1165,7 @@ module ClusterCommandModule
     output = ""
     
     display_promote_connectors = false
+    display_start = true
     get_deployment_configurations().each{
       |cfg|
       
@@ -1183,8 +1184,12 @@ module ClusterCommandModule
           display_promote_connectors = true
         end
       end
+      
+      if cfg.getProperty(SVC_START) == "true" || cfg.getProperty(SVC_REPORT) == "true"
+        display_start = false
+      end
     }
-    if display_promote_connectors == true
+    if display_promote_connectors == true && Configurator.instance.command.is_a?(UpdateCommand)
       output = <<OUT
 The connectors are not running the latest version.  In order to complete 
 the process you must promote the connectors.
@@ -1194,7 +1199,8 @@ the process you must promote the connectors.
 OUT
     end
     
-    output = <<OUT
+    if display_start == true
+      output = <<OUT
 #{output}Unless automatically started, you must start the Tungsten services before the 
 cluster will be available.  Use the tpm command to start the services:
 
@@ -1204,6 +1210,7 @@ Wait a minute for the services to start up and configure themselves.  After
 that you may proceed.
 
 OUT
+    end
     
     display_profile_info = true
     get_deployment_configurations().each{
@@ -1227,7 +1234,7 @@ OUT
       output = <<OUT
 #{output}Once your services start successfully you may begin to use the cluster.
 To look at services and perform administration, run the following command
-from any host that is a cluster member.
+from any database server.
 
   $CONTINUENT_ROOT/tungsten/tungsten-manager/bin/cctrl
 
@@ -1238,7 +1245,7 @@ OUT
     output = <<OUT
 #{output}Once your services start successfully replication will begin.
 To look at services and perform administration, run the following command
-from any host that is a replication member.
+from any database server.
 
 $CONTINUENT_ROOT/tungsten/tungsten-replicator/bin/trepctl services
 
