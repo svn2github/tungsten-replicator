@@ -2,6 +2,7 @@
 package com.continuent.tungsten.common.cluster.resource;
 
 import java.io.Serializable;
+import java.net.MalformedURLException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -119,6 +120,7 @@ public class DataSource extends Resource implements Serializable
     /** Retains all non-closed connections to this data source */
     private Set<DatabaseConnection> activeConnections              = Collections
                                                                            .synchronizedSet(new HashSet<DatabaseConnection>());
+    public final static String      JDBC_URL_START                 = "jdbc:";
 
     /**
      * Creates a new <code>DataSource</code> object
@@ -957,5 +959,58 @@ public class DataSource extends Resource implements Serializable
     public void setConnectionsCreatedCount(long connectionsCreatedCount)
     {
         this.connectionsCreatedCount.set(connectionsCreatedCount);
+    }
+
+    public static int extractPortFromJDBCUrl(String url)
+            throws MalformedURLException
+    {
+        String remainder = null;
+        boolean pg = false;
+        if (!url.startsWith(JDBC_URL_START))
+        {
+            throw new MalformedURLException("Invalid data source url " + url
+                    + ". Doesn't start with 'jdbc:'");
+        }
+        remainder = url.substring(JDBC_URL_START.length());
+        if (remainder.startsWith("mysql://"))
+        {
+            remainder = remainder.substring("mysql://".length());
+        }
+        else if (remainder.startsWith("postgresql://"))
+        {
+            remainder = remainder.substring("postgresql://".length());
+            pg = true;
+        }
+        else
+        {
+            throw new MalformedURLException(
+                    "Invalid data source url "
+                            + url
+                            + ". Doesn't start with 'jdbc:mysql://' or 'jdbc:postgresql://'");
+        }
+        int colonIdx = remainder.indexOf(':');
+        int slashIdx = remainder.indexOf('/');
+        if (slashIdx >= 0 && slashIdx < colonIdx)
+        {
+            // colon after first slash, this is not a port
+            colonIdx = -1;
+        }
+        if (colonIdx == -1)
+        {
+            // no port specified - return default
+            return (pg ? 5432 : 3306);
+        }
+        try
+        {
+            return Integer.parseInt(remainder.substring(colonIdx + 1,
+                    (slashIdx != -1 ? slashIdx : remainder.length())));
+        }
+        catch (NumberFormatException nfe)
+        {
+            throw new MalformedURLException("Got confused by url " + url
+                    + ". Could not find integer port in "
+                    + (slashIdx != -1 ? slashIdx : remainder.length())
+                    + ". Found colonIdx=" + colonIdx + " slashIdx=" + slashIdx);
+        }
     }
 }

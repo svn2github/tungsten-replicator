@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.common.cluster.resource;
 
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -32,21 +33,23 @@ public class DatabaseConnection
 {
     public enum ConnectionType
     {
-        DIRECT, CLUSTER, CONNECTOR
+        DIRECT, CLUSTER, CONNECTOR, BRIDGED
     };
 
     private ConnectionType type     = ConnectionType.DIRECT;
     private String         name;
     private Connection     connection;
     private Sequence       sequence = null;
+    private DataSource     ds       = null;
     private Object         context;
 
     public DatabaseConnection(ConnectionType type, String name,
-            Connection connection, Object context)
+            Connection connection, DataSource ds, Object context)
     {
         this.type = type;
         this.name = name;
         this.connection = connection;
+        this.ds = ds;
         setContext(context);
     }
 
@@ -84,11 +87,8 @@ public class DatabaseConnection
     {
         this.context = context;
 
-        if (context instanceof DataSource)
-        {
-            this.sequence = ((DataSource) context).getSequence();
-
-        }
+        if (ds != null)
+            this.sequence = ds.getSequence();
     }
 
     public Sequence getSequence()
@@ -103,12 +103,7 @@ public class DatabaseConnection
 
     public DataSource getDs()
     {
-        if (type == ConnectionType.DIRECT)
-        {
-            return (DataSource) context;
-        }
-
-        return null;
+        return ds;
     }
 
     public String toString()
@@ -120,7 +115,6 @@ public class DatabaseConnection
     {
         if (type == ConnectionType.DIRECT)
         {
-            DataSource ds = (DataSource) getContext();
             return String.format("%s(%s) DIRECT TO %s", name, liveness(),
                     ds.toString());
         }
@@ -135,6 +129,10 @@ public class DatabaseConnection
         {
             return String.format("%s(%s) CONNECTOR TO HOST %s", name,
                     liveness(), getContext());
+        }
+        else if (type == ConnectionType.BRIDGED)
+        {
+            return name + " BRIDGED to " + ds != null ? ds.getName() : "null";
         }
         else
         {
@@ -177,6 +175,10 @@ public class DatabaseConnection
 
     public boolean isClosed() throws SQLException
     {
+        if (type == ConnectionType.BRIDGED)
+        {
+            return ((Socket) context).isClosed();
+        }
         return connection.isClosed();
     }
 }
