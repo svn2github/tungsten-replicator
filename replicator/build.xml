@@ -221,13 +221,7 @@
 	<copy todir="${dist.dir}/bin">
 	    <fileset dir="${bin.dir}">
 	        <include name="*"/>
-	        <exclude name="wrapper*"/>
 	        <exclude name="extras"/>
-	    </fileset>
-	</copy>
-	<copy todir="${dist.dir}/bin">
-	    <fileset dir="${bin.dir}">
-	        <include name="wrapper*"/>
 	    </fileset>
 	</copy>
 	<chmod dir="${dist.dir}/bin" perm="ug+rx" includes="*" excludes="*.bat"/>
@@ -255,12 +249,6 @@
              	<include name="*.jar" unless="library.compile.files"/>
              	<include name="${library.compile.files}" if="library.compile.files"/>
                 <exclude name="vertica*.jar"/>
-             </fileset>
-         </copy>
-        <copy todir="${dist.dir}/lib/wrapper">
-             <fileset dir="lib/wrapper/">
-             	<include name="*.jar"/>
-             	<include name="lib*"/>
              </fileset>
          </copy>
         <mkdir dir="${dist.dir}/lib-ext"/>
