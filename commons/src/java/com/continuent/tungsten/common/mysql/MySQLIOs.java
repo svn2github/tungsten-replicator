@@ -96,7 +96,7 @@ public class MySQLIOs
 
     public enum ExecuteQueryStatus
     {
-        OK, TOO_MANY_CONNECTIONS, OPEN_FILE_LIMIT_ERROR, SOCKET_NO_IO, SOCKET_CONNECT_TIMEOUT, SEND_QUERY_TIMEOUT, QUERY_RESULTS_TIMEOUT, QUERY_EXEC_TIMEOUT, LOGIN_RESPONSE_TIMEOUT, QUERY_TOO_LARGE, QUERY_RESULT_FAILED, QUERY_EXECUTION_FAILED, SOCKET_IO_ERROR, MYSQL_ERROR, UNEXPECTED_EXCEPTION, MYSQL_PREMATURE_EOF, HOST_IS_DOWN, NO_ROUTE_TO_HOST, UNTRAPPED_CONDITION
+        OK, TOO_MANY_CONNECTIONS, OPEN_FILE_LIMIT_ERROR, SOCKET_NO_IO, SOCKET_CONNECT_TIMEOUT, SEND_QUERY_TIMEOUT, QUERY_RESULTS_TIMEOUT, QUERY_EXEC_TIMEOUT, LOGIN_RESPONSE_TIMEOUT, QUERY_TOO_LARGE, QUERY_RESULT_FAILED, QUERY_EXECUTION_FAILED, SOCKET_IO_ERROR, MYSQL_ERROR, UNEXPECTED_EXCEPTION, MYSQL_PREMATURE_EOF, HOST_IS_DOWN, NO_ROUTE_TO_HOST, UNKNOWN_HOST, UNTRAPPED_CONDITION
     }
 
     /**
@@ -1004,6 +1004,20 @@ public class MySQLIOs
                 return logAndReturnProperties(statusAndResult);
             }
 
+            if (ioe.toString().contains("java.net.UnknownHostException"))
+            {
+                statusMessage = String
+                        .format("I/O exception while %s a socket to %s:%d\nException='%s'\n"
+                                + "There may be an issue with your DNS for this host or your /etc/hosts entry is not correct.",
+                                socketPhase, hostname, port, ioe);
+                statusAndResult.setObject(STATUS_KEY,
+                        ExecuteQueryStatus.OPEN_FILE_LIMIT_ERROR);
+                statusAndResult.setString(STATUS_MESSAGE_KEY, statusMessage);
+                statusAndResult.setObject(STATUS_EXCEPTION, ioe);
+                logger.warn(formatExecStatus(statusAndResult));
+                return logAndReturnProperties(statusAndResult);
+            }
+
             statusMessage = String
                     .format("I/O exception caught while %s a socket to %s:%d\nException='%s'",
                             socketPhase, hostname, port, ioe);
@@ -1257,6 +1271,7 @@ public class MySQLIOs
             case MYSQL_PREMATURE_EOF :
             case UNTRAPPED_CONDITION :
             case TOO_MANY_CONNECTIONS :
+            case UNKNOWN_HOST :
             default :
                 return ResourceState.SUSPECT;
         }

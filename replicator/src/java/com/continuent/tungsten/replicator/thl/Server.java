@@ -49,19 +49,26 @@ import com.continuent.tungsten.replicator.util.AtomicCounter;
  */
 public class Server implements Runnable
 {
-    private static Logger                         logger      = Logger
-                                                                      .getLogger(Server.class);
+    private static Logger                         logger                = Logger.getLogger(Server.class);
     private PluginContext                         context;
     private Thread                                thd;
     private THL                                   thl;
     private String                                host;
-    private int                                   port        = 0;
+    private int                                   port                  = 0;
     private ServerSocketChannel                   serverChannel;
     private ServerSocket                          socket;
-    private LinkedList<ConnectorHandler>          clients     = new LinkedList<ConnectorHandler>();
-    private LinkedBlockingQueue<ConnectorHandler> deadClients = new LinkedBlockingQueue<ConnectorHandler>();
-    private volatile boolean                      stopped     = false;
+    private LinkedList<ConnectorHandler>          clients               = new LinkedList<ConnectorHandler>();
+    private LinkedBlockingQueue<ConnectorHandler> deadClients           = new LinkedBlockingQueue<ConnectorHandler>();
+    private volatile boolean                      stopped               = false;
     private String                                storeName;
+
+    /**
+     * Determines how long a THL server will block in an accept() call before
+     * yielding. If it doesn't yield periodically then, at least on some
+     * kernels, it will be impossible to interrupt the thread calling except and
+     * the replicator can hang on shutdown etc.
+     */
+    private int                                   serverAcceptTimeoutMs = 5000;
 
     /**
      * Creates a new <code>Server</code> object
@@ -106,9 +113,27 @@ public class Server implements Runnable
         try
         {
             SocketChannel clientChannel;
-            while ((stopped == false)
-                    && (clientChannel = serverChannel.accept()) != null)
+            serverChannel.configureBlocking(false);
+
+            while (stopped == false)
             {
+
+                /*
+                 * This call will block until either a connection request is
+                 * made or the timeout specified by serverAcceptTimeoutMs has
+                 * elapsed.
+                 */
+                clientChannel = serverChannel.accept();
+
+                /*
+                 * We can end up with a null clientChannel if the accept() call
+                 * timed out.
+                 */
+                if (clientChannel == null)
+                {
+                    continue;
+                }
+
                 ConnectorHandler handler = (ConnectorHandler) PluginLoader
                         .load(context.getReplicatorProperties().getString(
                                 ReplicatorConf.THL_PROTOCOL,
@@ -123,6 +148,7 @@ public class Server implements Runnable
                 clients.add(handler);
                 handler.start();
                 removeFinishedClients();
+
             }
         }
         catch (ClosedByInterruptException e)
@@ -153,8 +179,7 @@ public class Server implements Runnable
                 }
                 catch (InterruptedException e)
                 {
-                    logger
-                            .warn("Connector handler close interrupted unexpectedly");
+                    logger.warn("Connector handler close interrupted unexpectedly");
                 }
                 catch (Throwable t)
                 {
@@ -227,11 +252,16 @@ public class Server implements Runnable
      */
     public void start() throws IOException
     {
+        serverAcceptTimeoutMs = context.getReplicatorProperties().getInt(
+                ReplicatorConf.THL_SERVER_ACCEPT_TIMEOUT, null, true);
+
         logger.info("Opening THL server: store name=" + storeName + " host="
-                + host + " port=" + port);
+                + host + " port=" + port + " accept timeout="
+                + serverAcceptTimeoutMs);
 
         serverChannel = ServerSocketChannel.open();
         socket = serverChannel.socket();
+        socket.setSoTimeout(serverAcceptTimeoutMs);
         socket.bind(new InetSocketAddress(host, port));
         socket.setReuseAddress(true);
         logger.info("Opened socket: host=" + socket.getInetAddress() + " port="
@@ -253,19 +283,64 @@ public class Server implements Runnable
         stopped = true;
         if (thd != null)
         {
-            try
+            logger.info("Stopping server thread");
+            thd.interrupt();
+            if (serverChannel != null)
             {
-                logger.info("Stopping server thread");
-                thd.interrupt();
-                thd.join();
-                thd = null;
+                try
+                {
+                    serverChannel.close();
+                }
+                catch (IOException noted)
+                {
+                    logger.warn("Exception while closing channel:" + noted);
+                }
+
             }
-            catch (InterruptedException e)
+            logger.info("After interrupt...");
+            do
             {
-                logger.info("THL stop operation interrupted: " + e);
-                throw e;
+                if (!thd.isAlive())
+                {
+                    logger.info("Terminating join loop... thread is not alive");
+                    break;
+                }
+
+                try
+                {
+                    Thread.sleep(2000);
+                }
+                catch (Exception ignored)
+                {
+
+                }
+
             }
+            while (true);
+
+            thd = null;
+
         }
+    }
+
+    /**
+     * Returns the serverAcceptTimeoutMs value.
+     * 
+     * @return Returns the serverAcceptTimeoutMs.
+     */
+    public int getServerAcceptTimeoutMs()
+    {
+        return serverAcceptTimeoutMs;
+    }
+
+    /**
+     * Sets the serverAcceptTimeoutMs value.
+     * 
+     * @param serverAcceptTimeoutMs The serverAcceptTimeoutMs to set.
+     */
+    public void setServerAcceptTimeoutMs(int serverAcceptTimeoutMs)
+    {
+        this.serverAcceptTimeoutMs = serverAcceptTimeoutMs;
     }
 
 }

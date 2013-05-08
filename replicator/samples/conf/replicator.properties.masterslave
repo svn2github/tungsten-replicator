@@ -224,6 +224,16 @@ replicator.store.thl.password=${replicator.global.db.password}
 replicator.store.thl.log_dir=@{SERVICE.REPL_LOG_DIR}
 replicator.store.thl.log_file_size=@{REPL_THL_LOG_FILE_SIZE}
 
+# The following propertie tells the THL server how long, as a maximum,
+# in milliseconds, to block during an accept() call.  This interval, in turn
+# will be directly factored into the amount of time a replicator will
+# take to transition to the offline state on systems whose
+# kernels or Java runtime won't allow for the interruption of a blocking
+# accept() call.  If this interval is too short, it may result in problems 
+# with new client connections, and if too long, will result in excessively
+# slow transitions to offline etc.
+replicator.thl.server.accept.timeout=5000
+
 # Change the following property to control the buffer size used for THL
 # I/O operations.  The default of 128k seems to work well. 
 replicator.store.thl.bufferSize=131072

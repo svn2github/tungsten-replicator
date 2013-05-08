@@ -100,12 +100,6 @@ public class RouterConfiguration extends ClusterConfiguration
     private int               waitIfDisabledTimeout             = 0;
 
     /**
-     * If the property is non-null, this is a class that will be loaded to
-     * listen for driver notifications
-     */
-    private String            driverListenerClass               = "com.continuent.tungsten.common.patterns.notification.adaptor.ResourceNotificationListenerStub";
-
-    /**
      * The cluster member where the router is running.
      */
     private String            clusterMemberName;
@@ -411,26 +405,6 @@ public class RouterConfiguration extends ClusterConfiguration
     }
 
     /**
-     * Returns the driverListenerClass value.
-     * 
-     * @return Returns the driverListenerClass.
-     */
-    public String getDriverListenerClass()
-    {
-        return driverListenerClass;
-    }
-
-    /**
-     * Sets the driverListenerClass value.
-     * 
-     * @param driverListenerClass The driverListenerClass to set.
-     */
-    public void setDriverListenerClass(String driverListenerClass)
-    {
-        this.driverListenerClass = driverListenerClass;
-    }
-
-    /**
      * Returns the routerListenerClass value.
      * 
      * @return Returns the routerListenerClass.
@@ -649,9 +623,11 @@ public class RouterConfiguration extends ClusterConfiguration
     /**
      * Sets the routerClientThreadsPerService value.
      * 
-     * @param routerClientThreadsPerService The routerClientThreadsPerService to set.
+     * @param routerClientThreadsPerService The routerClientThreadsPerService to
+     *            set.
      */
-    public void setRouterClientThreadsPerService(int routerClientThreadsPerService)
+    public void setRouterClientThreadsPerService(
+            int routerClientThreadsPerService)
     {
         this.routerClientThreadsPerService = routerClientThreadsPerService;
     }
