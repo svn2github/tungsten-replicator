@@ -54,7 +54,7 @@ PASS_THROUGH=true
 # If uncommented, causes the Wrapper to be shutdown using an anchor file.
 #  When launched with the 'start' command, it will also ignore all INT and
 #  TERM signals.
-#IGNORE_SIGNALS=true
+IGNORE_SIGNALS=true
 
 # Wrapper will start the JVM asynchronously. Your application may have some
 #  initialization tasks and it may be desirable to wait a few seconds
