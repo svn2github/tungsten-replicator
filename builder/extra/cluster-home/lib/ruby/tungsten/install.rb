@@ -1,4 +1,6 @@
 DEFAULTS = "defaults"
+HOST="host_name"
+DATASERVICENAME = "dataservice_name"
 REPL_RMI_PORT = "repl_rmi_port"
 MGR_RMI_PORT = "mgr_rmi_port"
 HOST_ENABLE_REPLICATOR = "host_enable_replicator"
@@ -16,6 +18,8 @@ class TungstenInstall
     TU.debug("Initialize #{self.class.name} from " + File.expand_path(@base_path))
     
     tpm_values([
+      HOST,
+      DATASERVICENAME,
       REPL_RMI_PORT,
       MGR_RMI_PORT,
       HOST_ENABLE_REPLICATOR,
@@ -64,6 +68,10 @@ class TungstenInstall
   end
   
   def topology(force_reload = false)
+    unless is_running?("manager")
+      return nil
+    end
+        
     if @topology == nil || force_reload == true
       if @topology == nil
         @topology = TungstenTopology.new(cctrl())
@@ -75,11 +83,24 @@ class TungstenInstall
   end
   
   def trepctl(service)
-    "#{@base_path}/tungsten-replciator/bin/trepctl -port #{tpm_value(REPL_RMI_PORT)} -service #{service}"
+    "#{@base_path}/tungsten-replicator/bin/trepctl -port #{tpm_value(REPL_RMI_PORT)} -service #{service}"
   end
   
   def thl(service)
-    "#{@base_path}/tungsten-replciator/bin/thl -service #{service}"
+    "#{@base_path}/tungsten-replicator/bin/thl -service #{service}"
+  end
+  
+  def service_path(component)
+    "#{@base_path}/tungsten-#{component}/bin/#{component}"
+  end
+  
+  def is_running?(component)
+    begin
+      TU.cmd_result("#{service_path(component)} status")
+      return true
+    rescue
+      return false
+    end
   end
   
   def is_replicator?
@@ -92,6 +113,22 @@ class TungstenInstall
   
   def is_connector?
     (tpm_value(HOST_ENABLE_CONNECTOR) == "true")
+  end
+  
+  def default_service_name
+    if replication_service_names.size() > 1
+      return nil
+    else
+      replication_service_names[0]
+    end
+  end
+  
+  def replication_service_names
+    if @repl_service_names == nil
+      @repl_service_names = TU.cmd_result("trepctl services | grep serviceName | awk -F : '{print $2}' | tr -d ' '").split("\n")
+    end
+    
+    @repl_service_names
   end
   
   def ensure_cctrl(cmd, max_tries = 5)

@@ -53,7 +53,19 @@ class TungstenUtil
   end
   
   def get_base_path
-    return File.expand_path("#{File.dirname(__FILE__)}/../../../..")
+    base_path = File.expand_path("#{File.dirname(__FILE__)}/../../../..")
+    if File.exists?("#{base_path}/.lock")
+      return base_path
+    end
+    
+    if ENV.has_key?("CONTINUENT_ROOT")
+      base_path = File.expand_path("#{ENV['CONTINUENT_ROOT']}/tungsten")
+      if File.exists?("#{base_path}/.lock")
+        return base_path
+      end
+    end
+    
+    raise "Unable to find the Tungsten install for this script. Try setting $CONTINUENT_ROOT."
   end
   
   def enable_output?
@@ -298,5 +310,9 @@ class TungstenUtil
     lines << line
     
     return lines
+  end
+  
+  def to_identifier(str)
+    str.tr('.', '_').tr('-', '_').tr('/', '_').tr('\\', '_').downcase()
   end
 end

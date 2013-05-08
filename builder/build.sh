@@ -301,18 +301,8 @@ echo "### Creating cluster home"
 cluster_home=$reldir/cluster-home
 mkdir -p $cluster_home/conf/cluster
 
-mkdir -p $cluster_home/bin
-echo "# Copying Nagios scripts"
-cp extra/cluster-home/bin/check* $cluster_home/bin/
-echo "# Moving wrapper binaries"
-\mv $reldir_replicator/bin/wrapper* $cluster_home/bin/
-chmod 755 $cluster_home/bin/* > /dev/null 2>&1
-echo "# Moving wrapper libraries"
-mkdir -p $cluster_home/lib
-\mv $reldir_replicator/lib/wrapper/* $cluster_home/lib/
-echo "# Moving wrapper libraries"
-
-echo "### Adding configuration files"
+echo "# Copying cluser-home bin scripts"
+cp -r $extra_cluster_home/bin $cluster_home
 
 echo "# Copying in Ruby configuration libraries"
 cp -r $extra_cluster_home/lib $cluster_home

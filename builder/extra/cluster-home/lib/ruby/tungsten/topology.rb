@@ -195,6 +195,11 @@ class TungstenTopology
     return @props.getProperty(['datasources', hostname, 'status'])
   end
   
+  def datasource_latency(hostname)
+    self.parse()
+    return @props.getProperty(['datasources', hostname, 'latency']).to_f()
+  end
+  
   def to_s
     self.parse()
     return @props.to_s()
