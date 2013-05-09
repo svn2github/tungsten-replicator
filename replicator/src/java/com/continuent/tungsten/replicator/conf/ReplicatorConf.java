@@ -209,6 +209,7 @@ public class ReplicatorConf
     static public final String   THL_APPLIER_BLOCK_COMMIT_SIZE_DEFAULT                                = "0";
     
     static public final String   THL_SERVER_ACCEPT_TIMEOUT                                            = "replicator.thl.server.accept.timeout";
+    static public final String   THL_SERVER_ACCEPT_TIMEOUT_DEFAULT                                    = "5000";
 
     public static final String   THL_PROTOCOL                                                         = "replicator.thl.protocol";
     public static final String   THL_PROTOCOL_DEFAULT                                                 = "com.continuent.tungsten.replicator.thl.Connector";

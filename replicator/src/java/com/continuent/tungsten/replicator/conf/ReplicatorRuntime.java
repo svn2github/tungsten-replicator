@@ -328,6 +328,8 @@ public class ReplicatorRuntime implements PluginContext
                 ReplicatorConf.THL_REMOTE_URI_DEFAULT);
         assertPropertyDefault(ReplicatorConf.THL_APPLIER_BLOCK_COMMIT_SIZE,
                 ReplicatorConf.THL_APPLIER_BLOCK_COMMIT_SIZE_DEFAULT);
+        assertPropertyDefault(ReplicatorConf.THL_SERVER_ACCEPT_TIMEOUT,
+                ReplicatorConf.THL_SERVER_ACCEPT_TIMEOUT_DEFAULT);
 
         assertPropertyDefault(ReplicatorConf.THL_PROTOCOL_BUFFER_SIZE,
                 ReplicatorConf.THL_PROTOCOL_BUFFER_SIZE_DEFAULT);
