@@ -345,6 +345,8 @@ public class OpenReplicatorManagerCtrl
             // doProvision();
             else if (command.equals(Commands.STATS))
                 doStatus();
+            else if (command.equals(Commands.PROPERTIES))
+                doProperties();
             else if (command.equals(Commands.HELP))
                 printHelp();
             else if (command.equals(Commands.VERSION))
@@ -608,6 +610,35 @@ public class OpenReplicatorManagerCtrl
         printlnPropList(propList);
         println("Finished services command...");
 
+    }
+    
+    // List in-memory property values.
+    private void doProperties() throws Exception
+    {
+        OpenReplicatorManagerMBean mbean = getOpenReplicator();
+        Map<String, String> props = mbean.properties(null);
+
+        // Construct formating strings.
+        String format = "\"%s\": \"%s\"";
+
+        println("{");
+
+        Object[] keys = props.keySet().toArray();
+        for (int i = 0; i < keys.length; i++)
+        {
+            String key = (String) keys[i];
+            String value = props.get(key);
+            if (value != null)
+                printf(format, key, value);
+            else
+                printf(format, key, "");
+            if (i < (keys.length - 1))
+                println(",");
+            else
+                println("");
+        }
+
+        println("}");
     }
 
     // Start a service.
@@ -1756,6 +1787,7 @@ public class OpenReplicatorManagerCtrl
         public static final String SETROLE          = "setrole";
         public static final String CLEAR            = "clear";
         public static final String STATS            = "status";
+        public static final String PROPERTIES       = "properties";
         public static final String HELP             = "help";
         public static final String VERSION          = "version";
         public static final String WAIT             = "wait";

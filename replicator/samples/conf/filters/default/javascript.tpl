@@ -3,4 +3,4 @@
 # need to call more than one script.
 replicator.filter.javascript=com.continuent.tungsten.replicator.filter.JavaScriptFilter
 replicator.filter.javascript.script=${replicator.home.dir}/samples/extensions/javascript/filter.js
-replicator.filter.javascript.sample_custom_property="Sample value"
+replicator.filter.javascript.sample_custom_property=Sample
