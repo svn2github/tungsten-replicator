@@ -86,6 +86,10 @@ class TungstenInstall
     "#{@base_path}/tungsten-replicator/bin/trepctl -port #{tpm_value(REPL_RMI_PORT)} -service #{service}"
   end
   
+  def trepctl_value(service, key)
+    TU.cmd_result("#{trepctl(service)} status | grep #{key} | awk -F: '{print $2}' | tr -d ' '")
+  end
+  
   def thl(service)
     "#{@base_path}/tungsten-replicator/bin/thl -service #{service}"
   end

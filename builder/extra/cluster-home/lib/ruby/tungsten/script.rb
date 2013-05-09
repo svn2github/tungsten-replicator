@@ -4,6 +4,15 @@ class TungstenScript
       display_help()
       cleanup(0)
     end
+    
+    validate()
+    unless TU.is_valid?()
+      cleanup(1)
+    end
+  end
+  
+  def validate
+    debug("Default validation function is not overridden")
   end
   
   def display_help

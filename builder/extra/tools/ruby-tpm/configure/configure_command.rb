@@ -478,11 +478,7 @@ module ConfigureCommand
   end
   
   def enable_log?()
-    if Configurator.instance.is_locked?()
-      return true
-    else
-      return false
-    end
+    return false
   end
   
   def distribute_log(log_filename)

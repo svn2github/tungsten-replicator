@@ -6,6 +6,7 @@ class TungstenUtil
     @logger_threshold = Logger::NOTICE
     @ssh_options = {}
     @display_help = false
+    @num_errors = 0
     
     arguments = ARGV.dup
     opts=OptionParser.new
@@ -81,6 +82,14 @@ class TungstenUtil
     $stdout.flush()
   end
   
+  def reset_errors
+    @num_errors = 0
+  end
+  
+  def is_valid?
+    (@num_errors == 0)
+  end
+  
   def write(content="", level=Logger::INFO, hostname = nil, add_prefix = true)
     if content.is_a?(Array)
       content.each{
@@ -122,6 +131,7 @@ class TungstenUtil
   end
   
   def error(message, hostname = nil)
+    @num_errors = @num_errors + 1
     write(message, Logger::ERROR, hostname)
   end
   
@@ -177,8 +187,15 @@ class TungstenUtil
     end
   end
   
-  def run_option_parser(opts, arguments, allow_invalid_options = true, invalid_option_prefix = nil)
-    remaining_arguments = []
+  def run_option_parser(opts, arguments = nil, allow_invalid_options = true, invalid_option_prefix = nil)
+    if arguments == nil
+      use_remaining_arguments = true
+      arguments = @remaining_arguments
+    else
+      use_remaining_arguments = false
+    end
+    
+    remainder = []
     while arguments.size() > 0
       begin
         arguments = opts.order!(arguments)
@@ -186,17 +203,17 @@ class TungstenUtil
         # The next argument does not have a dash so the OptionParser
         # ignores it, we will add it to the stack and continue
         if arguments.size() > 0 && (arguments[0] =~ /-.*/) != 0
-          remaining_arguments << arguments.shift()
+          remainder << arguments.shift()
         end
       rescue OptionParser::InvalidOption => io
         if allow_invalid_options
           # Prepend the invalid option onto the arguments array
-          remaining_arguments = remaining_arguments + io.recover([])
+          remainder = remainder + io.recover([])
         
           # The next argument does not have a dash so the OptionParser
           # ignores it, we will add it to the stack and continue
           if arguments.size() > 0 && (arguments[0] =~ /-.*/) != 0
-            remaining_arguments << arguments.shift()
+            remainder << arguments.shift()
           end
         else
           if invalid_option_prefix != nil
@@ -210,7 +227,12 @@ class TungstenUtil
       end
     end
     
-    remaining_arguments
+    if use_remaining_arguments == true
+      @remaining_arguments = remainder
+      return nil
+    else
+      return remainder
+    end
   end
   
   # Returns [width, height] of terminal when detected, nil if not detected.

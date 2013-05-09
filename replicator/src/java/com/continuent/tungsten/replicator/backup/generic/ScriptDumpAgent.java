@@ -180,8 +180,12 @@ public class ScriptDumpAgent extends AbstractBackupAgent
             if (getLogFilename() != null)
             {
                 logFile = new File(getLogFilename());
+                if (logFile.exists())
+                {
+                    logFile.delete();
+                }
                 processHelper.exec("Dumping database using custom script",
-                        backupCmd, null, logFile, logFile, false, false);
+                        backupCmd, null, logFile, logFile, true, true);
             }
             else
             {
@@ -299,8 +303,12 @@ public class ScriptDumpAgent extends AbstractBackupAgent
                 if (getLogFilename() != null)
                 {
                     logFile = new File(getLogFilename());
+                    if (logFile.exists())
+                    {
+                        logFile.delete();
+                    }
                     processHelper.exec("Restoring database using custom script",
-                            restoreCmd, null, logFile, logFile, false, false);
+                            restoreCmd, null, logFile, logFile, true, true);
                 }
                 else
                 {

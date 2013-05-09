@@ -1,30 +1,89 @@
 class TungstenUtil
   def cmd_result(command, ignore_fail = false)
-    begin
-      result = ""
-      errors = ""
-      rc = nil
-
-      debug("Execute `#{command}`")
-      $stderr = StringIO.new()
-      result = `export LANG=en_US; #{command}`.chomp
-      rc = $?
-      errors = $stderr.string.chomp
-      $stderr = STDERR
-
-      if errors == ""
-        errors = "No Errors"
-      else
-        errors = "Errors: #{errors}"
-      end
-
-      debug("RC: #{rc}, Result: #{result}, #{errors}")
-      if rc != 0 && ! ignore_fail
-        raise CommandError.new(command, rc, result)
-      end
-
-      return result
+    errors = nil
+    result = nil
+    
+    debug("Execute `#{command}`")
+    status = Open4::popen4("export LANG=en_US; #{command}") do |pid, stdin, stdout, stderr|
+      stdin.close 
+      
+      result = stdout.read().strip()
+      errors = stderr.read().strip()
     end
+    
+    rc = status.exitstatus
+    if errors == ""
+      errors = "No Errors"
+    else
+      errors = "Errors: #{errors}"
+    end
+
+    debug("RC: #{rc}, Result: #{result}, #{errors}")
+    if rc != 0 && ! ignore_fail
+      raise CommandError.new(command, rc, result)
+    end
+
+    return result
+  end
+  
+  def cmd_stdout(command, ignore_fail = false, &block)
+    errors = nil
+    result = ""
+    
+    debug("Execute `#{command}`")
+    status = Open4::popen4("export LANG=en_US; #{command}") do |pid, stdin, stdout, stderr|
+      stdin.close 
+      
+      while data = stdout.gets()
+        result+=data
+        block.call(data)
+      end
+      errors = stderr.read().strip()
+    end
+    
+    rc = status.exitstatus
+    if errors == ""
+      errors = "No Errors"
+    else
+      errors = "Errors: #{errors}"
+    end
+
+    debug("RC: #{rc}, Result: #{result}, #{errors}")
+    if rc != 0 && ! ignore_fail
+      raise CommandError.new(command, rc, result)
+    end
+
+    return
+  end
+  
+  def cmd_stderr(command, ignore_fail = false, &block)
+    errors = ""
+    result = nil
+    
+    debug("Execute `#{command}`")
+    status = Open4::popen4("export LANG=en_US; #{command}") do |pid, stdin, stdout, stderr|
+      stdin.close 
+      
+      while data = stderr.gets()
+        errors+=data
+        block.call(data)
+      end
+      result = stdout.read().strip()
+    end
+    
+    rc = status.exitstatus
+    if errors == ""
+      errors = "No Errors"
+    else
+      errors = "Errors: #{errors}"
+    end
+
+    debug("RC: #{rc}, Result: #{result}, #{errors}")
+    if rc != 0 && ! ignore_fail
+      raise CommandError.new(command, rc, result)
+    end
+
+    return
   end
   
   def ssh_result(command, host, user, return_object = false)
