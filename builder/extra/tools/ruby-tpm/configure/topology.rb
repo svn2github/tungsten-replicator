@@ -97,6 +97,10 @@ module Topology
   end
   
   def self.get_class(name)
+    if name.to_s() == ""
+      return self.get_default_class()
+    end
+    
     get_classes().each{
       |klass_name,klass|
       
@@ -106,6 +110,18 @@ module Topology
     }
     
     raise "Unable to find a topology class for #{name}"
+  end
+  
+  def self.get_default_class
+    self.get_classes().each{
+      |klass_name,klass|
+      begin
+        if klass.is_default?() == true
+          return klass
+        end
+      rescue NoMethodError
+      end
+    }
   end
   
   def self.included(subclass)
