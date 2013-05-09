@@ -73,6 +73,37 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
     return ""
   end
   
+  def run_remote(command,remote_host)
+    
+    begin
+      if Configurator.instance.is_localhost?(@host)
+        mysql_cmd = @config.getProperty(@prefix + [REPL_MYSQL_COMMAND])
+        unless File.executable?(mysql_cmd)
+          mysql_cmd = "mysql"
+        end
+      else
+        mysql_cmd = "mysql"
+      end
+      
+      # Provisional workaround for MySQL 5.6 non-removable warning (Issue#445)
+      tmp = Tempfile.new('options')
+      tmp << "[client]\n"
+      tmp << "user=#{@username}\n"
+      tmp << "password=#{@password}\n"
+      tmp << "port=#{@port}\n"
+      tmp.flush
+      
+      Timeout.timeout(5) {
+        return cmd_result("#{mysql_cmd} --defaults-file=#{tmp.path} -h#{remote_host} -e \"#{command}\"")
+      }
+    rescue Timeout::Error
+    rescue RemoteCommandNotAllowed
+    rescue => e
+    end
+    
+    return ""
+  end
+  
   def get_value(command, column = nil)
     response = run(command + "\\\\G")
     
@@ -812,6 +843,7 @@ class MySQLPermissionsCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck
   include MySQLApplierCheck
 
+  
   def set_vars
     @title = "Replication user permissions check"
   end
@@ -830,11 +862,23 @@ class MySQLPermissionsCheck < ConfigureValidationCheck
     unless grants =~ /WITH GRANT OPTION/
       has_missing_priv = true
     end
-    
+
     if has_missing_priv
       error("The database user is missing some privileges or the grant option. Run 'mysql -u#{@config.getProperty(get_member_key(REPL_DBLOGIN))} -p#{@config.getProperty(get_member_key(REPL_DBPASSWORD))} -h#{@config.getProperty(get_member_key(REPL_DBHOST))} -e\"GRANT ALL ON *.* to #{user} WITH GRANT OPTION\"'")
     else
       info("All privileges configured correctly")
+    end
+    
+    #Check the system user can connect remotely to all the other instances
+    #The managers need to do this TUC-1146
+    @config.getProperty('dataservice_hosts').split(",").each do |remoteHost|
+      login_output = get_applier_datasource.run_remote("select 'ALIVE' as 'Return Value'",remoteHost)
+      if login_output =~ /ALIVE/
+        info("Able to logon remotely to #{remoteHost} MySQL Instance")
+      else
+        error("Unable to connect to the MySQL server on #{remoteHost}")
+        help("The management process needs to be able to connect to remote database servers to verify status")
+      end
     end
   end
 end
