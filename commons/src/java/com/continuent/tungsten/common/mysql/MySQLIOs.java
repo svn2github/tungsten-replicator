@@ -1011,7 +1011,7 @@ public class MySQLIOs
                                 + "There may be an issue with your DNS for this host or your /etc/hosts entry is not correct.",
                                 socketPhase, hostname, port, ioe);
                 statusAndResult.setObject(STATUS_KEY,
-                        ExecuteQueryStatus.OPEN_FILE_LIMIT_ERROR);
+                        ExecuteQueryStatus.UNKNOWN_HOST);
                 statusAndResult.setString(STATUS_MESSAGE_KEY, statusMessage);
                 statusAndResult.setObject(STATUS_EXCEPTION, ioe);
                 logger.warn(formatExecStatus(statusAndResult));
