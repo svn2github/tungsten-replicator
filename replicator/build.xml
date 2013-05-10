@@ -248,6 +248,7 @@
              <fileset dir="lib/">
              	<include name="*.jar" unless="library.compile.files"/>
              	<include name="${library.compile.files}" if="library.compile.files"/>
+             	<include name="ruby/*" />
                 <exclude name="vertica*.jar"/>
              </fileset>
          </copy>
