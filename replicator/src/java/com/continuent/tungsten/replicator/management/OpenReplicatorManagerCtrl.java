@@ -141,6 +141,7 @@ public class OpenReplicatorManagerCtrl
         println("                               - Set replicator OFFLINE at future point");
         println("  online [-force] [-from-event event] [-base-seqno x] [-skip-seqno x,y,z] [-until-seqno seqno] [-until-event event] [-until-heartbeat [name]] [-until-time YYYY-MM-DD_hh:mm:ss]");
         println("                               - Set Replicator to ONLINE with start and stop points");
+        println("  properties [filter-name]     - Print all in-memory properties and their current values");
         println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
         println("  reset [-y]                   - Deletes the replicator service");
         println("  restore [-uri uri] [-limit s]    - Restore database");
@@ -612,13 +613,26 @@ public class OpenReplicatorManagerCtrl
 
     }
     
-    // List in-memory property values.
+    /**
+     * List in-memory property values.
+     */
     private void doProperties() throws Exception
     {
         OpenReplicatorManagerMBean mbean = getOpenReplicator();
-        Map<String, String> props = mbean.properties(null);
 
-        // Construct formating strings.
+        String containing = null;
+        if (argvIterator.hasNext())
+            containing = argvIterator.next();
+
+        printProperties(mbean.properties(containing));
+    }
+    
+    /**
+     * Prints properties and values in JSON.
+     */
+    private void printProperties(Map<String, String> props) throws Exception
+    {
+     // Construct formating strings.
         String format = "\"%s\": \"%s\"";
 
         println("{");
