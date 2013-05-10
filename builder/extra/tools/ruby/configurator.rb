@@ -81,6 +81,7 @@ REPL_ROLE_LOCAL_PRE = "local-prefetch"
 DISTRIBUTED_DEPLOYMENT_NAME = "regular"
 UPDATE_DEPLOYMENT_NAME = "update_deployment"
 DIRECT_DEPLOYMENT_HOST_ALIAS = "local"
+DIRECTORY_LOCK_FILENAME = ".lock"
 
 DEFAULT_SERVICE_NAME = "default"
 
@@ -891,6 +892,14 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
   
   def enable_output?
     (has_tty?() || @options.stream_output == true)
+  end
+
+  def is_locked?
+    File.exists?(get_lock_filename())
+  end
+
+  def get_lock_filename
+    "#{get_base_path()}/#{DIRECTORY_LOCK_FILENAME}"
   end
   
   def is_full_tungsten_package?

@@ -111,7 +111,7 @@ module ConfigureDeploymentStepDeployment
     out = File.open(@config.getProperty(DIRECTORY_LOCK_FILE), "w")
     out.puts(@config.getProperty(HOME_DIRECTORY))
     out.close()
-    File.chmod(0755, @config.getProperty(DIRECTORY_LOCK_FILE))
+    File.chmod(0644, @config.getProperty(DIRECTORY_LOCK_FILE))
     
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/datasource")
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/service")

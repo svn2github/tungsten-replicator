@@ -536,6 +536,20 @@ class ReplicationAPIPassword < ConfigurePrompt
   end
 end
 
+class DirectoryLockPrompt < ConfigurePrompt
+  include ConstantValueModule
+  include ClusterHostPrompt
+  
+  def initialize
+    super(DIRECTORY_LOCK_FILE, "Filename for locking a directory from further configuration",
+      PV_FILENAME)
+  end
+  
+  def get_default_value
+    "#{@config.getProperty(get_member_key(CURRENT_RELEASE_DIRECTORY))}/#{DIRECTORY_LOCK_FILENAME}"
+  end
+end
+
 class HostEnableReplicator < ConfigurePrompt
   include ClusterHostPrompt
   include HiddenValueModule

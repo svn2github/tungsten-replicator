@@ -103,6 +103,11 @@ module ConfigureDeploymentStepDeployment
     Configurator.instance.write_header("Building the Tungsten home directory")
     mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/service-logs")
     mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/share")
+    
+    out = File.open(@config.getProperty(DIRECTORY_LOCK_FILE), "w")
+    out.puts(@config.getProperty(HOME_DIRECTORY))
+    out.close()
+    File.chmod(0644, @config.getProperty(DIRECTORY_LOCK_FILE))
 
     # Create share/env.sh script.
     script = "#{@config.getProperty(HOME_DIRECTORY)}/share/env.sh"
