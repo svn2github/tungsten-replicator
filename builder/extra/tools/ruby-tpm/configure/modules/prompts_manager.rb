@@ -693,7 +693,7 @@ class ManagerAPI < ConfigurePrompt
   include AdvancedPromptModule
   
   def initialize
-    super(MGR_API, "Enable the Manager API", PV_BOOLEAN, "false")
+    super(MGR_API, "Enable the Manager API", PV_BOOLEAN, "true")
   end
   
   def get_command_line_argument_value

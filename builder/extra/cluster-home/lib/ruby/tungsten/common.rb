@@ -1,3 +1,20 @@
+DEFAULTS = "defaults"
+REPL_RMI_PORT = "repl_rmi_port"
+MGR_RMI_PORT = "mgr_rmi_port"
+HOST_ENABLE_REPLICATOR = "host_enable_replicator"
+HOST_ENABLE_MANAGER = "host_enable_manager"
+HOST_ENABLE_CONNECTOR = "host_enable_connector"
+MGR_API = "mgr_api"
+MGR_API_PORT = "mgr_api_port"
+DEPLOYMENT_HOST = "deployment_host"
+DEPLOYMENT_DATASERVICE = "deployment_dataservice"
+DEPLOYMENT_SERVICE = "service_name"
+HOSTS = "hosts"
+DATASOURCES = "datasources"
+REPL_SERVICES = "repl_services"
+CONNECTORS = "connectors"
+CURRENT_RELEASE_DIRECTORY = "tungsten"
+
 class MessageError < StandardError
 end
 

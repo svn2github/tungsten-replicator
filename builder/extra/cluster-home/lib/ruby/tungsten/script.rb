@@ -1,4 +1,8 @@
 class TungstenScript
+  NAGIOS_OK=0
+  NAGIOS_WARNING=1
+  NAGIOS_CRITICAL=2
+  
   def run
     if TU.display_help?()
       display_help()
@@ -12,7 +16,7 @@ class TungstenScript
   end
   
   def validate
-    debug("Default validation function is not overridden")
+    TU.debug("Default validation function is not overridden")
   end
   
   def display_help
@@ -39,16 +43,16 @@ class TungstenScript
   
   def nagios_ok(msg)
     puts "OK: #{msg}"
-    cleanup(0)
+    cleanup(NAGIOS_OK)
   end
   
   def nagios_warning(msg)
     puts "WARNING: #{msg}"
-    cleanup(1)
+    cleanup(NAGIOS_WARNING)
   end
   
   def nagios_critical(msg)
     puts "CRITICAL: #{msg}"
-    cleanup(2)
+    cleanup(NAGIOS_CRITICAL)
   end
 end

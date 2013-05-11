@@ -1,4 +1,9 @@
+require "open4"
+require "resolv"
+require "ifconfig"
+
 class TungstenUtil
+  # Run the {command} and return a string of STDOUT
   def cmd_result(command, ignore_fail = false)
     errors = nil
     result = nil
@@ -26,6 +31,7 @@ class TungstenUtil
     return result
   end
   
+  # Run the {command} and run {&block} for each line of STDOUT
   def cmd_stdout(command, ignore_fail = false, &block)
     errors = nil
     result = ""
@@ -56,6 +62,7 @@ class TungstenUtil
     return
   end
   
+  # Run the {command} and run {&block} for each line of STDERR
   def cmd_stderr(command, ignore_fail = false, &block)
     errors = ""
     result = nil
@@ -86,14 +93,16 @@ class TungstenUtil
     return
   end
   
-  def ssh_result(command, host, user, return_object = false)
+  # Run the {command} on {host} as {user}
+  # Return a string of STDOUT
+  def ssh_result(command, host, user)
     if host == DEFAULTS
       debug("Unable to run '#{command}' because '#{host}' is not valid")
       raise RemoteCommandError.new(user, host, command, nil, '')
     end
 
-    if return_object == false && 
-        is_localhost?(host) && 
+    # Run the command outside of SSH if possible
+    if is_localhost?(host) && 
         user == whoami()
       return cmd_result(command)
     end
@@ -134,7 +143,7 @@ class TungstenUtil
 
             channel.on_extended_data do |ch,type,data|
               data = data.chomp
-              debug(data) unless data == ""
+              log(data) unless data == ""
             end
 
             channel.on_request("exit-status") do |ch,data|

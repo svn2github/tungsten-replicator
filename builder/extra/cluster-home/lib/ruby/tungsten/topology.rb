@@ -1,7 +1,9 @@
 class TungstenTopology
+  DATASERVICE = "dataservice"
   COORDINATOR = "coordinator"
   ROUTERS = "routers"
   DATASOURCES = "datasources"
+  REPLICATORS = "replicators"
   MANAGER = "manager"
   REPLICATOR = "replicator"
   MASTER = "master"
@@ -12,8 +14,9 @@ class TungstenTopology
   SEQNO = "seqno"
   LATENCY = "latency"
 
-  def initialize(cctrl_cmd)
-    @cctrl_cmd = cctrl_cmd
+  def initialize(install, service = nil)
+    @install = install
+    @dataservice = service
     @props = nil
   end
 
@@ -21,154 +24,50 @@ class TungstenTopology
     if @props != nil
       return
     end
-
+    
+    if @dataservice == nil
+      if @install.dataservices().size > 1
+        raise "Unable to parse trepctl because there are multiple dataservices defined for this replicator. Try specifying a specific replication service."
+      end
+      @dataservice = @install.dataservices()[0]
+    end
+    
+    if @install.is_manager?()
+      parse_manager()
+    else
+      parse_replicator()
+    end
+  end
+  
+  def parse_manager
     @props = Properties.new()
-    @props.use_prompt_handler = false
+    result = @install.manager_api_result("status/#{@dataservice}", ["serviceState"])
 
-    ls_output = TU.cmd_result("echo ls | #{@cctrl_cmd}")
-
-    coordinator = /COORDINATOR
-      \[
-      (\S+)
-      :
-      (\w+)
-      :
-      (\w+)
-      \]/xm.match(ls_output)
-    if coordinator
-      @props.setProperty(COORDINATOR, {
-        "host" => coordinator[1],
-        "mode" => coordinator[2],
-        "state" => coordinator[3]
-      })
-    end
-
-    get_section(ls_output, 'ROUTERS').scan(/connector@
-      (\S*)                       # hostname
-      \[[0-9]*\]                  # process id
-      \(
-      (\S*)                       # status
-      ,\s*
-      created=([0-9]*),\s*
-      active=([0-9]*)
-      \)/xm){
-      |router|
-
-      @props.setProperty([ROUTERS, router[0]], {
-        STATUS => router[1]
-      })
-    }
-
-    get_compound_section(ls_output, 'DATASOURCES').split("\n\n").each{
-      |ds|
-
-      ds.scan(/
-        \+-+\+\n
-        (.+)
-        \+-+\+\n
-        (.+)
-        \+-+\+
-        /xm){
-        |datasource|
-
-        ds_hostname=nil
-        ds_props={}
-        datasource[0].scan(/
-          \|(\S*)
-          \(
-          (\S*):(\S*),                # Role:Status
-          [\s]progress=([\-0-9]*),      # Sequence number
-          [\s](.*)=([0-9\.\-]*)         # Latency
-          /xm){
-          |m|
-
-          ds_hostname=m[0]
-          ds_props = {
-            ROLE => m[1],
-            STATUS => m[2],
-            SEQNO => m[3],
-            LATENCY => m[5]
-          }
-        }
-        datasource[0].scan(/
-          STATUS[\s]?
-          \[(\S*)\][\s]?    #
-          \[(.*)\]          # Timestamp of data
-          /xm){
-          |m|
-        }
-        datasource[1].scan(/
-          REPLICATOR\(role=(\S*),[\s]?state=(\S*)\)
-          /xm){
-          |m|
-
-          ds_props[REPLICATOR] = {
-            ROLE => m[0],
-            STATUS => m[1]
-          }
-        }
-        datasource[1].scan(/
-          REPLICATOR\(role=(\S*),[\s]?master=(\S*),[\s]?state=(\S*)\)
-          /xm){
-          |m|
-
-          ds_props[REPLICATOR] = {
-            ROLE => m[0],
-            MASTER => m[1],
-            STATUS => m[2]
-          }
-        }
-        datasource[1].scan(/
-          MANAGER\(state=(\S*)\)
-          /xm){
-          |m|
-
-          ds_props[MANAGER] = m[0]
-        }
-        datasource[1].scan(/
-          DATASERVER\(state=(\S*)\)
-          /xm){
-          |m|
-
-          ds_props[DATASERVER] = m[0]
-        }
-
-        @props.setProperty([DATASOURCES, ds_hostname], ds_props)
-      }
-    }
+    @props.setProperty(DATASERVICE, @dataservice)
+    @props.setProperty(COORDINATOR, {
+      "host" => result["coordinator"],
+      "mode" => result["policyManagerMode"]
+    })
+    @props.setProperty(DATASOURCES, result["dataSources"])
+    @props.setProperty(REPLICATORS, result["replicators"])
   end
+  
+  def parse_replicator
+    @props = Properties.new()
 
-  def get_section(ls_output, section)
-    m = /#{section}:
-      \s*\n               # optional space and EOL
-      \+-+\+\n            # a dashed line
-      (                   # capture
-      .+?                 # many characters before the dashed line
-      )                   # end capture
-      \+-+\+\n            # a dashed_line
-      /msx.match(ls_output)
-    if m
-      return m[1]
-    else
-      raise "Could not find #{section} section"
-    end
+    r_props = {}
+    TU.cmd_result("#{@install.trepctl(@dataservice)} status | grep :").each{
+      |line|
+      parts = line.split(":")
+      key = parts.shift()
+      r_props[key.strip()] = parts.join(":").strip()
+    }
+    @props.setProperty([REPLICATORS, @install.hostname()], r_props)
   end
-
-  def get_compound_section(ls_output, section)
-    m = /#{section}:
-      \n
-      (
-      \+
-      -+
-      .+
-      -+\+\n
-      )/msx.match(ls_output)
-
-    if m
-      return m[1]
-    else
-      raise "Could not find #{section} section"
-    end
+  
+  def dataservice
+    self.parse()
+    return @props.getProperty(DATASERVICE)
   end
   
   def coordinator
@@ -182,22 +81,33 @@ class TungstenTopology
   end
   
   def datasources
-    return @props.getPropertyOr(['datasources'], {}).keys()
+    self.parse()
+    return @props.getPropertyOr([REPLICATORS], {}).keys()
   end
   
   def datasource_role(hostname)
     self.parse()
-    return @props.getProperty(['datasources', hostname, 'role'])
+    return @props.getProperty([DATASOURCES, hostname, 'role'])
   end
   
   def datasource_status(hostname)
     self.parse()
-    return @props.getProperty(['datasources', hostname, 'status'])
+    return @props.getProperty([DATASOURCES, hostname, 'state'])
+  end
+  
+  def replicator_role(hostname)
+    self.parse()
+    return @props.getProperty([REPLICATORS, hostname, 'role'])
+  end
+  
+  def replicator_status(hostname)
+    self.parse()
+    return @props.getProperty([REPLICATORS, hostname, 'state'])
   end
   
   def datasource_latency(hostname)
     self.parse()
-    return @props.getProperty(['datasources', hostname, 'latency']).to_f()
+    return @props.getProperty([REPLICATORS, hostname, 'appliedLatency']).to_f()
   end
   
   def to_s

@@ -8,35 +8,51 @@ class TungstenUtil
     @display_help = false
     @num_errors = 0
     
+    # Create a temporary file to hold log contents
+    @log = Tempfile.new("tlog")
+    # Unlink the file so that no other process can read this log
+    @log.unlink()
+    
     arguments = ARGV.dup
-    opts=OptionParser.new
-    arguments = arguments.map{|arg|
-      newarg = ''
-      arg.split("").each{|b| 
-        unless b.getbyte(0)<33 || b.getbyte(0)>127 then 
-          newarg.concat(b) 
-        end
+                  
+    if arguments.size() > 0
+      # This fixes an error that was coming up reading certain characters wrong
+      # The root cause is unknown but this allowed Ruby to parse the 
+      # arguments properly
+      arguments = arguments.map{|arg|
+        newarg = ''
+        arg.split("").each{|b| 
+          unless b.getbyte(0)<33 || b.getbyte(0)>127 then 
+            newarg.concat(b) 
+          end
+        }
+        newarg
       }
-      newarg
-    }
-    opts.on("-i", "--info")     {@logger_threshold = Logger::INFO}
-    opts.on("-n", "--notice")               {@logger_threshold = Logger::NOTICE}
-    opts.on("-q", "--quiet")          {@logger_threshold = Logger::WARN}
-    opts.on("-v", "--verbose")        {@logger_threshold = Logger::DEBUG}
-    opts.on("-h", "--help")           { @display_help = true }
-    opts.on("--net-ssh-option String")  {|val|
-                                        val_parts = val.split("=")
-                                        if val_parts.length() !=2
-                                          error "Invalid value #{val} given for '--net-ssh-option'.  There should be a key/value pair joined by a single =."
-                                        end
-                                        
-                                        if val_parts[0] == "timeout"
-                                          val_parts[1] = val_parts[1].to_i
-                                        end
 
-                                        @ssh_options[val_parts[0].to_sym] = val_parts[1]
-                                      }
-    @remaining_arguments = run_option_parser(opts, arguments)
+      opts=OptionParser.new
+      opts.on("-i", "--info")     {@logger_threshold = Logger::INFO}
+      opts.on("-n", "--notice")               {@logger_threshold = Logger::NOTICE}
+      opts.on("-q", "--quiet")          {@logger_threshold = Logger::WARN}
+      opts.on("-v", "--verbose")        {@logger_threshold = Logger::DEBUG}
+      opts.on("-h", "--help")           { @display_help = true }
+      opts.on("--net-ssh-option String")  {|val|
+                                          val_parts = val.split("=")
+                                          if val_parts.length() !=2
+                                            error "Invalid value #{val} given for '--net-ssh-option'.  There should be a key/value pair joined by a single =."
+                                          end
+                                        
+                                          if val_parts[0] == "timeout"
+                                            val_parts[1] = val_parts[1].to_i
+                                          end
+
+                                          @ssh_options[val_parts[0].to_sym] = val_parts[1]
+                                        }
+                           
+      log(JSON.pretty_generate(arguments))
+      @remaining_arguments = run_option_parser(opts, arguments)
+    else
+      @remaining_arguments = []
+    end
   end
   
   def display_help?
@@ -78,8 +94,18 @@ class TungstenUtil
   end
   
   def force_output(content)
+    log(content)
     puts(content)
     $stdout.flush()
+  end
+  
+  def log(content = nil)
+    if content == nil
+      @log
+    else
+      @log.puts DateTime.now.to_s + " " + content
+      @log.flush
+    end
   end
   
   def reset_errors
@@ -102,6 +128,8 @@ class TungstenUtil
     unless content == "" || level == nil || add_prefix == false
       content = "#{get_log_level_prefix(level, hostname)}#{content}"
     end
+    
+    log(content)
     
     if enable_log_level?(level)
       if enable_output?()
@@ -187,6 +215,10 @@ class TungstenUtil
     end
   end
   
+  # Run the OptionParser object against @remaining_arguments or the 
+  # {arguments} passed in. If no {arguments} value is given, the function
+  # will read from @remaining_arguments and update it with any remaining
+  # values
   def run_option_parser(opts, arguments = nil, allow_invalid_options = true, invalid_option_prefix = nil)
     if arguments == nil
       use_remaining_arguments = true
@@ -255,6 +287,8 @@ class TungstenUtil
     [80, 30]
   end
   
+  # Display information about the argument formatting {msg} so all lines
+  # appear formatted correctly
   def output_usage_line(argument, msg = "", default = nil, max_line = nil, additional_help = "")
     if max_line == nil
       max_line = detect_terminal_size()[0]-5
@@ -299,6 +333,8 @@ class TungstenUtil
     end
   end
   
+  # Break {msg} into lines that have {offset} leading spaces and do
+  # not exceed {max_line}
   def wrapped_lines(msg, offset = 0, max_line = nil)
     if max_line == nil
       max_line = detect_terminal_size()[0]-5
@@ -336,5 +372,23 @@ class TungstenUtil
   
   def to_identifier(str)
     str.tr('.', '_').tr('-', '_').tr('/', '_').tr('\\', '_').downcase()
+  end
+  
+  # Create a directory if it is absent. 
+  def mkdir_if_absent(dirname)
+    if dirname == nil
+      return
+    end
+    
+    if File.exists?(dirname)
+      if File.directory?(dirname)
+        debug("Found directory, no need to create: #{dirname}")
+      else
+        raise "Directory already exists as a file: #{dirname}"
+      end
+    else
+      debug("Creating missing directory: #{dirname}")
+      cmd_result("mkdir -p #{dirname}")
+    end
   end
 end

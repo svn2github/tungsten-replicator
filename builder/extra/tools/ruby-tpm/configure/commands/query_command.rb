@@ -192,7 +192,10 @@ class QueryCommand
     staging_host = @config.getProperty(STAGING_HOST)
     staging_user = @config.getProperty(STAGING_USER)
     staging_directory = @config.getProperty(STAGING_DIRECTORY)
-    force_output("#{staging_user}@#{staging_host}:#{staging_directory}")
+    
+    unless staging_host.to_s() == ""
+      force_output("#{staging_user}@#{staging_host}:#{staging_directory}")
+    end
   end
   
   def output_modified_files

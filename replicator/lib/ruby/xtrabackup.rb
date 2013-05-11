@@ -9,6 +9,8 @@ class TungstenXtrabackupScript < TungstenBackupScript
     @options[:tar] = "false"
     @options[:restore_to_datadir] = "false"
     @options[:incremental] = "false"
+    @options[:mysqluser] = "mysql"
+    @options[:mysqlgroup] = "mysql"
     
     super()
     
@@ -199,7 +201,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
       else
         restore_directory = TU.cmd_result("cat #{storage_file}")
 
-        log("Restore from #{restore_directory}")
+        TU.debug("Restore from #{restore_directory}")
 
         lineage = get_snapshot_lineage(restore_directory)
         fullbackup_dir = lineage.shift()
