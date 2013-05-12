@@ -52,6 +52,7 @@ import com.continuent.tungsten.replicator.pipeline.Pipeline;
 import com.continuent.tungsten.replicator.pipeline.Stage;
 import com.continuent.tungsten.replicator.storage.CommitAction;
 import com.continuent.tungsten.replicator.storage.InMemoryMultiQueue;
+import com.continuent.tungsten.replicator.storage.InMemoryTransactionalQueue;
 import com.continuent.tungsten.replicator.storage.Store;
 import com.continuent.tungsten.replicator.thl.log.LogConnection;
 
@@ -272,10 +273,6 @@ public class THLParallelQueueBasicTest
      * Verify that a parallel THL with multiple channels properly do not commit
      * additional transactions after a failure. This includes not committing any
      * partial transactions if only a fragment has arrived before the error.
-     * <p/>
-     * This test uses 3 channels with partitioning on shard name. We write and
-     * read directly to/from the linked THL and THLParallelQueue to confirm
-     * behavior.
      */
     @Test
     public void testMultiChannelErrorHandling() throws Exception
@@ -284,7 +281,7 @@ public class THLParallelQueueBasicTest
 
         // Set up and prepare pipeline.
         TungstenProperties conf = helper.generateTHLParallelPipeline(
-                "testMultiChannelBasic", 3, 50, 100, true);
+                "testMultiChannelErrorHandling", 3, 50, 100, false);
         runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
                 ReplicatorMonitor.getInstance());
         runtime.configure();
@@ -294,27 +291,43 @@ public class THLParallelQueueBasicTest
 
         // Fetch references to stores.
         THL thl = (THL) pipeline.getStore("thl");
-        InMemoryMultiQueue mq = (InMemoryMultiQueue) pipeline
+        InMemoryTransactionalQueue mq = (InMemoryTransactionalQueue) pipeline
                 .getStore("multi-queue");
 
         // Write events to the THL with three different shard IDs.
         LogConnection conn = thl.connect(false);
         for (int i = 0; i < 90; i++)
         {
-            ReplDBMSEvent rde = helper.createEvent(i, "db" + (i % 3));
-            if (i == 50 && (i % 3) > 0)
+            if (i < 50)
             {
-                // Fail on the 2nd fragment of seqno 50.
-                rde.getDBMSEvent().setMetaDataOption("fail", "true");
+                // Write simple events for first 50 transactions.
+                ReplDBMSEvent rde = helper.createEvent(i, "db" + (i % 3));
+                THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+                conn.store(thlEvent, false);
+            }
+            else if (i == 50)
+            {
+                // On the 50th transaction write a fragmented transaction
+                // that triggers a failure on the second fragment.
+                ReplDBMSEvent rde1 = helper.createEvent(i, (short) 0, false,
+                        "db" + (i % 3));
+                THLEvent thlEvent1 = new THLEvent(rde1.getSourceId(), rde1);
+                conn.store(thlEvent1, false);
+
+                ReplDBMSEvent rde2 = helper.createEvent(i, (short) 1, true,
+                        "db" + (i % 3));
+                rde2.getDBMSEvent().setMetaDataOption("fail", "true");
+                THLEvent thlEvent2 = new THLEvent(rde2.getSourceId(), rde2);
+                conn.store(thlEvent2, false);
             }
             else if (i > 50)
             {
                 // Fail on any transaction whose seqno is > 50.
+                ReplDBMSEvent rde = helper.createEvent(i, "db" + (i % 3));
                 rde.getDBMSEvent().setMetaDataOption("fail", "true");
+                THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+                conn.store(thlEvent, false);
             }
-
-            THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
-            conn.store(thlEvent, false);
         }
         conn.commit();
         thl.disconnect(conn);
@@ -341,23 +354,96 @@ public class THLParallelQueueBasicTest
         // Confirm that no event greater than 49 reaches the multi-queue
         // even if we wait for it.
         long maxSeqno = -1;
-        for (int q = 0; q < 3; q++)
+        ReplDBMSEvent maxEvent = null;
+        while (mq.peek() != null)
         {
-            for (int i = 0; i < 30; i++)
+            ReplDBMSEvent rde2 = (ReplDBMSEvent) mq.get();
+            if (rde2.getSeqno() > maxSeqno)
             {
-                ReplDBMSEvent rde2 = (ReplDBMSEvent) mq.peek(q);
-                if (rde2 == null)
-                    break;
-                else
-                {
-                    rde2 = (ReplDBMSEvent) mq.get(q);
-                    if (rde2.getSeqno() > maxSeqno)
-                        maxSeqno = rde2.getSeqno();
-                }
+                maxSeqno = rde2.getSeqno();
+                maxEvent = rde2;
             }
         }
+        logger.info("Maximum event logged: seqno=" + maxEvent.getSeqno()
+                + " fragno=" + maxEvent.getFragno());
         Assert.assertTrue("Checking max seqno more than 40", maxSeqno >= 40);
         Assert.assertTrue("Checking max seqno less than 50", maxSeqno < 50);
+    }
+
+    /**
+     * Verify that a parallel THL with multiple channels properly does not
+     * commit partial transactions on shutdown.
+     */
+    @Test
+    public void testMultiChannelPartialCommit() throws Exception
+    {
+        logger.info("##### testMultiChannelPartialCommit #####");
+
+        // Set up and prepare pipeline.
+        TungstenProperties conf = helper.generateTHLParallelPipeline(
+                "testMultiChannelPartialCommit", 3, 50, 100, false);
+        runtime = new ReplicatorRuntime(conf, new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        runtime.configure();
+        runtime.prepare();
+        pipeline = runtime.getPipeline();
+        pipeline.start(new MockEventDispatcher());
+
+        // Fetch references to stores.
+        THL thl = (THL) pipeline.getStore("thl");
+        InMemoryTransactionalQueue mq = (InMemoryTransactionalQueue) pipeline
+                .getStore("multi-queue");
+
+        // Write normal transactions on each shard and allow them to commit.
+        LogConnection conn = thl.connect(false);
+        for (int i = 0; i < 10; i++)
+        {
+            ReplDBMSEvent rde = helper.createEvent(i, "db" + (i % 3));
+            THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+            conn.store(thlEvent, false);
+        }
+        conn.commit();
+        Future<ReplDBMSHeader> wait9 = pipeline
+                .watchForCommittedSequenceNumber(9, false);
+        wait9.get(5, TimeUnit.SECONDS);
+
+        // Write partial transactions with three different shard IDs.
+        for (int i = 10; i < 13; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                ReplDBMSEvent rde = helper.createEvent(i, (short) j, false,
+                        "db" + (i % 3));
+                THLEvent thlEvent = new THLEvent(rde.getSourceId(), rde);
+                conn.store(thlEvent, false);
+            }
+        }
+        conn.commit();
+        thl.disconnect(conn);
+
+        // Wait for 2 seconds to let the transactions get into the apply task.
+        Thread.sleep(2000);
+
+        // Shut down the pipeline without waiting for current transaction to
+        // complete.
+        pipeline.shutdown(true);
+
+        // Confirm that the maximum seqno that reaches the multi-queue is 9.
+        // The later transactions are fragmented and must roll back on shutdown.
+        long maxSeqno = -1;
+        ReplDBMSEvent maxEvent = null;
+        while (mq.peek() != null)
+        {
+            ReplDBMSEvent rde2 = (ReplDBMSEvent) mq.get();
+            if (rde2.getSeqno() > maxSeqno)
+            {
+                maxSeqno = rde2.getSeqno();
+                maxEvent = rde2;
+            }
+        }
+        logger.info("Maximum event logged: seqno=" + maxEvent.getSeqno()
+                + " fragno=" + maxEvent.getFragno());
+        Assert.assertEquals("Checking max seqno is exactly 9", 9, maxSeqno);
     }
 
     /**

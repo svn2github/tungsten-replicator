@@ -482,8 +482,31 @@ public class SingleThreadStageTask implements Runnable
             }
 
             // At the end of the loop, issue commit to ensure partial block
-            // becomes persistent.
-            commit();
+            // becomes persistent. This should *only* occur if we are at the
+            // end of a transaction to prevent partial block commits. Otherwise
+            // we must roll back.
+            if (event != null && event.getLastFrag())
+            {
+                commit();
+            }
+            else
+            {
+                String message;
+                if (event == null)
+                {
+                    message = "Performing rollback of possible partial transaction: seqno=(unavailable)";
+                }
+                else
+                {
+                    message = "Performing rollback of partial transaction: seqno="
+                            + event.getSeqno()
+                            + " fragno="
+                            + event.getFragno()
+                            + " last_frag=" + event.getLastFrag();
+                }
+                logger.info(message);
+                applier.rollback();
+            }
         }
         catch (InterruptedException e)
         {
