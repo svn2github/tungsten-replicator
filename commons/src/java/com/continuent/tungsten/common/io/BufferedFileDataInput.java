@@ -135,7 +135,7 @@ public class BufferedFileDataInput
             }
         }
 
-        // Return true or false depending on whether we found the data.
+        // Return number of bytes available for non-blocking read. 
         return available;
     }
 
