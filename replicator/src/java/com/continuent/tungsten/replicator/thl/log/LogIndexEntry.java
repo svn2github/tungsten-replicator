@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,8 +29,6 @@ package com.continuent.tungsten.replicator.thl.log;
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
-// Class to implement a sortable index entry, where entries
-// are sorted by sequence number.
 public class LogIndexEntry implements Comparable<LogIndexEntry>
 {
     long   startSeqno;

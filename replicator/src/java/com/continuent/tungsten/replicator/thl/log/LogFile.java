@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -50,7 +50,7 @@ public class LogFile
     private static final short MINOR_VERSION      = 0x0001;
     private static final int   RECORD_LENGTH_SIZE = 4;
     // Length of header in bytes.
-    private static final int   HEADER_LENGTH      = 16;
+    public static final int    HEADER_LENGTH      = 16;
     // Length of time to wait for a partially written header to appear.
     private static final int   HEADER_WAIT_MILLIS = 5000;
 

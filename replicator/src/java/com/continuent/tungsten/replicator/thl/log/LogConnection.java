@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -65,6 +65,7 @@ public class LogConnection
     private LogCursor          cursor;
     private THLEvent           pendingEvent;
     private long               pendingSeqno;
+    private short              lastFragno    = -1;
     private long               writeCount    = 0;
     private long               readCount     = 0;
 
@@ -181,10 +182,11 @@ public class LogConnection
      * <p/>
      * The current log seek semantics are slightly ambiguous due to the presence
      * of filtered events, which introduce gaps in the log. The log seek may
-     * <em>falsely report</em> that it has found an event in the log if it hits a log
-     * rotate event at the end before finding a non-existent event. In this case
-     * it will place the cursor at the last event in the log, if it exists. This
-     * ambiguous case <em>only</em> occurs under the following circumstances:
+     * <em>falsely report</em> that it has found an event in the log if it hits
+     * a log rotate event at the end before finding a non-existent event. In
+     * this case it will place the cursor at the last event in the log, if it
+     * exists. This ambiguous case <em>only</em> occurs under the following
+     * circumstances:
      * <ol>
      * <li>The log file is still open for writing when the seek starts.</li>
      * <li>The log rotates while the seek operation is being processed.</li>
@@ -193,7 +195,7 @@ public class LogConnection
      * </p>
      * Conversely, seek may <em>fail</em> to find a filtered event if that event
      * is the last event in the last log file and the filtered event includes a
-     * span of more than one sequence number. 
+     * span of more than one sequence number.
      * <p/>
      * These ambiguities will be addressed in a future version of the log.
      * 
@@ -681,6 +683,28 @@ public class LogConnection
         // TODO: Ensure that a log file is open. We should not grant connections
         // if log is uninitialized.
 
+        // Ensure that the sequence number does not go backwards. That means
+        // our client is confused.
+        long maxSeqno = diskLog.getMaxSeqno();
+        long eventSeqno = event.getSeqno();
+        short eventFragno = event.getFragno();
+        if (eventSeqno < maxSeqno)
+        {
+            throw new LogConsistencyException(
+                    "Attempt to write new log record with lower seqno value: current max seqno="
+                            + maxSeqno + " attempted new seqno=" + eventSeqno);
+        }
+        // Next ensure that fragnos do not go backwards either. That would be
+        // another sign of confusion.
+        else if (eventSeqno == maxSeqno && eventFragno <= lastFragno)
+        {
+            throw new LogConsistencyException(
+                    "Attempt to write new log record with equal or lower fragno: seqno="
+                            + eventSeqno + " previous stored fragno="
+                            + lastFragno + " attempted new fragno="
+                            + eventFragno);
+        }
+
         // If we do not have a cursor, create one now.
         if (this.cursor == null)
         {
@@ -730,6 +754,10 @@ public class LogConnection
             // Write to the file.
             dataFile.writeRecord(logRecord, logFileSize);
             diskLog.setMaxSeqno(event.getSeqno());
+            if (event.getLastFrag())
+                lastFragno = -1;
+            else
+                lastFragno = event.getFragno();
             writeCount++;
 
             // If it is time to commit, make it happen!

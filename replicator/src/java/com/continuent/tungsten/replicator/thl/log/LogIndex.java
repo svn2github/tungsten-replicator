@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -64,23 +64,35 @@ public class LogIndex
      * @param retentionMillis Amount of time to retain log files before
      *            auto-deleting
      * @param bufferSize Buffer size for reading log files
+     * @param isWritable True if the log is writable and we can clean up
      * @throws ReplicatorException Thrown in the event of an error constructing
      *             the index
      */
     public LogIndex(File logDir, String filePrefix, long retentionMillis,
-            int bufferSize) throws ReplicatorException, InterruptedException
+            int bufferSize, boolean isWritable) throws ReplicatorException,
+            InterruptedException
     {
         index = new ArrayList<LogIndexEntry>();
         this.logDir = logDir;
         this.filePrefix = filePrefix;
         this.retentionMillis = retentionMillis;
         this.bufferSize = bufferSize;
-        build();
+        build(isWritable);
     }
 
-    // Builds the index.
-    private synchronized void build() throws ReplicatorException,
-            InterruptedException
+    /**
+     * Builds the index. This routine checks for basic log corruption due to
+     * missing or partial header records. If we are writable and the header is
+     * missing at the end, we clean the last file. It is best to do this when
+     * building the index as we have all information in hand.
+     * 
+     * @param isWritable If true the log is writable.
+     * @throws ReplicatorException Thrown if there is an error reading or fixing
+     *             up the log
+     * @throws InterruptedException Thrown if we are interrupted
+     */
+    private synchronized void build(boolean isWritable)
+            throws ReplicatorException, InterruptedException
     {
         logger.info("Building file index on log directory: " + logDir);
 
@@ -101,8 +113,53 @@ public class LogIndex
         // We use the starting number of the next index entry to compute the
         // ending index entry.
         LogIndexEntry lastEntry = null;
-        for (File file : files)
+        for (int i = 0; i < files.length; i++)
         {
+            // Select the file.
+            File file = files[i];
+
+            // Make sure the file has a full header.
+            long fileSize = file.length();
+            if (fileSize < LogFile.HEADER_LENGTH)
+            {
+                // If we have a header and are on the last file, this is due to
+                // unclean shutdown.
+                if ((i + 1) >= files.length)
+                {
+                    if (isWritable)
+                    {
+                        // Delete the file if we are writable.
+                        logger.info("Cleaning up partially written tail log file: file="
+                                + file.getAbsolutePath()
+                                + " length="
+                                + fileSize);
+                        if (!file.delete())
+                        {
+                            throw new LogConsistencyException(
+                                    "Unable to clean up partially written log file: "
+                                            + file.getAbsolutePath());
+                        }
+                    }
+                    else
+                    {
+                        // Try to ignore the file if we are read-only.
+                        logger.warn("Ignoring partially written tail log file: file="
+                                + file.getAbsolutePath()
+                                + " length="
+                                + fileSize);
+                    }
+                    break;
+                }
+                else
+                {
+                    // This is a log consistency error--there is a file within
+                    // the log that has a partial header. It should be removed.
+                    throw new LogConsistencyException(
+                            "Found invalid log file header; log must be purged up to this file to open: "
+                                    + file.getAbsolutePath());
+                }
+            }
+
             // Try to read the base sequence number. Any file that cannot be
             // read is ignored for indexing purposes.
             if (logger.isDebugEnabled())
@@ -245,27 +302,59 @@ public class LogIndex
                 // Patch up start entry on new index.
                 entry.startSeqno = seqno;
             }
+            else if (entry.startSeqno > entry.endSeqno)
+            {
+                // Patch up if recovery caused the initial seqno to be wiped
+                // out.
+                entry.startSeqno = seqno;
+            }
         }
     }
 
     /**
-     * Returns the maximum sequence number this index knows about.
+     * Returns the maximum committed sequence number this index knows about. If
+     * the currently open file does not have anything written to it, return the
+     * end value from the previous entry.
      * 
      * @return -1 if index is empty, otherwise, return the max value
      */
     public synchronized long getMaxIndexedSeqno()
     {
+        // If the index is empty return -1.
         if (index == null || index.isEmpty())
             return -1;
+
+        // If the index has been written, get the last committed value.
         LogIndexEntry entry = index.get(index.size() - 1);
         if (entry.startSeqno < 0)
+        {
+            // If the index is empty, return -1.
             return -1;
-        else
+        }
+        else if (entry.endSeqno < Long.MAX_VALUE)
+        {
+            // Last entry has a committed value. Return that.
             return entry.endSeqno;
+        }
+        else if (index.size() >= 2)
+        {
+            // Last entry has no committed value. Return the previous log
+            // last committed value.
+            entry = index.get(index.size() - 2);
+            return entry.endSeqno;
+        }
+        else
+        {
+            // We should not be able to get here, but return -1 to avoid
+            // breaking things in the event that there is a case we did
+            // not think of.
+            return -1;
+        }
     }
 
     /**
-     * Returns the minimum sequence number this index knows about.
+     * Returns the minimum sequence number this index knows about. This number
+     * might not be committed if we are just writing a new log.
      */
     public synchronized long getMinIndexedSeqno()
     {
@@ -376,7 +465,7 @@ public class LogIndex
         // Add the entry.
         logger.info("Adding new index entry for " + fileName
                 + " starting at seqno " + seqno);
-        index.add(new LogIndexEntry(seqno, seqno, fileName));
+        index.add(new LogIndexEntry(seqno, Long.MAX_VALUE, fileName));
 
         // If retentions are enabled, this is a good time to check for files
         // to purge. Note that we always retain the last two files in the
@@ -386,8 +475,9 @@ public class LogIndex
         if (retentionMillis > 0)
         {
             String activeFile = getFile(activeSeqno);
-            File[] purgeCandidates = FileCommands.filesOverRetentionAndInactive(logDir,
-                    filePrefix, 2, activeFile);
+            File[] purgeCandidates = FileCommands
+                    .filesOverRetentionAndInactive(logDir, filePrefix, 2,
+                            activeFile);
             File[] filesToPurge = FileCommands.filesOverModDate(
                     purgeCandidates, new Interval(retentionMillis));
             if (filesToPurge.length > 0)
@@ -409,8 +499,8 @@ public class LogIndex
         {
             if (fileName.equals(entry.fileName))
             {
-                    index.remove(entry);
-                    logger.info("Removed file from disk log index: " + fileName);
+                index.remove(entry);
+                logger.info("Removed file from disk log index: " + fileName);
                 return;
             }
         }

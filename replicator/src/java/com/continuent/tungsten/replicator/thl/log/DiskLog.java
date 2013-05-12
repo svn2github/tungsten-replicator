@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -143,7 +143,7 @@ public class DiskLog
             this.logDirName = this.logDirName.concat("/");
         }
     }
-    
+
     /**
      * Returns the log directory.
      */
@@ -417,135 +417,224 @@ public class DiskLog
             }
         }
 
-        // Create an index on the log.
+        // Create an index on the log. This validates the log and will clean up
+        // the last file if it has a partial header.
         if (logger.isDebugEnabled())
             logger.debug("Preparing index");
         index = new LogIndex(logDir, DATA_FILENAME_PREFIX, logFileRetainMillis,
-                bufferSize);
+                bufferSize, isWritable());
 
         // Open the last index file and parse the name to get the index of the
         // next file to be created. This ensures new files will be properly
         // created.
-        LogFile logFile = openLastFile(readOnly);
-        String logFileName = logFile.getFile().getName();
-        int logFileIndexPos = logFile.getFile().getName().lastIndexOf(".");
+        String logFileName = index.getLastFile();
+        int logFileIndexPos = logFileName.lastIndexOf(".");
         fileIndex = Long.valueOf(logFileName.substring(logFileIndexPos + 1));
 
-        // Starting with the sequence number stored in the file header, which
-        // is max seqno at time of the log file creation, scan forward through
-        // the file and find the last sequence number. At the end of the file,
-        // clean up any partially written record(s) to prepare the file for use.
-        long maxSeqno = logFile.getBaseSeqno();
-        long lastCompleteEventOffset = logFile.getOffset();
-        boolean lastFrag = true;
-
-        if (logger.isDebugEnabled())
-            logger.debug("Starting max seqno is " + maxSeqno);
-
+        LogFile logFile = null;
+        boolean recoveryComplete = false;
         try
         {
-            // Read until we find an empty record.
-            logger.info("Validating last log file: "
-                    + logFile.getFile().getAbsolutePath());
-            LogRecord currentRecord = null;
-
-            currentRecord = logFile.readRecord(0);
-            byte lastRecordType = -1;
-            while (!currentRecord.isEmpty())
+            // Starting with the final index file, read to find the final
+            // full transaction. We may have to read 2 files, as the last
+            // file in a multi-file log may be empty, in which case we
+            // clean it up and move back to the previous file.
+            int iteration = 0;
+            while (!recoveryComplete && iteration < 2)
             {
-                // See what kind of event we have.
-                lastRecordType = currentRecord.getData()[0];
-                if (lastRecordType == LogRecord.EVENT_REPL)
-                {
-                    LogEventReplReader eventReader = new LogEventReplReader(
-                            currentRecord, eventSerializer, doChecksum);
-                    lastFrag = eventReader.isLastFrag();
+                // Starting with the sequence number stored in the file header,
+                // which is max seqno at time of the log file creation, scan
+                // forward through the file and find the last sequence number.
+                // At the end of the file, clean up any partially written
+                // record(s) to prepare the file for use.
+                iteration++;
+                logFile = openLastFile(readOnly);
+                long maxSeqno = logFile.getBaseSeqno();
+                long lastCompleteEventOffset = LogFile.HEADER_LENGTH;
+                boolean logFileIsEmpty = true;
+                boolean lastFrag = true;
 
-                    // If we are on a last fragment of an event, update the
-                    // last complete transaction offset and store the sequence
-                    // number.
-                    if (lastFrag)
-                    {
-                        maxSeqno = eventReader.getSeqno();
-                        lastCompleteEventOffset = logFile.getOffset();
-                    }
-                    eventReader.done();
-                }
-                else if (lastRecordType == LogRecord.EVENT_ROTATE)
-                {
-                    // This means the replicator stopped on a rotate log record
-                    // with no file beyond it. It is a rare corner case but
-                    // we need to handle it or the replicator will not be able
-                    // to start writing.
-                    String fileName = logFile.getFile().getName();
+                if (logger.isDebugEnabled())
+                    logger.debug("Starting max seqno is " + maxSeqno);
 
-                    logger.info("Last log file ends on rotate log event: "
-                            + fileName);
-                    logFile.close();
-                    if (!readOnly)
-                    {
-                        // Fix up last index entry so that it points to the
-                        // number we just discovered.
-                        index.setMaxIndexedSeqno(maxSeqno);
+                // Read until we find an empty record.
+                logger.info("Validating last log file: "
+                        + logFile.getFile().getAbsolutePath());
+                LogRecord currentRecord = null;
 
-                        // Create the next file.
-                        logFileIndexPos = fileName.lastIndexOf(".");
-                        fileIndex = Long.valueOf(fileName
-                                .substring(logFileIndexPos + 1));
-                        fileIndex = (fileIndex + 1) % Integer.MAX_VALUE;
-                        logFile = this.startNewLogFile(maxSeqno + 1);
-                    }
-                    break;
-                }
-
-                // Read next record.
                 currentRecord = logFile.readRecord(0);
-            }
+                byte lastRecordType = -1;
+                while (!currentRecord.isEmpty())
+                {
+                    // See what kind of event we have.
+                    lastRecordType = currentRecord.getData()[0];
+                    if (lastRecordType == LogRecord.EVENT_REPL)
+                    {
+                        LogEventReplReader eventReader = new LogEventReplReader(
+                                currentRecord, eventSerializer, doChecksum);
+                        lastFrag = eventReader.isLastFrag();
 
-            // Update the index with the max sequence number we found. If the
-            // log is empty, this should end up as -1.
-            index.setMaxIndexedSeqno(maxSeqno);
+                        // If we are on a last fragment of an event, update the
+                        // last complete transaction offset and store the
+                        // sequence number.
+                        if (lastFrag)
+                        {
+                            logFileIsEmpty = false;
+                            maxSeqno = eventReader.getSeqno();
+                            lastCompleteEventOffset = logFile.getOffset();
+                        }
+                        eventReader.done();
+                    }
+                    else if (lastRecordType == LogRecord.EVENT_ROTATE)
+                    {
+                        // This means the replicator stopped on a rotate log
+                        // record with no file beyond it. It is a rare corner
+                        // case but we need to handle it or the replicator will
+                        // not be able to start writing.
+                        String fileName = logFile.getFile().getName();
 
-            // If the last record is truncated, we have a corrupt file. Fix it
-            // now.
-            if (!readOnly && currentRecord.isTruncated())
-            {
-                if (writeLock.isLocked())
-                {
-                    logger.warn("Log file contains partially written record: offset="
-                            + currentRecord.getOffset()
-                            + " partially written bytes="
-                            + (logFile.getLength() - currentRecord.getOffset()));
-                    logFile.setLength(currentRecord.getOffset());
-                    logger.info("Log file truncated to end of last good record: length="
-                            + logFile.getLength());
-                }
-                else
-                {
-                    logger.warn("Log ends with a partially written record "
-                            + "at end, but this log is read-only.  "
-                            + "It is possible that the process that "
-                            + "owns the write lock is still writing it.");
-                }
-            }
+                        logger.info("Last log file ends on rotate log event: "
+                                + fileName);
+                        logFile.close();
+                        if (isWritable())
+                        {
+                            // Ensure that last log file is not just a header
+                            // plus a rotate event. This would indicate some
+                            // kind of bug that should be investigated.
+                            if (maxSeqno <= -1)
+                            {
+                                throw new LogConsistencyException(
+                                        "Last log file consists of header plus rotate log event only: "
+                                                + fileName);
+                            }
 
-            // If the last transaction was not terminated, we need to truncate
-            // the log to the end of the last full transaction.
-            if (!readOnly && !lastFrag)
-            {
-                if (writeLock.isLocked())
-                {
-                    logger.warn("Log file contains partially written transaction; "
-                            + "truncating to last full transaction: seqno="
-                            + maxSeqno + " length=" + lastCompleteEventOffset);
-                    logFile.setLength(lastCompleteEventOffset);
+                            // Update the index as this completes the current
+                            // index entry.
+                            index.setMaxIndexedSeqno(maxSeqno);
+
+                            // Create the next file.
+                            logFileIndexPos = fileName.lastIndexOf(".");
+                            fileIndex = Long.valueOf(fileName
+                                    .substring(logFileIndexPos + 1));
+                            fileIndex = (fileIndex + 1) % Integer.MAX_VALUE;
+                            logFile = this.startNewLogFile(maxSeqno + 1);
+                            logFileIsEmpty = false;
+                        }
+
+                        // Nothing left to read, so we break from inner
+                        // loop. We also have
+                        recoveryComplete = true;
+                        break;
+                    }
+
+                    // Read next record.
+                    currentRecord = logFile.readRecord(0);
                 }
-                else
+
+                // If recovery is complete at this point, let the loop logic
+                // take over as our work is done.
+                if (recoveryComplete)
+                    continue;
+
+                // Update the index with the max sequence number we found. If
+                // the log is empty, this should end up as -1.
+                index.setMaxIndexedSeqno(maxSeqno);
+
+                // If the last transaction was not terminated, we need to
+                // truncate the log to the end of the last full transaction.
+                if (!lastFrag)
                 {
-                    logger.warn("Log ends with a partially written "
-                            + "transaction, but this log is read-only.  "
-                            + "It is possible that the process that "
-                            + "owns the write lock is still writing it.");
+                    if (isWritable())
+                    {
+                        logger.warn("Log file contains partially written transaction; "
+                                + "truncating to last full transaction: seqno="
+                                + maxSeqno
+                                + " length="
+                                + lastCompleteEventOffset);
+                        logFile.setLength(lastCompleteEventOffset);
+                    }
+                    else
+                    {
+                        logger.warn("Log ends with a partially written "
+                                + "transaction, but this log is read-only.  "
+                                + "It is possible that the process that "
+                                + "owns the write lock is still writing it.");
+                    }
+                }
+                // If we have a complete transaction but a record is truncated,
+                // we have a corrupt file. Fix it now.
+                else if (currentRecord.isTruncated())
+                {
+                    if (isWritable())
+                    {
+                        logger.warn("Log file contains partially written record: offset="
+                                + currentRecord.getOffset()
+                                + " partially written bytes="
+                                + (logFile.getLength() - currentRecord
+                                        .getOffset()));
+                        logFile.setLength(currentRecord.getOffset());
+                        logger.info("Log file truncated to end of last good record: length="
+                                + logFile.getLength());
+                    }
+                    else
+                    {
+                        logger.warn("Log ends with a partially written record "
+                                + "at end, but this log is read-only.  "
+                                + "It is possible that the process that "
+                                + "owns the write lock is still writing it.");
+                        break;
+                    }
+                }
+
+                // If following these cleanups we have an empty file at the
+                // end of a multi-file log, we need to remove it and try again,
+                // which we do at most once and only if we are writable.
+                if (logFileIsEmpty && index.size() > 1)
+                {
+                    if (isWritable())
+                    {
+                        // We are writable and should clean up if on the
+                        // first iteration. This is the only case that does not
+                        // result in recovery being complete.
+                        if (iteration == 1)
+                        {
+                            File emptyFile = logFile.getFile();
+                            logger.warn("Log ends with an empty file: name="
+                                    + emptyFile.getAbsolutePath());
+                            logFile.close();
+                            logFile = null;
+                            if (!emptyFile.delete())
+                            {
+                                throw new LogConsistencyException(
+                                        "Unable to delete empty log file: "
+                                                + emptyFile.getAbsolutePath());
+                            }
+                            index.removeFile(index.getLastFile());
+                        }
+                        else
+                        {
+                            // After first iteration we conclude log is corrupt.
+                            throw new LogConsistencyException(
+                                    "Unable to clean up multiple empty files at end of log; use 'thl index' to check logs");
+                        }
+                    }
+                    else
+                    {
+                        // We must be readable. We cannot clean up.
+                        logger.warn("Ignoring empty file at end of log as we are not writable");
+                        recoveryComplete = true;
+                    }
+                }
+                // Otherwise if we have a valid sequence number things are all
+                // cleaned up.
+                else if (maxSeqno >= 0)
+                {
+                    recoveryComplete = true;
+                }
+                // If we have an empty log, that's good too.
+                else if (index.size() <= 1)
+                {
+                    recoveryComplete = true;
                 }
             }
         }
@@ -558,6 +647,7 @@ public class DiskLog
         }
         finally
         {
+            // Make sure the log file is closed.
             if (logFile != null)
                 logFile.close();
         }
@@ -947,10 +1037,8 @@ public class DiskLog
         try
         {
             // This operation is going to invalidate the current log file
-            // connection,
-            // if any, as we are going to truncate the file. If there is a
-            // current log
-            // file connection, close it.
+            // connection,if any, as we are going to truncate the file.
+            // If there is a current log file connection, close it.
             cursorManager.releaseConnection(client);
 
             // Open a new log file and get to work.

@@ -23,6 +23,8 @@
 package com.continuent.tungsten.replicator.thl.log;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.HashMap;
 
@@ -231,7 +233,7 @@ public class DiskLogExtendedTest extends TestCase
      */
     public void testMissingLogFile() throws Exception
     {
-        // Create the log with with 5K log files and a 5 second retention.
+        // Create the log with with 3K log files.
         File logDir = prepareLogDir("testLogRetention");
         DiskLog log = new DiskLog();
         log.setLogDir(logDir.getAbsolutePath());
@@ -270,13 +272,14 @@ public class DiskLogExtendedTest extends TestCase
     }
 
     /**
-     * Confirm that if a file is deleted from the end of the log we will patch
-     * the log correctly on restart so that it can be scanned.
+     * Confirm that if the last file is zero length on log startup we clean up
+     * if the log is writable and allow further writes. If the log is readable,
+     * we ignore the bad file and allow reads.
      */
-    public void testMissingLogFile2() throws Exception
+    public void testZeroLengthTail() throws Exception
     {
         // Create the log with with 5K log files and a 5 second retention.
-        File logDir = prepareLogDir("testLogRetention");
+        File logDir = prepareLogDir("testZeroLengthTail");
         DiskLog log = new DiskLog();
         log.setLogDir(logDir.getAbsolutePath());
         log.setReadOnly(false);
@@ -287,14 +290,19 @@ public class DiskLogExtendedTest extends TestCase
         long maxSeqno = log.getMaxSeqno();
         log.release();
 
-        // Get the log files and delete last file. This cuts off at least
-        // on event written to the log.
+        // Get the log files and make the last log file 0 length.
         String[] logFileNames = log.getLogFileNames();
         int fileCount = logFileNames.length;
         assertTrue("More than two logs generated", fileCount > 2);
-        deleteLogFile(logDir, logFileNames[fileCount - 1]);
+        String lastLogName = logFileNames[fileCount - 1];
+        File lastLog = new File(logDir, lastLogName);
+        assertTrue("lastLog is non-zero length: " + lastLog.toString(),
+                lastLog.length() > 0);
+        truncate(lastLog);
+        assertEquals("lastLog is zero length: " + lastLog.toString(), 0,
+                lastLog.length());
 
-        // Open the log and get the beginning and end positions.
+        // Open a writable log and get the beginning and end positions.
         DiskLog log2 = new DiskLog();
         log2.setLogDir(logDir.getAbsolutePath());
         log2.setReadOnly(false);
@@ -303,6 +311,9 @@ public class DiskLogExtendedTest extends TestCase
         // Open the log and write a few more events.
         log2.prepare();
         long maxSeqno2 = log2.getMaxSeqno();
+        logger.info("Number of events after cleanup of bad header: "
+                + maxSeqno2);
+
         assertTrue("Truncated log must be shorter than old log",
                 maxSeqno > maxSeqno2);
         writeEventsToLog(log2, maxSeqno2 + 1, 200);
@@ -312,9 +323,92 @@ public class DiskLogExtendedTest extends TestCase
         long scanSeqno2 = scanLog(log2);
         assertEquals("Last event scanned must be maxSeqno", log2.getMaxSeqno(),
                 scanSeqno2);
+        logger.info("Number of events read after writing to cleaned-up log: "
+                + scanSeqno2);
+        log2.release();
+
+        // Truncate the log again.
+        truncate(lastLog);
+        assertEquals("lastLog is zero length: " + lastLog.toString(), 0,
+                lastLog.length());
+
+        // Open a read-only log.
+        DiskLog log3 = new DiskLog();
+        log3.setLogDir(logDir.getAbsolutePath());
+        log3.setReadOnly(true);
+        log3.setLogRotateMillis(2000);
+        log3.prepare();
+
+        // Scan the log and prove it is shorter. This should also generate a
+        // warning but we cannot test for that.
+        long scanSeqno3 = scanLog(log3);
+        assertTrue("Log must be readable and shorter", scanSeqno3 < scanSeqno2);
+        logger.info("Number of events read after ignoring bad header: "
+                + scanSeqno3);
 
         // All done!
+        log3.release();
+    }
+
+    /**
+     * Confirm that if a middle file is zero length on log startup we signal an
+     * error. This is a sign of log corruption.
+     */
+    public void testZeroLengthMiddleFile() throws Exception
+    {
+        // Create the log with with 5K log files and a 5 second retention.
+        File logDir = prepareLogDir("testZeroLengthMiddleFile");
+        DiskLog log = new DiskLog();
+        log.setLogDir(logDir.getAbsolutePath());
+        log.setReadOnly(false);
+        log.setLogFileSize(3000);
+
+        log.prepare();
+        writeEventsToLog(log, 200);
+        log.release();
+
+        // Get the log files and make a middle file 0 length.
+        String[] logFileNames = log.getLogFileNames();
+        int fileCount = logFileNames.length;
+        int middleFileIndex = fileCount / 2;
+        assertTrue("More than two logs generated", fileCount > 2);
+        assertTrue("Middle > 0", middleFileIndex > 0);
+
+        String middleLogName = logFileNames[middleFileIndex];
+        File middleLog = new File(logDir, middleLogName);
+        assertTrue("middleLog is non-zero length: " + middleLog.toString(),
+                middleLog.length() > 0);
+        truncate(middleLog);
+        assertEquals("lastLog is zero length: " + middleLog.toString(), 0,
+                middleLog.length());
+
+        // Open a writable log and get the beginning and end positions.
+        DiskLog log2 = new DiskLog();
+        log2.setLogDir(logDir.getAbsolutePath());
+        log2.setReadOnly(false);
+        log2.setLogRotateMillis(2000);
+
+        // Open the log.
+        try
+        {
+            log2.prepare();
+            throw new Exception(
+                    "Able to open log with zero-length file in middle: "
+                            + middleLog.getAbsolutePath());
+        }
+        catch (LogConsistencyException e)
+        {
+            logger.info("Got expected exception: " + e.getMessage());
+        }
         log2.release();
+    }
+
+    // Truncate a file to 0 bytes length.
+    private void truncate(File f) throws IOException
+    {
+        FileOutputStream fis = new FileOutputStream(f);
+        fis.flush();
+        fis.close();
     }
 
     // Create an empty log directory or if the directory exists remove
