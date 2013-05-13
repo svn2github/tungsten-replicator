@@ -16,7 +16,6 @@ class TungstenScript
   end
   
   def validate
-    TU.debug("Default validation function is not overridden")
   end
   
   def display_help
@@ -34,10 +33,21 @@ class TungstenScript
     nil
   end
   
+  def script_log_path
+    nil
+  end
+  
   def display_script_help
   end
   
   def cleanup(code = 0)
+    if script_log_path() != nil
+      File.open(script_log_path(), "w") {
+        |f|
+        TU.log().rewind()
+        f.puts(TU.log().read())
+      }
+    end
     exit(code)
   end
   

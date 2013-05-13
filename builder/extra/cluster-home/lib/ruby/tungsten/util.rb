@@ -164,7 +164,8 @@ class TungstenUtil
   end
   
   def exception(e, hostname = nil)
-    error(e.to_s() + ":\n" + e.backtrace.join("\n"), hostname)
+    error(e.to_s(), hostname)
+    debug(e, hostname)
   end
   
   def debug(message, hostname = nil)

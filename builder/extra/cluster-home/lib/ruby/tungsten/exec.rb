@@ -335,4 +335,20 @@ class TungstenUtil
       return true
     end
   end
+  
+  # Find out the full executable path or return nil
+  # if this is not executable. 
+  def which(cmd)
+    if ! cmd
+      nil
+    else 
+      path = cmd_result("which #{cmd} 2>/dev/null", true)
+      path.chomp!
+      if File.executable?(path)
+        path
+      else
+        nil
+      end
+    end
+  end
 end

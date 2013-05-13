@@ -9,39 +9,35 @@ class MySQLTerminalCommand
   def display_alive_thread?
     false
   end
-
+  
   def parsed_options?(arguments)
-    @service = nil
-    arguments = super(arguments)
-
-    if display_help?() && !display_preview?()
-      return arguments
+    if Configurator.instance.display_help? && !Configurator.instance.display_preview?()
+      return true
     end
-  
-    # Define extra option to load event.  
-    opts=OptionParser.new
     
-    opts.on("--service String")            {|s| @service = s}
+    @terminal_args = arguments
     
-    opts = Configurator.instance.run_option_parser(opts, arguments)
-
-    # Return options. 
-    opts
-  end
-
-  def output_command_usage
-    super()
-    output_usage_line("--service", "The service to use for a connection")
-  end
-  
-  def get_bash_completion_arguments
-    super() + ["--service"]
+    []
   end
  
   def run
+    unless @config.getProperty(HOST_ENABLE_REPLICATOR) == "true"
+      error("Unable to run this command because the current host is not a database server")
+      return false
+    end
+    
+    if command_dataservices().size() > 0
+      @service = command_dataservices()[0]
+    else
+      @service = nil
+    end
+    
     rs_alias = nil
     @config.getPropertyOr(REPL_SERVICES, {}).each_key{
       |rs|
+      if rs == DEFAULTS
+        next
+      end
       if @service != nil
         if @config.getProperty([REPL_SERVICES, rs, DEPLOYMENT_SERVICE]) == @service
           rs_alias = rs
@@ -58,7 +54,7 @@ class MySQLTerminalCommand
       return false
     end
     
-    exec("mysql --defaults-file=#{@config.getProperty([REPL_SERVICES, rs_alias, REPL_MYSQL_SERVICE_CONF])} --host=#{ds.host} --port=#{ds.port}")
+    exec("mysql --defaults-file=#{@config.getProperty([REPL_SERVICES, rs_alias, REPL_MYSQL_SERVICE_CONF])} --host=#{ds.host} --port=#{ds.port} #{@terminal_args.join(' ')}")
   end
 
   def self.get_command_name

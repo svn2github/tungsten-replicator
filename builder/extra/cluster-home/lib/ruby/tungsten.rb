@@ -23,4 +23,17 @@ require "tungsten/util"
 # Access these constants anywhere in the code
 # TU.info(msg)
 TU = TungstenUtil.instance()
-TI = TungstenInstall.get(TU.get_base_path())
+
+# Intialize a default TungstenInstall object that uses TU.get_base_path()
+# as the default. If --home-directory is found, that path is used instead.
+install_base_path = TU.get_base_path()
+opts = OptionParser.new
+opts.on("--directory String") {|val| install_base_path = "#{val}/tungsten"}
+TU.run_option_parser(opts)
+
+begin
+  TI = TungstenInstall.get(install_base_path)
+rescue => e
+  TU.exception(e)
+  exit(1)
+end

@@ -13,10 +13,16 @@ class TungstenTopology
   ROLE = "role"
   SEQNO = "seqno"
   LATENCY = "latency"
+  
+  SERVICE_TYPE = "service_type"
+  REPLICATION_SERVICE = :replication
+  PHYSICAL_SERVICE = :physical
+  COMPOSITE_SERVICE = :composite
 
-  def initialize(install, service = nil)
+  def initialize(install, dataservice = nil)
     @install = install
-    @dataservice = service
+    @dataservice = dataservice
+    @service_type = nil
     @props = nil
   end
 
@@ -44,6 +50,11 @@ class TungstenTopology
     result = @install.manager_api_result("status/#{@dataservice}", ["serviceState"])
 
     @props.setProperty(DATASERVICE, @dataservice)
+    if result["composite"] == true
+      @props.setProperty(SERVICE_TYPE, COMPOSITE_SERVICE)
+    else
+      @props.setProperty(SERVICE_TYPE, PHYSICAL_SERVICE)
+    end
     @props.setProperty(COORDINATOR, {
       "host" => result["coordinator"],
       "mode" => result["policyManagerMode"]
@@ -55,6 +66,8 @@ class TungstenTopology
   def parse_replicator
     @props = Properties.new()
 
+    @props.setProperty(DATASERVICE, @dataservice)
+    @props.setProperty(SERVICE_TYPE, REPLICATION_SERVICE)
     r_props = {}
     TU.cmd_result("#{@install.trepctl(@dataservice)} status | grep :").each{
       |line|
@@ -82,6 +95,11 @@ class TungstenTopology
   
   def datasources
     self.parse()
+    return @props.getPropertyOr([DATASOURCES], {}).keys()
+  end
+  
+  def replicators
+    self.parse()
     return @props.getPropertyOr([REPLICATORS], {}).keys()
   end
   
@@ -108,6 +126,21 @@ class TungstenTopology
   def datasource_latency(hostname)
     self.parse()
     return @props.getProperty([REPLICATORS, hostname, 'appliedLatency']).to_f()
+  end
+  
+  def is_replication?
+    self.parse()
+    return @props.getProperty(SERVICE_TYPE) == REPLICATION_SERVICE
+  end
+  
+  def is_physical?
+    self.parse()
+    return @props.getProperty(SERVICE_TYPE) == PHYSICAL_SERVICE
+  end
+  
+  def is_composite?
+    self.parse()
+    return @props.getProperty(SERVICE_TYPE) == COMPOSITE_SERVICE
   end
   
   def to_s
