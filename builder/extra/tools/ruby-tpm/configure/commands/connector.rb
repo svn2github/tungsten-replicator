@@ -44,21 +44,39 @@ class ConnectorTerminalCommand
   end
  
   def get_connection
-    unless @config.getProperty(HOST_ENABLE_CONNECTOR) == "true"
-      error("Unable to run this command because the current host is not a connector")
-      return false
+    hostname, port, username, password = get_connector_settings()
+    
+    if hostname == nil
+      error("Unable to find a connector in the given dataservices")
+      return
     end
     
     conncnf = Tempfile.new("conncnf")
     conncnf.puts("[client]")
-    conncnf.puts("user=#{@config.getProperty(CONN_CLIENTLOGIN)}")
-    conncnf.puts("password=#{@config.getProperty(CONN_CLIENTPASSWORD)}")
+    conncnf.puts("user=#{username}")
+    conncnf.puts("password=#{password}")
     conncnf.close()
     
-    exec("mysql --defaults-file=#{conncnf.path()} --host=#{@config.getProperty(HOST)} --port=#{@config.getProperty(CONN_LISTEN_PORT)} #{@terminal_args.join(' ')}")
+    exec("mysql --defaults-file=#{conncnf.path()} --host=#{hostname} --port=#{port} #{@terminal_args.join(' ')}")
   end
   
   def display_samples
+    hostname, port, username, password = get_connector_settings()
+    
+    if hostname == nil
+      error("Unable to find a connector in the given dataservices")
+      return
+    end
+    
+    output_usage_line("Bash", "mysql -h#{hostname} -P#{port} -u#{username} -P#{password}")
+    output_usage_line("Perl::dbi", "$dbh=DBI->connecti('DBI:mysql:host=#{hostname};port=#{port}', '#{username}', '#{password}')")
+    output_usage_line("PHP::mysqli", "$dbh = new mysqli('#{hostname}', '#{username}', '#{password}', 'schema', '#{port}');")
+    output_usage_line("PHP::pdo", "$dbh = new PDO('mysql:host=#{hostname};port=#{port}', '#{username}', '#{password}');")
+    output_usage_line("Python::mysql.connector", "dbh = mysql.connector.connect(user='#{username}', password='#{password}', host='#{hostname}', port=#{port}, database='schema')")
+    output_usage_line("Java::DriverManager", "dbh=DriverManager.getConnection(\"jdbc:mysql://#{hostname}:#{port}/schema\", \"#{username}\", \"#{password}\")")
+  end
+  
+  def get_connector_settings
     if Configurator.instance.is_locked?()
       hostname=@config.getProperty(HOST)
       username=@config.getProperty(CONN_CLIENTLOGIN)
@@ -77,19 +95,9 @@ class ConnectorTerminalCommand
           break
         end
       }
-      
-      if hostname == nil
-        error("Unable to find a connector in the given dataservices")
-        return
-      end
     end
     
-    output_usage_line("Bash", "mysql -h#{hostname} -P#{port} -u#{username} -P#{password}")
-    output_usage_line("Perl::dbi", "$dbh=DBI->connecti('DBI:mysql:host=#{hostname};port=#{port}', '#{username}', '#{password}')")
-    output_usage_line("PHP::mysqli", "$dbh = new mysqli('#{hostname}', '#{username}', '#{password}', 'schema', '#{port}');")
-    output_usage_line("PHP::pdo", "$dbh = new PDO('mysql:host=#{hostname};port=#{port}', '#{username}', '#{password}');")
-    output_usage_line("Python::mysql.connector", "dbh = mysql.connector.connect(user='#{username}', password='#{password}', host='#{hostname}', port=#{port}, database='schema')")
-    output_usage_line("Java::DriverManager", "dbh=DriverManager.getConnection(\"jdbc:mysql://#{hostname}:#{port}/schema\", \"#{username}\", \"#{password}\")")
+    return hostname, port, username, password
   end
   
   def output_command_usage
