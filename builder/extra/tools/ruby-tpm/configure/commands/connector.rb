@@ -89,9 +89,9 @@ class ConnectorTerminalCommand
         connectors = @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS], "").split(",")
         if connectors.size() > 0
           hostname = connectors[0]
-          username=@config.getProperty([CONNECTORS, to_identifier(ds_alias), CONN_CLIENTLOGIN])
-          password=@config.getProperty([CONNECTORS, to_identifier(ds_alias), CONN_CLIENTPASSWORD])
-          port=@config.getProperty([CONNECTORS, to_identifier(ds_alias), CONN_LISTEN_PORT])
+          username=@config.getProperty([CONNECTORS, to_identifier(hostname), CONN_CLIENTLOGIN])
+          password=@config.getProperty([CONNECTORS, to_identifier(hostname), CONN_CLIENTPASSWORD])
+          port=@config.getProperty([CONNECTORS, to_identifier(hostname), CONN_LISTEN_PORT])
           break
         end
       }
