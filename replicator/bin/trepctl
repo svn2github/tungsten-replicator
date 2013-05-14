@@ -57,6 +57,9 @@ if [ ! -z "$REPLICATOR_RMI_PORT" ]; then
   JVM_OPTIONS="${JVM_OPTIONS} -Dreplicator.rmi_port=$REPLICATOR_RMI_PORT"
 fi
 
+# Set cluster.home
+JVM_OPTIONS="${JVM_OPTIONS} -Dcluster.home=$CLUSTER_HOME" 
+
 # Uncomment to debug replicator control client. 
 #REPLICATOR_JVMDEBUG_PORT=54002
 #JVM_OPTIONS="${JVM_OPTIONS} -enableassertions -Xdebug -Xnoagent -Djava.compiler=none -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=$REPLICATOR_JVMDEBUG_PORT"
