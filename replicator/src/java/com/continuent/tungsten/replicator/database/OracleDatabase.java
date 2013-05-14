@@ -48,10 +48,10 @@ import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
  */
 public class OracleDatabase extends AbstractDatabase
 {
-    private static final String       TUNGSTEN_CHANGE_SET_PREFIX = "TUNGSTEN_CS_";
-    private static Logger             logger                     = Logger.getLogger(OracleDatabase.class);
-    private Hashtable<Integer, Table> tablesCache;
-    private String                    colList;
+    private static final String            TUNGSTEN_CHANGE_SET_PREFIX = "TUNGSTEN_CS_";
+    private static Logger                  logger                     = Logger.getLogger(OracleDatabase.class);
+    private Hashtable<Integer, Table>      tablesCache;
+    private String                         colList;
 
     /** A list of words that can't be used in table and column names. */
     private static final ArrayList<String> reservedWords              = new ArrayList<String>(
@@ -574,7 +574,7 @@ public class OracleDatabase extends AbstractDatabase
 
     public void dropSchema(String schema) throws SQLException
     {
-        throw new SQLException("dropSchema not supported");
+        logger.warn("dropSchema not supported");
     }
 
     public ArrayList<String> getSchemas() throws SQLException
