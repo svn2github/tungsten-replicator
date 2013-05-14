@@ -421,14 +421,18 @@ public class ReplicationServiceManager
         // Remove relay logs, if present.
         String relayLogDirName = serviceProps
                 .getString("replicator.extractor.dbms.relayLogDir");
-        File relayLogDir = new File(relayLogDirName);
-
-        if (!removeDirectory(relayLogDir, progress))
+        if (relayLogDirName != null)
         {
-            logger.error(String.format(
-                    "Could not remove the relay log directory %s", logDirName));
-        }
+            File relayLogDir = new File(relayLogDirName);
 
+            if (!removeDirectory(relayLogDir, progress))
+            {
+                logger.error(String.format(
+                        "Could not remove the relay log directory %s",
+                        logDirName));
+            }
+        }
+        
         logger.info("\n" + CLUtils.formatMap("progress", progress, "", false)
                 + "\n");
         return progress;
