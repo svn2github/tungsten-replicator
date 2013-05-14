@@ -287,6 +287,7 @@ public class CommitSeqnoTable
             close(lastSeqnoQuery);
         if (commitSeqnoUpdate != null)
             close(commitSeqnoUpdate);
+        database.close();
     }
 
     /**

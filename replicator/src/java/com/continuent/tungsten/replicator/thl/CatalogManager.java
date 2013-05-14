@@ -197,6 +197,8 @@ public class CatalogManager
 
         // Should release connection here but we do not or it will cause updates
         // on trep_commit_seqno to fail.
+        // This can lead to a connection leak ! Connection will now be released
+        // when releasing the CatalogMManager object
     }
 
     /**
@@ -250,6 +252,7 @@ public class CatalogManager
             if (conn != null)
                 releaseConnection(conn);
         }
+        commitSeqnoTable.release();
     }
 
     /**
