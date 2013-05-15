@@ -226,6 +226,9 @@ public class SecurityHelper
         authInfo.setTruststoreLocation(truststoreLocation);
         authInfo.setTruststorePassword(truststorePassword);
         authInfo.setUsername(userName);
+        
+        // --- Check information is correct ---
+        authInfo.checkAuthenticationInfo();                     // Checks authentication and encryption parameters: file exists, ...
 
         return authInfo;
     }

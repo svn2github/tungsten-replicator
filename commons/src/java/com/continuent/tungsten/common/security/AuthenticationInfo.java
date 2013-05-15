@@ -27,8 +27,10 @@ import java.text.MessageFormat;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.utils.FileUtils;
 
 /**
  * Information class holding Authentication and Encryption parameters Some of
@@ -90,26 +92,18 @@ public final class AuthenticationInfo
      * Check Authentication information consistency
      */
     public void checkAuthenticationInfo() throws ServerRuntimeException
-    {
-        // Check Truststore location
-        if (this.isEncryptionNeeded() && this.truststoreLocation != null)
-        {
-            File f = new File(this.truststoreLocation);
-            if (!f.isFile() || !f.canRead())
-            {
-                String msg = MessageFormat.format(
-                        "Cannot find or read {0} file: {1}",
-                        TRUSTSTORE_LOCATION, this.truststoreLocation);
-                logger.error(msg);
-                throw new ServerRuntimeException(msg, new AssertionError(
-                        "File must exist"));
-            }
-        }
-
-        // Check Keystore location
+    {   
+     // --- Check Keystore location ---
         if (this.isEncryptionNeeded() && this.keystoreLocation != null)
         {
             File f = new File(this.keystoreLocation);
+            // --- Find absolute path if needed
+            if (!f.isFile())
+            {
+                f = this.findAbsolutePath(f);
+                this.keystoreLocation = f.getAbsolutePath();
+            }
+            // --- Check file is readable
             if (!f.isFile() || !f.canRead())
             {
                 String msg = MessageFormat.format(
@@ -120,7 +114,72 @@ public final class AuthenticationInfo
                         "File must exist"));
             }
         }
-
+        
+        // --- Check Truststore location ---
+        if (this.isEncryptionNeeded() && this.truststoreLocation != null)
+        {
+            File f = new File(this.truststoreLocation);
+            // --- Find absolute path if needed
+            if (!f.isFile())
+            {
+                f = this.findAbsolutePath(f);
+                this.truststoreLocation = f.getAbsolutePath();
+            }
+            // --- Check file is readable
+            if (!f.isFile() || !f.canRead())
+            {
+                String msg = MessageFormat.format(
+                        "Cannot find or read {0} file: {1}",
+                        TRUSTSTORE_LOCATION, this.truststoreLocation);
+                logger.error(msg);
+                throw new ServerRuntimeException(msg, new AssertionError(
+                        "File must exist"));
+            }
+        }
+        
+        // --- Check password file location ---
+        if (this.isAuthenticationNeeded() && this.passwordFileLocation != null)
+        {
+            File f = new File(this.passwordFileLocation);
+            // --- Find absolute path if needed
+            if (!f.isFile())
+            {
+                f = this.findAbsolutePath(f);
+                this.passwordFileLocation = f.getAbsolutePath();
+            }
+            // --- Check file is readable
+            if (!f.isFile() || !f.canRead())
+            {
+                String msg = MessageFormat.format(
+                        "Cannot find or read {0} file: {1}",
+                        SecurityConf.SECURITY_PASSWORD_FILE_LOCATION, this.passwordFileLocation);
+                logger.error(msg);
+                throw new ServerRuntimeException(msg, new AssertionError(
+                        "File must exist"));
+            }
+        }
+        
+     // --- Check access file location ---
+        if (this.isAuthenticationNeeded() && this.accessFileLocation != null)
+        {
+            File f = new File(this.accessFileLocation);
+            // --- Find absolute path if needed
+            if (!f.isFile())
+            {
+                f = this.findAbsolutePath(f);
+                this.accessFileLocation = f.getAbsolutePath();
+            }
+            // --- Check file is readable
+            if (!f.isFile() || !f.canRead())
+            {
+                String msg = MessageFormat.format(
+                        "Cannot find or read {0} file: {1}",
+                        SecurityConf.SECURITY_ACCESS_FILE_LOCATION, this.accessFileLocation);
+                logger.error(msg);
+                throw new ServerRuntimeException(msg, new AssertionError(
+                        "File must exist"));
+            }
+        }
     }
 
     /**
@@ -226,6 +285,17 @@ public final class AuthenticationInfo
     {
         this.encryptionNeeded = encryptionNeeded;
     }
+    
+    public String getKeystoreLocation()
+    {
+        
+        return keystoreLocation;
+    }
+
+    public void setKeystoreLocation(String keystoreLocation)
+    {
+        this.keystoreLocation = keystoreLocation;
+    }
 
     public String getUsername()
     {
@@ -260,16 +330,6 @@ public final class AuthenticationInfo
     public void setAccessFileLocation(String accessFileLocation)
     {
         this.accessFileLocation = accessFileLocation;
-    }
-
-    public String getKeystoreLocation()
-    {
-        return keystoreLocation;
-    }
-
-    public void setKeystoreLocation(String keystoreLocation)
-    {
-        this.keystoreLocation = keystoreLocation;
     }
 
     public String getKeystorePassword()
@@ -331,6 +391,43 @@ public final class AuthenticationInfo
     public void setParentPropertiesFileLocation(String parentPropertiesFileLocation)
     {
         this.parentPropertiesFileLocation = parentPropertiesFileLocation;
+    }
+    
+    
+    /**
+     * Try to find a file absolute path from a series of default location
+     * 
+     * @param fileToFind the file for which to look for an absolute path
+     * @return the file with absolute path if found. returns the same unchanged object otherwise
+     */
+    private File findAbsolutePath(File fileToFind)
+    {
+        File foundFile = fileToFind;
+        
+        try
+        {
+            String clusterHome = ClusterConfiguration.getClusterHome();
+            
+            if (fileToFind.getPath() == fileToFind.getName())                   // No absolute or relative path was given
+            {
+                // --- Try to find find in: cluster-home/conf
+                File candidateFile = new File(clusterHome + File.separator + "conf" + File.separator + fileToFind.getName());
+                if (candidateFile.isFile())
+                {
+                    foundFile = candidateFile;
+                    logger.warn(MessageFormat.format("File was specified with name only, and found in default location: {0}",foundFile.getAbsoluteFile()));
+                }
+                else
+                    throw new ConfigurationException(MessageFormat.format("File does not exist: {0}", candidateFile.getAbsolutePath()));
+            }
+        }
+        catch (ConfigurationException e)
+        {
+            logger.warn(MessageFormat.format("Cannot find absolute path for file: {0} \n{1}", fileToFind.getName(), e.getMessage()));
+            return fileToFind;
+        }
+        
+        return foundFile;
     }
 
 }
