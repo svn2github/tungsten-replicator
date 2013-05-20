@@ -42,6 +42,7 @@ import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplDBMSFilteredEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.extractor.DummyExtractor;
@@ -93,6 +94,102 @@ public class TestTHL2 extends TestCase
         Store thl = pipeline.getStore("thl");
         assertEquals("Expected 0 as first event", 0, thl.getMinStoredSeqno());
         assertEquals("Expected 9 as last event", 9, thl.getMaxStoredSeqno());
+
+        // Close down pipeline.
+        pipeline.shutdown(false);
+        runtime.release();
+    }
+
+    /**
+     * Verify that filtered events are correctly replicated and stored. This
+     * includes checking that the latency is correctly reported when the
+     * filtered event commits and that the epoch number is visible after
+     * storage.
+     */
+    public void testFilteredEvents() throws Exception
+    {
+        String schema = "testFilteredEvents";
+        logger.info("##### " + schema + " #####");
+
+        // Prepare log directory and pipeline configuration.
+        this.prepareLogDir(schema);
+        TungstenProperties conf = this.generateQueueTHLQueuePipeline(schema);
+        ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+
+        // Configure and start pipeline
+        runtime.configure();
+        runtime.prepare();
+        Pipeline pipeline = runtime.getPipeline();
+        pipeline.start(new MockEventDispatcher());
+
+        // Find the input and output queues.
+        InMemoryQueueStore input = (InMemoryQueueStore) pipeline
+                .getStore("queue");
+        InMemoryQueueStore output = (InMemoryQueueStore) pipeline
+                .getStore("queue2");
+
+        // Put 2 initial events into the log so that it starts nicely.
+        THLParallelQueueHelper helper = new THLParallelQueueHelper();
+        long commitMillis = System.currentTimeMillis() - 60000;
+        Timestamp commitTime = new Timestamp(commitMillis);
+        logger.info("Commit time for all events: " + commitTime);
+        ReplDBMSEvent e0 = helper.createEvent(0, (short) 0, true, "NONE",
+                commitTime, 0);
+        input.put(e0);
+        ReplDBMSEvent e1 = helper.createEvent(1, (short) 0, true, "NONE",
+                commitTime, 1);
+        input.put(e1);
+
+        // Wait for these to clear.
+        Future<ReplDBMSHeader> wait1 = pipeline
+                .watchForCommittedSequenceNumber(1, false);
+        ReplDBMSHeader lastEvent = wait1.get(5, TimeUnit.SECONDS);
+        assertEquals("Expected to reach 1", 1, lastEvent.getSeqno());
+
+        // Generate a filtered event and confirm that it commits. Pick commit
+        // time in past to ensure that the latency is correctly reported as this
+        // was a problem in earlier code versions.
+        ReplDBMSEvent e2 = helper.createEvent(2, (short) 0, true, "NONE",
+                commitTime, 1);
+        ReplDBMSEvent e4 = helper.createEvent(4, (short) 0, true, "NONE",
+                commitTime, 1);
+        ReplDBMSFilteredEvent fe24 = new ReplDBMSFilteredEvent(e2, e4);
+        logger.info("Pipeline latency before filtered event: "
+                + pipeline.getApplyLatency());
+        logger.info("Filtered event commit time on input: "
+                + fe24.getExtractedTstamp());
+        input.put(fe24);
+
+        // Wait for and verify events.
+        Future<ReplDBMSHeader> wait2 = pipeline
+                .watchForCommittedSequenceNumber(2, false);
+        ReplDBMSHeader lastEvent2 = wait2.get(5, TimeUnit.SECONDS);
+        assertEquals("Expected to reach 2", 2, lastEvent2.getSeqno());
+
+        // Fetch events 0 and 1 to clear the output queue.
+        ReplDBMSEvent e0out = output.get();
+        assertEquals("e0 event seqno", 0, e0out.getSeqno());
+        ReplDBMSEvent e1out = output.get();
+        assertEquals("e1 event seqno", 1, e1out.getSeqno());
+
+        // Confirm that the filtered event has reached the output queue.
+        long currentMillis = System.currentTimeMillis();
+        ReplDBMSFilteredEvent fe24out = (ReplDBMSFilteredEvent) output.get();
+        assertEquals("First filtered seqno", 2, fe24out.getSeqno());
+        assertEquals("Last filtered seqno", 4, fe24out.getSeqnoEnd());
+        assertEquals("Epoch number", 1, fe24out.getEpochNumber());
+
+        // Test the latency and ensure it is at least the interval between
+        // now and the commit time less a buffer of 10 seconds *or* 0.
+        double pipelineLatency = pipeline.getApplyLatency();
+        logger.info("Current pipeline latency: " + pipelineLatency);
+        logger.info("Filtered event commit time on output: "
+                + fe24out.getExtractedTstamp());
+        double expectedLatency = ((currentMillis - commitMillis) / 1000.0) - 10.0;
+        assertTrue("Testing pipeline latency: expect " + pipelineLatency
+                + " >= " + expectedLatency, pipelineLatency >= expectedLatency);
 
         // Close down pipeline.
         pipeline.shutdown(false);
@@ -689,6 +786,48 @@ public class TestTHL2 extends TestCase
                 THLStoreExtractor.class);
         builder.addProperty("extractor", "thl-extract", "storeName", "thl");
         builder.addComponent("applier", "dummy", DummyApplier.class);
+
+        return builder.getConfig();
+    }
+
+    // Generate a pipeline with a queue to feed and a queue to receive
+    // transactions and a THL in the middle. This will be marked as a
+    // slave.
+    public TungstenProperties generateQueueTHLQueuePipeline(String schemaName)
+            throws Exception
+    {
+        // Clear the THL log directory.
+        prepareLogDir(schemaName);
+
+        // Create pipeline.
+        PipelineConfigBuilder builder = new PipelineConfigBuilder();
+        builder.setProperty(ReplicatorConf.SERVICE_NAME, "test");
+        builder.setRole("slave");
+        builder.setProperty(ReplicatorConf.METADATA_SCHEMA, schemaName);
+        builder.addPipeline("slave", "extract, apply", "queue,thl,queue2");
+        builder.addStage("extract", "queue", "thl-apply", null);
+        builder.addStage("apply", "thl-extract", "queue2", null);
+
+        // Define stores.
+        builder.addComponent("store", "thl", THL.class);
+        builder.addProperty("store", "thl", "logDir", schemaName);
+        builder.addComponent("store", "queue", InMemoryQueueStore.class);
+        builder.addProperty("store", "queue", "maxSize", "5");
+        builder.addComponent("store", "queue2", InMemoryQueueStore.class);
+        builder.addProperty("store", "queue2", "maxSize", "5");
+
+        // Extract stage components.
+        builder.addComponent("extractor", "queue", InMemoryQueueAdapter.class);
+        builder.addProperty("extractor", "queue", "storeName", "queue");
+        builder.addComponent("applier", "thl-apply", THLStoreApplier.class);
+        builder.addProperty("applier", "thl-apply", "storeName", "thl");
+
+        // Apply stage components.
+        builder.addComponent("extractor", "thl-extract",
+                THLStoreExtractor.class);
+        builder.addProperty("extractor", "thl-extract", "storeName", "thl");
+        builder.addComponent("applier", "queue2", InMemoryQueueAdapter.class);
+        builder.addProperty("applier", "queue2", "storeName", "queue2");
 
         return builder.getConfig();
     }

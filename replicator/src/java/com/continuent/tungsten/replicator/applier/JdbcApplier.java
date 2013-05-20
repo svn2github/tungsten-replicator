@@ -484,7 +484,7 @@ public class JdbcApplier implements RawApplier
                     cv.setName(column.getName());
                     cv.setSigned(column.isSigned());
                     cv.setTypeDescription(column.getTypeDescription());
-                  if (cv.getLength() == 0)
+                    if (cv.getLength() == 0)
                         cv.setLength((int) column.getLength());
 
                     // Check whether column is real blob on the applier side
@@ -1283,11 +1283,14 @@ public class JdbcApplier implements RawApplier
             else if (header instanceof ReplDBMSFilteredEvent)
             {
                 // This is a range of filtered events
-                // Just update the commit seqno
+                // Update the position and commit if desired. 
                 ((ReplDBMSFilteredEvent) header).updateCommitSeqno();
                 updateCommitSeqno(header, appliedLatency);
-                commitTransaction();
-                transactionCommitted = true;
+                if (doCommit)
+                {
+                    commitTransaction();
+                    transactionCommitted = true;
+                }
                 return;
             }
             else

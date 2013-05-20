@@ -268,8 +268,11 @@ public class SingleThreadStageTask implements Runnable
 
                 // Issue #15. If we detect a change in the service name, we
                 // should commit now to prevent merging of transactions from
-                // different services in block commit.
-                if (usingBlockCommit && genericEvent instanceof ReplDBMSEvent)
+                // different services in block commit. However, we need to
+                // ignore this rule for filtered events, as they are gaps
+                // rather than real transactions.
+                if (usingBlockCommit && genericEvent instanceof ReplDBMSEvent
+                        && !(genericEvent instanceof ReplDBMSFilteredEvent))
                 {
                     ReplDBMSEvent re = (ReplDBMSEvent) genericEvent;
                     String newService = re.getDBMSEvent()

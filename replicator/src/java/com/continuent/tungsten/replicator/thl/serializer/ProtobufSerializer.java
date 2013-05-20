@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -111,7 +111,8 @@ public class ProtobufSerializer implements Serializer
                 event = new ReplDBMSFilteredEvent(header.getSeqno(),
                         (short) header.getFragno(), header.getSeqnoEnd(),
                         (short) header.getFragnoEnd(), header.getLastFrag(),
-                        header.getEventId(), header.getSourceId(), sourceTstamp);
+                        header.getEventId(), header.getSourceId(),
+                        sourceTstamp, header.getEpochNumber());
             }
             else
             {
@@ -356,6 +357,16 @@ public class ProtobufSerializer implements Serializer
             ReplDBMSFilteredEvent ev = (ReplDBMSFilteredEvent) event
                     .getReplEvent();
             headerBuilder.setFilteredEvent(true);
+            // Fix up time for filtered events, which don't have a proper
+            // DBMSEvent.
+            Timestamp extractedTs = ev.getExtractedTstamp();
+            long extractedTime;
+            if (extractedTs == null)
+                extractedTime = System.currentTimeMillis();
+            else
+                extractedTime = extractedTs.getTime();
+            headerBuilder.setExtractedTstamp(extractedTime);
+            headerBuilder.setSourceTstamp(extractedTime);
             headerBuilder.setFragnoEnd(ev.getFragnoEnd());
             headerBuilder.setSeqnoEnd(ev.getSeqnoEnd());
         }
@@ -747,7 +758,7 @@ public class ProtobufSerializer implements Serializer
                 // CLOB
                 if (value instanceof Clob)
                 {
-                    valueBuilder.setStringValue(((Clob) value).toString());                    
+                    valueBuilder.setStringValue(((Clob) value).toString());
                 }
                 else
                     valueBuilder.setStringValue((String) value);
