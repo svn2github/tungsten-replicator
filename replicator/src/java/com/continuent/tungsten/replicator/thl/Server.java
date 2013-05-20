@@ -113,7 +113,9 @@ public class Server implements Runnable
         try
         {
             SocketChannel clientChannel;
-            serverChannel.configureBlocking(false);
+            // Commenting the following line which leads accept() method not to
+            // block and then CPU goes up to 100% (infinite loop)
+            // serverChannel.configureBlocking(false);
 
             while (stopped == false)
             {
