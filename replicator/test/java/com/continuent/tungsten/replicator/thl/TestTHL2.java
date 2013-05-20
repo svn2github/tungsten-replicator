@@ -510,26 +510,34 @@ public class TestTHL2 extends TestCase
         Pipeline pipeline = runtime.getPipeline();
         pipeline.start(new MockEventDispatcher());
 
-        // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline
-                .watchForProcessedSequenceNumber(9);
-        ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
-        assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
+        try
+        {
+            // Wait for and verify events.
+            Future<ReplDBMSHeader> wait = pipeline
+                    .watchForProcessedSequenceNumber(9);
+            ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
+            assertEquals("Expected 10 server events", 9, lastEvent.getSeqno());
 
-        Store thl = pipeline.getStore("thl");
-        assertEquals("Expected 0 as first event", 0, thl.getMinStoredSeqno());
-        assertEquals("Expected 9 as last event", 9, thl.getMaxStoredSeqno());
+            Store thl = pipeline.getStore("thl");
+            assertEquals("Expected 0 as first event", 0,
+                    thl.getMinStoredSeqno());
+            assertEquals("Expected 9 as last event", 9, thl.getMaxStoredSeqno());
 
-        // Confirm we have 10x2 statements.
-        ApplierWrapper wrapper = (ApplierWrapper) pipeline.getStage("apply")
-                .getApplier0();
-        DummyApplier applier = (DummyApplier) wrapper.getApplier();
-        ArrayList<StatementData> sql = ((DummyApplier) applier).getTrx();
-        assertEquals("Expected 10x2 statements", 60, sql.size());
+            // Confirm we have 10x2 statements.
+            ApplierWrapper wrapper = (ApplierWrapper) pipeline
+                    .getStage("apply").getApplier0();
+            DummyApplier applier = (DummyApplier) wrapper.getApplier();
+            ArrayList<StatementData> sql = ((DummyApplier) applier).getTrx();
+            assertEquals("Expected 10x2 statements", 60, sql.size());
 
-        // Close down pipeline.
-        pipeline.shutdown(false);
-        runtime.release();
+        }
+        finally
+        {
+            // Clean-up : needs to be done even if test failed on assertion
+            // Close down pipeline.
+            pipeline.shutdown(false);
+            runtime.release();
+        }
     }
 
     /*
