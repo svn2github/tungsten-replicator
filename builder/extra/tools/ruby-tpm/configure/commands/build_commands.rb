@@ -192,7 +192,7 @@ class ReverseEngineerCommand
             next
           end
 
-          ds_alias = cfg.getProperty(path + [p_alias, DEPLOYMENT_DATASERVICE]).to_a
+          ds_alias = cfg.getProperty(path + [p_alias, DEPLOYMENT_DATASERVICE])
           unless include_dataservice?(ds_alias)
             next
           end
