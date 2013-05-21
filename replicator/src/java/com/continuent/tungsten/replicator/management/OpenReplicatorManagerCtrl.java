@@ -1396,7 +1396,7 @@ public class OpenReplicatorManagerCtrl
         // Print values.
         int propIdx = 0;
         if (json)
-            println("{");
+            println("[");
         for (Map<String, String> props : propList)
         {
             if (json)
@@ -1436,7 +1436,7 @@ public class OpenReplicatorManagerCtrl
             propIdx++;
         }
         if (json)
-            println("\n}");
+            println("\n]");
     }
 
     /**
@@ -1459,10 +1459,7 @@ public class OpenReplicatorManagerCtrl
         // Construct formating strings.
         String format = "\"%s\": \"%s\"";
 
-        if (propIdx >= 0)
-            printf("\"props%d\" : {\n", propIdx);
-        else
-            println("{");
+        println("{");
 
         Object[] keys = props.keySet().toArray();
         for (int i = 0; i < keys.length; i++)
