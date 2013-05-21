@@ -192,7 +192,6 @@ end
 class ClusterTopologyPrompt < ConfigurePrompt
   include ClusterPrompt
   include AdvancedPromptModule
-  include HiddenValueModule
   
   def initialize
     validator = PropertyValidator.new(Topology.get_types().join("|"), 
@@ -216,6 +215,10 @@ class ClusterTopologyPrompt < ConfigurePrompt
   
   def allow_group_default
     false
+  end
+  
+  def get_prompt_description
+    "Valid values are " + Topology.get_types().join(',')
   end
 end
 

@@ -52,7 +52,7 @@ class ConfigureDataServiceCommand
     true
   end
   
-  def skip_deployment?
+  def skip_deployment?(v = nil)
     true
   end
   
