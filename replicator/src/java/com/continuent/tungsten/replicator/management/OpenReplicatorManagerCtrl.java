@@ -126,7 +126,7 @@ public class OpenReplicatorManagerCtrl
 //                + " sl       - Location of the security properties file. By default file located in {clusterhome}/security.properties will be used.");
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
-        println("  services                     - List replication services");
+        println("  services [-json]             - List replication services");
         println("  capabilities                 - List replicator capabilities");
         println("  shutdown [-y]                - Shut down replication services cleanly and exit");
         println("  kill [-y]                    - Exit immediately without shutting down services");
@@ -141,13 +141,13 @@ public class OpenReplicatorManagerCtrl
         println("                               - Set replicator OFFLINE at future point");
         println("  online [-force] [-from-event event] [-base-seqno x] [-skip-seqno x,y,z] [-until-seqno seqno] [-until-event event] [-until-heartbeat [name]] [-until-time YYYY-MM-DD_hh:mm:ss]");
         println("                               - Set Replicator to ONLINE with start and stop points");
-        println("  properties [filter-name]     - Print all in-memory properties and their current values");
+        println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
         println("  reset [-y]                   - Deletes the replicator service");
         println("  restore [-uri uri] [-limit s]    - Restore database");
         println("  setrole -role role [-uri uri]    - Set replicator role");
         println("  start                        - Start start replication service");
-        println("  status [-name {channel-assignments|services|shards|stages|stores|tasks|watches}] ");
+        println("  status [-name {channel-assignments|services|shards|stages|stores|tasks|watches}] [-json]");
         println("                               - Print replicator status information");
         println("  stop [-y]                    - Stop replication service");
         println("  wait -state s [-limit s]     - Wait up to s seconds for replicator state s");
@@ -569,7 +569,17 @@ public class OpenReplicatorManagerCtrl
     // Handle a request for status.
     private void doServices() throws Exception
     {
-        println("Processing services command...");
+        String curArg = null;
+        boolean json = false;
+        while (argvIterator.hasNext())
+        {
+            curArg = argvIterator.next();
+            if ("-json".equals(curArg))
+                json = true;
+        }
+
+        if (!json)
+            println("Processing services command...");
         List<Map<String, String>> serviceList = this.serviceManagerMBean
                 .services();
         List<Map<String, String>> propList = new ArrayList<Map<String, String>>();
@@ -608,11 +618,12 @@ public class OpenReplicatorManagerCtrl
             }
             propList.add(props);
         }
-        printlnPropList(propList);
-        println("Finished services command...");
-
+        
+        printlnPropList(propList, json);
+        if (!json)
+            println("Finished services command...");
     }
-    
+
     /**
      * List in-memory property values.
      */
@@ -621,38 +632,19 @@ public class OpenReplicatorManagerCtrl
         OpenReplicatorManagerMBean mbean = getOpenReplicator();
 
         String containing = null;
-        if (argvIterator.hasNext())
-            containing = argvIterator.next();
-
-        printProperties(mbean.properties(containing));
-    }
-    
-    /**
-     * Prints properties and values in JSON.
-     */
-    private void printProperties(Map<String, String> props) throws Exception
-    {
-     // Construct formating strings.
-        String format = "\"%s\": \"%s\"";
-
-        println("{");
-
-        Object[] keys = props.keySet().toArray();
-        for (int i = 0; i < keys.length; i++)
+        String curArg = null;
+        while (argvIterator.hasNext())
         {
-            String key = (String) keys[i];
-            String value = props.get(key);
-            if (value != null)
-                printf(format, key, value);
+            curArg = argvIterator.next();
+            if ("-filter".equals(curArg))
+                containing = argvIterator.next();
             else
-                printf(format, key, "");
-            if (i < (keys.length - 1))
-                println(",");
-            else
-                println("");
+            {
+                fatal("Unrecognized option: " + curArg, null);
+            }
         }
 
-        println("}");
+        printPropertiesJSON(mbean.properties(containing));
     }
 
     // Start a service.
@@ -1311,6 +1303,7 @@ public class OpenReplicatorManagerCtrl
     {
         String name = null;
         String curArg = null;
+        boolean json = false;
         try
         {
             while (argvIterator.hasNext())
@@ -1318,6 +1311,8 @@ public class OpenReplicatorManagerCtrl
                 curArg = argvIterator.next();
                 if ("-name".equals(curArg))
                     name = argvIterator.next();
+                else if ("-json".equals(curArg))
+                    json = true;
                 else
                 {
                     fatal("Unrecognized option: " + curArg, null);
@@ -1331,19 +1326,26 @@ public class OpenReplicatorManagerCtrl
 
         if (name == null)
         {
-            println("Processing status command...");
-            List<Map<String, String>> propList = new ArrayList<Map<String, String>>();
-            propList.add(getOpenReplicator().status());
-            printlnPropList(propList);
-            println("Finished status command...");
+            if (!json)
+            {
+                println("Processing status command...");
+                List<Map<String, String>> propList = new ArrayList<Map<String, String>>();
+                propList.add(getOpenReplicator().status());
+                printlnPropList(propList, json);
+                println("Finished status command...");
+            }
+            else
+                printPropertiesJSON(getOpenReplicator().status());
         }
         else
         {
-            println("Processing status command (" + name + ")...");
+            if (!json)
+                println("Processing status command (" + name + ")...");
             List<Map<String, String>> propList = getOpenReplicator()
                     .statusList(name);
-            printlnPropList(propList);
-            println("Finished status command (" + name + ")...");
+            printlnPropList(propList, json);
+            if (!json)
+                println("Finished status command (" + name + ")...");
         }
     }
 
@@ -1362,8 +1364,18 @@ public class OpenReplicatorManagerCtrl
         println("  Flush:             " + capabilities.isFlush());
     }
 
-    // Print properties output.
     private static void printlnPropList(List<Map<String, String>> propList)
+    {
+        printlnPropList(propList, false);
+    }
+
+    /**
+     * Print properties output.
+     * 
+     * @param json If true, print in JSON format.
+     */
+    private static void printlnPropList(List<Map<String, String>> propList,
+            boolean json)
     {
         // Scan for maximum property name and value lengths.
         int maxName = 4;
@@ -1382,34 +1394,94 @@ public class OpenReplicatorManagerCtrl
         String valueFormat = "%-" + maxName + "s: %s\n";
         String nextValFormat = "%-" + maxName + "s  %s\n";
         // Print values.
+        int propIdx = 0;
+        if (json)
+            println("{");
         for (Map<String, String> props : propList)
         {
-            printf(headerFormat, "NAME", "VALUE");
-            printf(headerFormat, "----", "-----");
-
-            TreeSet<String> treeSet = new TreeSet<String>(props.keySet());
-            for (String key : treeSet)
+            if (json)
             {
-                String value = props.get(key);
-                if (value != null)
-                {
-                    String[] split = value.split("\n");
-                    boolean first = true;
-                    for (String string : split)
-                    {
-                        if (first)
-                        {
-                            printf(valueFormat, key, string);
-                            first = false;
-                        }
-                        else
-                            printf(nextValFormat, "", string);
-                    }
-                }
-                else
-                    printf(valueFormat, key, value);
+                if (propIdx > 0)
+                    println(",");
+                printPropertiesJSON(props, propIdx);
             }
+            else
+            {
+                printf(headerFormat, "NAME", "VALUE");
+                printf(headerFormat, "----", "-----");
+
+                TreeSet<String> treeSet = new TreeSet<String>(props.keySet());
+                for (String key : treeSet)
+                {
+                    String value = props.get(key);
+                    if (value != null)
+                    {
+                        String[] split = value.split("\n");
+                        boolean first = true;
+                        for (String string : split)
+                        {
+                            if (first)
+                            {
+                                printf(valueFormat, key, string);
+                                first = false;
+                            }
+                            else
+                                printf(nextValFormat, "", string);
+                        }
+                    }
+                    else
+                        printf(valueFormat, key, value);
+                }
+            }
+            propIdx++;
         }
+        if (json)
+            println("\n}");
+    }
+
+    /**
+     * Prints properties and values in JSON. One level of nesting.
+     */
+    private static void printPropertiesJSON(Map<String, String> props)
+    {
+        printPropertiesJSON(props, -1);
+    }
+
+    /**
+     * Prints properties and values in JSON.
+     * 
+     * @param propIdx Index of the given property map. -1, if it's a single one
+     *            only.
+     */
+    private static void printPropertiesJSON(Map<String, String> props,
+            int propIdx)
+    {
+        // Construct formating strings.
+        String format = "\"%s\": \"%s\"";
+
+        if (propIdx >= 0)
+            printf("\"props%d\" : {\n", propIdx);
+        else
+            println("{");
+
+        Object[] keys = props.keySet().toArray();
+        for (int i = 0; i < keys.length; i++)
+        {
+            String key = (String) keys[i];
+            String value = props.get(key);
+            if (value != null)
+                printf(format, key, value);
+            else
+                printf(format, key, "");
+            if (i < (keys.length - 1))
+                println(",");
+            else
+                println("");
+        }
+
+        print("}");
+        if (propIdx < 0)
+            println("");
     }
 
     // Print a message to stdout.
