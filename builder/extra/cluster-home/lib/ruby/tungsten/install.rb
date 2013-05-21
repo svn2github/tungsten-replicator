@@ -132,7 +132,7 @@ class TungstenInstall
   end
   
   def trepctl_property(service, key)
-    properties = JSON.parse(TU.cmd_result("#{trepctl(service)} properties #{key}"))
+    properties = JSON.parse(TU.cmd_result("#{trepctl(service)} properties -filter #{key}"))
     if properties.has_key?(key)
       return properties[key]
     else
