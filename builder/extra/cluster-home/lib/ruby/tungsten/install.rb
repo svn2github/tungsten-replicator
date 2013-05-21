@@ -106,14 +106,17 @@ class TungstenInstall
   end
   
   def topology(dataservice = nil)
-    if is_commercial?()
+    if is_manager?()
       unless is_running?("manager")
         return nil
       end
-    else
+    elsif is_replicator?()
       unless is_running?("replicator")
         return nil
       end
+    else
+      # This is a connector server
+      return nil
     end
     
     return TungstenTopology.new(self, dataservice)

@@ -68,13 +68,7 @@ class TungstenTopology
 
     @props.setProperty(DATASERVICE, @dataservice)
     @props.setProperty(SERVICE_TYPE, REPLICATION_SERVICE)
-    r_props = {}
-    TU.cmd_result("#{@install.trepctl(@dataservice)} status | grep :").each{
-      |line|
-      parts = line.split(":")
-      key = parts.shift()
-      r_props[key.strip()] = parts.join(":").strip()
-    }
+    r_props = JSON.parse(TU.cmd_result("#{@install.trepctl(@dataservice)} status -json"))
     @props.setProperty([REPLICATORS, @install.hostname()], r_props)
   end
   
