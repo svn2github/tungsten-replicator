@@ -599,14 +599,19 @@ public class OpenReplicatorManagerCtrl
             {
                 OpenReplicatorManagerMBean mbean = getOpenReplicatorSafely(name);
                 Map<String, String> liveProps = mbean.status();
-                props.put(Replicator.ROLE, liveProps.get(Replicator.ROLE));
-                props.put(Replicator.SERVICE_TYPE,
-                        liveProps.get(Replicator.SERVICE_TYPE));
-                props.put(Replicator.STATE, liveProps.get(Replicator.STATE));
-                props.put(Replicator.APPLIED_LAST_SEQNO,
-                        liveProps.get(Replicator.APPLIED_LAST_SEQNO));
-                props.put(Replicator.APPLIED_LATENCY,
-                        liveProps.get(Replicator.APPLIED_LATENCY));
+                if (!json)
+                {
+                    props.put(Replicator.ROLE, liveProps.get(Replicator.ROLE));
+                    props.put(Replicator.SERVICE_TYPE,
+                            liveProps.get(Replicator.SERVICE_TYPE));
+                    props.put(Replicator.STATE, liveProps.get(Replicator.STATE));
+                    props.put(Replicator.APPLIED_LAST_SEQNO,
+                            liveProps.get(Replicator.APPLIED_LAST_SEQNO));
+                    props.put(Replicator.APPLIED_LATENCY,
+                            liveProps.get(Replicator.APPLIED_LATENCY));
+                }
+                else
+                    props.putAll(liveProps);
             }
             else
             {
