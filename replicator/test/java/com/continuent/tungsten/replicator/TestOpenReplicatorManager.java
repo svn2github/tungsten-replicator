@@ -128,7 +128,7 @@ public class TestOpenReplicatorManager extends TestCase
                 OpenReplicatorManager.class, false);
         JmxManager.addNotificationListener(conn, OpenReplicatorManager.class,
                 stateListener);
-        rmgr.start();
+        rmgr.start(false);
 
     }
 
@@ -290,11 +290,11 @@ public class TestOpenReplicatorManager extends TestCase
         OpenReplicatorManager rmgr1 = new OpenReplicatorManager("default");
         StateNotificationListener sl1 = new StateNotificationListener();
         rmgr1.addNotificationListener(sl1, null, null);
-        rmgr1.start();
+        rmgr1.start(false);
         OpenReplicatorManager rmgr2 = new OpenReplicatorManager("default");
         StateNotificationListener sl2 = new StateNotificationListener();
         rmgr2.addNotificationListener(sl2, null, null);
-        rmgr2.start();
+        rmgr2.start(false);
 
         waitStatus(sl1, "OFFLINE");
         waitStatus(sl2, "OFFLINE");
@@ -355,12 +355,12 @@ public class TestOpenReplicatorManager extends TestCase
         OpenReplicatorManager rmgr1 = new OpenReplicatorManager("default");
         StateNotificationListener sl1 = new StateNotificationListener();
         rmgr1.addNotificationListener(sl1, null, null);
-        rmgr1.start();
+        rmgr1.start(false);
 
         OpenReplicatorManager rmgr2 = new OpenReplicatorManager("default");
         StateNotificationListener sl2 = new StateNotificationListener();
         rmgr2.addNotificationListener(sl2, null, null);
-        rmgr2.start();
+        rmgr2.start(false);
 
         waitStatus(sl1, "OFFLINE");
         waitStatus(sl2, "OFFLINE");
@@ -443,7 +443,7 @@ public class TestOpenReplicatorManager extends TestCase
 
         public void start() throws Exception
         {
-            rmgr.start();
+            rmgr.start(false);
             currentState = waitStatus(snl, "OFFLINE");
             rmgr.configure(conf);
         }

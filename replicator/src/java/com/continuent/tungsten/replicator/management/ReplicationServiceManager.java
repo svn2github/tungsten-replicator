@@ -94,8 +94,9 @@ public class ReplicationServiceManager
 
     /**
      * Start replicator services.
+     * @param forceOffline Forces the replicator to start every services offline
      */
-    public void go() throws ReplicatorException
+    public void go(boolean forceOffline) throws ReplicatorException
     {
         // Find and load the service.properties file.
         File confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
@@ -143,6 +144,7 @@ public class ReplicationServiceManager
                     .getString(ReplicatorConf.SERVICE_TYPE);
             boolean isDetached = replProps.getBoolean(ReplicatorConf.DETACHED);
 
+            replProps.setBoolean(ReplicatorConf.FORCE_OFFLINE, forceOffline);
             if (serviceType.equals("local"))
             {
                 // Get properties file name if specified or generate default.
@@ -210,6 +212,8 @@ public class ReplicationServiceManager
         ManifestParser.logReleaseWithBuildNumber(logger);
         logger.info("Starting replication service manager");
 
+        boolean forceOffline = false;
+
         // Parse global options and command.
         for (int i = 0; i < argv.length; i++)
         {
@@ -224,6 +228,10 @@ public class ReplicationServiceManager
                 printHelp();
                 System.exit(0);
             }
+            else if ("-offline".equalsIgnoreCase(curArg))
+            {
+                forceOffline = true;
+            }
             else
             {
                 System.err.println("Unrecognized option: " + curArg);
@@ -234,7 +242,7 @@ public class ReplicationServiceManager
         try
         {
             ReplicationServiceManager rmgr = new ReplicationServiceManager();
-            rmgr.go();
+            rmgr.go(forceOffline);
             try
             {
                 Thread.sleep(Long.MAX_VALUE);
@@ -432,7 +440,7 @@ public class ReplicationServiceManager
                         logDirName));
             }
         }
-        
+
         logger.info("\n" + CLUtils.formatMap("progress", progress, "", false)
                 + "\n");
         return progress;
@@ -591,7 +599,7 @@ public class ReplicationServiceManager
             // Put the service in the list of replicators now, as the start
             // might fail.
             replicators.put(serviceName, orm);
-            orm.start();
+            orm.start(replProps.getBoolean(ReplicatorConf.FORCE_OFFLINE));
 
             int listenPort = orm.getMasterListenPort();
             if (listenPort > masterListenPortMax)
@@ -734,6 +742,7 @@ public class ReplicationServiceManager
         println("             [global-options]");
         println("Global Options:");
         println("\t-clear      Clear dynamic properties and start from defaults only");
+        println("\t-offline    Start replicator and leave all services offline");
         println("\t-help       Print help");
     }
 

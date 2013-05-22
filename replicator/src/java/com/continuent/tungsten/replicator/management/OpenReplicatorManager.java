@@ -1974,7 +1974,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
      * Start Replicator Node Manager JMX service.
      */
     @MethodDesc(description = "Starts the replicator service", usage = "start")
-    public void start() throws Exception
+    public void start(boolean forceOffline) throws Exception
     {
         try
         {
@@ -1985,7 +1985,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 // directly.
                 boolean autoEnabled = new Boolean(
                         properties.getBoolean(ReplicatorConf.AUTO_ENABLE));
-                if (autoEnabled)
+                if (!forceOffline && autoEnabled)
                 {
                     logger.info("Replicator auto-enabling is engaged; going online automatically");
                     online();

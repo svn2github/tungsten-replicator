@@ -243,6 +243,9 @@ public class ReplicatorConf
     static public final String   SCRIPT_CONF_FILE                                                     = "replicator.script.conf_file";
     static public final String   SCRIPT_PROCESSOR                                                     = "replicator.script.processor";
 
+    /** Replicator start option to prevent services from going online automatically */
+    public static final String   FORCE_OFFLINE                                                        = "forceOffline";
+
     /** Dynamically settable property names. */
     static public final String[] DYNAMIC_PROPERTIES                                                   = {
             ROLE, AUTO_ENABLE, MASTER_CONNECT_URI, AUTO_PROVISION, AUTO_BACKUP                        };

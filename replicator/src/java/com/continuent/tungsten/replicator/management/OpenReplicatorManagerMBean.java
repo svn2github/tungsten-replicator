@@ -415,12 +415,15 @@ public interface OpenReplicatorManagerMBean
      * Starts the replicator service, which spawns all threads and underlying
      * components necessary to perform replication. It is the first call to a
      * new replication service. It also issues a call to put the replicator
-     * online if auto_enable is set.
+     * services online if auto_enable is set in configuration file, except if
+     * forceOffline is true.
      * 
+     * @param forceOffline true to prevent the replicator from putting its
+     *           replication services online (if auto-enable is set to true)
      * @throws Exception Thrown if start-up fails. This includes failure to go
      *             online if the replicator is auto-enabled.
      */
-    public void start() throws Exception;
+    public void start(boolean forceOffline) throws Exception;
 
     /**
      * Returns a map instance containing currently set properties, if any. This
