@@ -89,13 +89,13 @@ public class MySQLDrizzleDatabase extends MySQLDatabase
             if (colValue == null)
                 return " NULL ";
             else if (colValue instanceof SerialBlob)
-                return " UNHEX ( ? ) ";
+                return " UNHEX( ? ) ";
         }
         else if (col.getType() == Types.VARCHAR)
             if (colValue == null)
                 return " NULL ";
             else if (colValue instanceof byte[])
-                return " UNHEX ( ? ) ";
+                return " UNHEX( ? ) ";
         return super.getPlaceHolder(col, colValue, typeDesc);
     }
 
