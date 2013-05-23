@@ -94,6 +94,7 @@ public class ReplicationServiceManager
 
     /**
      * Start replicator services.
+     * 
      * @param forceOffline Forces the replicator to start every services offline
      */
     public void go(boolean forceOffline) throws ReplicatorException
@@ -228,7 +229,8 @@ public class ReplicationServiceManager
                 printHelp();
                 System.exit(0);
             }
-            else if ("-offline".equalsIgnoreCase(curArg))
+            else if ("-offline".equalsIgnoreCase(curArg)
+                    || "offline".equalsIgnoreCase(curArg))
             {
                 forceOffline = true;
             }
