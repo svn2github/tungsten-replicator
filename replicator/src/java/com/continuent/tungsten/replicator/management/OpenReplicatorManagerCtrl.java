@@ -126,7 +126,7 @@ public class OpenReplicatorManagerCtrl
 //                + " sl       - Location of the security properties file. By default file located in {clusterhome}/security.properties will be used.");
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
-        println("  services [-json]             - List replication services");
+        println("  services [-json] [-full]     - List replication services");
         println("  capabilities                 - List replicator capabilities");
         println("  shutdown [-y]                - Shut down replication services cleanly and exit");
         println("  kill [-y]                    - Exit immediately without shutting down services");
@@ -571,11 +571,14 @@ public class OpenReplicatorManagerCtrl
     {
         String curArg = null;
         boolean json = false;
+        boolean full = false;
         while (argvIterator.hasNext())
         {
             curArg = argvIterator.next();
             if ("-json".equals(curArg))
                 json = true;
+            else if ("-full".equals(curArg))
+                full = true;
         }
 
         if (!json)
@@ -599,7 +602,7 @@ public class OpenReplicatorManagerCtrl
             {
                 OpenReplicatorManagerMBean mbean = getOpenReplicatorSafely(name);
                 Map<String, String> liveProps = mbean.status();
-                if (!json)
+                if (!full)
                 {
                     props.put(Replicator.ROLE, liveProps.get(Replicator.ROLE));
                     props.put(Replicator.SERVICE_TYPE,
