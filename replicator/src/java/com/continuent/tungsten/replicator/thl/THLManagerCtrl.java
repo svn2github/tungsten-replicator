@@ -298,8 +298,8 @@ public class THLManagerCtrl
      * @throws InterruptedException
      */
     public void listEvents(Long low, Long high, Long by, boolean pureSQL,
-            String charset, boolean hex) throws ReplicatorException,
-            InterruptedException
+            boolean headersOnly, boolean json, String charset, boolean hex)
+            throws ReplicatorException, InterruptedException
     {
         // Make sure range is OK.
         if (low != null && high != null && low > high)
@@ -341,6 +341,9 @@ public class THLManagerCtrl
             }
         }
 
+        if (json)
+            println("[");
+        
         // Iterate until we run out of sequence numbers.
         THLEvent thlEvent = null;
         int found = 0;
@@ -356,27 +359,35 @@ public class THLManagerCtrl
             if (!pureSQL)
             {
                 StringBuilder sb = new StringBuilder();
-                printHeader(sb, thlEvent);
+                if (json && found > 1)
+                    sb.append(",\n");
+                printHeader(sb, thlEvent, json);
                 print(sb.toString());
             }
-            ReplEvent replEvent = thlEvent.getReplEvent();
-            if (replEvent instanceof ReplDBMSEvent)
+            if (!headersOnly)
             {
-                ReplDBMSEvent event = (ReplDBMSEvent) replEvent;
-                StringBuilder sb = new StringBuilder();
-                printReplDBMSEvent(sb, event, pureSQL, charset, hex);
-                print(sb.toString());
-            }
-            else
-            {
-                println("# " + replEvent.getClass().getName()
-                        + ": not supported.");
+                ReplEvent replEvent = thlEvent.getReplEvent();
+                if (replEvent instanceof ReplDBMSEvent)
+                {
+                    ReplDBMSEvent event = (ReplDBMSEvent) replEvent;
+                    StringBuilder sb = new StringBuilder();
+                    printReplDBMSEvent(sb, event, pureSQL, charset, hex);
+                    print(sb.toString());
+                }
+                else
+                {
+                    println("# " + replEvent.getClass().getName()
+                            + ": not supported.");
+                }
             }
         }
+        
+        if (json)
+            println("\n]");
 
         // Corner case and kludge: if lowIndex is 0 and we find no events,
         // log was empty.
-        if (found == 0)
+        if (!json && found == 0)
         {
             if (lowIndex == 0)
             {
@@ -403,20 +414,57 @@ public class THLManagerCtrl
      * @param stringBuilder StringBuilder object to append formatted contents
      *            to.
      * @param thlEvent THLEvent to print out.
+     * @param json Print in JSON format.
      * @see #printHeader(StringBuilder, ReplDBMSEvent)
      */
     public static void printHeader(StringBuilder stringBuilder,
-            THLEvent thlEvent)
+            THLEvent thlEvent, boolean json)
     {
-        println(stringBuilder, "SEQ# = " + thlEvent.getSeqno() + " / FRAG# = "
-                + thlEvent.getFragno()
-                + (thlEvent.getLastFrag() ? (" (last frag)") : ""));
-        println(stringBuilder, "- TIME = " + thlEvent.getSourceTstamp());
-        println(stringBuilder, "- EPOCH# = " + thlEvent.getEpochNumber());
-        println(stringBuilder, "- EVENTID = " + thlEvent.getEventId());
-        println(stringBuilder, "- SOURCEID = " + thlEvent.getSourceId());
-        if (thlEvent.getComment() != null && thlEvent.getComment().length() > 0)
-            println(stringBuilder, "- COMMENTS = " + thlEvent.getComment());
+        if (json)
+        {
+            stringBuilder.append("{\n");
+            stringBuilder.append("\"seqno\": ");
+            stringBuilder.append(thlEvent.getSeqno());
+            stringBuilder.append(",\n");
+            stringBuilder.append("\"epoch\": ");
+            stringBuilder.append(thlEvent.getEpochNumber());
+            stringBuilder.append(",\n");
+            stringBuilder.append("\"frag\": ");
+            stringBuilder.append(thlEvent.getFragno());
+            stringBuilder.append(",\n");
+            stringBuilder.append("\"lastFrag\": ");
+            stringBuilder.append(thlEvent.getLastFrag());
+            stringBuilder.append(",\n");
+            stringBuilder.append("\"time\": \"");
+            stringBuilder.append(thlEvent.getSourceTstamp());
+            stringBuilder.append("\",\n");
+            stringBuilder.append("\"eventId\": \"");
+            stringBuilder.append(thlEvent.getEventId());
+            stringBuilder.append("\",\n");
+            stringBuilder.append("\"sourceId\": \"");
+            stringBuilder.append(thlEvent.getSourceId());
+            stringBuilder.append("\",\n");
+            stringBuilder.append("\"comments\": \"");
+            if (thlEvent.getComment() != null
+                    && thlEvent.getComment().length() > 0)
+                stringBuilder.append(thlEvent.getComment());
+            stringBuilder.append("\"\n");
+            stringBuilder.append("}");
+        }
+        else
+        {
+            println(stringBuilder,
+                    "SEQ# = " + thlEvent.getSeqno() + " / FRAG# = "
+                            + thlEvent.getFragno()
+                            + (thlEvent.getLastFrag() ? (" (last frag)") : ""));
+            println(stringBuilder, "- TIME = " + thlEvent.getSourceTstamp());
+            println(stringBuilder, "- EPOCH# = " + thlEvent.getEpochNumber());
+            println(stringBuilder, "- EVENTID = " + thlEvent.getEventId());
+            println(stringBuilder, "- SOURCEID = " + thlEvent.getSourceId());
+            if (thlEvent.getComment() != null
+                    && thlEvent.getComment().length() > 0)
+                println(stringBuilder, "- COMMENTS = " + thlEvent.getComment());
+        }
     }
 
     /**
@@ -773,6 +821,8 @@ public class THLManagerCtrl
             Long high = null;
             Long by = null;
             Boolean pureSQL = null;
+            Boolean headersOnly = null;
+            Boolean json = null;
             Boolean yesToQuestions = null;
             String fileName = null;
             String charsetName = null;
@@ -798,6 +848,10 @@ public class THLManagerCtrl
                     by = Long.parseLong(argvIterator.next());
                 else if ("-sql".equals(curArg))
                     pureSQL = true;
+                else if ("-headers".equals(curArg))
+                    headersOnly = true;
+                else if ("-json".equals(curArg))
+                    json = true;
                 else if ("-y".equals(curArg))
                     yesToQuestions = true;
                 else if ("-charset".equals(curArg))
@@ -836,6 +890,11 @@ public class THLManagerCtrl
             {
                 printHelp();
                 succeed();
+            }
+            else if (json != null && json == true && headersOnly == null)
+            {
+                println("Currently JSON output is supported only with -headers flag");
+                fail();
             }
 
             // Use default configuration file in case user didn't specify one.
@@ -879,14 +938,16 @@ public class THLManagerCtrl
                 if (fileName != null)
                 {
                     thlManager.listEvents(fileName, getBoolOrFalse(pureSQL),
-                            charsetName, hex);
+                            getBoolOrFalse(headersOnly), getBoolOrFalse(json), charsetName, hex);
                 }
                 else if (seqno == null)
                     thlManager.listEvents(low, high, by,
-                            getBoolOrFalse(pureSQL), charsetName, hex);
+                            getBoolOrFalse(pureSQL),
+                            getBoolOrFalse(headersOnly), getBoolOrFalse(json), charsetName, hex);
                 else
                     thlManager.listEvents(seqno, seqno, by,
-                            getBoolOrFalse(pureSQL), charsetName, hex);
+                            getBoolOrFalse(pureSQL),
+                            getBoolOrFalse(headersOnly), getBoolOrFalse(json), charsetName, hex);
             }
             else if (THLCommands.PURGE.equals(command))
             {
@@ -994,12 +1055,13 @@ public class THLManagerCtrl
      * 
      * @param fileName Simple name of the file
      * @param pureSQL Whether to print SQL
+     * @param headersOnly Print only headers
      * @param charset Charset for translation, e.g., utf8
      * @param hex If true print hex representation of strings
      */
-    private void listEvents(String fileName, boolean pureSQL, String charset,
-            boolean hex) throws ReplicatorException, IOException,
-            InterruptedException
+    private void listEvents(String fileName, boolean pureSQL,
+            boolean headersOnly, boolean json, String charset, boolean hex)
+            throws ReplicatorException, IOException, InterruptedException
     {
         // Ensure we have a simple file name. Log APIs will not accept an
         // absolute path.
@@ -1017,29 +1079,43 @@ public class THLManagerCtrl
             logger.error("File not found: " + fileName);
             fail();
         }
+        
+        if (json)
+            println("[");
+        
         THLEvent thlEvent = null;
+        boolean first = true;
         while ((thlEvent = conn.next(false)) != null)
         {
             if (!pureSQL)
             {
                 StringBuilder sb = new StringBuilder();
-                printHeader(sb, thlEvent);
+                if (json && !first)
+                    sb.append(",\n");
+                printHeader(sb, thlEvent, json);
                 print(sb.toString());
             }
-            ReplEvent replEvent = thlEvent.getReplEvent();
-            if (replEvent instanceof ReplDBMSEvent)
+            if (!headersOnly)
             {
-                ReplDBMSEvent event = (ReplDBMSEvent) replEvent;
-                StringBuilder sb = new StringBuilder();
-                printReplDBMSEvent(sb, event, pureSQL, charset, hex);
-                print(sb.toString());
+                ReplEvent replEvent = thlEvent.getReplEvent();
+                if (replEvent instanceof ReplDBMSEvent)
+                {
+                    ReplDBMSEvent event = (ReplDBMSEvent) replEvent;
+                    StringBuilder sb = new StringBuilder();
+                    printReplDBMSEvent(sb, event, pureSQL, charset, hex);
+                    print(sb.toString());
+                }
+                else
+                {
+                    println("# " + replEvent.getClass().getName()
+                            + ": not supported.");
+                }
             }
-            else
-            {
-                println("# " + replEvent.getClass().getName()
-                        + ": not supported.");
-            }
+            first = false;
         }
+        
+        if (json)
+            println("\n]");
 
         // Disconnect from log.
         release();
@@ -1059,12 +1135,12 @@ public class THLManagerCtrl
         println("  -service name - Name of a replication service");
         println("Commands and corresponding options:");
         println("  list [-low #] [-high #] [-by #] - Dump THL events from low to high #");
+        println("  list [-seqno #]                 - Dump the exact event by a given #");
+        println("  list [-file <file_name>]        - Dump the content of the given log file");
+        println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
         println("       [-sql]                       Representative (no metadata!) SQL mode");
-        println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
-        println("  list [-seqno #] [-sql]          - Dump the exact event by a given #");
-        println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
-        println("  list [-file <file_name>] [-sql] - Dump the content of the given log file");
-        println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
+        println("       [-headers]                   Print headers only");
+        println("       [-json]                      Output in machine-parsable JSON format");        
         println("  index                           - Display index of log files");
         println("  purge [-low #] [-high #] [-y]   - Delete events within the given range");
         println("  purge [-seqno #] [-y]           - Delete the exact event");
