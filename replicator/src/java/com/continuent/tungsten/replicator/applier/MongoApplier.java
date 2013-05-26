@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,6 +26,9 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialException;
 
 import org.apache.log4j.Logger;
 
@@ -157,6 +160,10 @@ public class MongoApplier implements RawApplier
                                 Object value = row.get(i).getValue();
                                 if (value == null)
                                     doc.put(name, value);
+                                else if (value instanceof SerialBlob)
+                                    doc.put(name,
+                                            deserializeBlob(name,
+                                                    (SerialBlob) value));
                                 else
                                     doc.put(name, value.toString());
                             }
@@ -207,6 +214,10 @@ public class MongoApplier implements RawApplier
                                 Object value = colValuesOfRow.get(i).getValue();
                                 if (value == null)
                                     doc.put(name, value);
+                                else if (value instanceof SerialBlob)
+                                    doc.put(name,
+                                            deserializeBlob(name,
+                                                    (SerialBlob) value));
                                 else
                                     doc.put(name, value.toString());
                             }
@@ -339,6 +350,34 @@ public class MongoApplier implements RawApplier
                 t = new Table(schema, table);
                 tableMetadataCache.store(t);
             }
+        }
+    }
+
+    // Deserialize a blob value. This assumes there are some kind of
+    // characters in the byte array that can be translated to a string.
+    private String deserializeBlob(String name, SerialBlob blob)
+            throws ReplicatorException
+    {
+        try
+        {
+            long length = blob.length();
+            if (length > 0)
+            {
+                // Try to deserialize.
+                byte[] byteArray = blob.getBytes(1, (int) length);
+                String value = new String(byteArray);
+                return value;
+            }
+            else
+            {
+                // The blob is empty, so just return an empty string.
+                return "";
+            }
+        }
+        catch (SerialException e)
+        {
+            throw new ReplicatorException(
+                    "Unable to deserialize blob value: column=" + name, e);
         }
     }
 
@@ -527,6 +566,10 @@ public class MongoApplier implements RawApplier
         }
 
         // Release table cache.
-        tableMetadataCache.invalidateAll();
+        if (tableMetadataCache != null)
+        {
+            tableMetadataCache.invalidateAll();
+            tableMetadataCache = null;
+        }
     }
 }
