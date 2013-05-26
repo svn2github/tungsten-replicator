@@ -376,74 +376,90 @@ that Sun Java 6 or greater (http://java.sun.com/) and Ant 1.7 or greater
       serializaiong of data.  
     Notes: 
 
-	- File(s): opencsv-2.3.jar
-		Project name: opencsv
-		Version: 2.3
-		License: Apache 2.0 License (http://www.apache.org/licenses/LICENSE-2.0)
-		Web site: http://opencsv.sourceforge.net/
-		Description: Parses delimited files
-		Notes:
-		
+  - File(s): opencsv-2.3.jar
+    Project name: opencsv
+    Version: 2.3
+    License: Apache 2.0 License (http://www.apache.org/licenses/LICENSE-2.0)
+    Web site: http://opencsv.sourceforge.net/
+    Description: Parses delimited files
+    Notes:
+    
+  - File(s): mongo-2.5.3.jar
+    Project name: MongoDB Java Driver
+    Version: 2.5.3
+    License: Apache 2.0 License (http://www.apache.org/licenses/LICENSE-2.0)
+    Web site: https://github.com/mongodb/mongo-java-driver/blob/master/LICENSE.txt
+    Description: Provides connectivity to MongoDB server
+    Notes:
+    
 ########## Tungsten TPM ##########
-	- File(s): cluster-home/lib/ruby/escape.rb
-		Project name: escape
-		Version: 19b3b7c35201a6bb5321287a534ffff62966cda3
-		License: Modified BSD (See escape.rb)
-		Web site: http://www.a-k-r.org/escape/
-		Description: Escapes shell commands and arguments
-		Notes:
+    - File(s): cluster-home/lib/ruby/escape.rb
+    Project name: escape
+    Version: 19b3b7c35201a6bb5321287a534ffff62966cda3
+    License: Modified BSD (See escape.rb)
+    Web site: http://www.a-k-r.org/escape/
+    Description: Escapes shell commands and arguments
+    Notes:
 
-	- File(s): cluster-home/lib/ruby/ifconfig.rb
-		Project name: ruby-ifconfig
-		Version: 1.2
-		License: GPL[http://www.gnu.org/copyleft/gpl.html]
-		Web site: http://rubyforge.org/projects/ruby-ifconfig/
-		Description: 
-			This is a Ruby wrapper around the ifconfig command. The goal is to make 
-			getting any information that ifconfig provides easy.
-		Notes:
+    - File(s): cluster-home/lib/ruby/ifconfig.rb
+    Project name: ruby-ifconfig
+    Version: 1.2
+    License: GPL[http://www.gnu.org/copyleft/gpl.html]
+    Web site: http://rubyforge.org/projects/ruby-ifconfig/
+    Description: 
+        This is a Ruby wrapper around the ifconfig command. The goal is to make 
+        getting any information that ifconfig provides easy.
+    Notes:
 
-	- File(s): cluster-home/lib/ruby/json.rb
-		Project name: JSON
-		Version: 1.5.1
-		License: http://www.ruby-lang.org/en/LICENSE.txt
-		Web site: http://json.rubyforge.org
-		Description: 
-			An implementation of the JSON specification according to RFC 4627
-		Notes:
+    - File(s): cluster-home/lib/ruby/json.rb
+    Project name: JSON
+    Version: 1.5.1
+    License: http://www.ruby-lang.org/en/LICENSE.txt
+    Web site: http://json.rubyforge.org
+    Description: 
+        An implementation of the JSON specification according to RFC 4627
+    Notes:
 
-	- File(s): cluster-home/lib/ruby/net/ssh.rb
-		Project name: Net::SSH
-		Version: 2.0.23
-		License: MIT License
-		Web site: https://github.com/net-ssh/net-ssh
-		Description:
-			Net::SSH is a Ruby library for programmatically communicating with 
-			remote servers via the SSH2 protocol
-		Notes:
+    - File(s): cluster-home/lib/ruby/net/ssh.rb
+    Project name: Net::SSH
+    Version: 2.0.23
+    License: MIT License
+    Web site: https://github.com/net-ssh/net-ssh
+    Description:
+        Net::SSH is a Ruby library for programmatically communicating with 
+        remote servers via the SSH2 protocol
+    Notes:
 
-	- File(s): cluster-home/lib/ruby/net/scp.rb
-		Project name: Net::SCP
-		Version: 1.0.1
-		License: MIT License
-		Web site: https://github.com/net-ssh/net-scp
-		Description:
-			Net::SCP is a library built on top of Net::SSH that implements the SCP 
-			"secure copy" protocol for transferring files
-		Notes:
+    - File(s): cluster-home/lib/ruby/net/scp.rb
+    Project name: Net::SCP
+    Version: 1.0.1
+    License: MIT License
+    Web site: https://github.com/net-ssh/net-scp
+    Description:
+        Net::SCP is a library built on top of Net::SSH that implements the SCP 
+        "secure copy" protocol for transferring files
+    Notes:
 
-	- File(s): cluster-home/lib/ruby/zip/
-		Project name: rubyzip
-		Version: 0.9.1
-		License: http://www.ruby-lang.org/en/LICENSE.txt
-		Web site: https://github.com/nbibler/rubyzip
-		Description:
-			Rubyzip is a ruby library for reading and writing zip files.
+    - File(s): cluster-home/lib/ruby/zip/
+    Project name: rubyzip
+    Version: 0.9.1
+    License: http://www.ruby-lang.org/en/LICENSE.txt
+    Web site: https://github.com/nbibler/rubyzip
+    Description:
+        Rubyzip is a ruby library for reading and writing zip files.
 
-	- File: cluster-home/lib/ruby/open4.rb
-	  Project name: open4
-	  Version: b0c2868551457ac7975c6ca1217319fe52e1ebe7
-	  License: http://www.ruby-lang.org/en/LICENSE.txt
-	  Web site: https://github.com/ahoward/open4
-	  Description:
-	    Managing Ruby process input/output
+    - File: cluster-home/lib/ruby/open4.rb
+    Project name: open4
+    Version: b0c2868551457ac7975c6ca1217319fe52e1ebe7
+    License: http://www.ruby-lang.org/en/LICENSE.txt
+    Web site: https://github.com/ahoward/open4
+    Description:
+      Managing Ruby process input/output
+
+    - File: 
+    Project name: open4
+    Version: b0c2868551457ac7975c6ca1217319fe52e1ebe7
+    License: http://www.ruby-lang.org/en/LICENSE.txt
+    Web site: https://github.com/ahoward/open4
+    Description:
+      Managing Ruby process input/output
