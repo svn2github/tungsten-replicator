@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -211,15 +211,36 @@ public interface OpenReplicatorManagerMBean
      * <tr>
      * <td>Name</td>
      * <td>Description</td>
+     * <td>Parameter</td>
      * <td>Default</td>
      * </tr>
      * </theader> <tbody></tr>
      * <td>atEventId</td>
      * <td>Go offline at the requested event</td>
+     * <td>An event ID in native format</td>
      * <td>None</td> </tr> </tr>
+     * <td>atHeartbeat</td>
+     * <td>Go offline at the next heartbeat event.</td>
+     * <td>A heartbeat name or * to select any heartbeat</td>
+     * <td>*</td> </tr> </tbody>
      * <td>atSeqno</td>
      * <td>Go offline at the indicated sequence number</td>
+     * <td>A valid sequence number</td>
      * <td>None</td> </tr> </tbody>
+     * <td>atTransaction</td>
+     * <td>Go offline cleanly at the next transaction. This is the best way to
+     * take a replicator offline as it ensures the replicator can reload backups
+     * when parallel apply is in effect or make change to parallel apply
+     * parameters</td>
+     * <td>Insert any value</td>
+     * <td>None</td> </tr> </tbody>
+     * <td>atTimestamp</td>
+     * <td>Go offline cleanly at the next transaction. This is the best way to
+     * take a replicator offline as it ensures the replicator can reload backups
+     * when parallel apply is in effect or make change to parallel apply
+     * parameters</td>
+     * <td>A timestamp String in yyyy-MM-dd HH:mm:ss format</td>
+     * <td>None</td></tr> </tbody>
      * </table>
      * 
      * @param controlParams 0 or more control parameters expressed as name-value
@@ -230,9 +251,16 @@ public interface OpenReplicatorManagerMBean
             throws Exception;
 
     /**
-     * Puts the replicator into the offline state immediately, returning once
-     * the replicator is offline. The replicator must be in the ONLINE or
-     * GOING-ONLINE state for this call to be processed.
+     * Puts the replicator into the offline state immediately without clean-up,
+     * returning once the replicator is offline. The replicator must be in the
+     * ONLINE or GOING-ONLINE state for this call to be processed.
+     * <p/>
+     * <strong>This call is hazardous on slaves using parallel apply.</strong>
+     * It does not do a clean offline operation, which means that it is unsafe
+     * for doing failover operations, creating a backup that can restore when
+     * using different numbers of parallel apply channels or for changing any
+     * parameters associated with parallel apply. You should use offlineDeferred
+     * for clean shutdown.
      * 
      * @throws Exception
      */
@@ -419,7 +447,7 @@ public interface OpenReplicatorManagerMBean
      * forceOffline is true.
      * 
      * @param forceOffline true to prevent the replicator from putting its
-     *           replication services online (if auto-enable is set to true)
+     *            replication services online (if auto-enable is set to true)
      * @throws Exception Thrown if start-up fails. This includes failure to go
      *             online if the replicator is auto-enabled.
      */

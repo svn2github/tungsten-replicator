@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1370,11 +1370,6 @@ public class OpenReplicatorManagerCtrl
         println("  Consistency Check: " + capabilities.isConsistencyCheck());
         println("  Heartbeat:         " + capabilities.isHeartbeat());
         println("  Flush:             " + capabilities.isFlush());
-    }
-
-    private static void printlnPropList(List<Map<String, String>> propList)
-    {
-        printlnPropList(propList, false);
     }
 
     /**
