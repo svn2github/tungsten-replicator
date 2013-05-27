@@ -478,7 +478,7 @@ public class EventMetadataFilter implements Filter
         // IMPORTANT: We know the type and presence of the StatementData
         // instance below thanks to previous check whether session variable is
         // required.
-        if (needsServiceSessionVar)
+        if (needsServiceSessionVar && sqlCommentsEnabled)
         {
             // However, don't let replication break if we are somehow wrong.
             try
