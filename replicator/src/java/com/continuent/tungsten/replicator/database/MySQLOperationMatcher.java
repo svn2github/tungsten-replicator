@@ -87,7 +87,7 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
     // DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
     protected Pattern                   delete          = Pattern
                                                                 .compile(
-                                                                        "^\\s*delete\\s*(?:low_priority\\s*)?(?:quick\\s*)?(?:ignore\\s*)?(?:from\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*delete\\s*(?:low_priority\\s*)?(?:quick\\s*)?(?:ignore\\s*)?(?:.*)?(?:from\\s*)?([`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
                                                                         Pattern.CASE_INSENSITIVE);
     // TRUNCATE [TABLE] tbl_name
     protected Pattern                   truncate        = Pattern
