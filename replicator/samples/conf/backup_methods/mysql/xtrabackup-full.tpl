@@ -1,5 +1,5 @@
 replicator.backup.agent.xtrabackup-full=com.continuent.tungsten.replicator.backup.generic.ScriptDumpAgent
-replicator.backup.agent.xtrabackup-full.script=${replicator.home.dir}/bin/xtrabackup
+replicator.backup.agent.xtrabackup-full.script=${replicator.home.dir}/scripts/xtrabackup.sh
 replicator.backup.agent.xtrabackup-full.commandPrefix=@{REPL_BACKUP_COMMAND_PREFIX}
 replicator.backup.agent.xtrabackup-full.hotBackupEnabled=true
 replicator.backup.agent.xtrabackup-full.logFilename=${replicator.home.dir}/log/xtrabackup.log
