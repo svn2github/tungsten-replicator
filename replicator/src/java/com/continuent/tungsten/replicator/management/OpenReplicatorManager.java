@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Seppo Jaakola
- * Contributor(s): Robert Hodges, Teemu Ollakka, Alex Yurchenko, Linas Virbalas
+ * Contributor(s): Robert Hodges, Teemu Ollakka, Alex Yurchenko, Linas Virbalas, Stephane Giron
  */
 
 package com.continuent.tungsten.replicator.management;
@@ -219,8 +219,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         State goingonline = new State("GOING-ONLINE", StateType.ACTIVE);
         State goingonlineSynchronizing = new State("SYNCHRONIZING",
                 StateType.ACTIVE, goingonline);
-        State goingonlineRestoring = new State("RESTORING", StateType.ACTIVE,
-                goingonline);
+        State offlineRestoring = new State("RESTORING", StateType.ACTIVE,
+                offlineNormal);
 
         State goingoffline = new State("GOING-OFFLINE", StateType.ACTIVE);
 
@@ -236,7 +236,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         stmap.addState(offlineError);
         stmap.addState(goingonline);
         stmap.addState(goingonlineSynchronizing);
-        stmap.addState(goingonlineRestoring);
+        stmap.addState(offlineRestoring);
         stmap.addState(goingoffline);
         stmap.addState(online);
         stmap.addState(end);
@@ -309,9 +309,9 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         stmap.addTransition(new Transition("OFFLINE-BACKUP-1", backupGuard,
                 offlineNormal, backupAction, offlineNormal));
         stmap.addTransition(new Transition("OFFLINE-RESTORE", restoreGuard,
-                offlineNormal, restoreAction, goingonlineRestoring));
+                offlineNormal, restoreAction, offlineRestoring));
         stmap.addTransition(new Transition("OFFLINE-PROVISION", provisionGuard,
-                offlineNormal, provisionAction, goingonlineRestoring));
+                offlineNormal, provisionAction, offlineRestoring));
         stmap.addTransition(new Transition("OFFLINE-SETROLE", setRoleGuard,
                 offlineNormal, setRoleAction, offlineNormal));
 
@@ -335,17 +335,15 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         stmap.addTransition(new Transition("ERROR-BACKUP", backupGuard,
                 offlineError, backupAction, offlineError));
         stmap.addTransition(new Transition("ERROR-RESTORE", restoreGuard,
-                offlineNormal, restoreAction, goingonlineRestoring));
+                offlineNormal, restoreAction, offlineRestoring));
 
         // OFFLINE:BACKUP can transition to the following state(s).
         stmap.addTransition(new Transition("BACKUP-OFFLINE",
                 backupCompleteGuard, offline, null, offlineNormal));
 
-        // RESTORE:SYNCHRONIZING can transition to the following state(s).
-        // TODO: Plugin should decide whether to go online.
-        stmap.addTransition(new Transition("RESTORE-SYNCHRONIZING-OFFLINE",
-                restoreCompleteGuard, goingonlineRestoring,
-                offlineToSynchronizingAction, goingonlineSynchronizing));
+        // RESTORE can transition to the following state(s).
+        stmap.addTransition(new Transition("RESTORE-OFFLINE",
+                restoreCompleteGuard, offlineRestoring, null, offlineNormal));
 
         // GOING-ONLINE can transition to the following states.
         stmap.addTransition(new Transition("SYNCHRONIZING-ERROR", errorGuard,
