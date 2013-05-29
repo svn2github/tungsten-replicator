@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -21,6 +23,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.patterns.order.HighWaterResource;
 import com.continuent.tungsten.common.patterns.order.Sequence;
 
+@XmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DataSource extends Resource implements Serializable
 {

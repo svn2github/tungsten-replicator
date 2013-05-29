@@ -3,6 +3,8 @@ package com.continuent.tungsten.common.cluster.resource;
 
 import java.io.Serializable;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -14,6 +16,7 @@ import com.continuent.tungsten.common.utils.ResultFormatter;
 /**
  * @author edward
  */
+@XmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Resource implements Serializable
 {
