@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -117,11 +117,9 @@ public class Connector implements ReplicatorPlugin
             logger.debug("Connecting to " + host + ":" + port);
         try
         {
-            // Create a socket without connecting, so we can set a
-            // relatively short timeout, then connect.
+            // Create the socket and connect with a relatively short timeout. 
             channel = SocketChannel.open();
             Socket socket = channel.socket();
-            socket.setSoTimeout(heartbeatMillis);
             InetSocketAddress address = new InetSocketAddress(host, port);
             if (address.isUnresolved())
             {
@@ -129,7 +127,7 @@ public class Connector implements ReplicatorPlugin
                         "THL connection failure; cannot resolve address: host="
                                 + host + " port=" + port);
             }
-            socket.connect(address);
+            socket.connect(address, heartbeatMillis);
         }
         catch (IllegalArgumentException e)
         {

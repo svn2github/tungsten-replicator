@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.thl;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,8 +79,9 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
     // Set to show that we have been shut down.
     private volatile boolean shutdown           = false;
 
-    // Connection retry count.
-    private long             retryCount         = 0;
+    // Connection counts for timeouts and retries.
+    private long             timeoutCount       = 0;
+    private long             attemptCount       = 0;
 
     /**
      * Create Connector instance.
@@ -140,7 +142,9 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
 
     /**
      * Sets the interval for sending heartbeat events from server to avoid
-     * TCP/IP timeout on server connection.
+     * TCP/IP timeout on server connection. The normal read timeout is 10x this
+     * value. The value is also used for connection timeouts, where we use 1x
+     * this value.
      */
     public void setHeartbeatInterval(int heartbeatMillis)
     {
@@ -495,17 +499,15 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                     closeConnector();
                 }
             }
+            catch (SocketTimeoutException e)
+            {
+                // Timeouts are special, hence should be flagged.
+                timeoutCount++;
+                prepareRetry(uriManager);
+            }
             catch (IOException e)
             {
-                // Sleep for 1 second per retry; report every 10 retries.
-                closeConnector();
-                if ((retryCount % 10) == 0)
-                {
-                    logger.info("Waiting for master to become available: uri="
-                            + uriManager.toString() + " retries=" + retryCount);
-                }
-                retryCount++;
-                Thread.sleep(1000);
+                prepareRetry(uriManager);
             }
         }
 
@@ -515,9 +517,33 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
 
         // Announce the happy event and reset retry count.
         logger.info("Connected to master on uri=" + currentUri + " after "
-                + retryCount + " retries");
-        retryCount = 0;
+                + attemptCount + " retries");
+        attemptCount = 0;
+        timeoutCount = 0;
         pluginContext.getEventDispatcher().put(new InSequenceNotification());
+    }
+
+    // Prepare for a connection retry, which includes incrementing the retry
+    // count.
+    private void prepareRetry(ConnectUriManager uriManager)
+            throws InterruptedException
+    {
+        // Sleep for 1 second per retry; report every 10 retries.
+        closeConnector();
+        attemptCount++;
+        if ((attemptCount % 10) == 0)
+        {
+            logger.info("Waiting for master to become available: uri="
+                    + uriManager.toString() + " attempts=" + attemptCount
+                    + " timeouts=" + timeoutCount);
+        }
+        if (timeoutCount > 0 && (timeoutCount % 10) == 0)
+        {
+            logger.info("Timeouts are occurring; check master log to ensure connectivity or increase heartbeatMillis "
+                    + "in service properties file: current value="
+                    + heartbeatMillis);
+        }
+        Thread.sleep(1000);
     }
 
     // Close the connector. Clearing the connection must be synchronized.
