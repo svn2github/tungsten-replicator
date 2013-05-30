@@ -1487,7 +1487,9 @@ module ConfigureDeploymentStepMySQL
   		if connector != nil and connector != "" and File.exist?(connector)
     		info "Deploying MySQL Connector/J..."
     		FileUtils.cp(connector, File.dirname(connector_path))
-    		FileUtils.ln_sf(File.dirname(connector_path) + "/" + File.basename(connector), connector_path)
+        if File.dirname(connector_path) + "/" + File.basename(connector) !=    connector_path
+    		  FileUtils.ln_sf(File.dirname(connector_path) + "/" + File.basename(connector), connector_path)
+        end
     	end
   	end
   	
