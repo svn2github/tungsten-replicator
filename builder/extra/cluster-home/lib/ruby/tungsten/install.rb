@@ -195,13 +195,17 @@ class TungstenInstall
   end
   
   def manager_api_result(path, return_path = [])
+    unless defined?(Net::HTTP)
+      require 'net/http'
+    end
+    
     if setting(MGR_API) != "true"
       raise "Unable to use Manager API because it isn't enabled"
     end
-    require "open-uri"
-    current_val = JSON.parse(open("http://localhost:#{setting(MGR_API_PORT)}/manager/#{path}") {|f| f.read })
     
-    if current_val["commandStatus"] != 0
+    current_val = JSON.parse(Net::HTTP.get(URI("http://localhost:#{setting(MGR_API_PORT)}/manager/#{path}")))
+    
+    if current_val["httpStatus"] != 200
       raise "There was an error calling '/manager/#{path}' on #{hostname()}: #{current_val['message']}"
     end
     

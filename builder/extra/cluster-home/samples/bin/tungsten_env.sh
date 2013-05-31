@@ -25,6 +25,20 @@ class TungstenEnvironment
       :default => false
     })
     
+    add_option(:boolean, {
+      :on => "--boolean String",
+      :parse => method(:parse_boolean_option),
+      :help => "This will be parsed to be either true or false",
+      :default => false
+    })
+    
+    add_option(:integer, {
+      :on => "--integer String",
+      :parse => method(:parse_integer_option),
+      :help => "This will be parsed as an integer",
+      :default => 10
+    })
+    
     add_option(:latency, {
       :on => "--latency String",
       :help => "The maximum allowed latency",

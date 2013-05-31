@@ -24,13 +24,17 @@ module TungstenScript
     
     parse_options()
     
-    validate()
+    unless TU.is_valid?()
+      cleanup(1)
+    end
     
     TU.debug("Options:")
     @options.each{
       |k,v|
       TU.debug("    #{k} => #{v}")
     }
+    
+    validate()
     
     unless TU.is_valid?()
       cleanup(1)
@@ -60,8 +64,6 @@ module TungstenScript
     
     if parse != nil
       definition[:parse] = parse
-    else
-      definition[:parse] = nil
     end
     
     if definition.has_key?(:default)
@@ -82,9 +84,14 @@ module TungstenScript
         |val|
                 
         if definition[:parse] != nil
-          val = definition[:parse].call(val)
-          unless val == nil
-            opt(option_key, val)
+          begin
+            val = definition[:parse].call(val)
+            
+            unless val == nil
+              opt(option_key, val)
+            end
+          rescue MessageError => me
+            TU.error(me.message())
           end
         else  
           opt(option_key, val)
@@ -93,6 +100,24 @@ module TungstenScript
     }
     
     TU.run_option_parser(opts)
+  end
+  
+  def parse_integer_option(val)
+    val.to_i()
+  end
+  
+  def parse_float_option(val)
+    val.to_f()
+  end
+  
+  def parse_boolean_option(val)
+    if val == "true"
+      true
+    elsif val == "false"
+      false
+    else
+      raise MessageError.new("Unable to parse value '#{val}'")
+    end
   end
   
   def validate
