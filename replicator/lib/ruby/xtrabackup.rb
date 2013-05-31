@@ -3,23 +3,38 @@ require "#{File.dirname(__FILE__)}/backup"
 class TungstenXtrabackupScript < TungstenBackupScript
   INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
   
-  def initialize
-    TU.output("Begin #{$0} #{ARGV.join(' ')}")
-    @options ||= {}
-    @options[:tar] = "false"
-    @options[:restore_to_datadir] = "false"
-    @options[:incremental] = "false"
-    @options[:mysqluser] = "mysql"
-    @options[:mysqlgroup] = "mysql"
-    
+  def configure
     super()
     
-    # Read data locations from the my.cnf file
-    @options[:mysqldatadir] = get_mysql_option("datadir")
-    @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
-    @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")
+    add_option(:tar, {
+      :on => "--tar",
+      :default => false,
+      :help => "Create the backup as a TAR file"
+    })
     
-    @storage_dir = nil
+    add_option(:restore_to_datadir, {
+      :on => "--restore-to-datadir",
+      :default => false,
+      :help => "Use the MySQL data directory for staging and preparation"
+    })
+    
+    add_option(:incremental, {
+      :on => "--incremental",
+      :default => false,
+      :help => "Create the backup as an incremental snapshot since last backup"
+    })
+    
+    add_option(:mysqluser, {
+      :on => "--mysqluser String",
+      :help => "The MySQL system user",
+      :default => "mysql"
+    })
+    
+    add_option(:mysqlgroup, {
+      :on => "--mysqlgroup String",
+      :help => "The MySQL system group",
+      :default => "mysql"
+    })
   end
   
   def backup
@@ -249,6 +264,8 @@ class TungstenXtrabackupScript < TungstenBackupScript
       if @options[:restore_to_datadir] == "false" && staging_dir != "" && File.exists?(staging_dir)
         TU.output("Cleanup #{staging_dir}")
         TU.cmd_result("rm -r #{staging_dir}")
+      elsif @options[:restore_to_datadir] == "true" && File.exists?("#{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
+        TU.cmd_result("rm -f #{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
       end
     rescue => e
       TU.error(e.message)
@@ -256,6 +273,8 @@ class TungstenXtrabackupScript < TungstenBackupScript
       if @options[:restore_to_datadir] == "false" && staging_dir != "" && File.exists?(staging_dir)
         TU.output("Remove #{staging_dir} due to the error")
         TU.cmd_result("rm -r #{staging_dir}")
+      elsif @options[:restore_to_datadir] == "true" && File.exists?("#{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
+        TU.cmd_result("rm -f #{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
       end
 
       raise e
@@ -264,6 +283,13 @@ class TungstenXtrabackupScript < TungstenBackupScript
   
   def validate
     super()
+    
+    # Read data locations from the my.cnf file
+    @options[:mysqldatadir] = get_mysql_option("datadir")
+    @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
+    @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")
+    
+    @storage_dir = nil
     
     # Make sure the xtrabackup storage directory is created properly
     if File.exist?(@options[:directory])

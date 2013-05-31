@@ -1,16 +1,19 @@
 require "cgi"
-class TungstenBackupScript < TungstenScript
+class TungstenBackupScript
+  include TungstenScript
+  
   ACTION_BACKUP = "backup"
   ACTION_RESTORE = "restore"
   ACTION_DELETE = "delete"
   
-  def run
-    TU.output("Options:")
-    @options.each{
-      |k,v|
-      TU.output("    #{k} => #{v}")
-    }
-    super()
+  def main
+    @binlog_file = nil
+    @binlog_position = nil
+    if TI.trepctl_value(@options[:service], 'role') == "master"
+      @master_backup = true
+    else
+      @master_backup = false
+    end
     
     if @options[:action] == ACTION_BACKUP
       start_thl_seqno = TI.trepctl_value(@options[:service], 'maximumStoredSeqNo')
@@ -34,13 +37,6 @@ class TungstenBackupScript < TungstenScript
     else
       raise "Unable to determine the appropriate action for #{self.class.name}"
     end
-    
-    cleanup(0)
-  end
-  
-  def cleanup(code = 0)
-    TU.output("Finish #{$0} #{ARGV.join(' ')}")
-    super(code)
   end
   
   def backup
@@ -59,11 +55,8 @@ class TungstenBackupScript < TungstenScript
     end
   end
 
-  def initialize
-    TU.output("Begin #{$0} #{ARGV.join(' ')}")
+  def configure
     TU.set_log_level(Logger::DEBUG)
-    @options ||= {}
-    @options[:action] = nil
     
     TU.remaining_arguments.map!{ |arg|
       # The backup agent sends single dashes instead of double dashes
@@ -74,13 +67,29 @@ class TungstenBackupScript < TungstenScript
       end
     }
     
-    opts=OptionParser.new
-    opts.on("--backup")  { @options[:action] = ACTION_BACKUP }
-    opts.on("--restore") { @options[:action] = ACTION_RESTORE }
-    opts.on("--properties String") {|val| 
-      @options[:properties] = val
+    add_option(:backup, {
+      :on => "--backup"
+    }) {
+      @options[:action] = ACTION_BACKUP
+      
+      nil
     }
-    opts.on("--options String")  {|val|
+    
+    add_option(:restore, {
+      :on => "--restore"
+    }) {
+      @options[:action] = ACTION_RESTORE
+      
+      nil
+    }
+    
+    add_option(:properties, {
+      :on => "--properties String"
+    })
+    
+    add_option(:options, {
+      :on => "--options String"
+    }) {|val|
       CGI::parse(val).each{
         |key,value|
         sym = key.to_sym
@@ -90,15 +99,8 @@ class TungstenBackupScript < TungstenScript
           @options[sym] = value.to_s
         end
       }
+      
+      nil
     }
-    TU.run_option_parser(opts)
-    
-    @binlog_file = nil
-    @binlog_position = nil
-    if TI.trepctl_value(@options[:service], 'role') == "master"
-      @master_backup = true
-    else
-      @master_backup = false
-    end
   end
 end

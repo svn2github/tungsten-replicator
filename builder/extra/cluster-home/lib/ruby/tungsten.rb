@@ -24,16 +24,15 @@ require "tungsten/util"
 # TU.info(msg)
 TU = TungstenUtil.instance()
 
-# Intialize a default TungstenInstall object that uses TU.get_base_path()
-# as the default. If --home-directory is found, that path is used instead.
-install_base_path = TU.get_base_path()
-opts = OptionParser.new
-opts.on("--directory String") {|val| install_base_path = "#{val}/tungsten"}
-TU.run_option_parser(opts)
-
 begin
+  # Intialize a default TungstenInstall object that uses TU.get_base_path()
+  # as the default. If --home-directory is found, that path is used instead.
+  install_base_path = TU.get_base_path()
+  opts = OptionParser.new
+  opts.on("--directory String") {|val| install_base_path = "#{val}/tungsten"}
+  TU.run_option_parser(opts)
+
   TI = TungstenInstall.get(install_base_path)
 rescue => e
-  TU.exception(e)
-  exit(1)
+  TI = nil
 end

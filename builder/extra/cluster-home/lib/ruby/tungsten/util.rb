@@ -61,6 +61,7 @@ class TungstenUtil
   
   def display_help
     write_header("Global Options", nil)
+    output_usage_line("--directory", "Use this installed Tungsten directory as the base for all operations")
     output_usage_line("--quiet, -q")
     output_usage_line("--info, -i")
     output_usage_line("--notice, -n")
@@ -70,19 +71,7 @@ class TungstenUtil
   end
   
   def get_base_path
-    base_path = File.expand_path("#{File.dirname(__FILE__)}/../../../..")
-    if File.exists?("#{base_path}/.lock")
-      return base_path
-    end
-    
-    if ENV.has_key?("CONTINUENT_ROOT")
-      base_path = File.expand_path("#{ENV['CONTINUENT_ROOT']}/tungsten")
-      if File.exists?("#{base_path}/.lock")
-        return base_path
-      end
-    end
-    
-    raise "Unable to find the Tungsten install for this script. Try setting $CONTINUENT_ROOT."
+    File.expand_path("#{File.dirname(__FILE__)}/../../../..")
   end
   
   def enable_output?
@@ -256,6 +245,7 @@ class TungstenUtil
           raise io
         end
       rescue => e
+        exception(e)
         raise "Argument parsing failed: #{e.to_s()}"
       end
     end
