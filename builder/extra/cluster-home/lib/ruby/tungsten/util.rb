@@ -4,6 +4,7 @@ class TungstenUtil
   
   def initialize()
     @logger_threshold = Logger::NOTICE
+    @previous_option_arguments = {}
     @ssh_options = {}
     @display_help = false
     @num_errors = 0
@@ -54,7 +55,7 @@ class TungstenUtil
       @remaining_arguments = []
     end
   end
-  
+    
   def display_help?
     (@display_help == true)
   end
@@ -216,6 +217,31 @@ class TungstenUtil
     else
       use_remaining_arguments = false
     end
+    
+    # Collect the list of options and remove the first two that are 
+    # created by default
+    option_lists = opts.stack()
+    option_lists.shift()
+    option_lists.shift()
+    
+    option_lists.each{
+      |ol|
+      
+      ol.short.keys().each{
+        |arg|
+        if @previous_option_arguments.has_key?(arg)
+          error("The -#{arg} argument has already been captured")
+        end
+        @previous_option_arguments[arg] = true
+      }
+      ol.long.keys().each{
+        |arg|
+        if @previous_option_arguments.has_key?(arg)
+          error("The --#{arg} argument has already been captured")
+        end
+        @previous_option_arguments[arg] = true
+      }
+    }
     
     remainder = []
     while arguments.size() > 0

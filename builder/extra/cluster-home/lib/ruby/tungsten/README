@@ -105,8 +105,8 @@ The TRL defines several logging functions and command line arguments fore enabli
 
 TU.error(msg) # Always enabled
 TU.warning(msg) # Enabled by adding '-q'
-TU.info(msg) # Enabled by adding '-i'
 TU.notice(msg) # Enabled by default or by adding '-n'
+TU.info(msg) # Enabled by adding '-i'
 TU.debug(msg) # Enabled by adding by adding '-v'
 
 Define the 'script_log_path' function in your script and the all messages will be saved to the path returned by the function.

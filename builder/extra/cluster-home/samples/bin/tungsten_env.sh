@@ -9,7 +9,7 @@ class TungstenEnvironment
   include TungstenScript
   
   def main
-    TU.info("Latency is #{opt(:latency)}")
+    TU.notice("Latency is #{opt(:latency)}")
     
     if opt(:test)
       TU.warning("Test mode is enabled")

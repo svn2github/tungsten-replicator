@@ -63,6 +63,10 @@ end
 
 # Disable guessing by the OptionParser
 class OptionParser
+  def stack
+    @stack
+  end
+  
   class OptionMap < Hash
   end
   

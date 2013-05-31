@@ -9,34 +9,48 @@ module TungstenScript
   end
   
   def initialize
+    # Does this script required to run against an installed Tungsten directory
     @require_installed_directory = true
+    
+    # Definition of each option that this script is expecting as input
     @option_definitions = {}
+    
+    # The command-line arguments of all options that have been defined
+    # This is used to identify duplicate arguments
+    @option_definition_arguments = {}
+    
+    # The collected option values from the script input
     @options = {}
     
     TU.debug("Begin #{$0} #{ARGV.join(' ')}")
     
-    configure()
+    begin
+      configure()
     
-    if TU.display_help?()
-      display_help()
-      cleanup(0)
-    end
+      if TU.display_help?()
+        display_help()
+        cleanup(0)
+      end
     
-    parse_options()
+      parse_options()
     
-    unless TU.is_valid?()
-      cleanup(1)
-    end
+      unless TU.is_valid?()
+        cleanup(1)
+      end
     
-    TU.debug("Options:")
-    @options.each{
-      |k,v|
-      TU.debug("    #{k} => #{v}")
-    }
+      TU.debug("Options:")
+      @options.each{
+        |k,v|
+        TU.debug("    #{k} => #{v}")
+      }
     
-    validate()
+      validate()
     
-    unless TU.is_valid?()
+      unless TU.is_valid?()
+        cleanup(1)
+      end
+    rescue => e
+      TU.exception(e)
       cleanup(1)
     end
   end
@@ -53,24 +67,39 @@ module TungstenScript
   end
   
   def add_option(option_key, definition, &parse)
-    option_key = option_key.to_sym()
-    if @option_definitions.has_key?(option_key)
-      raise "The #{option_key} option has already been defined"
+    begin
+      option_key = option_key.to_sym()
+      if @option_definitions.has_key?(option_key)
+        raise "The #{option_key} option has already been defined"
+      end
+
+      unless definition[:on].is_a?(Array)
+        definition[:on] = [definition[:on]]
+      end
+      
+      # Check if the arguments for this option overlap with any other options
+      definition[:on].each{
+        |arg|
+        
+        arg = arg.split(" ").shift()
+        if @option_definition_arguments.has_key?(arg)
+          raise "The #{arg} argument is already defined for this script"
+        end
+        @option_definition_arguments[arg] = true
+      }
+
+      if parse != nil
+        definition[:parse] = parse
+      end
+
+      if definition.has_key?(:default)
+        opt(option_key, definition[:default])
+      end
+
+      @option_definitions[option_key] = definition
+    rescue => e
+      TU.exception(e)
     end
-    
-    unless definition[:on].is_a?(Array)
-      definition[:on] = [definition[:on]]
-    end
-    
-    if parse != nil
-      definition[:parse] = parse
-    end
-    
-    if definition.has_key?(:default)
-      opt(option_key, definition[:default])
-    end
-    
-    @option_definitions[option_key] = definition
   end
   
   def parse_options
