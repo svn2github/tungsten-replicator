@@ -98,28 +98,33 @@ class TungstenTopology
   end
   
   def datasource_role(hostname)
-    self.parse()
-    return @props.getProperty([DATASOURCES, hostname, 'role'])
+    datasource_value(hostname, 'role')
   end
   
   def datasource_status(hostname)
-    self.parse()
-    return @props.getProperty([DATASOURCES, hostname, 'state'])
+    datasource_value(hostname, 'state')
   end
   
   def replicator_role(hostname)
-    self.parse()
-    return @props.getProperty([REPLICATORS, hostname, 'role'])
+    replicator_value(hostname, 'role')
   end
   
   def replicator_status(hostname)
-    self.parse()
-    return @props.getProperty([REPLICATORS, hostname, 'state'])
+    replicator_value(hostname, 'state')
   end
   
-  def datasource_latency(hostname)
+  def replicator_latency(hostname)
+    replicator_value(hostname, 'appliedLatency').to_f()
+  end
+  
+  def datasource_value(hostname, argument)
     self.parse()
-    return @props.getProperty([REPLICATORS, hostname, 'appliedLatency']).to_f()
+    return @props.getProperty([DATASOURCES, hostname, argument])
+  end
+  
+  def replicator_value(hostname, argument)
+    self.parse()
+    return @props.getProperty([REPLICATORS, hostname, argument])
   end
   
   def is_replication?
