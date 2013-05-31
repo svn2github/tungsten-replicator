@@ -1,0 +1,141 @@
+Introduction
+===================================
+
+The Tungsten Ruby Library (TRL) is designed to simplify the process of writing scripts that interact with Tungsten Replication and Dataservices. Scripts using TRL may be run 
+
+It features support for the following common use cases. Features not covered by the TRL may be added using common Ruby libraries.
+  * Option Parsing
+  * Logging
+  * JSON parsing/generation
+  * Local command execution
+  * Remote command execution
+  * Object-Oriented access to clustering or replication information
+
+Minimum script contents
+===================================
+
+The minimum script will contain the following and be executable.
+
+#!/usr/bin/env ruby
+
+require "/opt/continuent/tungsten/cluster-home/lib/ruby/tungsten"
+
+class TungstenEnvironment
+  include TungstenScript
+  
+  def main
+    # Script logic here
+  end
+  
+  self.new().run()
+end
+
+Running a script in staging directories
+===================================
+
+class TungstenEnvironment
+
+...
+
+  def configure
+    require_installed_directory?(false)
+  end
+
+...
+end
+
+Adding command-line arguments
+===================================
+
+The TRL will parse command-line arguments for you if you give it information about what is expected. It will automatically create the `--help` output.
+
+class TungstenEnvironment
+
+...
+
+  def configure
+    super()
+    
+    add_option(:boolean, {
+      :on => "--boolean",
+      :help => "A boolean option that will true or false",
+      :default => false
+    })
+    # Access the value via opt(:boolean)
+    
+    add_option(:string, {
+      :on => "--string String",
+      :help => "A string option"
+    })
+    # Access the value via opt(:string)
+    
+    add_option(:integer, {
+      :on => "--integer String",
+      :help => "An integer option",
+      :default => 10
+    }) {|val|
+      val.to_i()
+    }
+    # Access the value via opt(:integer)
+  end
+
+...
+end
+
+Validating the arguments and current environment
+===================================
+
+class TungstenEnvironment
+
+...
+
+  def validate
+    super()
+    
+    # Validate option values here
+  end
+
+...
+end
+
+Logging output
+===================================
+
+The TRL defines several logging functions and command line arguments fore enabling different levels of verbosity.
+
+TU.error(msg) # Always enabled
+TU.warning(msg) # Enabled by adding '-q'
+TU.info(msg) # Enabled by adding '-i'
+TU.notice(msg) # Enabled by default or by adding '-n'
+TU.debug(msg) # Enabled by adding by adding '-v'
+
+Define the 'script_log_path' function in your script and the all messages will be saved to the path returned by the function.
+
+Running commands locally and on remote hosts
+===================================
+
+begin
+  cmd_output = TU.cmd_result("/command/to/run --arg")
+rescue CommandError => ce
+  # Error with the command
+end
+
+begin
+  cmd_output = TU.ssh_result("/command/to/run --arg", host, user)
+rescue MessageError => me
+  # Error with the SSH connection
+rescue RemoteCommandError => rce
+  # Error with the command
+end
+
+Using JSON
+===================================
+
+JSON.parse()
+
+JSON.pretty_generate()
+
+Differences when running against clustering/replication
+===================================
+
+TODO
