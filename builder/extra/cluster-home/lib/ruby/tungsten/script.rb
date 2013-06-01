@@ -12,6 +12,12 @@ module TungstenScript
     # Does this script required to run against an installed Tungsten directory
     @require_installed_directory = true
     
+    # Definition of each command that this script will support
+    @command_definitions = {}
+    
+    # The command, if any, the script should run
+    @command = nil
+    
     # Definition of each option that this script is expecting as input
     @option_definitions = {}
     
@@ -55,6 +61,10 @@ module TungstenScript
     end
   end
   
+  def command
+    @command
+  end
+  
   def configure
   end
   
@@ -64,6 +74,26 @@ module TungstenScript
     end
     
     return @options[option_key]
+  end
+  
+  def add_command(command_key, definition)
+    begin
+      command_key = command_key.to_sym()
+      if @command_definitions.has_key?(command_key)
+        raise "The #{command_key} command has already been defined"
+      end
+
+      if definition[:default] == true
+        if @command != nil
+          raise "Multiple commands have been specified as the default"
+        end
+        @command = command_key
+      end
+
+      @command_definitions[command_key] = definition
+    rescue => e
+      TU.exception(e)
+    end
   end
   
   def add_option(option_key, definition, &parse)
@@ -103,6 +133,12 @@ module TungstenScript
   end
   
   def parse_options
+    if @command_definitions.size() > 0 && TU.remaining_arguments.size() > 0
+      if @command_definitions.has_key?(TU.remaining_arguments[0].to_sym())
+        @command = TU.remaining_arguments.shift()
+      end
+    end
+    
     opts = OptionParser.new()
     
     @option_definitions.each{
@@ -153,6 +189,10 @@ module TungstenScript
     if require_installed_directory?() && TI == nil
       TU.error("Unable to run #{$0} without the '--directory' argument pointing to an active Tungsten installation")
     end
+    
+    if @command_definitions.size() > 0 && @command == nil
+      TU.error("A command was not given for this script. Valid commands are #{@command_definitions.keys().join(', ')} and must be the first argument.")
+    end
   end
   
   def display_help
@@ -162,6 +202,23 @@ module TungstenScript
     end
     
     TU.display_help()
+    
+    if @command_definitions.size() > 0
+      TU.write_header("Script Commands", nil)
+      
+      @command_definitions.each{
+        |command_key,definition|
+        
+        if definition[:default] == true
+          default = "default"
+        else
+          default = ""
+        end
+        
+        TU.output_usage_line(command_key.to_s(), definition[:help], default)
+      }
+    end
+    
     TU.write_header("Script Options", nil)
     
     @option_definitions.each{

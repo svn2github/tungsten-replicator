@@ -9,6 +9,7 @@ class TungstenEnvironment
   include TungstenScript
   
   def main
+    TU.notice("Command is #{command()}")
     TU.notice("Latency is #{opt(:latency)}")
     
     if opt(:test)
@@ -18,6 +19,19 @@ class TungstenEnvironment
   
   def configure
     require_installed_directory?(false)
+    
+    add_command(:install, {
+      :help => "Create an entry"
+    })
+    
+    add_command(:delete, {
+      :help => "Delete an entry"
+    })
+    
+    add_command(:list, {
+      :default => true,
+      :help => "List all entries"
+    })
     
     add_option(:test, {
       :on => "--test",

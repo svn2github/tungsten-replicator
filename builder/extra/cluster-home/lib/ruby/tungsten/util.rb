@@ -1,6 +1,6 @@
 class TungstenUtil
   include Singleton
-  attr_reader :remaining_arguments
+  attr_accessor :remaining_arguments
   
   def initialize()
     @logger_threshold = Logger::NOTICE
