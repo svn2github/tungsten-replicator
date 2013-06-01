@@ -38,13 +38,15 @@ public class ReplicationServiceNotification extends ClusterResourceNotification
      * href=http://java.sun.com/products/jdk/1.1/docs/guide
      * /serialization/spec/version.doc.html/> for a list of compatible changes.
      */
-    private static final long               serialVersionUID            = -2097111546144612171L;
+    private static final long   serialVersionUID            = -2097111546144612171L;
 
-    private static final String             SERVICE_STATE_ONLINE        = "ONLINE";
-    private static final String             SERVICE_STATE_OFFLINE       = "OFFLINE";
-    private static final String             SERVICE_STATE_ERROR         = "OFFLINE:ERROR";
-    private static final String             SERVICE_STATE_BACKUP        = "OFFLINE:BACKUP";
-    private static final String             SERVICE_STATE_SYNCHRONIZING = "SYNCHRONIZING";
+    private static final String SERVICE_STATE_ONLINE        = "ONLINE";
+    private static final String SERVICE_STATE_GOING_ONLINE  = "GOING-ONLINE";
+    private static final String SERVICE_STATE_OFFLINE       = "OFFLINE";
+    private static final String SERVICE_STATE_ERROR         = "OFFLINE:ERROR";
+    private static final String SERVICE_STATE_BACKUP        = "OFFLINE:BACKUP";
+    private static final String SERVICE_STATE_SYNCHRONIZING = "SYNCHRONIZING";
+    private static final String SERVICE_STATE_RESTORING     = "RESTORING";
 
     /**
      * @param clusterName
@@ -62,7 +64,6 @@ public class ReplicationServiceNotification extends ClusterResourceNotification
                 notificationSource, ResourceType.REPLICATION_SERVICE,
                 resourceName, resourceState, resourceProps);
     }
-
 
     /**
      * Parses the given state provided by the replicator and guess a generic
@@ -92,7 +93,20 @@ public class ReplicationServiceNotification extends ClusterResourceNotification
             }
         }
         else if (state.contains(SERVICE_STATE_SYNCHRONIZING))
+        {
             return ResourceState.SYNCHRONIZING;
+        }
+        else if (state.startsWith(SERVICE_STATE_GOING_ONLINE))
+        {
+            if (state.contains(SERVICE_STATE_RESTORING))
+            {
+                return ResourceState.RESTORING;
+            }
+            else
+            {
+                return ResourceState.UNKNOWN;
+            }
+        }
         else
             return ResourceState.UNKNOWN;
     }
@@ -101,12 +115,12 @@ public class ReplicationServiceNotification extends ClusterResourceNotification
     {
         return resourceProps.getString(Replicator.ROLE);
     }
-    
+
     public String getHost()
     {
         return resourceProps.getString(Replicator.HOST);
     }
-    
+
     public String getDataServerHost()
     {
         return resourceProps.getString(Replicator.DATASERVER_HOST);
@@ -116,8 +130,8 @@ public class ReplicationServiceNotification extends ClusterResourceNotification
     {
         String masterUri = resourceProps
                 .getString(Replicator.MASTER_CONNECT_URI);
-        return masterUri.substring(masterUri.indexOf("//") + 2, masterUri
-                .lastIndexOf("/"));
+        return masterUri.substring(masterUri.indexOf("//") + 2,
+                masterUri.lastIndexOf("/"));
     }
-    
+
 }
