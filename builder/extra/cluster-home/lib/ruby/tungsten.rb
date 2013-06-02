@@ -16,6 +16,7 @@ require "tungsten/exec"
 require "tungsten/install"
 require "tungsten/properties"
 require "tungsten/script"
+require "tungsten/api"
 require "tungsten/topology"
 require "tungsten/util"
 
