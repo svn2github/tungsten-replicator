@@ -92,8 +92,13 @@ class TungstenEnvironment
             status_tree[ds_name]['progress'] = root['replicators'][ds_name]['appliedLastSeqno']
             status_tree[ds_name]['latency']  = root['dataSources'][ds_name]['appliedLatency']
         }
+        policy = root['policyManagerMode']
+        coordinator = root['coordinator']
+        service_name = root['name']
+        puts service_name
+        puts "coordinator: #{coordinator} - policy: #{policy}"
         status_tree.sort.each { |ds_name, ds|
-            puts sprintf "%-30s (%-8s:%-7s) - progress: %6d [%5.3f]", 
+            puts sprintf "\t%-30s (%-8s:%-7s) - progress: %6d [%5.3f]", 
                 ds_name,
                 ds['role'],
                 ds['state'],
