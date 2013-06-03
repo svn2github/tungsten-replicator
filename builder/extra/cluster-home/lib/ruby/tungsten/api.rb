@@ -42,7 +42,7 @@ require 'net/http'
 #   always return a hash containing 'message' and 'httpStatus'. If :raise is chosen
 #   then all call failures will raise an exception
 # * header : used to display the list of API calls
-# * dashes : used to draw dashes below the header. (internally used by  TungstenClusterManager::list)
+# * dashes : used to draw dashes below the header. (internally used by  TungstenServiceManager::list)
 #
 # Public instance methods:
 #  * initialize (name, prefix, command, help, return_structure = :hash, type = :get)
@@ -202,14 +202,6 @@ class APICall
     end
 
     #
-    # Get a JSON object from the output of a command, such as 'trepctl status -json'
-    #
-    def get_from_file(path, command)
-        # TODO get a JSON object from a command output, such as 'trepctl status -json' 
-        # TODO: determine if we can do this within this class or if it's better to subclass
-    end
-
-    #
     # Runs a 'get' call, using a given api_server and service name
     #
     def get(api_server, service)
@@ -228,7 +220,89 @@ class APICall
         response = Net::HTTP.post_form(api_uri, post_params)
         return evaluate_response(api_server,response)
     end
+end
 
+#
+# ReplicatorAPICall is a class that handles API Calls through Tungsten Replicator tools
+# 
+# It uses the same interface as APICall, but it is initialized differently
+#
+# Public instance methods:
+# * initialize (name, tools_path, tool, command, help, rmi_port=10000)
+# * get (service)
+#
+class ReplicatorAPICall < APICall
+
+    attr_accessor :command
+
+    @@template = '%-15s %-10s %-25s %s'
+    # name
+    # tool
+    # command
+    # help
+    
+    #
+    # Initializes a ReplicatorAPICall object
+    #  name : how to identify the API call
+    #  tool : which tool we are calling
+    #  tools_path : where to find the tool
+    #  rmi_port : which port should trepctl use
+    #  help : a brief description of the API call
+    #
+    def initialize (name, tools_path, tool, command, help, rmi_port=10000)
+        @name = name
+        @tool = tool
+        @command = command
+        @tools_path = tools_path
+        @rmi_port = rmi_port
+        @help = help
+    end
+
+    #
+    # Get a JSON object from the output of a command, such as 'trepctl status -json'
+    # If 'service' and host are  given, the command is called with -service #{service} and -host #{host}
+    #
+    def get(service, host, more_options)
+        service_clause=''
+        host_clause=''
+        port_clause=''
+        more_options = '' unless more_options
+        if service
+            service_clause = "-service #{service}"
+        end
+        if host
+            host_clause = "-host #{host}"
+        end
+        if @rmi_port
+            port_clause= "-port #{@rmi_port}"
+        end
+        full_command = "#{@tools_path}/#{@tool} #{port_clause} #{host_clause} #{service_clause} #{command} #{more_options}"
+        puts full_command
+        json_text = %x(#{full_command}) 
+        return JSON.parse(json_text)
+    end
+    
+    #
+    # override ancestor's header
+    #
+    def self.header
+        return sprintf @@template, :name.to_s, :tool.to_s, :command.to_s, :help.to_s
+    end
+
+    #
+    # override ancestor's dashes
+    #
+    def self.dashes
+        return sprintf @@template, '----', '----', '-------', '----'
+    end
+
+    def to_s
+        return sprintf @@template, @name, @tool, @command, @help
+    end
+
+    def to_hash
+        return  { :name.to_s => @name, :tool.to_s => @tool,  :command.to_s => @command , :help.to_s => @help }
+    end
 end
 
 #
@@ -248,7 +322,7 @@ class TungstenServiceManager
     # Registers all the known API calls for Tungsten data service
     #
     def initialize
-        @@api_calls = {}
+        @api_calls = {}
         add_api_call( APICall.new('status', 'status', '', 'Show cluster status', :hash, :get) )      
         add_api_call( APICall.new('promote', 'control', 'promote', 'promotes a slave to master', :hash, :post) )      
         add_api_call( APICall.new('policy',  'policy', '', 'show current policy',:hash, :get) )      
@@ -270,9 +344,16 @@ class TungstenServiceManager
     # Registers a given API call into the service
     #
     def add_api_call (api_call)
-        @@api_calls[api_call.name()] = api_call
+        @api_calls[api_call.name()] = api_call
     end
 
+    def header
+        return APICall.header
+    end
+
+    def dashes
+        return APICall.dashes
+    end
     #
     # Display the list of registered API calls
     # using a given display_mode: 
@@ -282,14 +363,14 @@ class TungstenServiceManager
     #
     def list (display_mode=:text)
         if display_mode == :text
-            puts APICall.header()
-            puts APICall.dashes()
-            @@api_calls.sort.each do |name,api|
+            puts header()
+            puts dashes()
+            @api_calls.sort.each do |name,api|
                 puts api
             end
         else
             display_api_calls = {}
-            @@api_calls.each do |name,api|
+            @api_calls.each do |name,api|
                 display_api_calls[name] = api.to_hash
             end
             if display_mode == :hash
@@ -320,7 +401,7 @@ class TungstenServiceManager
     private
 
     def call (api_server, service, name , type)
-        api = @@api_calls[name]
+        api = @api_calls[name]
         unless api
             raise SyntaxError, "api call #{name} not found"
         end
@@ -331,6 +412,54 @@ class TungstenServiceManager
         end
     end
 end
+
+#
+# Derived class of TungstenServiceManager, designed to handle calls to Replicator tools that provide json objects
+#  sample usage:
+#     cctrl = TungstenReplicatorManager.new('/opt/continuent/cookbook_test/tungsten/tungsten-replicator/bin')
+#     cctrl.list()
+#     puts ''
+#     pp cctrl.get( 'status', nil)
+#     pp cctrl.get( 'services', nil)
+#     pp cctrl.get( 'tasks', 'mysvc', 'myhost')
+#     pp cctrl.get( 'thl_headers', nil, nil, '-low 10 -high 80')
+#
+class TungstenReplicatorManager < TungstenServiceManager
+
+    #
+    # Registers all the known API calls for Tungsten data service
+    #
+    def initialize(tools_path, rmi_port=10000)
+        @api_calls = {}
+        add_api_call( ReplicatorAPICall.new('status', tools_path, 'trepctl', 'status -json', 'Show replicator status', rmi_port ) )      
+        %w(tasks stages stores shards).each do |option|
+            add_api_call( ReplicatorAPICall.new(option, tools_path,'trepctl',  "status -name #{option} -json", "Show replicator #{option}", rmi_port ) )      
+        end
+        add_api_call( ReplicatorAPICall.new('services', tools_path, 'trepctl', 'services -json', 'Show replicator services', rmi_port ) )      
+        add_api_call( ReplicatorAPICall.new('properties', tools_path, 'trepctl', 'properties', 'Show replicator properties', rmi_port) )      
+        add_api_call( ReplicatorAPICall.new('thl_headers', tools_path, 'thl', 'list -headers -json', 'Show thl headers', nil) )      
+    end
+
+    def header
+        return ReplicatorAPICall.header
+    end
+
+    def dashes
+        return ReplicatorAPICall.dashes
+    end
+
+    #
+    # Gets a hash from a JSON object returned from a given call
+    #
+    # name : the api being called
+    # service : to qualify the service, if the API requires it
+    # host: to run the call with a -host option
+    #
+    def get(name, service=nil, host=nil, more_options=nil)
+        @api_calls[name].get(service,host,more_options)
+    end
+end
+
 
 end
 
