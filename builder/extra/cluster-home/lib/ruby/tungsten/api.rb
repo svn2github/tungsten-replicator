@@ -4,6 +4,30 @@ require 'uri'
 require 'net/http'
 
 
+
+#      SAMPLE USAGE:
+#      api_server='localhost:8090'
+#      service=chicago
+#
+#      cctrl = TungstenServiceManager.new()
+#      cctrl.list(:text)
+#      puts ''
+#      json_obj = cctrl.get(api_server, service, 'policy')
+#      pp json_obj["message"]
+#
+#      APICall.set_return_on_call_fail(:hash)
+#      json_obj = cctrl.post(api_server, "#{service}/host1", 'promote')
+#      pp json_obj["message"]  ## Failure message will come here
+# 
+#      begin
+#        APICall.set_return_on_call_fail(:raise)
+#        json_obj = cctrl.post(api_server,'#{service}/host1', 'promote')
+#        pp json_obj["message"]
+#      rescue Exception => e
+#        puts e   # failure message will coem here
+#      end
+ 
+
 #
 # This class defines an API call, as needed by the Tungsten Manager API.
 # Up to a ppint, the class is fairly generic, as it defines how to create a URI 
@@ -110,6 +134,20 @@ class APICall
         return sprintf @@template , '----', '----', '------', '-------' , '----'
     end
 
+    def to_s
+        return sprintf @@template , @name, @type, @prefix, @command , @help     
+    end
+
+    def to_hash
+        { 
+            :name.to_s => @name, 
+            :type.to_s => @type, 
+            :prefix.to_s => @prefix, 
+            :command.to_s => @command, 
+            :help.to_s => @help 
+        }
+    end
+
     #
     # Returns a description of the API call, according to the display_mode:
     # * :text (default) is a single line of text according to @@template
@@ -118,17 +156,14 @@ class APICall
     #
     def description (display_mode = :text)
         if display_mode == :text
-            return sprintf @@template , @name, @type, @prefix, @command , @help     
+            return self.to_s
         end
-        return_object = { :name.to_s => @name, :type.to_s => @type, :prefix.to_s => @prefix, :command.to_s => @command, :help.to_s => @help }
-
-
         if display_mode == :json
-            return JSON.generate(return_object)
+            return JSON.generate(self.to_hash)
         elsif display_mode == :hash
-            return return_object
+            return self.to_hash
         else
-            raise "No suitable display mode selected"
+            raise SyntaxError, "No suitable display mode selected"
         end
     end
 
@@ -146,12 +181,15 @@ class APICall
                 "httpStatus"    => hash_from_json["returnCode"],
                 "message"       => hash_from_json["returnMessage"]
             } 
+            if @@return_on_call_fail == :raise
+                raise RuntimeError, "There was an error (#{hash_from_json["returnCode"]}) : #{hash_from_json["returnMessage"]}"
+            end
             return return_object
         end
  
         if response.code != '200'
             if @@return_on_call_fail == :raise
-                raise "The request returned code #{response.code}"
+                raise RuntimeError, "The request returned code #{response.code}"
             else
                 return_object = {
                     "httpStatus"    => response.code,
@@ -247,12 +285,12 @@ class TungstenServiceManager
             puts APICall.header()
             puts APICall.dashes()
             @@api_calls.sort.each do |name,api|
-                puts api.description()
+                puts api
             end
         else
             display_api_calls = {}
             @@api_calls.each do |name,api|
-                display_api_calls[name] = api.description(:hash)
+                display_api_calls[name] = api.to_hash
             end
             if display_mode == :hash
                 require 'pp'
@@ -260,7 +298,7 @@ class TungstenServiceManager
             elsif display_mode == :json
                 puts JSON.generate(display_api_calls)
             else
-                raise "no suitable display method selected"
+                raise SyntaxError,  "no suitable display method selected"
             end
         end
     end
@@ -284,7 +322,7 @@ class TungstenServiceManager
     def call (api_server, service, name , type)
         api = @@api_calls[name]
         unless api
-            raise "api call #{name} not found"
+            raise SyntaxError, "api call #{name} not found"
         end
         if type == :get
             return api.get(api_server,service)
