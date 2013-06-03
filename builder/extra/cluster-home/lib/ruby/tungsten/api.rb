@@ -9,7 +9,7 @@ require 'net/http'
 #      api_server='localhost:8090'
 #      service=chicago
 #
-#      cctrl = TungstenServiceManager.new()
+#      cctrl = TungstenDataserviceManager.new()
 #      cctrl.list(:text)
 #      puts ''
 #      json_obj = cctrl.get(api_server, service, 'policy')
@@ -42,7 +42,7 @@ require 'net/http'
 #   always return a hash containing 'message' and 'httpStatus'. If :raise is chosen
 #   then all call failures will raise an exception
 # * header : used to display the list of API calls
-# * dashes : used to draw dashes below the header. (internally used by  TungstenServiceManager::list)
+# * dashes : used to draw dashes below the header. (internally used by  TungstenDataserviceManager::list)
 #
 # Public instance methods:
 #  * initialize (name, prefix, command, help, return_structure = :hash, type = :get)
@@ -90,6 +90,16 @@ class APICall
         @returns = return_structure
         @help = help
         # TODO : add expected structure
+    end
+
+    def from_hash (hash)
+        @name = hash[name]
+        @prefix = hash[prefix]
+        @command = hash[command]
+        @type = hash[type]  # type can be :get, :post, :cmd
+        @returns = hash[return_structure]
+        @help = hash[help]
+        self 
     end
 
     #
@@ -206,7 +216,7 @@ class APICall
     #
     def get(api_server, service)
         api_uri = URI(self.make_uri(api_server,service))
-        puts api_uri
+        puts  "GET #{api_uri}"
         response = Net::HTTP.get_response(api_uri)
         return evaluate_response(api_server,response)
     end
@@ -216,7 +226,7 @@ class APICall
     #
     def post(api_server, service, post_params = {})
         api_uri = URI(self.make_uri(api_server,service))
-        puts api_uri
+        puts  "POST #{api_uri}"
         response = Net::HTTP.post_form(api_uri, post_params)
         return evaluate_response(api_server,response)
     end
@@ -316,7 +326,7 @@ end
 #  * post(api_server,service,name) will return the result of a post operation
 #
 
-class TungstenServiceManager
+class TungstenDataserviceManager
 
     #
     # Registers all the known API calls for Tungsten data service
@@ -369,19 +379,23 @@ class TungstenServiceManager
                 puts api
             end
         else
-            display_api_calls = {}
-            @api_calls.each do |name,api|
-                display_api_calls[name] = api.to_hash
-            end
             if display_mode == :hash
                 require 'pp'
-                pp display_api_calls
+                pp self.to_hash
             elsif display_mode == :json
-                puts JSON.generate(display_api_calls)
+                puts JSON.generate(self.to_hash)
             else
                 raise SyntaxError,  "no suitable display method selected"
             end
         end
+    end
+
+    def to_hash
+        display_api_calls = {}
+        @api_calls.each do |name,api|
+            display_api_calls[name] = api.to_hash
+        end
+        display_api_calls 
     end
 
     #
@@ -396,6 +410,19 @@ class TungstenServiceManager
     #
     def post (api_server, service, name )
         return call(api_server,service,name,:post)
+    end
+
+    #
+    # Calls the API using the method for which the call was registered.
+    # There is no need to specify :get or :post
+    #
+    def call_default (api_server, service, name )
+        api = @api_calls[name].to_hash
+        if api[:type.to_s] == :get
+            return call(api_server,service,name,:get)
+        else
+            return call(api_server,service,name,:post)
+        end
     end
 
     private
@@ -414,9 +441,9 @@ class TungstenServiceManager
 end
 
 #
-# Derived class of TungstenServiceManager, designed to handle calls to Replicator tools that provide json objects
+# Derived class of TungstenDataserviceManager, designed to handle calls to Replicator tools that provide json objects
 #  sample usage:
-#     cctrl = TungstenReplicatorManager.new('/opt/continuent/cookbook_test/tungsten/tungsten-replicator/bin')
+#     cctrl = TungstenReplicator.new('/opt/continuent/cookbook_test/tungsten/tungsten-replicator/bin')
 #     cctrl.list()
 #     puts ''
 #     pp cctrl.get( 'status', nil)
@@ -424,7 +451,7 @@ end
 #     pp cctrl.get( 'tasks', 'mysvc', 'myhost')
 #     pp cctrl.get( 'thl_headers', nil, nil, '-low 10 -high 80')
 #
-class TungstenReplicatorManager < TungstenServiceManager
+class TungstenReplicator < TungstenDataserviceManager
 
     #
     # Registers all the known API calls for Tungsten data service
