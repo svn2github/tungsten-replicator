@@ -17,7 +17,7 @@ require "tungsten/install"
 require "tungsten/properties"
 require "tungsten/script"
 require "tungsten/api"
-require "tungsten/topology"
+require "tungsten/status"
 require "tungsten/util"
 
 # Setup default instances of the TungstenUtil and TungstenInstall classes

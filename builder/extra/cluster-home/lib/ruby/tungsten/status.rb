@@ -1,4 +1,4 @@
-class TungstenTopology
+class TungstenStatus
   DATASERVICE = "dataservice"
   COORDINATOR = "coordinator"
   ROUTERS = "routers"

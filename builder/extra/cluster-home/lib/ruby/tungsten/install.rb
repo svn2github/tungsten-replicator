@@ -105,7 +105,7 @@ class TungstenInstall
     "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-manager/bin/cctrl -expert -port #{setting(MGR_RMI_PORT)}"
   end
   
-  def topology(dataservice = nil)
+  def status(dataservice = nil)
     if is_manager?()
       unless is_running?("manager")
         return nil
@@ -119,7 +119,7 @@ class TungstenInstall
       return nil
     end
     
-    return TungstenTopology.new(self, dataservice)
+    return TungstenStatus.new(self, dataservice)
   end
   
   def trepctl(service = nil)

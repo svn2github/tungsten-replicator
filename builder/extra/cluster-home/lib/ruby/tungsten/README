@@ -216,7 +216,7 @@ The 'dataservices' function returns an array of all configured dataservices.
 TI.dataservices() # => ["alpha"]
 
 The 'topology' function will provide an object that is populated with status information for the given dataservice.
-topology = TI.topology("alpha") # => Topology object
+topology = TI.status("alpha") # => Topology object
 
 Reading topology information
 -----------------------------------
