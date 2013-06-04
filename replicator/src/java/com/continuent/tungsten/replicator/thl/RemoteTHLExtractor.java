@@ -59,14 +59,16 @@ import com.continuent.tungsten.replicator.plugin.ShutdownHook;
  */
 public class RemoteTHLExtractor implements Extractor, ShutdownHook
 {
-    private static Logger    logger             = Logger.getLogger(RemoteTHLExtractor.class);
+    private static Logger    logger               = Logger.getLogger(RemoteTHLExtractor.class);
 
     // Properties.
     private List<String>     uriList;
-    private int              resetPeriod        = 1;
-    private boolean          checkSerialization = true;
-    private int              heartbeatMillis    = 3000;
-    private String           preferredRole      = null;
+    private int              resetPeriod          = 1;
+    private boolean          checkSerialization   = true;
+    private int              heartbeatMillis      = 3000;
+    private String           preferredRole        = null;
+    private int              preferredRoleTimeout = 32;
+    private int              retryInterval        = 1;
 
     // Connection control variables.
     private PluginContext    pluginContext;
@@ -77,11 +79,11 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
     private ReplEvent        pendingEvent;
 
     // Set to show that we have been shut down.
-    private volatile boolean shutdown           = false;
+    private volatile boolean shutdown             = false;
 
     // Connection counts for timeouts and retries.
-    private long             timeoutCount       = 0;
-    private long             attemptCount       = 0;
+    private long             timeoutCount         = 0;
+    private long             attemptCount         = 0;
 
     /**
      * Create Connector instance.
@@ -164,6 +166,28 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
     public void setPreferredRole(String preferredRole)
     {
         this.preferredRole = preferredRole;
+    }
+
+    public int getPreferredRoleTimeout()
+    {
+        return preferredRoleTimeout;
+    }
+
+    /** Sets the timeout to find the preferred master role in seconds. */
+    public void setPreferredRoleTimeout(int preferredRoleTimeout)
+    {
+        this.preferredRoleTimeout = preferredRoleTimeout;
+    }
+
+    public int getRetryInterval()
+    {
+        return retryInterval;
+    }
+
+    /** Sets the timeout between connection retries in seconds. */
+    public void setRetryInterval(int retryTimeout)
+    {
+        this.retryInterval = retryTimeout;
     }
 
     /**
@@ -415,14 +439,48 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
         openConnector();
     }
 
-    // Open up the connector here.
+    /**
+     * Open a master connection. The algorithm for connecting cycles through the
+     * available THL URIs until a suitable URI is found.
+     * <ul>
+     * <li>If there is a single URI and it is available, we connect to it once
+     * it is available regardless of the role.</li>
+     * <li>If there are multiple URIs and all are available, we connect
+     * preferentially to the URI whose role matches the value of the
+     * preferredRole property.</li>
+     * <li>In the event that a preferred URI role is not available, we connect
+     * to another URI after the preferred role timeout expires.</li>
+     * </ul>
+     * We pause following each round of checking for a period of time determined
+     * by the retryInterval parameter. This timeout is determined in advance at
+     * the start of each round of connection attempts to ensure we retry at
+     * consistent intervals that are not affected by time to make connections
+     * themselves.
+     * 
+     * @throws ReplicatorException
+     * @throws InterruptedException
+     */
     private void openConnector() throws ReplicatorException,
             InterruptedException
     {
-        // Connect to remote THL.
+        // Set up for connection to remote URI.
         ConnectUriManager uriManager = new ConnectUriManager(uriList);
-        logger.info("Opening connection to master: " + uriManager.toString());
+        logger.info("Opening connection to master: " + uriManager.toString()
+                + " preferred role=" + preferredRole
+                + " preferred role timeout=" + preferredRoleTimeout);
         String currentUri = null;
+
+        // Compute timeout value for seeking preferred master role.
+        long rollTimeoutMillis = System.currentTimeMillis()
+                + (preferredRoleTimeout * 1000);
+        long iterations = 0;
+
+        // The starting interval for retry attempts. This backs off over
+        // time to the value of retryInterval, which is expressed in seconds.
+        long retryIntervalMillis = 500;
+        long nextIntervalStartMillis = System.currentTimeMillis()
+                + retryIntervalMillis;
+
         for (;;)
         {
             try
@@ -466,27 +524,29 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                 // Try to connect. Accept if the connection matches our
                 // criteria.
                 conn.connect();
-                String serverRole = conn.getServerCapability(Protocol.ROLE);
+                String masterRole = conn.getServerCapability(Protocol.ROLE);
                 if (preferredRole == null)
                 {
                     // Accept if there is no preferred role.
                     logger.info("Connection is accepted");
                     break;
                 }
-                else if (preferredRole.equals(serverRole))
+                else if (preferredRole.equals(masterRole))
                 {
                     // Accept if there is a preferred role and we have a match.
-                    logger.info("Connection is accepted by role match: preferredRole="
-                            + preferredRole + " serverRole=" + serverRole);
+                    logger.info("Connection is accepted by role match against master: preferredRole="
+                            + preferredRole + " masterRole=" + masterRole);
                     break;
                 }
-                else if (uriManager.getIterations() > 0)
+                else if (uriManager.getIterations() > 0
+                        && System.currentTimeMillis() > rollTimeoutMillis)
                 {
-                    // Accept if we have been through the list at least one.
-                    logger.info("Connection is accepted by connect iterations: preferredRole="
+                    // Accept if we have been through the list at least once
+                    // and the timeout has expired.
+                    logger.info("Connection is accepted after roll search timed out: preferredRole="
                             + preferredRole
-                            + " serverRole="
-                            + serverRole
+                            + " masterRole="
+                            + masterRole
                             + " iterations=" + uriManager.getIterations());
                     break;
                 }
@@ -494,8 +554,6 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                 {
                     // If we get here the role did not match and we want to try
                     // for something better.
-                    logger.info("Connection does not meet acceptance criteria preferredRole="
-                            + preferredRole + " serverRole=" + serverRole);
                     closeConnector();
                 }
             }
@@ -508,6 +566,44 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
             catch (IOException e)
             {
                 prepareRetry(uriManager);
+            }
+            finally
+            {
+                // If we did not get a connection in the last full iteration, we
+                // should now delay using a backoff interval that increases
+                // to the intervalRetry value and also takes into consideration
+                // how long we spent trying to connect. To stay sane, this is
+                // the only part of the connection code that should pause
+                // between retries.
+                if (conn == null && uriManager.getIterations() > iterations)
+                {
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Unable to find acceptable connection; new round: iterations="
+                                + iterations
+                                + " retryInterval="
+                                + (retryIntervalMillis / 1000));
+                    }
+                    iterations = uriManager.getIterations();
+
+                    // See if we need to pause and do so.
+                    long sleepMillis = nextIntervalStartMillis
+                            - System.currentTimeMillis();
+                    if (sleepMillis > 0)
+                        Thread.sleep(sleepMillis);
+
+                    // Adjust the interval if necessary up to the max value.
+                    // This creates a nice backoff to ensure quick connection
+                    // initially. Then compute the start of the next connection
+                    // interval from it.
+                    if (retryIntervalMillis < (this.retryInterval * 1000))
+                    {
+                        retryIntervalMillis = Math.min(retryInterval * 1000,
+                                retryIntervalMillis * 2);
+                    }
+                    nextIntervalStartMillis = System.currentTimeMillis()
+                            + retryIntervalMillis;
+                }
             }
         }
 
@@ -543,7 +639,6 @@ public class RemoteTHLExtractor implements Extractor, ShutdownHook
                     + "in service properties file: current value="
                     + heartbeatMillis);
         }
-        Thread.sleep(1000);
     }
 
     // Close the connector. Clearing the connection must be synchronized.

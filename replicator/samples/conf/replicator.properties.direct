@@ -294,13 +294,29 @@ replicator.extractor.thl-extractor.storeName=thl
 # Remote THL extractor. 
 replicator.extractor.thl-remote=com.continuent.tungsten.replicator.thl.RemoteTHLExtractor
 replicator.extractor.thl-remote.connectUri=${replicator.master.connect.uri}
-# If true, check to ensure logs are consistent.  
+
+# If true, check to ensure logs are consistent on connection to master by 
+# comparing epoch numbers of last committed transaction.  This can be 
+# temporarily overridden when going online using 'trepctl online -force'.
 replicator.extractor.thl-remote.checkSerialization=true
+
 # Set requested interval in milliseconds for heartbeat events from remote THL.
+# This may need to be adjusted higher if masters are very slow to respond or
+# to scan the THL for slave start positions. 
 replicator.extractor.thl-remote.heartbeatInterval=3000
-# Set preferred THL server role.  Common values are master, slave, or empty 
-# (i.e., no value).
+
+# Set the number of seconds between retrying to master(s) after a lost
+# connection.
+replicator.extractor.thl-remote.retryInterval=1
+
+# Set preferred THL server role.  Common values are master, slave, or empty
+# (i.e., no value).  When replicating from a Tungsten cluster 'slave' avoids
+# problems with failover when transactions are trapped on an old master. 
 replicator.extractor.thl-remote.preferredRole=@{REPL_MASTER_PREFERRED_ROLE}
+
+# Set the number of seconds to find the preferred role when reconnecting.  
+# After this expires the replicator will choose any available master. 
+replicator.extractor.thl-remote.preferredRoleTimeout=30
 
 # Queue extractor.
 replicator.extractor.queue=com.continuent.tungsten.replicator.storage.InMemoryQueueAdapter

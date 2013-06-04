@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -49,20 +49,20 @@ import com.continuent.tungsten.replicator.thl.log.LogTimeoutException;
  */
 public class ConnectorHandler implements ReplicatorPlugin, Runnable
 {
-    private Server           server    = null;
-    private PluginContext    context   = null;
-    private Thread           thd       = null;
-    private SocketChannel    channel   = null;
-    private THL              thl       = null;
+    private Server           server          = null;
+    private PluginContext    context         = null;
+    private Thread           thd             = null;
+    private SocketChannel    channel         = null;
+    private THL              thl             = null;
     private int              resetPeriod;
     private int              heartbeatMillis;
-    private long             altSeqno  = -1;
-    private volatile boolean cancelled = false;
-    private volatile boolean finished  = false;
+    private long             altSeqno        = -1;
+    private volatile boolean cancelled       = false;
+    private volatile boolean finished        = false;
 
     private volatile boolean checkFirstSeqno = true;
 
-    private static Logger    logger    = Logger.getLogger(ConnectorHandler.class);
+    private static Logger    logger          = Logger.getLogger(ConnectorHandler.class);
 
     // Implements call-back to check log consistency between client and
     // master.
@@ -142,13 +142,15 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                         if (event == null)
                         {
                             throw new THLException(
-                                "Master log does not contain requested transaction: client source ID="
+                                    "Master log does not contain requested transaction: client source ID="
                                             + handshakeResponse.getSourceId()
                                             + " seqno=" + clientLastSeqno
-                                        + " epoch number="
-                                        + clientLastEpochNumber
-                                        + " master min seqno=" + masterMinSeqno
-                                        + " master max seqno=" + masterMaxSeqno);
+                                            + " epoch number="
+                                            + clientLastEpochNumber
+                                            + " master min seqno="
+                                            + masterMinSeqno
+                                            + " master max seqno="
+                                            + masterMaxSeqno);
                         }
                         else
                         {
@@ -488,14 +490,33 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
         }
         catch (THLException e)
         {
-            logger.error(
-                    "Connector handler terminated by THL exception: "
-                            + e.getMessage(), e);
+            // If this is an error we need to signal back to the slave, if it is
+            // there.
+            String message = "Connector handler terminated by THL exception: "
+                    + e.getMessage();
+
+            logger.error(message, e);
+            try
+            {
+                sendError(protocol, message);
+            }
+            catch (IOException e2)
+            {
+                logger.warn("Unable to send error to client, disconnecting");
+            }
         }
         catch (Throwable t)
         {
-            logger.error(
-                    "Connector handler terminated by unexpected exception", t);
+            String message = "Connector handler terminated by unexpected exception";
+            logger.error(message, t);
+            try
+            {
+                sendError(protocol, message);
+            }
+            catch (IOException e2)
+            {
+                logger.warn("Unable to send error to client, disconnecting");
+            }
         }
         finally
         {
