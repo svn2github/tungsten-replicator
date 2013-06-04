@@ -866,16 +866,18 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
 
         // The following logic avoids race conditions that may cause
         // different sources of information to be null.
+        // Fetch the pipeline with attention to race conditions.
+        ReplicatorRuntime runtime2 = runtime;
         Pipeline pipeline = null;
         List<String> extensions = null;
         String type = "unknown";
-        if (runtime != null)
+        if (runtime2 != null)
         {
-            pipeline = runtime.getPipeline();
-            extensions = runtime.getExtensionNames();
-            type = (runtime.isRemoteService() ? "remote" : "local");
+            pipeline = runtime2.getPipeline();
+            extensions = runtime2.getExtensionNames();
+            type = (runtime2.isRemoteService() ? "remote" : "local");
 
-            String pipelineSource = runtime.getPipelineSource();
+            String pipelineSource = runtime2.getPipelineSource();
             if (pipelineSource != null)
                 statusProps.setString(Replicator.PIPELINE_SOURCE,
                         pipelineSource);
@@ -922,32 +924,32 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                         lastEvent.getEpochNumber());
                 statusProps.setString(Replicator.APPLIED_LAST_EVENT_ID,
                         lastEvent.getEventId());
-                
+
                 long minStoredSeqno = -1;
                 long maxStoredSeqno = -1;
-                
+
                 /*
-                 * Workaround for race condition that causes
-                 * a NullPointerException in THL if replicator
-                 * is going offline while status() is being called.
+                 * Workaround for race condition that causes a
+                 * NullPointerException in THL if replicator is going offline
+                 * while status() is being called.
                  */
                 try
                 {
-                   minStoredSeqno =  pipeline.getMinStoredSeqno();
-                   maxStoredSeqno = pipeline.getMaxStoredSeqno();
+                    minStoredSeqno = pipeline.getMinStoredSeqno();
+                    maxStoredSeqno = pipeline.getMaxStoredSeqno();
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     if (!(e instanceof NullPointerException))
                     {
                         throw e;
                     }
                 }
-                
-                statusProps.setLong(Replicator.MIN_STORED_SEQNO,
-                        minStoredSeqno);
-                statusProps.setLong(Replicator.MAX_STORED_SEQNO,
-                        maxStoredSeqno);
+
+                statusProps
+                        .setLong(Replicator.MIN_STORED_SEQNO, minStoredSeqno);
+                statusProps
+                        .setLong(Replicator.MAX_STORED_SEQNO, maxStoredSeqno);
                 statusProps.setDouble(Replicator.APPLIED_LATENCY,
                         pipeline.getApplyLatency());
                 Timestamp commitTime = lastEvent.getExtractedTstamp();
@@ -983,10 +985,13 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
     {
         List<Map<String, String>> statusList = new ArrayList<Map<String, String>>();
 
-        // Fetch the pipeline.
+        // Fetch the pipeline with attention to race conditions.
+        ReplicatorRuntime runtime2 = runtime;
         Pipeline pipeline = null;
-        if (runtime != null)
-            pipeline = runtime.getPipeline();
+        if (runtime2 != null)
+        {
+            pipeline = runtime2.getPipeline();
+        }
 
         // If we have a pipeline, process the status request.
         if (pipeline != null)

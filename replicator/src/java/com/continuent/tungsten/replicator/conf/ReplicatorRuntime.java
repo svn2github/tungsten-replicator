@@ -620,6 +620,12 @@ public class ReplicatorRuntime implements PluginContext
         }
     }
 
+    /** Returns the pipeline. */
+    public Pipeline getPipeline()
+    {
+        return pipeline;
+    }
+
     /**
      * Ensures that a required property has a default if unspecified.
      */
@@ -1016,12 +1022,6 @@ public class ReplicatorRuntime implements PluginContext
         return remoteService;
     }
 
-    /** Returns the pipeline. */
-    public Pipeline getPipeline()
-    {
-        return pipeline;
-    }
-
     /**
      * {@inheritDoc}
      * 
@@ -1071,22 +1071,6 @@ public class ReplicatorRuntime implements PluginContext
     public FailurePolicy getApplierFailurePolicyOn0RowUpdates()
     {
         return applierFailOn0RowUpdates;
-    }
-
-    /**
-     * Returns the current minimum sequence number.
-     */
-    public long getMinSeqno()
-    {
-        return pipeline.getMinStoredSeqno();
-    }
-
-    /**
-     * Returns the current maximum sequence number.
-     */
-    public long getMaxSeqno()
-    {
-        return pipeline.getMaxStoredSeqno();
     }
 
     /**
