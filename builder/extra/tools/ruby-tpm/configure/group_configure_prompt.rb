@@ -651,6 +651,15 @@ module GroupConfigurePromptMember
     return super()
   end
   
+  def get_stored_value()
+    value = super()
+    if value == nil
+      value = get_group_default_value()
+    end
+    
+    value
+  end
+  
   def skip_class_validation?()
     ConfigureValidationHandler.skip_validation_class?(self.class.name, @config)
   end

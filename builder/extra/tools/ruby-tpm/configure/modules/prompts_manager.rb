@@ -45,6 +45,7 @@ MGR_JAVA_MEM_SIZE = "mgr_java_mem_size"
 MGR_JAVA_ENABLE_CONCURRENT_GC = "mgr_java_enable_concurrent_gc"
 MGR_API = "mgr_api"
 MGR_API_PORT = "mgr_api_port"
+MGR_API_ADDRESS = "mgr_api_address"
 
 class Managers < GroupConfigurePrompt
   def initialize
@@ -710,4 +711,13 @@ class ManagerAPIPort < ConfigurePrompt
   end
   
   PortForManagers.register(MANAGERS, MGR_API_PORT)
+end
+
+class ManagerAPIAddress < ConfigurePrompt
+  include ManagerPrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(MGR_API_ADDRESS, "Address for the Manager API", PV_ANY, "0.0.0.0")
+  end
 end

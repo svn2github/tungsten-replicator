@@ -118,6 +118,10 @@ class ConfigurePrompt
     get_value()
   end
   
+  def get_stored_value()
+    @config.getNestedProperty(get_name())
+  end
+  
   # Get the current value for the prompt, use the default if the config does
   # not have a response for the given config key
   def get_value(allow_default = true, allow_disabled = false)
