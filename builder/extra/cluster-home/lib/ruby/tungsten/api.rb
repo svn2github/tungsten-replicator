@@ -9,19 +9,19 @@ require 'net/http'
 #      api_server='localhost:8090'
 #      service=chicago
 #
-#      cctrl = TungstenDataserviceManager.new()
+#      cctrl = TungstenDataserviceManager.new(api_server)
 #      cctrl.list(:text)
 #      puts ''
-#      json_obj = cctrl.get(api_server, service, 'policy')
+#      json_obj = cctrl.get(service, 'policy')
 #      pp json_obj["message"]
 #
 #      APICall.set_return_on_call_fail(:hash)
-#      json_obj = cctrl.post(api_server, "#{service}/host1", 'promote')
+#      json_obj = cctrl.post("#{service}/host1", 'promote')
 #      pp json_obj["message"]  ## Failure message will come here
 # 
 #      begin
 #        APICall.set_return_on_call_fail(:raise)
-#        json_obj = cctrl.post(api_server,'#{service}/host1', 'promote')
+#        json_obj = cctrl.post(service}/host1', 'promote')
 #        pp json_obj["message"]
 #      rescue Exception => e
 #        puts e   # failure message will coem here
@@ -320,10 +320,12 @@ end
 # It has the definition of the api calls supported through this architecture, and methods to call them easily.
 # 
 # Public instance methods:
+#  * initialize(api_server)
 #  * list (display_mode)
 #    will show all the API registered with this service
-#  * get(api_server,service,name) will return the result of a get call
-#  * post(api_server,service,name) will return the result of a post operation
+#  * set_server(api_server)
+#  * get(service,name) will return the result of a get call
+#  * post(service,name) will return the result of a post operation
 #
 
 class TungstenDataserviceManager
@@ -331,7 +333,8 @@ class TungstenDataserviceManager
     #
     # Registers all the known API calls for Tungsten data service
     #
-    def initialize
+    def initialize(api_server)
+        @api_server = api_server
         @api_calls = {}
         add_api_call( APICall.new('status', 'status', '', 'Show cluster status', :hash, :get) )      
         add_api_call( APICall.new('promote', 'control', 'promote', 'promotes a slave to master', :hash, :post) )      
@@ -351,25 +354,44 @@ class TungstenDataserviceManager
     end
 
     #
+    # Changes the default api_server
+    #
+    def set_server (api_server)
+        @api_server = api_server
+    end
+
+    #
     # Registers a given API call into the service
+    # It is safe to use in derived classes
     #
     def add_api_call (api_call)
         @api_calls[api_call.name()] = api_call
     end
 
+    #
+    # returns the header for the api list
+    # It must be overriden by derived classes
+    #
     def header
         return APICall.header
     end
 
+    #
+    # returns the sub-header dashes for the api list
+    # It must be overriden by derived classes
+    #
     def dashes
         return APICall.dashes
     end
+
     #
     # Display the list of registered API calls
     # using a given display_mode: 
     # * :text (default)
     # * :hash : good for further usage of the API call within the same application
     # * :json : good to export to other applications
+    #
+    # Safe to use in derived classes 
     #
     def list (display_mode=:text)
         if display_mode == :text
@@ -390,6 +412,9 @@ class TungstenDataserviceManager
         end
     end
 
+    # 
+    # Returns a Hash with the list of API calls
+    #
     def to_hash
         display_api_calls = {}
         @api_calls.each do |name,api|
@@ -401,41 +426,46 @@ class TungstenDataserviceManager
     #
     # Runs a 'get' call with a given API 
     #
-    def get (api_server, service, name )
-        return call(api_server,service,name,:get)
+    def get ( service, name, api_server=nil )
+        api_server ||= @api_server
+        return call(service,name,:get, api_server)
     end
 
     #
     # Runs a 'post' call with a given API 
     #
-    def post (api_server, service, name )
-        return call(api_server,service,name,:post)
+    def post (service, name, api_server = nil)
+        api_server ||= @api_server
+        return call(service,name,:post, api_server)
     end
 
     #
     # Calls the API using the method for which the call was registered.
     # There is no need to specify :get or :post
     #
-    def call_default (api_server, service, name )
+    def call_default (service, name, api_server=nil )
+        api_server ||= @api_server
         api = @api_calls[name].to_hash
         if api[:type.to_s] == :get
-            return call(api_server,service,name,:get)
+            return call(service,name,:get, api_server)
         else
-            return call(api_server,service,name,:post)
+            return call(service,name,:post, api_server)
         end
     end
 
-    private
-
-    def call (api_server, service, name , type)
+    #
+    # Calls a named service with explicit mode (:get or :post)
+    #
+    def call (service, name , type, api_server=nil)
+        api_server ||= @api_server
         api = @api_calls[name]
         unless api
             raise SyntaxError, "api call #{name} not found"
         end
         if type == :get
-            return api.get(api_server,service)
+            return api.get(@api_server,service)
         else
-            return api.post(api_server,service)
+            return api.post(@api_server,service)
         end
     end
 end
@@ -467,10 +497,16 @@ class TungstenReplicator < TungstenDataserviceManager
         add_api_call( ReplicatorAPICall.new('thl_headers', tools_path, 'thl', 'list -headers -json', 'Show thl headers', nil) )      
     end
 
+    #
+    # Overriding ancestor's method, to make a call to 'list' safe
+    #
     def header
         return ReplicatorAPICall.header
     end
 
+    #
+    # Overriding ancestor's method, to make a call to 'list' safe
+    #
     def dashes
         return ReplicatorAPICall.dashes
     end

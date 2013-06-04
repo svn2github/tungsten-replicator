@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+#
+# Sample command line interface to the Manager API
+#
+
 require "./cluster-home/lib/ruby/tungsten"
 require 'pp'
 
@@ -15,7 +19,7 @@ class TungstenEnvironment
     def configure
         super()
     
-        @cctrl = TungstenDataserviceManager.new()
+        @cctrl = TungstenDataserviceManager.new(nil)
         apis = @cctrl.to_hash
         # 
         # loops through the API calls and creates an option for each one
@@ -36,6 +40,15 @@ class TungstenEnvironment
             :default => nil
         })
 
+        #
+        # Add an option to show the outline of the returning object
+        #
+        add_option(:structure, {
+            :on => "--structure",
+            :help => "Prints an outline of the object structure for each call",
+            :default => false
+        })
+        
         #
         # Add an option to define the data service
         #
@@ -65,7 +78,7 @@ class TungstenEnvironment
     end
 
     #
-    # get a return JSON object and prints selected fields from the structure
+    # Prints selected fields from a cluster status hash
     #
     def display_cluster (call_name, hash)
         root = hash["outputPayload"]
@@ -108,6 +121,43 @@ class TungstenEnvironment
     end
 
     #
+    # prints the outline of a hash structure
+    #
+    # If environment variable ALL_FIELDS is set, then it prints all fields,
+    # otherwise it only prints the fields at the top leven and the ones that have nested contents
+    #
+    # IF the environment variable SHOW_BRACES is set, then it also prints braces (or brackets) 
+    # around the inner structure
+    #
+
+    def show_structure(hash, indent = 0)
+        line_prefix = ''
+        indent.times { line_prefix += ' ' }
+        hash.each { |k,v|
+            nested = false
+            key_suffix = ''
+            closing = ''
+            if v.is_a? Hash 
+                nested = true
+                key_suffix= ' {' if ENV["SHOW_BRACES"]
+                closing='}'  if ENV["SHOW_BRACES"]
+            end
+            if v.is_a? Array
+                nested = true
+                key_suffix= ' ['
+                closing = ']'
+            end
+            if indent == 0 or nested or ENV["ALL_FIELDS"]
+                puts "#{line_prefix} #{k}#{key_suffix}"
+            end
+            if nested
+                show_structure(v, indent+2)
+                puts " #{line_prefix}#{closing}" if ENV["SHOW_BRACES"]
+            end
+        }
+    end
+
+    #
     # Main app
     #
     def main
@@ -116,6 +166,7 @@ class TungstenEnvironment
         service ||= 'chicago'
         api_server = opt(:api_server)
         api_server ||= 'localhost:8090'
+        @cctrl.set_server(api_server)
 
         if opt(:list)
             # displays the list of available API calls
@@ -132,7 +183,11 @@ class TungstenEnvironment
                     if target
                         service += "/#{target}"
                     end
-                    cluster_hash = @cctrl.call_default(api_server,service, command)
+                    cluster_hash = @cctrl.call_default(service, command)
+                    if opt(:structure)
+                        show_structure(cluster_hash)
+                        puts ''
+                    end
                     if cluster_hash['httpStatus'] != 200
                         puts "*** #{cluster_hash['message']} (#{cluster_hash['httpStatus']})"
                     else
