@@ -49,7 +49,12 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /**
  * Defines a simple HashMap wrapper that can be used to store and retrieve
@@ -60,6 +65,9 @@ import org.apache.log4j.Logger;
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
  */
+@XmlRootElement
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class TungstenProperties implements Serializable
 {
     private static final long   serialVersionUID    = 1;
@@ -1377,6 +1385,7 @@ public class TungstenProperties implements Serializable
      * 
      * @return a String/TungstenProperties map
      */
+    @JsonIgnore
     public Map<String, TungstenProperties> getDataSourceMap()
     {
         Map<String, TungstenProperties> result = new HashMap<String, TungstenProperties>();
@@ -1397,6 +1406,7 @@ public class TungstenProperties implements Serializable
      * 
      * @return a String/(String/TungstenProperties) map
      */
+    @JsonIgnore
     public Map<String, Map<String, TungstenProperties>> getClusterMap()
     {
         Map<String, Map<String, TungstenProperties>> fullResult = new HashMap<String, Map<String, TungstenProperties>>();
