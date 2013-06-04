@@ -216,7 +216,7 @@ class APICall
     #
     def get(api_server, service)
         api_uri = URI(self.make_uri(api_server,service))
-        puts  "GET #{api_uri}"
+        puts  "GET #{api_uri}" if ENV["SHOW_INTERNALS"]
         response = Net::HTTP.get_response(api_uri)
         return evaluate_response(api_server,response)
     end
@@ -226,7 +226,7 @@ class APICall
     #
     def post(api_server, service, post_params = {})
         api_uri = URI(self.make_uri(api_server,service))
-        puts  "POST #{api_uri}"
+        puts  "POST #{api_uri}" if ENV["SHOW_INTERNALS"]
         response = Net::HTTP.post_form(api_uri, post_params)
         return evaluate_response(api_server,response)
     end
@@ -287,7 +287,7 @@ class ReplicatorAPICall < APICall
             port_clause= "-port #{@rmi_port}"
         end
         full_command = "#{@tools_path}/#{@tool} #{port_clause} #{host_clause} #{service_clause} #{command} #{more_options}"
-        puts full_command
+        puts full_command if ENV["SHOW_INTERNALS"]
         json_text = %x(#{full_command}) 
         return JSON.parse(json_text)
     end
