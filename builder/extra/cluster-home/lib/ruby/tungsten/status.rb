@@ -1,4 +1,6 @@
 class TungstenStatus
+  include TungstenAPI
+
   DATASERVICE = "dataservice"
   COORDINATOR = "coordinator"
   ROUTERS = "routers"
@@ -39,15 +41,26 @@ class TungstenStatus
     end
     
     if @install.is_manager?()
+      unless @install.is_running?("manager")
+        raise "Unable to provide status for #{@dataservice} from #{@install.hostname()}:#{@install.root()} because the manager is not running"
+      end
       parse_manager()
-    else
+    elsif @install.is_replicator?()
+      unless @install.is_running?("replicator")
+        raise "Unable to provide status for #{@dataservice} from #{@install.hostname()}:#{@install.root()} because the replicator is not running"
+      end
       parse_replicator()
+    else
+      raise "Unable to provide status for #{@dataservice} from #{@install.hostname()}:#{@install.root()} because it is not a database server"
     end
   end
   
   def parse_manager
     @props = Properties.new()
-    result = @install.manager_api_result("status/#{@dataservice}", ["serviceState"])
+    
+    mgr = TungstenDataserviceManager.new(@install.mgr_api_uri())
+    result = mgr.get(@dataservice, 'status')
+    result = result["outputPayload"]
 
     @props.setProperty(DATASERVICE, @dataservice)
     if result["composite"] == true
@@ -72,7 +85,7 @@ class TungstenStatus
     @props.setProperty([REPLICATORS, @install.hostname()], r_props)
   end
   
-  def dataservice
+  def name
     self.parse()
     return @props.getProperty(DATASERVICE)
   end
@@ -147,7 +160,7 @@ class TungstenStatus
     return @props.to_s()
   end
 
-  def to_a
+  def to_hash
     self.parse()
     return @props.props
   end

@@ -215,39 +215,51 @@ Reading dataservice information
 The 'dataservices' function returns an array of all configured dataservices.
 TI.dataservices() # => ["alpha"]
 
-The 'topology' function will provide an object that is populated with status information for the given dataservice.
-topology = TI.status("alpha") # => Topology object
-
-Reading topology information
+Reading expected configuration information
 -----------------------------------
 
+topology = TI.topology("alpha")
+
+pp topology.name
+pp topology.is_composite?()
+pp topology.members
+pp topology.master
+pp topology.connectors
+pp topology.dataservices
+
+Reading dataservice status information
+-----------------------------------
+
+The 'status' function will provide an object that is populated with information for the given dataservice.
+status = TI.status("alpha") # => TungstenStatus object
+
 # Is this a replication-only service with no Manager involvement
-topology.is_replication?() # => true|false
+status.is_replication?() # => true|false
 
 # Is this a physical dataservice?
-topology.is_physical?() # => true|false
+status.is_physical?() # => true|false
 
 # Is this a composite dataservice?
-topology.is_composite?() # => true|false
+status.is_composite?() # => true|false
 
 # Return the current policy, if it exists, for the dataservice
-topology.policy() # => MANUAL|MAINTENANCE|AUTOMATIC
+status.policy() # => MANUAL|MAINTENANCE|AUTOMATIC
 
 # Return the current coordinator, if it exists, for the dataservice
-topology.coordinator() # => "db1.nyc.tu.com"
+status.coordinator() # => "db1.nyc.tu.com"
 
 # Return an array of the available datasources or replicators
-topology.datasources() # => ["db1.nyc.tu.com", "db2.nyc.tu.com"]
-topology.replicators() # => ["db1.nyc.tu.com", "db2.nyc.tu.com"]
+status.datasources() # => ["db1.nyc.tu.com", "db2.nyc.tu.com"]
+status.replicators() # => ["db1.nyc.tu.com", "db2.nyc.tu.com"]
 
 # Return information about the datasource or replicator
-topology.datasource_role("db1.nyc.tu")
-topology.datasource_status("db1.nyc.tu")
-topology.datasource_value("db1.nyc.tu", "activeConnectionsCount")
-topology.replicator_role("db1.nyc.tu")
-topology.replicator_status("db1.nyc.tu")
-topology.replicator_latency("db1.nyc.tu")
-topology.replicator_value("db1.nyc.tu", "masterListenUri")
+status.datasource_role("db1.nyc.tu")
+status.datasource_status("db1.nyc.tu")
+status.datasource_value("db1.nyc.tu", "activeConnectionsCount")
+status.replicator_role("db1.nyc.tu")
+status.replicator_status("db1.nyc.tu")
+status.replicator_latency("db1.nyc.tu")
+status.replicator_value("db1.nyc.tu", "masterListenUri")
 
 Interacting with the replicator
 -----------------------------------
@@ -278,7 +290,6 @@ Differences when running against a replication-only installation
 
 The following TungstenInstall functions will not provide values
   * TI.ensure_cctrl()
-  * TI.manager_api_result()
   
 The following Topology functions will not provide values
   * topology.policy()

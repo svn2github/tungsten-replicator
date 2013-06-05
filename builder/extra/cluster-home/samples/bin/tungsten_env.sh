@@ -9,12 +9,13 @@ class TungstenEnvironment
   include TungstenScript
   
   def main
-    TU.notice("Command is #{command()}")
-    TU.notice("Latency is #{opt(:latency)}")
-    
-    if opt(:test)
-      TU.warning("Test mode is enabled")
-    end
+    pp TI.dataservices()
+    pp TI.default_dataservice()
+    TI.dataservices().each{
+      |dsname|
+      pp TI.topology(dsname).to_hash()
+      pp TI.status(dsname).to_hash()
+    }
   end
   
   def configure

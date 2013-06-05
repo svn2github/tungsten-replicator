@@ -402,7 +402,6 @@ class TungstenDataserviceManager
             end
         else
             if display_mode == :hash
-                require 'pp'
                 pp self.to_hash
             elsif display_mode == :json
                 puts JSON.generate(self.to_hash)

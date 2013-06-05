@@ -8,7 +8,6 @@ class TungstenInstall
     TU.debug("Initialize #{self.class.name} from #{@root}")
     @settings = {}
     @topology = nil
-    @dataservices = nil
     @has_tpm = (TU.cmd_result("#{tpm()} query staging") != "")
     
     # Preload settings about this installation
@@ -23,7 +22,8 @@ class TungstenInstall
         REPL_RMI_PORT,
         MGR_RMI_PORT,
         MGR_API,
-        MGR_API_PORT
+        MGR_API_PORT,
+        MGR_API_ADDRESS
         ])
     else
       # Read the values from files
@@ -48,16 +48,25 @@ class TungstenInstall
   end
   
   def dataservices
-    if is_replicator?()
-      if @dataservices == nil
-        unless is_running?("replicator")
-          raise "Unable to get dataservice list because the replicator isn't running"
-        end
-        @dataservices = TU.cmd_result("#{trepctl()} services | grep serviceName | awk -F: '{print $2}' | tr -d ' '").split("\n")
-      end
-      @dataservices
+    if use_tpm?()
+      TU.cmd_result("#{tpm()} query dataservices | awk -F \" \" '{print $1}'").split("\n")
     else
-      return nil
+      TU.cmd_result("egrep \"^service.name\" #{root()}/tungsten/conf/static-* | awk -F \"=\" '{print $2}'").split("\n")
+    end
+  end
+  
+  def default_dataservice
+    if is_manager?()
+      setting("dataservice_name")
+    elsif is_replicator?()
+      local_services = TU.cmd_result("egrep -l \"^replicator.service.type=local\" #{root()}/tungsten-replicator/conf/static*")
+      if local_services.size() == 0
+        dataservices().get(0)
+      else
+        TU.cmd_result("egrep \"^service.name\" #{local_services[0]} | awk -F \"=\" '{print $2}'")
+      end
+    else
+      dataservices()[0]
     end
   end
   
@@ -105,29 +114,40 @@ class TungstenInstall
     "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-manager/bin/cctrl -expert -port #{setting(MGR_RMI_PORT)}"
   end
   
-  def status(dataservice = nil)
-    if is_manager?()
-      unless is_running?("manager")
-        return nil
-      end
-    elsif is_replicator?()
-      unless is_running?("replicator")
-        return nil
-      end
+  def mgr_api_uri
+    if setting(MGR_API_ADDRESS) == "0.0.0.0"
+      "#{hostname()}:#{setting(MGR_API_PORT)}"
     else
-      # This is a connector server
-      return nil
+      "#{setting(MGR_API_ADDRESS)}:#{setting(MGR_API_PORT)}"
+    end
+  end
+  
+  def status(dataservice = nil)
+    if dataservice == nil
+      dataservice = default_dataservice()
+    end
+    
+    unless dataservices().include?(dataservice)
+      raise "Unable to provide a status for #{dataservice} because it is not defined on this host"
     end
     
     return TungstenStatus.new(self, dataservice)
   end
   
-  def trepctl(service = nil)
-    if service == nil
-      "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/trepctl -port #{setting(REPL_RMI_PORT)}"
-    else
-      "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/trepctl -port #{setting(REPL_RMI_PORT)} -service #{service}"
+  def topology(dataservice = nil)
+    if dataservice == nil
+      dataservice = default_dataservice()
     end
+    
+    unless dataservices().include?(dataservice)
+      raise "Unable to provide a topology for #{dataservice} because it is not defined on this host"
+    end
+    
+    return TungstenTopology.new(self, dataservice)
+  end
+  
+  def trepctl(service)
+    "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/trepctl -port #{setting(REPL_RMI_PORT)} -service #{service}"
   end
   
   def trepctl_value(service, key)
@@ -194,37 +214,55 @@ class TungstenInstall
     raise "Unable to execute '#{cmd}' in cctrl"
   end
   
-  def manager_api_result(path, return_path = [])
-    unless defined?(Net::HTTP)
-      require 'net/http'
-    end
-    
-    if setting(MGR_API) != "true"
-      raise "Unable to use Manager API because it isn't enabled"
-    end
-    
-    current_val = JSON.parse(Net::HTTP.get(URI("http://localhost:#{setting(MGR_API_PORT)}/manager/#{path}")))
-    
-    if current_val["httpStatus"] != 200
-      raise "There was an error calling '/manager/#{path}' on #{hostname()}: #{current_val['message']}"
-    end
-    
-    return_path_count = return_path.size()
-    for i in 0..(return_path_count-1)
-      attr_name = return_path[i]
-      return current_val[attr_name] if i == (return_path_count-1)
-      return nil if current_val[attr_name].nil?
-      current_val = current_val[attr_name]
-    end
-    
-    return current_val
-  end
-  
   def self.get(path)
     @@instances ||= {}
     unless @@instances.has_key?(path)
       @@instances[path] = TungstenInstall.new(path)
     end
     return @@instances[path]
+  end
+  
+  class TungstenTopology
+    attr_reader :datasources, :master, :connectors, :dataservices, :type
+
+    def initialize(install, dataservice)
+      @install = install
+      @name = dataservice
+      
+      unless @install.use_tpm?()
+        raise "Unable to parse the topology for #{@name} from #{@install.hostname()}:#{@install.root()} because tpm was not used for installation"
+      end
+      
+      values = @install.settings([
+        "dataservices.#{@name}.dataservice_hosts",
+        "dataservices.#{@name}.dataservice_master_host",
+        "dataservices.#{@name}.dataservice_connectors",
+        "dataservices.#{@name}.dataservice_composite_datasources",
+        "dataservices.#{@name}.dataservice_topology"
+      ])
+      
+      @type = values["dataservices.#{@name}.dataservice_topology"]
+      @members = values["dataservices.#{@name}.dataservice_hosts"].to_s().split(",")
+      @master = values["dataservices.#{@name}.dataservice_master_host"]
+      @connectors = values["dataservices.#{@name}.dataservice_connectors"].to_s().split(",")
+      @dataservices = values["dataservices.#{@name}.dataservice_composite_datasources"].to_s().split(",")
+    end
+    
+    def is_composite?
+      (@dataservices.size() > 0)
+    end
+    
+    def to_hash
+      {
+        :hostname => @install.hostname(),
+        :root => @install.root(),
+        :is_composite => is_composite?(),
+        :type => @type,
+        :members => @members,
+        :master => @master,
+        :connectors => @connectors,
+        :dataservices => @dataservices
+      }
+    end
   end
 end
