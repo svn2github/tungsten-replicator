@@ -361,7 +361,15 @@ public class THLManagerCtrl
                 StringBuilder sb = new StringBuilder();
                 if (json && found > 1)
                     sb.append(",\n");
-                printHeader(sb, thlEvent, json);
+
+                // Choose appropriate format for the header.
+                int format = 0;
+                if (json)
+                    format = 1;
+                else if (headersOnly && !json)
+                    format = 2;
+                printHeader(sb, thlEvent, format);
+
                 print(sb.toString());
             }
             if (!headersOnly)
@@ -414,13 +422,13 @@ public class THLManagerCtrl
      * @param stringBuilder StringBuilder object to append formatted contents
      *            to.
      * @param thlEvent THLEvent to print out.
-     * @param json Print in JSON format.
+     * @param format 0 - human readable, 1 - JSON, 2 - tab-delimited.
      * @see #printHeader(StringBuilder, ReplDBMSEvent)
      */
     public static void printHeader(StringBuilder stringBuilder,
-            THLEvent thlEvent, boolean json)
+            THLEvent thlEvent, int format)
     {
-        if (json)
+        if (format == 1)
         {
             stringBuilder.append("{\n");
             stringBuilder.append("\"seqno\": ");
@@ -450,6 +458,27 @@ public class THLManagerCtrl
                 stringBuilder.append(thlEvent.getComment());
             stringBuilder.append("\"\n");
             stringBuilder.append("}");
+        }
+        else if (format == 2)
+        {
+            stringBuilder.append(thlEvent.getSeqno());
+            stringBuilder.append("\t");
+            stringBuilder.append(thlEvent.getEpochNumber());
+            stringBuilder.append("\t");
+            stringBuilder.append(thlEvent.getFragno());
+            stringBuilder.append("\t");
+            stringBuilder.append(thlEvent.getLastFrag());
+            stringBuilder.append("\t");
+            stringBuilder.append(thlEvent.getSourceTstamp());
+            stringBuilder.append("\t");
+            stringBuilder.append(thlEvent.getEventId());
+            stringBuilder.append("\t");
+            stringBuilder.append(thlEvent.getSourceId());
+            stringBuilder.append("\t");
+            if (thlEvent.getComment() != null
+                    && thlEvent.getComment().length() > 0)
+                stringBuilder.append(thlEvent.getComment());
+            stringBuilder.append("\t\n");
         }
         else
         {
@@ -1092,7 +1121,15 @@ public class THLManagerCtrl
                 StringBuilder sb = new StringBuilder();
                 if (json && !first)
                     sb.append(",\n");
-                printHeader(sb, thlEvent, json);
+                
+                // Choose appropriate format for the header.
+                int format = 0;
+                if (json)
+                    format = 1;
+                else if (headersOnly && !json)
+                    format = 2;
+                printHeader(sb, thlEvent, format);
+
                 print(sb.toString());
             }
             if (!headersOnly)
