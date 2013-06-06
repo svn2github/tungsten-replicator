@@ -69,6 +69,7 @@ public class RouterGatewayConstants
     public static final String NOTIFICATION_PREFIX         = "notification.";
     public static final String NOTIFICATION_ARGS_PREFIX    = "notificationArgs.";
     public static final String MAINTENANCE_MODE            = "maintenanceMode";
+    public static final String FAILSAFE                    = "failSafe";
 
     public static String commandToText(final char command)
     {
@@ -98,7 +99,7 @@ public class RouterGatewayConstants
                 return "QUIT";
             case COMMAND_MAINTENANCE_MODE :
                 return "MAINTENANCE_MODE";
-            case COMMAND_RESET_CLUSTER_VIEW:
+            case COMMAND_RESET_CLUSTER_VIEW :
                 return "RESET_CLUSTER_VIEW";
             case COMMAND_TRACE_GLOBAL_ENABLE :
                 return "TRACE_GLOBAL_ENABLE";
