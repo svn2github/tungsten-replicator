@@ -400,9 +400,9 @@ public class CDCMetadataFilter implements Filter
     {
         seqCache = new Hashtable<String, Long>();
         
-        // Load defaults for connection 
+        // Load defaults for connection
         if (url == null)
-            url = context.getJdbcUrl("tungsten");
+            url = context.getJdbcUrl("tungsten_" + context.getServiceName());
         if (user == null)
             user = context.getJdbcUser();
         if (password == null)
