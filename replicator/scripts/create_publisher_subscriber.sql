@@ -84,9 +84,8 @@ IF not v_sync THEN
    EXCEPTION WHEN OTHERS THEN
       DBMS_OUTPUT.PUT_LINE ('Unable to add supplemental log data : ' || SQLERRM );
    END;
+   DBMS_CAPTURE_ADM.BUILD();
 END IF;
-
-DBMS_CAPTURE_ADM.BUILD();
 
 IF tableCount > 0 THEN
    DECLARE
