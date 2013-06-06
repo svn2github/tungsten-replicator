@@ -62,6 +62,31 @@ public class EventGenerationHelper
     }
 
     /**
+     * Creates an event from a query.
+     * 
+     * @param seqno Sequence number
+     * @param defaultSchema Default schema
+     * @param query
+     * @return A properly constructed event.
+     */
+    public ReplDBMSEvent eventFromBinaryStatement(long seqno,
+            String defaultSchema, byte[] queryAsBytes, int fragNo,
+            boolean lastFrag, String charset)
+    {
+        Timestamp ts = new Timestamp(System.currentTimeMillis());
+        ArrayList<DBMSData> t = new ArrayList<DBMSData>();
+        StatementData sd = new StatementData(null, ts.getTime(), defaultSchema);
+        sd.setQuery(queryAsBytes);
+        sd.setCharset(charset);
+        t.add(sd);
+        DBMSEvent dbmsEvent = new DBMSEvent(new Long(seqno).toString(), null,
+                t, lastFrag, new Timestamp(System.currentTimeMillis()));
+        ReplDBMSEvent replDbmsEvent = new ReplDBMSEvent(seqno, (short) fragNo,
+                lastFrag, "NONE", 0, ts, dbmsEvent);
+        return replDbmsEvent;
+    }
+
+    /**
      * Utility method to generate a non-fragment event from a statement.
      */
     public ReplDBMSEvent eventFromStatement(long seqno, String defaultSchema,
