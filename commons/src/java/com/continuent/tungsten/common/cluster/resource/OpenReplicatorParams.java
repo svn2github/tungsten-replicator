@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -56,6 +56,9 @@ public class OpenReplicatorParams
 
     /** Whether to skip consistency checks when going online. */
     public static final String FORCE                 = "force";
+
+    /** Whether to allow checksums while online (set to false to disable). */
+    public static final String DO_CHECKSUM           = "do_checksum";
 
     // Parameters for offlineDeferred() JMX call.
 
