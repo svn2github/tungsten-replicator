@@ -119,11 +119,12 @@ public class OpenReplicatorManagerCtrl
         println("                                 (Added implicitly if only one service was defined)");
         println("  -verbose                     - Print verbose messages");
         println("  -retry N                     - Retry connections up to N times [default: 10]");
-//TODO: uncomment when releasing security related features
-//        println("Security Properties:");
-//        println("  "
-//                + AuthenticationInfo.SECURITY_CONFIG_FILE_LOCATION
-//                + " sl       - Location of the security properties file. By default file located in {clusterhome}/security.properties will be used.");
+        // TODO: uncomment when releasing security related features
+        // println("Security Properties:");
+        // println("  "
+        // + AuthenticationInfo.SECURITY_CONFIG_FILE_LOCATION
+        // +
+        // " sl       - Location of the security properties file. By default file located in {clusterhome}/security.properties will be used.");
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
         println("  services [-json] [-full]     - List replication services");
@@ -139,7 +140,9 @@ public class OpenReplicatorManagerCtrl
         println("  offline [-immediate]         - Set replicator to OFFLINE state");
         println("  offline-deferred [-at-seqno seqno] [-at-event event] [-at-heartbeat [name]] [-at-time YYYY-MM-DD_hh:mm:ss]");
         println("                               - Set replicator OFFLINE at future point");
-        println("  online [-force] [-from-event event] [-base-seqno x] [-skip-seqno x,y,z] [-until-seqno seqno] [-until-event event] [-until-heartbeat [name]] [-until-time YYYY-MM-DD_hh:mm:ss]");
+        println("  online [-force] [-from-event event] [-base-seqno x] [-skip-seqno x,y,z] [-until-seqno seqno] ");
+        println("         [-until-event event] [-until-heartbeat [name]] [-until-time YYYY-MM-DD_hh:mm:ss]");
+        println("         [-no-checksum]");
         println("                               - Set Replicator to ONLINE with start and stop points");
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
@@ -247,23 +250,29 @@ public class OpenReplicatorManagerCtrl
             }
 
             // --- Try to get Security information from properties file ---
-            // If securityPropertiesFileLocation==null will try to locate default file
+            // If securityPropertiesFileLocation==null will try to locate
+            // default file
             try
             {
                 this.authenticationInfo = SecurityHelper
                         .loadAuthenticationInformation(
                                 securityPropertiesFileLocation,
                                 AUTH_USAGE.CLIENT_SIDE);
-                // Sets the username and password in the authenticationInfo. This will be used as credentials when connecting
-                // Password is provided "as is" (potentilaly encrypted) and will be decrypted by the server if needed
-                PasswordManager passwordManager = new PasswordManager(this.authenticationInfo, ClientApplicationType.RMI_JMX);
-                String goodPassword             = passwordManager.getEncryptedPasswordForUser(this.authenticationInfo.getUsername());
+                // Sets the username and password in the authenticationInfo.
+                // This will be used as credentials when connecting
+                // Password is provided "as is" (potentilaly encrypted) and will
+                // be decrypted by the server if needed
+                PasswordManager passwordManager = new PasswordManager(
+                        this.authenticationInfo, ClientApplicationType.RMI_JMX);
+                String goodPassword = passwordManager
+                        .getEncryptedPasswordForUser(this.authenticationInfo
+                                .getUsername());
                 this.authenticationInfo.setPassword(goodPassword);
             }
             catch (ConfigurationException ce)
             {
-                logger.debug(MessageFormat.format(
-                        "Configuration error: {0}", ce.getMessage()));
+                logger.debug(MessageFormat.format("Configuration error: {0}",
+                        ce.getMessage()));
             }
             catch (ServerRuntimeException sre)
             {
@@ -415,7 +424,8 @@ public class OpenReplicatorManagerCtrl
                         : null;
 
                 conn = JmxManager.getRMIConnector(rmiHost, rmiPort,
-                        ReplicatorConf.RMI_DEFAULT_SERVICE_NAME, securityProperties);
+                        ReplicatorConf.RMI_DEFAULT_SERVICE_NAME,
+                        securityProperties);
             }
             catch (Exception e)
             {
@@ -626,7 +636,7 @@ public class OpenReplicatorManagerCtrl
             }
             propList.add(props);
         }
-        
+
         printlnPropList(propList, json);
         if (!json)
             println("Finished services command...");
@@ -743,6 +753,7 @@ public class OpenReplicatorManagerCtrl
         long skip = 0;
         String seqnos = null;
         boolean force = false;
+        boolean doChecksum = true;
 
         while (argvIterator.hasNext())
         {
@@ -799,6 +810,8 @@ public class OpenReplicatorManagerCtrl
                     seqnos = argvIterator.next();
                 else if ("-force".equals(curArg))
                     force = true;
+                else if ("-no-checksum".equals(curArg))
+                    doChecksum = false;
                 else
                     fatal("Unrecognized option: " + curArg, null);
             }
@@ -836,6 +849,8 @@ public class OpenReplicatorManagerCtrl
                     .setString(OpenReplicatorParams.SKIP_APPLY_SEQNOS, seqnos);
         if (force)
             paramProps.setBoolean(OpenReplicatorParams.FORCE, true);
+        if (!doChecksum)
+            paramProps.setBoolean(OpenReplicatorParams.DO_CHECKSUM, false);
 
         // Put replicator online.
         getOpenReplicator().online2(paramProps.map());

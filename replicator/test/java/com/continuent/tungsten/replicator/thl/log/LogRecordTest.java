@@ -22,18 +22,20 @@
 
 package com.continuent.tungsten.replicator.thl.log;
 
+import java.io.RandomAccessFile;
 import java.sql.Timestamp;
 
 import junit.framework.TestCase;
 
+import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 
-import com.continuent.tungsten.replicator.thl.serializer.ProtobufSerializer;
-import com.continuent.tungsten.replicator.thl.serializer.Serializer;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.thl.THLEvent;
+import com.continuent.tungsten.replicator.thl.serializer.ProtobufSerializer;
+import com.continuent.tungsten.replicator.thl.serializer.Serializer;
 
 /**
  * Tests ability to write and read back more or less realistic log records
@@ -44,6 +46,8 @@ import com.continuent.tungsten.replicator.thl.THLEvent;
  */
 public class LogRecordTest extends TestCase
 {
+    private static Logger logger = Logger.getLogger(LogRecordTest.class);
+
     /**
      * Setup.
      * 
@@ -80,7 +84,7 @@ public class LogRecordTest extends TestCase
         THLEvent inputEvent = new THLEvent("dummy", replEvent);
 
         LogEventReplWriter writer = new LogEventReplWriter(inputEvent,
-                serializer, true);
+                serializer, true, null);
         LogRecord logRec = writer.write();
         tfrw.writeRecord(logRec, 10000);
         tfrw.close();
@@ -95,8 +99,8 @@ public class LogRecordTest extends TestCase
         reader.done();
 
         // Check header fields.
-        assertEquals("Checking recordType", LogRecord.EVENT_REPL, reader
-                .getRecordType());
+        assertEquals("Checking recordType", LogRecord.EVENT_REPL,
+                reader.getRecordType());
         assertEquals("Checking setno", 31, reader.getSeqno());
         assertEquals("Checking fragment", 2, reader.getFragno());
         assertEquals("Checking last frag", true, reader.isLastFrag());
@@ -109,10 +113,196 @@ public class LogRecordTest extends TestCase
 
         // Check THLEvent.
         assertNotNull("Event deserialized", outputEvent);
-        assertEquals("Event seqno", inputEvent.getSeqno(), outputEvent
-                .getSeqno());
+        assertEquals("Event seqno", inputEvent.getSeqno(),
+                outputEvent.getSeqno());
 
         tfro.close();
+    }
+
+    /**
+     * Confirm that a record that has corrupted bytes triggers a checksum
+     * failure resulting in a LogConsistencyException.
+     */
+    public void testChecksumFailure() throws Exception
+    {
+        // Write log file.
+        Serializer serializer = new ProtobufSerializer();
+        ReplDBMSEvent replEvent = new ReplDBMSEvent(31, (short) 0, true,
+                "unittest", 1, new Timestamp(System.currentTimeMillis()),
+                new DBMSEvent());
+        LogFile tfrw = writeToLogFile("testChecksumFailure.dat", replEvent);
+
+        // Corrupt a byte 10 bytes from the end of the file.
+        RandomAccessFile raf = new RandomAccessFile(tfrw.getFile(), "rw");
+        long len = raf.length();
+        raf.seek(len - 20);
+        raf.writeShort(0);
+        raf.close();
+
+        // Read the same THL event back.
+        LogFile tfro = LogHelper
+                .openExistingFileForRead("testChecksumFailure.dat");
+        LogRecord logRec2 = tfro.readRecord(0);
+        try
+        {
+            LogEventReplReader reader = new LogEventReplReader(logRec2,
+                    serializer, true);
+            throw new Exception(
+                    "Able to instantiate reader on corrupt file: reader="
+                            + reader.toString());
+        }
+        catch (LogConsistencyException e)
+        {
+            logger.info("Got expected exception: " + e.toString());
+        }
+        finally
+        {
+            tfro.close();
+        }
+    }
+
+    /**
+     * Confirm that a record with a corrupt checksum type value triggers a
+     * LogConsistencyException and that we can overcome this by reading with
+     * checksums disabled. The checksum type is byte #9 from the end.
+     */
+    public void testChecksumTypeFailure() throws Exception
+    {
+        // Write log file.
+        Serializer serializer = new ProtobufSerializer();
+        ReplDBMSEvent replEvent = new ReplDBMSEvent(32, (short) 0, true,
+                "unittest", 1, new Timestamp(System.currentTimeMillis()),
+                new DBMSEvent());
+        LogFile tfrw = writeToLogFile("testChecksumTypeFailure.dat", replEvent);
+
+        // Corrupt the 9th byte from the end of the file. This should be the CRC
+        // type.
+        RandomAccessFile raf = new RandomAccessFile(tfrw.getFile(), "rw");
+        long len = raf.length();
+        raf.seek(len - 9);
+        raf.writeByte(25);
+        raf.close();
+
+        // Read the same THL event back with checksums enabled.
+        LogFile tfro = LogHelper
+                .openExistingFileForRead("testChecksumTypeFailure.dat");
+        LogRecord logRec2 = tfro.readRecord(0);
+        try
+        {
+            LogEventReplReader reader = new LogEventReplReader(logRec2,
+                    serializer, true);
+            throw new Exception(
+                    "Able to instantiate reader with corrupt CRC type: reader="
+                            + reader.toString());
+        }
+        catch (LogConsistencyException e)
+        {
+            logger.info("Got expected exception: " + e.toString(), e);
+        }
+        finally
+        {
+            tfro.close();
+        }
+
+        // Read again with checksums disabled.
+        tfro = LogHelper.openExistingFileForRead("testChecksumTypeFailure.dat");
+        logRec2 = tfro.readRecord(0);
+        try
+        {
+            LogEventReplReader reader = new LogEventReplReader(logRec2,
+                    serializer, false);
+            reader.deserializeEvent();
+            reader.done();
+
+            // Check a couple of header fields to be sure we have our data back.
+            assertEquals("Checking recordType", LogRecord.EVENT_REPL,
+                    reader.getRecordType());
+            assertEquals("Checking setno", 32, reader.getSeqno());
+            logger.info("Able to ignore bad checksum type with checksums disabled...");
+        }
+        finally
+        {
+            tfro.close();
+        }
+    }
+
+    /**
+     * Confirm that a record with a corrupt checksum value triggers a
+     * LogConsistencyException and that we can overcome this by reading with
+     * checksums disabled. The checksum value is byte 1-8 from the end.
+     */
+    public void testChecksumValueMismatch() throws Exception
+    {
+        // Write log file.
+        Serializer serializer = new ProtobufSerializer();
+        ReplDBMSEvent replEvent = new ReplDBMSEvent(33, (short) 0, true,
+                "unittest", 1, new Timestamp(System.currentTimeMillis()),
+                new DBMSEvent());
+        LogFile tfrw = writeToLogFile("testChecksumValueMismatch.dat", replEvent);
+
+        // Overwrite the CRC value, which is bytes 1-8 from the end of the file.
+        RandomAccessFile raf = new RandomAccessFile(tfrw.getFile(), "rw");
+        long len = raf.length();
+        raf.seek(len - 8);
+        raf.writeLong(25);
+        raf.close();
+
+        // Read the same THL event back with checksums enabled.
+        LogFile tfro = LogHelper
+                .openExistingFileForRead("testChecksumValueMismatch.dat");
+        LogRecord logRec2 = tfro.readRecord(0);
+        try
+        {
+            LogEventReplReader reader = new LogEventReplReader(logRec2,
+                    serializer, true);
+            throw new Exception(
+                    "Able to instantiate reader with corrupt CRC type: reader="
+                            + reader.toString());
+        }
+        catch (LogConsistencyException e)
+        {
+            logger.info("Got expected exception: " + e.toString(), e);
+        }
+        finally
+        {
+            tfro.close();
+        }
+
+        // Read again with checksums disabled.
+        tfro = LogHelper.openExistingFileForRead("testChecksumValueMismatch.dat");
+        logRec2 = tfro.readRecord(0);
+        try
+        {
+            LogEventReplReader reader = new LogEventReplReader(logRec2,
+                    serializer, false);
+            reader.deserializeEvent();
+            reader.done();
+
+            // Check a couple of header fields to be sure we have our data back.
+            assertEquals("Checking recordType", LogRecord.EVENT_REPL,
+                    reader.getRecordType());
+            assertEquals("Checking setno", 33, reader.getSeqno());
+            logger.info("Able to ignore bad checksum type with checksums disabled...");
+        }
+        finally
+        {
+            tfro.close();
+        }
+    }
+
+    // Write event to logFile.
+    private LogFile writeToLogFile(String fileName, ReplDBMSEvent replEvent)
+            throws Exception
+    {
+        Serializer serializer = new ProtobufSerializer();
+        LogFile tfrw = LogHelper.createLogFile(fileName, 3);
+        THLEvent inputEvent = new THLEvent("dummy", replEvent);
+        LogEventReplWriter writer = new LogEventReplWriter(inputEvent,
+                serializer, true, null);
+        LogRecord logRec = writer.write();
+        tfrw.writeRecord(logRec, 10000);
+        tfrw.close();
+        return tfrw;
     }
 
     /**
@@ -124,7 +314,8 @@ public class LogRecordTest extends TestCase
         LogFile tfrw = LogHelper.createLogFile("testRotationEvents.dat", 3);
 
         // Add a log rotation event.
-        LogEventRotateWriter writer = new LogEventRotateWriter(45, true);
+        LogEventRotateWriter writer = new LogEventRotateWriter(tfrw.getFile(),
+                45, true);
         LogRecord logRec = writer.write();
         tfrw.writeRecord(logRec, 10000);
         tfrw.close();
@@ -136,8 +327,8 @@ public class LogRecordTest extends TestCase
         LogEventRotateReader reader = new LogEventRotateReader(logRec2, true);
 
         // Check header fields.
-        assertEquals("Checking recordType", LogRecord.EVENT_ROTATE, reader
-                .getRecordType());
+        assertEquals("Checking recordType", LogRecord.EVENT_ROTATE,
+                reader.getRecordType());
         assertEquals("Checking index", 45, reader.getIndex());
 
         tfro.close();

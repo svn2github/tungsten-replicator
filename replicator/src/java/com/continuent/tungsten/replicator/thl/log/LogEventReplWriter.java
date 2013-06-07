@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.thl.log;
 
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -32,34 +33,36 @@ import com.continuent.tungsten.replicator.thl.serializer.Serializer;
 
 /**
  * This class encapsulates operations to write a log record header and
- * serialized THLEvent. 
+ * serialized THLEvent.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  */
 public class LogEventReplWriter
 {
     // Inputs
-    private THLEvent           event;
-    private Serializer         serializer;
-    private boolean            checkCRC;
+    private THLEvent   event;
+    private Serializer serializer;
+    private boolean    checkCRC;
+    private File       file;
 
     /**
-     * Instantiate the writer. 
+     * Instantiate the writer.
      */
     public LogEventReplWriter(THLEvent event, Serializer serializer,
-            boolean checkCRC) throws ReplicatorException
+            boolean checkCRC, File file) throws ReplicatorException
     {
         this.event = event;
         this.serializer = serializer;
         this.checkCRC = checkCRC;
+        this.file = file;
     }
 
     /**
-     * Write and return the log record. 
+     * Write and return the log record.
      */
     public LogRecord write() throws ReplicatorException
     {
-        LogRecord logRecord = new LogRecord(-1, checkCRC);
+        LogRecord logRecord = new LogRecord(file, -1, checkCRC);
         try
         {
             DataOutputStream dos = new DataOutputStream(logRecord.write());
@@ -72,7 +75,7 @@ public class LogEventReplWriter
             dos.writeUTF(event.getEventId());
             dos.writeUTF(event.getShardId());
             dos.writeLong(event.getSourceTstamp().getTime());
-            
+
             serializer.serializeEvent(event, dos);
             dos.flush();
             logRecord.done();
@@ -89,7 +92,7 @@ public class LogEventReplWriter
         {
             logRecord.done();
         }
-        
+
         return logRecord;
     }
 }

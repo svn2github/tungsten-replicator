@@ -526,7 +526,7 @@ public class LogFile
                 // empty record.
                 if (logger.isDebugEnabled())
                     logger.debug("Read empty record");
-                return new LogRecord(offset, false);
+                return new LogRecord(file, offset, false);
             }
             else if (available < RECORD_LENGTH_SIZE)
             {
@@ -534,7 +534,7 @@ public class LogFile
                 // to wait, this is a truncated record.
                 if (logger.isDebugEnabled())
                     logger.debug("Length is truncated; returning immediately");
-                return new LogRecord(offset, true);
+                return new LogRecord(file, offset, true);
             }
         }
 
@@ -546,7 +546,7 @@ public class LogFile
             logger.warn("Record length is invalid, log may be corrupt: offset="
                     + offset + " record length=" + recordLength);
             dataInput.reset();
-            return new LogRecord(offset, true);
+            return new LogRecord(file, offset, true);
         }
         if (logger.isDebugEnabled())
             logger.debug("Record length=" + recordLength);
@@ -572,7 +572,7 @@ public class LogFile
             else
             {
                 // Not enough data, so return a partial record.
-                return new LogRecord(offset, true);
+                return new LogRecord(file, offset, true);
             }
         }
 
@@ -581,7 +581,7 @@ public class LogFile
         dataInput.readFully(bytesToRead);
         byte crcType = dataInput.readByte();
         long crc = dataInput.readLong();
-        return new LogRecord(offset, bytesToRead, crcType, crc);
+        return new LogRecord(file, offset, bytesToRead, crcType, crc);
     }
 
     /** Reads a single short. */

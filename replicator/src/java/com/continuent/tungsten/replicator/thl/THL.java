@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -360,7 +360,7 @@ public class THL implements Store
 
         // Configure and prepare the log.
         diskLog = new DiskLog();
-        diskLog.setDoChecksum(doChecksum);
+        diskLog.setDoChecksum(doChecksum || context.isDoChecksum());
         diskLog.setEventSerializerClass(eventSerializer);
         diskLog.setLogDir(logDir);
         diskLog.setLogFileSize(logFileSize);

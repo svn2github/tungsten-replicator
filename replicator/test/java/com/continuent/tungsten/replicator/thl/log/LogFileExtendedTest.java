@@ -98,7 +98,8 @@ public class LogFileExtendedTest extends TestCase
             byte[] data = new byte[100];
             for (int j = 0; j < 100; j++)
                 data[j] = (byte) (Math.random() * 255);
-            LogRecord rec = new LogRecord(-1, data, LogRecord.CRC_TYPE_NONE, 0);
+            LogRecord rec = new LogRecord(tfwr.getFile(), -1, data,
+                    LogRecord.CRC_TYPE_NONE, 0);
             tfwr.writeRecord(rec, 1000000000);
             bytesWritten += rec.getRecordLength();
             recordsWritten++;

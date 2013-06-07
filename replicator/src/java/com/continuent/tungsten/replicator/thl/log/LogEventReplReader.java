@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -41,23 +41,23 @@ import com.continuent.tungsten.replicator.thl.serializer.Serializer;
 public class LogEventReplReader
 {
     // Inputs
-    private LogRecord         logRecord;
-    private Serializer        serializer;
-    private boolean           checkCRC;
+    private LogRecord       logRecord;
+    private Serializer      serializer;
+    private boolean         checkCRC;
 
     // Stream used to read the event.
     private DataInputStream dis;
 
     // Header fields
-    private byte              recordType;
-    private long              seqno;
-    private short             fragno;
-    private boolean           lastFrag;
-    private long              epochNumber;
-    private String            sourceId;
-    private String            eventId;
-    private String            shardId;
-    private Long              sourceTStamp;
+    private byte            recordType;
+    private long            seqno;
+    private short           fragno;
+    private boolean         lastFrag;
+    private long            epochNumber;
+    private String          sourceId;
+    private String          eventId;
+    private String          shardId;
+    private Long            sourceTStamp;
 
     /**
      * Instantiate the reader and load header information.
@@ -86,14 +86,7 @@ public class LogEventReplReader
         // Check CRC if requested.
         if (checkCRC)
         {
-            if (!logRecord.checkCrc())
-            {
-                throw new THLException("Log record CRC failure: offset="
-                        + logRecord.getOffset() + " crc type="
-                        + logRecord.getCrcType() + " stored crc="
-                        + logRecord.getCrc() + " computed crc="
-                        + logRecord.getCrc());
-            }
+            logRecord.verifyChecksum();
         }
 
         // Read the header fields.

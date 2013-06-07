@@ -31,6 +31,7 @@ import java.util.concurrent.Future;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
+import com.continuent.tungsten.common.cluster.resource.OpenReplicatorParams;
 import com.continuent.tungsten.common.config.PropertyException;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
@@ -98,9 +99,6 @@ public class ReplicatorRuntime implements PluginContext
 
     /** True if the consistency check should be sensitive to column types. */
     private boolean                           consistencyCheckColumnTypes;
-
-    /** True if checksumming is on. */
-    private boolean                           doChecksum;
 
     /** Schema name for storing replicator catalogs. */
     private String                            replicatorSchemaName;
@@ -227,22 +225,7 @@ public class ReplicatorRuntime implements PluginContext
                     + ReplicatorConf.SERVICE_TYPE + " are local or remote");
         }
 
-        // Checksum and consistency check handling.
-        String checksumType = assertPropertyDefault(
-                ReplicatorConf.EVENT_CHECKSUM,
-                ReplicatorConf.EVENT_CHECKSUM_DEFAULT);
-        if ("".equals(checksumType)
-                || "none".equals(checksumType.toLowerCase()))
-            doChecksum = false;
-        else if ("crc".equals(checksumType.toLowerCase()))
-            doChecksum = true;
-        else
-        {
-            throw new ReplicatorException("Valid values for "
-                    + ReplicatorConf.EVENT_CHECKSUM
-                    + " are either 'crc' or 'none'. Found: " + checksumType);
-        }
-
+        // Consistency check handling.
         String consistencyPolicy = assertPropertyDefault(
                 ReplicatorConf.APPLIER_CONSISTENCY_POLICY,
                 ReplicatorConf.APPLIER_CONSISTENCY_POLICY_DEFAULT);
@@ -393,15 +376,13 @@ public class ReplicatorRuntime implements PluginContext
         if (applierFailureSettingOn0RowUpdates.equalsIgnoreCase("stop"))
         {
             logger.info("Setting "
-                    + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE
-                    + " to stop");
+                    + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE + " to stop");
             applierFailOn0RowUpdates = FailurePolicy.STOP;
         }
         else if (applierFailureSettingOn0RowUpdates.equalsIgnoreCase("warn"))
         {
             logger.info("Setting "
-                    + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE
-                    + " to warn");
+                    + ReplicatorConf.APPLIER_FAIL_ON_0_ROW_UPDATE + " to warn");
             applierFailOn0RowUpdates = FailurePolicy.WARN;
         }
         else if (applierFailureSettingOn0RowUpdates.equalsIgnoreCase("ignore"))
@@ -819,7 +800,9 @@ public class ReplicatorRuntime implements PluginContext
      */
     public boolean isDoChecksum()
     {
-        return doChecksum;
+        // Return the online option for whether to do checksums.
+        return getOnlineOptions().getBoolean(OpenReplicatorParams.DO_CHECKSUM,
+                "true", true);
     }
 
     /**

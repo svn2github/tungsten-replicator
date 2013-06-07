@@ -82,7 +82,10 @@ public interface PluginContext
     /** Should consistency check be sensitive to column types? */
     public abstract boolean isConsistencyCheckColumnTypes();
 
-    /** Are checksums enabled on replicator events? */
+    /**
+     * Are checksums enabled? If false this overrides any local checksum
+     * setting.
+     */
     public abstract boolean isDoChecksum();
 
     /** Source ID for this replicator. */

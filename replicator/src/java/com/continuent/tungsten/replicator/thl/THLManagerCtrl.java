@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Linas Virbalas
- * Contributor(s): Stephane Giron
+ * Contributor(s): Stephane Giron, Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.thl;
@@ -79,22 +79,21 @@ public class THLManagerCtrl
      * TODO: make configurable from somewhere.
      */
     private static final int      maxBlobPrintLength = 1000;
-
     protected static ArgvIterator argvIterator       = null;
-
     protected String              configFile         = null;
-
+    private boolean               doChecksum;
     private String                logDir;
-
     private DiskLog               diskLog;
 
     /**
      * Creates a new <code>THLManagerCtrl</code> object.
      * 
      * @param configFile Path to the Tungsten properties file.
+     * @param doChecksum If false disable checksums on log.
      * @throws Exception
      */
-    public THLManagerCtrl(String configFile) throws Exception
+    public THLManagerCtrl(String configFile, boolean doChecksum)
+            throws Exception
     {
         // Set path to configuration file.
         this.configFile = configFile;
@@ -102,6 +101,7 @@ public class THLManagerCtrl
         // Read properties required to connect to database.
         TungstenProperties properties = readConfig();
         logDir = properties.getString("replicator.store.thl.log_dir");
+        this.doChecksum = doChecksum;
     }
 
     /**
@@ -146,6 +146,7 @@ public class THLManagerCtrl
         diskLog = new DiskLog();
         diskLog.setLogDir(logDir);
         diskLog.setReadOnly(readOnly);
+        diskLog.setDoChecksum(doChecksum);
         diskLog.prepare();
     }
 
@@ -183,7 +184,8 @@ public class THLManagerCtrl
         long minSeqno = diskLog.getMinSeqno();
         long maxSeqno = diskLog.getMaxSeqno();
         String logDir = diskLog.getLogDir();
-        return new InfoHolder(logDir, minSeqno, maxSeqno, maxSeqno - minSeqno, -1);
+        return new InfoHolder(logDir, minSeqno, maxSeqno, maxSeqno - minSeqno,
+                -1);
     }
 
     /**
@@ -343,7 +345,7 @@ public class THLManagerCtrl
 
         if (json)
             println("[");
-        
+
         // Iterate until we run out of sequence numbers.
         THLEvent thlEvent = null;
         int found = 0;
@@ -389,7 +391,7 @@ public class THLManagerCtrl
                 }
             }
         }
-        
+
         if (json)
             println("\n]");
 
@@ -505,7 +507,7 @@ public class THLManagerCtrl
      * @param stringBuilder StringBuilder object to append formatted contents
      *            to.
      * @param event ReplDBMSEvent to print out.
-     * @see #printHeader(StringBuilder, THLEvent)
+     * @see #printHeader(StringBuilder, THLEvent, int)
      */
     public static void printHeader(StringBuilder stringBuilder,
             ReplDBMSEvent event)
@@ -760,7 +762,8 @@ public class THLManagerCtrl
                     {
                         // No values entered, but a list of column specs was
                         // provided (probably by a filter)
-                        StringBuffer buf = new StringBuffer("Column specs only found : ");
+                        StringBuffer buf = new StringBuffer(
+                                "Column specs only found : ");
                         for (int c = 0; c < columns.size(); c++)
                         {
                             OneRowChange.ColumnSpec colSpec = columns.get(c);
@@ -856,6 +859,7 @@ public class THLManagerCtrl
             String fileName = null;
             String charsetName = null;
             boolean hex = false;
+            boolean doChecksum = true;
 
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
@@ -900,6 +904,10 @@ public class THLManagerCtrl
                 else if ("-file".equals(curArg))
                 {
                     fileName = argvIterator.next();
+                }
+                else if ("-no-checksum".equals(curArg))
+                {
+                    doChecksum = false;
                 }
                 else if (curArg.startsWith("-"))
                     fatal("Unrecognized option: " + curArg, null);
@@ -949,7 +957,8 @@ public class THLManagerCtrl
 
             if (THLCommands.INFO.equals(command))
             {
-                THLManagerCtrl thlManager = new THLManagerCtrl(configFile);
+                THLManagerCtrl thlManager = new THLManagerCtrl(configFile,
+                        doChecksum);
                 thlManager.prepare(true);
 
                 InfoHolder info = thlManager.getInfo();
@@ -962,25 +971,30 @@ public class THLManagerCtrl
             }
             else if (THLCommands.LIST.equals(command))
             {
-                THLManagerCtrl thlManager = new THLManagerCtrl(configFile);
+                THLManagerCtrl thlManager = new THLManagerCtrl(configFile,
+                        doChecksum);
 
                 if (fileName != null)
                 {
                     thlManager.listEvents(fileName, getBoolOrFalse(pureSQL),
-                            getBoolOrFalse(headersOnly), getBoolOrFalse(json), charsetName, hex);
+                            getBoolOrFalse(headersOnly), getBoolOrFalse(json),
+                            charsetName, hex);
                 }
                 else if (seqno == null)
                     thlManager.listEvents(low, high, by,
                             getBoolOrFalse(pureSQL),
-                            getBoolOrFalse(headersOnly), getBoolOrFalse(json), charsetName, hex);
+                            getBoolOrFalse(headersOnly), getBoolOrFalse(json),
+                            charsetName, hex);
                 else
                     thlManager.listEvents(seqno, seqno, by,
                             getBoolOrFalse(pureSQL),
-                            getBoolOrFalse(headersOnly), getBoolOrFalse(json), charsetName, hex);
+                            getBoolOrFalse(headersOnly), getBoolOrFalse(json),
+                            charsetName, hex);
             }
             else if (THLCommands.PURGE.equals(command))
             {
-                THLManagerCtrl thlManager = new THLManagerCtrl(configFile);
+                THLManagerCtrl thlManager = new THLManagerCtrl(configFile,
+                        doChecksum);
                 thlManager.prepare(false);
 
                 // Ensure we have a writable log.
@@ -1036,7 +1050,8 @@ public class THLManagerCtrl
             }
             else if (command.equals("index"))
             {
-                THLManagerCtrl thlManager = new THLManagerCtrl(configFile);
+                THLManagerCtrl thlManager = new THLManagerCtrl(configFile,
+                        doChecksum);
                 thlManager.prepare(true);
 
                 thlManager.printIndex();
@@ -1108,10 +1123,10 @@ public class THLManagerCtrl
             logger.error("File not found: " + fileName);
             fail();
         }
-        
+
         if (json)
             println("[");
-        
+
         THLEvent thlEvent = null;
         boolean first = true;
         while ((thlEvent = conn.next(false)) != null)
@@ -1121,7 +1136,7 @@ public class THLManagerCtrl
                 StringBuilder sb = new StringBuilder();
                 if (json && !first)
                     sb.append(",\n");
-                
+
                 // Choose appropriate format for the header.
                 int format = 0;
                 if (json)
@@ -1150,7 +1165,7 @@ public class THLManagerCtrl
             }
             first = false;
         }
-        
+
         if (json)
             println("\n]");
 
@@ -1177,12 +1192,13 @@ public class THLManagerCtrl
         println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
         println("       [-sql]                       Representative (no metadata!) SQL mode");
         println("       [-headers]                   Print headers only");
-        println("       [-json]                      Output in machine-parsable JSON format");        
-        println("  index                           - Display index of log files");
-        println("  purge [-low #] [-high #] [-y]   - Delete events within the given range");
+        println("       [-json]                      Output in machine-parsable JSON format");
+        println("       [-no-checksum]               Suppress checksums");
+        println("  index [-no-checksum]            - Display index of log files");
+        println("  purge [-low #] [-high #] [-no-checksum] [-y]   - Delete events within the given range");
         println("  purge [-seqno #] [-y]           - Delete the exact event");
         println("                                    Use -y to suppress prompt");
-        println("  info                            - Display minimum, maximum sequence number");
+        println("  info [-no-checksum]             - Display minimum, maximum sequence number");
         println("                                     and other summary information about log");
         println("  help                            - Print this help display");
     }
@@ -1282,11 +1298,11 @@ public class THLManagerCtrl
      */
     public static class InfoHolder
     {
-        private String logDir               = "";
-        private long minSeqNo               = -1;
-        private long maxSeqNo               = -1;
-        private long eventCount             = -1;
-        private long highestReplicatedEvent = -1;
+        private String logDir                 = "";
+        private long   minSeqNo               = -1;
+        private long   maxSeqNo               = -1;
+        private long   eventCount             = -1;
+        private long   highestReplicatedEvent = -1;
 
         public InfoHolder(String logDir, long minSeqNo, long maxSeqNo,
                 long eventCount, long highestReplicatedEvent)

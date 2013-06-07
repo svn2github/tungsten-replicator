@@ -33,7 +33,7 @@ import org.junit.Before;
 /**
  * Test capabilities of tungsten log files. This test is fully self-contained
  * but creates files on the file system.
- *
+ * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
  */
@@ -43,7 +43,7 @@ public class LogFileTest extends TestCase
 
     /**
      * Setup.
-     *
+     * 
      * @throws java.lang.Exception
      */
     @Before
@@ -55,7 +55,7 @@ public class LogFileTest extends TestCase
 
     /**
      * Teardown.
-     *
+     * 
      * @throws java.lang.Exception
      */
     @After
@@ -126,7 +126,7 @@ public class LogFileTest extends TestCase
         String testData1 = "Test characters";
         byte[] testBytes1 = testData1.getBytes();
         long firstPos = tf.getOffset();
-        LogRecord record1 = new LogRecord(firstPos, testBytes1,
+        LogRecord record1 = new LogRecord(tf.getFile(), firstPos, testBytes1,
                 LogRecord.CRC_TYPE_NONE, 0);
         tf.writeRecord(record1, 100);
         long lastPos = tf.getOffset();
@@ -163,7 +163,7 @@ public class LogFileTest extends TestCase
         LogRecord lastGoodRecord = null;
         for (int i = 0; i < 10; i++)
         {
-            lastGoodRecord = new LogRecord(-1, testBytes,
+            lastGoodRecord = new LogRecord(tf.getFile(), -1, testBytes,
                     LogRecord.CRC_TYPE_NONE, 0);
             tf.writeRecord(lastGoodRecord, 10000);
         }
@@ -171,8 +171,8 @@ public class LogFileTest extends TestCase
         // Add a record to be truncated.
         long lastRecordOffset = tf.getOffset();
         byte[] lastBytes = "last bytes".getBytes();
-        LogRecord recordToTruncate = new LogRecord(lastRecordOffset, lastBytes,
-                LogRecord.CRC_TYPE_NONE, 0);
+        LogRecord recordToTruncate = new LogRecord(tf.getFile(),
+                lastRecordOffset, lastBytes, LogRecord.CRC_TYPE_NONE, 0);
         tf.writeRecord(recordToTruncate, 10000);
 
         // Confirm we can read the last record back and that it is different
@@ -181,24 +181,24 @@ public class LogFileTest extends TestCase
         LogRecord lastRecord = tf.readRecord(0);
         assertEquals("Last record matches orginal input record",
                 recordToTruncate, lastRecord);
-        assertFalse("Last record different from previous record", lastRecord
-                .equals(lastGoodRecord));
+        assertFalse("Last record different from previous record",
+                lastRecord.equals(lastGoodRecord));
 
         // Truncate the last record within the byte array. (I.e., over 4 bytes
         // after the start.) Confirm it reads back as a truncated record.
         tf.setLength(lastRecordOffset + 8);
         tf.seekOffset(lastRecordOffset);
         lastRecord = tf.readRecord(0);
-        assertTrue("Record truncated in the middle of byte array", lastRecord
-                .isTruncated());
+        assertTrue("Record truncated in the middle of byte array",
+                lastRecord.isTruncated());
 
         // Truncate record within length field. Confirm it reads back as
         // truncated record.
         tf.setLength(lastRecordOffset + 2);
         tf.seekOffset(lastRecordOffset);
         lastRecord = tf.readRecord(0);
-        assertTrue("Record truncated in the middle of length", lastRecord
-                .isTruncated());
+        assertTrue("Record truncated in the middle of length",
+                lastRecord.isTruncated());
 
         // Truncate record cleanly at record offset. Confirm it reads back as
         // empty record.
@@ -224,8 +224,8 @@ public class LogFileTest extends TestCase
             for (int j = 0; j < 100; j++)
                 data[j] = (byte) (Math.random() * 255);
             long crc32 = LogRecord.computeCrc32(data);
-            LogRecord rec = new LogRecord(-1, data, LogRecord.CRC_TYPE_32,
-                    crc32);
+            LogRecord rec = new LogRecord(tf.getFile(), -1, data,
+                    LogRecord.CRC_TYPE_32, crc32);
             tf.writeRecord(rec, 100000);
             if (logger.isDebugEnabled())
             {
@@ -247,13 +247,11 @@ public class LogFileTest extends TestCase
             long computedCrc = rec.computeCrc();
             if (logger.isDebugEnabled())
             {
-                logger
-                        .debug("Computed CRC: " + computedCrc + " Record: "
-                                + rec);
+                logger.debug("Computed CRC: " + computedCrc + " Record: " + rec);
             }
             assertFalse("Record must not be empty", rec.isEmpty());
-            assertEquals("Expect CRC-32 type", LogRecord.CRC_TYPE_32, rec
-                    .getCrcType());
+            assertEquals("Expect CRC-32 type", LogRecord.CRC_TYPE_32,
+                    rec.getCrcType());
             assertEquals("Stored and computed CRC must match", storedCrc,
                     computedCrc);
         }
@@ -276,8 +274,8 @@ public class LogFileTest extends TestCase
                 .openExistingFileForWrite("testConcurrentReadWrite.dat");
         LogFile tfro = LogHelper
                 .openExistingFileForRead("testConcurrentReadWrite.dat");
-        assertEquals("File lengths must match", tfwr.getLength(), tfro
-                .getLength());
+        assertEquals("File lengths must match", tfwr.getLength(),
+                tfro.getLength());
 
         // Start read thread.
         SimpleLogFileReader lr = new SimpleLogFileReader(tfro, 100000);
@@ -292,8 +290,8 @@ public class LogFileTest extends TestCase
             for (int j = 0; j < 100; j++)
                 data[j] = (byte) (Math.random() * 255);
             long crc32 = LogRecord.computeCrc32(data);
-            LogRecord rec = new LogRecord(-1, data, LogRecord.CRC_TYPE_32,
-                    crc32);
+            LogRecord rec = new LogRecord(tf.getFile(), -1, data,
+                    LogRecord.CRC_TYPE_32, crc32);
             tfwr.writeRecord(rec, 100000000);
             bytesWritten += rec.getRecordLength();
             if (i % 10000 == 0)

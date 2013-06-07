@@ -264,7 +264,7 @@ replicator.store.thl.event_serializer=com.continuent.tungsten.replicator.thl.ser
 
 # The disk log can compute checksums automatically on log records.  This
 # is enabled by default but can cut performance by 50% or more.  Set false
-# for faster log performance.
+# for faster log performance or to suppress reading *and* writing of checksums.
 replicator.store.thl.doChecksum=@{REPL_THL_DO_CHECKSUM}
 
 # Maximum number of events to transfer at once.  Higher values are better
@@ -429,9 +429,6 @@ replicator.applier.failure_policy=stop
 # How applier should react when detecting a row update that did not change anything.
 # Possible values are 'stop', 'warn' or 'ignore'. 
 replicator.applier.failOnZeroRowUpdate=warn
-
-# Event checksum algorithm.  Possible values are 'crc' or 'none'.
-replicator.event.checksum=none
 
 # How to react on consistency check failure.  Possible values are 'stop' or 
 # 'warn'. 

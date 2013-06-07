@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,6 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
-import com.continuent.tungsten.replicator.thl.THLException;
 
 /**
  * This class encapsulates operations to read a log rotate event.
@@ -36,15 +35,15 @@ import com.continuent.tungsten.replicator.thl.THLException;
 public class LogEventRotateReader
 {
     // Inputs
-    private LogRecord         logRecord;
-    private boolean           checkCRC;
+    private LogRecord       logRecord;
+    private boolean         checkCRC;
 
     // Stream used to read the event.
     private DataInputStream dis;
 
     // Fields
-    private byte              recordType;
-    private long              index;
+    private byte            recordType;
+    private long            index;
 
     /**
      * Instantiate the reader and load header information.
@@ -63,14 +62,7 @@ public class LogEventRotateReader
         // Check CRC if requested.
         if (checkCRC)
         {
-            if (!logRecord.checkCrc())
-            {
-                throw new THLException("Log record CRC failure: offset="
-                        + logRecord.getOffset() + " crc type="
-                        + logRecord.getCrcType() + " stored crc="
-                        + logRecord.getCrc() + " computed crc="
-                        + logRecord.getCrc());
-            }
+            logRecord.verifyChecksum();
         }
 
         // Read the header fields.

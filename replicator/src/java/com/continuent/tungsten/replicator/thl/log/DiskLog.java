@@ -858,8 +858,8 @@ public class DiskLog
         // Write the new record into the log.
         try
         {
-            LogEventRotateWriter writer = new LogEventRotateWriter(fileIndex,
-                    doChecksum);
+            LogEventRotateWriter writer = new LogEventRotateWriter(
+                    dataFile.getFile(), fileIndex, doChecksum);
             LogRecord logRec = writer.write();
             dataFile.writeRecord(logRec, 0);
         }

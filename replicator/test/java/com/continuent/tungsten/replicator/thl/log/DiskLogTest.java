@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-11 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.thl.log;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.RandomAccessFile;
 import java.sql.Timestamp;
 
 import junit.framework.TestCase;
@@ -176,6 +177,109 @@ public class DiskLogTest extends TestCase
         }
         conn.release();
         log.release();
+    }
+
+    /**
+     * Confirm that if a log record in the tail file has a bad checksum
+     * attempting to open the log results in a LogConsistencyException. Confirm
+     * that we can still open the log and find the record with the bad checksum
+     * by turning off checksums.
+     */
+    public void testOpenWithChecksumFailure() throws Exception
+    {
+        // Create the log.
+        File logDir = prepareLogDir("testOpenWithChecksumFailure");
+        DiskLog log = openLog(logDir, false);
+
+        // Add three records.
+        writeEventsToLog(log, 3);
+
+        // Get the last log file and corrupt the checksum on the last record.
+        // This is the last 8 bytes of the file--we set it to an
+        // incorrect value.
+        LogFile lf = log.getLogFile(2);
+        RandomAccessFile raf = new RandomAccessFile(lf.getFile(), "rw");
+        long len = raf.length();
+        raf.seek(len - 8);
+        raf.writeLong(99);
+        raf.close();
+        log.release();
+
+        // Try to open the log file and confirm that a log consistency
+        // exception results.
+        try
+        {
+            log = openLog(logDir, false);
+            throw new Exception("Able to open log with bad checksum!");
+        }
+        catch (LogConsistencyException e)
+        {
+            logger.info("Received expected exception" + e.toString());
+        }
+
+        // Confirm that if we disable CRCs we can open the log.
+        findSeqnoWithoutChecksums(logDir, 2);
+    }
+
+    /**
+     * Confirm that if a log record in the tail file has a bad CRC type
+     * attempting to open the log results in a LogConsistencyException. Confirm
+     * that we can still open the log and find the record with the bad type by
+     * turning off checksums.
+     */
+    public void testOpenWithBadChecksumType() throws Exception
+    {
+        // Create the log.
+        File logDir = prepareLogDir("testOpenWithBadChecksumType");
+        DiskLog log = openLog(logDir, false);
+
+        // Add three records.
+        writeEventsToLog(log, 4);
+
+        // Get the last log file and corrupt the checksum type on the last
+        // record.
+        // This is located in the 9th byte from the end of the file.
+        LogFile lf = log.getLogFile(3);
+        RandomAccessFile raf = new RandomAccessFile(lf.getFile(), "rw");
+        long len = raf.length();
+        raf.seek(len - 9);
+        raf.writeByte(101);
+        raf.close();
+        log.release();
+
+        // Try to open the log file and confirm that a log consistency
+        // exception results.
+        try
+        {
+            log = openLog(logDir, false);
+            throw new Exception("Able to open log with bad checksum!");
+        }
+        catch (LogConsistencyException e)
+        {
+            logger.info("Received expected exception" + e.toString());
+        }
+
+        // Confirm that if we disable CRCs we can open the log.
+        findSeqnoWithoutChecksums(logDir, 3);
+    }
+
+    // Find log sequence number in log opened without checksums.
+    private void findSeqnoWithoutChecksums(File logDir, long seqno)
+            throws ReplicatorException, InterruptedException
+    {
+        // Confirm that if we disable CRCs we can open the log.
+        DiskLog log2 = new DiskLog();
+        log2.setDoChecksum(false);
+        log2.setLogDir(logDir.getAbsolutePath());
+        log2.prepare();
+        // Connect and find the record with the bad seqno.
+        LogConnection conn2 = log2.connect(true);
+        assertTrue("Find first record", conn2.seek(seqno));
+        THLEvent e = conn2.next(false);
+        assertNotNull("Should find an event", e);
+        assertEquals("Expect seqno: " + seqno, seqno, e.getSeqno());
+        conn2.release();
+        log2.release();
     }
 
     /**
@@ -1618,7 +1722,7 @@ public class DiskLogTest extends TestCase
             lastSeqno = e_next.getSeqno();
             logger.info("Wrote good complete event: seqno=" + e_next.getSeqno());
 
-            // Write a partial event and attempt to commit. 
+            // Write a partial event and attempt to commit.
             THLEvent e_partial = createTHLEvent(i + 1, (short) 0, false, "bad");
             conn.store(e_partial, true);
             logger.info("Wrote incomplete event: seqno=" + e_partial.getSeqno());

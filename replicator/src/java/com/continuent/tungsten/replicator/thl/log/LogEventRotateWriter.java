@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.thl.log;
 
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -36,15 +37,17 @@ import com.continuent.tungsten.replicator.thl.THLException;
 public class LogEventRotateWriter
 {
     // Inputs
+    private File    file;
     private long    index;
     private boolean checkCRC;
 
     /**
      * Instantiate the writer.
      */
-    public LogEventRotateWriter(long index, boolean checkCRC)
+    public LogEventRotateWriter(File file, long index, boolean checkCRC)
             throws ReplicatorException
     {
+        this.file = file;
         this.index = index;
         this.checkCRC = checkCRC;
     }
@@ -54,7 +57,7 @@ public class LogEventRotateWriter
      */
     public LogRecord write() throws ReplicatorException
     {
-        LogRecord logRecord = new LogRecord(-1, checkCRC);
+        LogRecord logRecord = new LogRecord(file, -1, checkCRC);
         try
         {
             DataOutputStream dos = new DataOutputStream(logRecord.write());

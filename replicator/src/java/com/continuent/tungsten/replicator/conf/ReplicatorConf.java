@@ -131,10 +131,6 @@ public class ReplicatorConf
     static public final String   RMI_PORT                                                             = "replicator.rmi_port";
     static public final String   RMI_HOST                                                             = "replicator.rmi_host";
 
-    /** What checksum algorithm should be used (md5|sha|<empty string for none>) */
-    static public final String   EVENT_CHECKSUM                                                       = "replicator.event.checksum";
-    static public final String   EVENT_CHECKSUM_DEFAULT                                               = "";
-
     /** Extension parameter names. */
     static public final String   EXTENSIONS                                                           = "replicator.extensions";
     static public final String   EXTENSION_ROOT                                                       = "replicator.extension";

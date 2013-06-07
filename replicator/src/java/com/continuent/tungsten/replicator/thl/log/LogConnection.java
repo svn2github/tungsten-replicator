@@ -748,7 +748,7 @@ public class LogConnection
 
             // Write the event to byte stream.
             LogEventReplWriter eventWriter = new LogEventReplWriter(event,
-                    eventSerializer, doChecksum);
+                    eventSerializer, doChecksum, dataFile.getFile());
             LogRecord logRecord = eventWriter.write();
 
             // Write to the file.
