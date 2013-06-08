@@ -549,7 +549,6 @@ public class EventMetadataFilter implements Filter
         this.context = context;
 
         // Set the policy for assigning schema from the default.
-        // TODO: Make this less of a hack!
         TungstenProperties replProps = context.getReplicatorProperties();
         String defaultSchema = replProps.getString(
                 ReplicatorConf.SHARD_DEFAULT_DB_USAGE, STRINGENT, true);
@@ -565,7 +564,8 @@ public class EventMetadataFilter implements Filter
         logger.info("Use default schema for unknown SQL statements: "
                 + unknownSqlUsesDefaultDb);
 
-        // Check to see if SQL commenting is enabled.
+        // Check to see if SQL commenting is enabled. WARNING: comments can
+        // corrupt statements that have mixed or mis-labeled character sets.
         sqlCommentsEnabled = replProps.getBoolean(
                 ReplicatorConf.SERVICE_COMMENTS_ENABLED,
                 ReplicatorConf.SERVICE_COMMENTS_ENABLED_DEFAULT, true);
