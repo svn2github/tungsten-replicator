@@ -69,7 +69,12 @@ then
 fi
 
 # 2) if change table already exists-> drop change table ?
-sqlplus -S -L $pub_user/$pub_password @drop_change_table.sql  $pub_user ${CHANGE_SET} ${TABLE_NAME}
+if [ $oracle_version -ge 11 ]
+then
+  sqlplus -S -L $pub_user/$pub_password @drop_change_table.sql  $pub_user ${CHANGE_SET} ${TABLE_NAME}
+else
+  sqlplus -S -L $pub_user/$pub_password @drop_change_table-10.sql  $pub_user ${CHANGE_SET} ${TABLE_NAME}
+fi
 
 # 3) prepare table instanciation
 sqlplus -S -L ${SYSDBA} @prepare_tables.sql $source_user $tungsten_user $cdc_type ${TABLE_NAME}
