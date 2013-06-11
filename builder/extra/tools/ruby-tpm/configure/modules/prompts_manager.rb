@@ -718,6 +718,6 @@ class ManagerAPIAddress < ConfigurePrompt
   include AdvancedPromptModule
   
   def initialize
-    super(MGR_API_ADDRESS, "Address for the Manager API", PV_ANY, "0.0.0.0")
+    super(MGR_API_ADDRESS, "Address for the Manager API", PV_ANY, "127.0.0.1")
   end
 end

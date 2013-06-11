@@ -332,6 +332,9 @@ module ConfigureCommand
   end
   
   def check_current_version
+    # Disable this check until it is properly implemented
+    return
+    
     unless allow_check_current_version?()
       return
     end
