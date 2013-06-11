@@ -365,17 +365,6 @@ class Configurator
       debug("The command is set to #{@command.class.to_s}")
       start_alive_thread()
       
-      # Some commands (query) need to be able to run while a higher level TPM script is running
-      unless @command.allow_multiple_tpm_commands?()
-        cmd_result("ps ax 2>/dev/null | grep configure.rb | grep -v firewall | grep -v grep | awk '{print $1}'").split("\n").each{
-          |pid|
-          if pid != $$.to_s
-            error("There is already another Tungsten installation script running")
-            cleanup(1)
-          end
-        }
-      end
-      
       opts=OptionParser.new
       opts.on("--profile String", "-c String", "--config String")  {|val| @options.config = val }
       opts.on("--skip-validation-check String")      {|val|
@@ -458,6 +447,17 @@ class Configurator
     rescue => e
       exception(e)
       cleanup(1)
+    end
+    
+    # Some commands (query) need to be able to run while a higher level TPM script is running
+    unless @command.allow_multiple_tpm_commands?() || ConfigureValidationHandler.skip_validation_class?("InstallationScriptCheck", @config)
+      cmd_result("ps ax 2>/dev/null | grep configure.rb | grep -v firewall | grep -v grep | awk '{print $1}'").split("\n").each{
+        |pid|
+        if pid != $$.to_s
+          error("There is already another Tungsten installation script running")
+          cleanup(1)
+        end
+      }
     end
     
     true
