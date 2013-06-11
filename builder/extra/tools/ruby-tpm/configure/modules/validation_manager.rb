@@ -151,21 +151,22 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
   end
   
   def validate
-    @config.getProperty(DATASERVICE_WITNESSES).split(",").each{|witness|
+    @config.getProperty(DATASERVICE_WITNESSES).to_s().split(",").each{|witness|
+      witness_ips = Configurator.instance.get_ip_addresses(witness)
+      if witness_ips == false
+        error("Unable to find an IP address for #{witness}")
+        next
+      end
+      
       debug("Check if witness #{witness} is pingable")
-       if Configurator.instance.check_addresses_is_pingable(witness) == false
-         error("The manager witness address  '#{witness}' is not returning pings")
-         help("Specify a valid hostname or ip address for the witness host ")
+      if Configurator.instance.check_addresses_is_pingable(witness) == false
+        error("The manager witness address  '#{witness}' is not returning pings")
+        help("Specify a valid hostname or ip address for the witness host ")
       end
     }
   end
   
   def enabled?
-    topology = Topology.build(@config.getProperty(get_member_key(DEPLOYMENT_DATASERVICE)), @config)
-    unless topology.use_management?()
-      return false
-    end
-  
-    super()
+    super() && (@config.getProperty(DATASERVICE_WITNESSES).to_s() != "")
   end
 end

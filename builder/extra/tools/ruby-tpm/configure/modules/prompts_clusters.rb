@@ -378,7 +378,7 @@ class ClusterWitnesses < ConfigurePrompt
   end
   
   def required?
-    super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true") && get_topology().use_management?()
+    false
   end
 end
 
