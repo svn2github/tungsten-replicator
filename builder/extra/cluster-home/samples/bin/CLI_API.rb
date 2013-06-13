@@ -19,6 +19,7 @@ class TungstenEnvironment
     def configure
         super()
     
+        require_installed_directory?(false)
         @cctrl = TungstenDataserviceManager.new(nil)
         apis = @cctrl.to_hash
         # 
@@ -162,6 +163,13 @@ class TungstenEnvironment
     #
     def main
         # sets the defaults
+        #pp TI.dataservices()
+        #topology = TI.status('chicago')
+        #pp topology.datasources()
+        #puts '<'
+        #pp TI
+        #puts '>'
+
         service = opt(:service)
         service ||= 'chicago'
         api_server = opt(:api_server)
@@ -191,8 +199,12 @@ class TungstenEnvironment
                     if cluster_hash['httpStatus'] != 200
                         puts "*** #{cluster_hash['message']} (#{cluster_hash['httpStatus']})"
                     else
-                        if api["type"] == :get
-                            display_cluster(command, cluster_hash)
+                        if api["type"] == :get 
+                            if opt(:status)
+                                display_cluster(command, cluster_hash)
+                            else
+                                pp cluster_hash
+                            end
                         else
                             puts "OK: #{cluster_hash['message']} (#{cluster_hash['httpStatus']})"
                         end

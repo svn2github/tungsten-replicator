@@ -82,13 +82,14 @@ class APICall
     # * return_structure: so far, only :hash is supported
     # * help: a brief description of what the API does
     #
-    def initialize(name, prefix, command, help, return_structure = :hash, type = :get)
+    def initialize(name, prefix, command, help, return_structure = :hash, type = :get, ignore_service=false)
         @name = name    
         @prefix = prefix
         @command = command
         @type = type  # type can be :get, :post, :cmd
         @returns = return_structure
         @help = help
+        @ignore_service = ignore_service
         # TODO : add expected structure
     end
 
@@ -106,7 +107,7 @@ class APICall
     # Creates a well formed URI, ready to be used
     #
     def make_uri(api_server, service)
-        if (service)
+        if (service && ! @ignore_service)
             return "http://#{api_server}/#{@@api_root}/#{@prefix}/#{service}/#{@command}" 
         else
             return "http://#{api_server}/#{@@api_root}/#{@command}" 
@@ -336,21 +337,33 @@ class TungstenDataserviceManager
     def initialize(api_server)
         @api_server = api_server
         @api_calls = {}
-        add_api_call( APICall.new('status', 'status', '', 'Show cluster status', :hash, :get) )      
-        add_api_call( APICall.new('promote', 'control', 'promote', 'promotes a slave to master', :hash, :post) )      
-        add_api_call( APICall.new('policy',  'policy', '', 'show current policy',:hash, :get) )      
-        add_api_call( APICall.new('setmaintenance', 'policy', 'maintenance', 'set policy as maintenance',:hash, :post) )      
-        add_api_call( APICall.new('setautomatic', 'policy', 'automatic', 'set policy as automatic',:hash, :post) )      
-        add_api_call( APICall.new('setmanual', 'policy', 'manual', 'set policy as manual',:hash, :post) )      
-        add_api_call( APICall.new('shun', 'control', 'shun', 'shuns a data source',:hash, :post) )      
-        add_api_call( APICall.new('welcome', 'control', 'welcome', 'welcomes back a data source',:hash, :post) )      
-        add_api_call( APICall.new('backup', 'control', 'backup', 'performs a datasource backup',:hash, :post) )      
-        add_api_call( APICall.new('restore', 'control', 'restore', 'Performs a datasource restore',:hash, :post) )      
-        add_api_call( APICall.new('online', 'control', 'online', 'puts a datasource online',:hash, :post) )      
-        add_api_call( APICall.new('offline', 'control', 'offline', 'Puts a datasource offline',:hash, :post) )      
-        add_api_call( APICall.new('fail', 'control', 'fail', 'fails a datasource',:hash, :post) )      
-        add_api_call( APICall.new('recover', 'control', 'recover', 'recover a failed datasource',:hash, :post) )      
-        add_api_call( APICall.new('heartbeat', 'control', 'heartbeat', 'Issues a heartbeat on the master',:hash, :post) )      
+        # 
+        # get
+        #
+        add_api_call( APICall.new('status',         'status', '', 'Show cluster status', :hash, :get) )      
+        add_api_call( APICall.new('policy',         'policy', '', 'Show current policy',:hash, :get) )      
+        add_api_call( APICall.new('routers',        '',       'service/router/status', 'Shows the routers for this data service',:hash, :get, true) )      
+        add_api_call( APICall.new('members',        '',       'service/members', 'Shows the members for this data service',:hash, :get, true) )      
+
+        #
+        # post
+        #
+        add_api_call( APICall.new('setmaintenance', 'policy',  'maintenance', 'set policy as maintenance',:hash, :post) )      
+        add_api_call( APICall.new('setautomatic',   'policy',  'automatic', 'set policy as automatic',:hash, :post) )      
+        add_api_call( APICall.new('setmanual',      'policy',  'manual', 'set policy as manual',:hash, :post) )      
+
+        add_api_call( APICall.new('setarchive',     'control', 'setarchive', 'Sets the archve flag for a slave', :hash, :post) )      
+        add_api_call( APICall.new('cleararchive',   'control', 'cleararchive', 'Clears the archve flag for a slave', :hash, :post) )      
+        add_api_call( APICall.new('promote',        'control', 'promote', 'promotes a slave to master', :hash, :post) )      
+        add_api_call( APICall.new('shun',           'control', 'shun', 'shuns a data source',:hash, :post) )      
+        add_api_call( APICall.new('welcome',        'control', 'welcome', 'welcomes back a data source',:hash, :post) )      
+        add_api_call( APICall.new('backup',         'control', 'backup', 'performs a datasource backup',:hash, :post) )      
+        add_api_call( APICall.new('restore',        'control', 'restore', 'Performs a datasource restore',:hash, :post) )      
+        add_api_call( APICall.new('online',         'control', 'online', 'puts a datasource online',:hash, :post) )      
+        add_api_call( APICall.new('offline',        'control', 'offline', 'Puts a datasource offline',:hash, :post) )      
+        add_api_call( APICall.new('fail',           'control', 'fail', 'fails a datasource',:hash, :post) )      
+        add_api_call( APICall.new('recover',        'control', 'recover', 'recover a failed datasource',:hash, :post) )      
+        add_api_call( APICall.new('heartbeat',      'control', 'heartbeat', 'Issues a heartbeat on the master',:hash, :post) )      
     end
 
     #

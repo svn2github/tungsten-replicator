@@ -1,6 +1,7 @@
                        TUNGSTEN REPLICATOR README
-                   Copyright (C) 2011 Continuent, Inc. 
-                             2 September 2011
+                   Copyright (C) 2011-2013 Continuent, Inc. 
+                             September 2, 2011
+                            Updated June 13, 2013
 
 1 INTRODUCTION
 
@@ -16,10 +17,7 @@ README.LICENSE.
 Documentation for Tungsten Replicator is located on the Continuent website 
 at the following URL: 
 
-  http://www.continuent.com/downloads/documentation
-
-Make sure you get the manuals for the Tungsten Replicator 2.0.4 or greater 
-as the installation process has changed considerably since version 2.0.3. 
+  https://docs.continuent.com/wiki/display/TEDOC/Tungsten+Replicator+2.0
 
 You can also find more information through the wiki, issues list, and mailing
 lists accessible at the Tungsten Replicator project website, which is located
@@ -40,6 +38,12 @@ To install the replicator follow the steps shown below.
 
 The Installation Guide provides additional information on installation
 procedures. 
+
+Alternatively, for a quick way of installing Tungsten Replicator,
+you can see the instructions provided in the cookbook directory, 
+by running:
+   ./cookbook/readme
+
 
 4 LIMITATIONS
 
