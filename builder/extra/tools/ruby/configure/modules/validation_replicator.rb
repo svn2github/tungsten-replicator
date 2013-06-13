@@ -174,6 +174,7 @@ end
 
 class THLStorageCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck
+  include NotTungstenUpdateCheck
   
   def set_vars
     @title = "THL storage check"
