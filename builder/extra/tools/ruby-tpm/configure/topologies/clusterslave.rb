@@ -4,6 +4,13 @@ class ClusterSlaveTopology
   def get_master_thl_uri(hostname)
     values = []
     
+    unless @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_MASTER_MEMBER]).to_s().split(",").include?(hostname)
+      rs_alias = @ds_alias + "_" + to_identifier(hostname)
+      hosts = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_MASTERHOST]).to_s().split(",")
+      port = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_MASTERPORT])
+      values << _splice_hosts_port(hosts, port)
+    end
+    
     relay_source = @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_RELAY_SOURCE])
     relay_source.split(",").each{
       |relay_alias|
