@@ -1261,6 +1261,15 @@ class ReplicationServiceTableEngine < ConfigurePrompt
   end
 end
 
+class ReplicationServiceEnableShardComments < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_SVC_ENABLE_MASTER_SERVICE_COMMENTS, "Add a comment to extracted events with the current service name", PV_BOOLEAN, "false")
+  end
+end
+
 class ReplicationServiceTHLStorageDirectory < ConfigurePrompt
   include ReplicationServicePrompt
   include ConstantValueModule

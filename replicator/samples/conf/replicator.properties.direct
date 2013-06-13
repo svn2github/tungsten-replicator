@@ -74,7 +74,7 @@ local.service.name=@{SERVICE.DSNAME}
 # Whether to allow comments in SQL statements to show the service name. 
 # This must be set to avoid multi-master replication loops if updates 
 # from one master go into the binlog of another master.
-replicator.service.comments=false
+replicator.service.comments=@{SERVICE.REPL_SVC_ENABLE_MASTER_SERVICE_COMMENTS}
 
 # Whether to log slave updates or not.  This is normally false but can
 # be enabled so that updates inserted into the slave can be extracted again

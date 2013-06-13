@@ -57,7 +57,7 @@ service.name=@{SERVICE.DEPLOYMENT_SERVICE}
 # Whether to allow comments in SQL statements to show the service name.
 # This must be set to avoid multi-master replication loops if updates
 # from one master go into the binlog of another master.
-replicator.service.comments=false
+replicator.service.comments=@{SERVICE.REPL_SVC_ENABLE_MASTER_SERVICE_COMMENTS}
 
 # Name of the local replication service.  This parameter must be set when 
 # performing bi-directional replication using a remote slave.  Events 
