@@ -365,6 +365,9 @@ class TungstenXtrabackupScript < TungstenBackupScript
   end
   
   def empty_mysql_directory
+    pid_file = get_mysql_variable("pid_file")
+    pid = TU.cmd_result("cat #{pid_file}")
+    
     TU.output("Stop the MySQL server")
     TU.cmd_result("#{@options[:mysql_service_command]} stop")
 
@@ -374,6 +377,26 @@ class TungstenXtrabackupScript < TungstenBackupScript
       TU.cmd_result("#{get_mysql_command()} -e \"select 1\" > /dev/null 2>&1")
       raise "Unable to properly shutdown the MySQL service"
     rescue CommandError
+    end
+    
+    unless pid.to_s() == ""
+      begin
+        TU.output("Verify that the MySQL pid has gone away")
+        Timeout.timeout(30) {
+          pid_missing = false
+          
+          while pid_missing == false do
+            begin
+              TU.cmd_result("ps -p #{pid}")
+              sleep 5
+            rescue CommandError
+              pid_missing = true
+            end
+          end
+        }
+      rescue Timeout::Error
+        raise "Unable to verify that MySQL has fully shutdown"
+      end
     end
 
     TU.cmd_result("rm -rf #{@options[:mysqldatadir]}/*")
@@ -496,6 +519,25 @@ class TungstenXtrabackupScript < TungstenBackupScript
     end
 
     return val.split("=")[1]
+  end
+  
+  def get_mysql_variable(var)
+    response = TU.cmd_result("#{get_mysql_command()} -e \"SHOW VARIABLES LIKE '#{var}'\\\\G\"")
+    
+    response.split("\n").each{ | response_line |
+      parts = response_line.chomp.split(":")
+      if (parts.length != 2)
+        next
+      end
+      parts[0] = parts[0].strip;
+      parts[1] = parts[1].strip;
+      
+      if parts[0] == "Value"
+        return parts[1]
+      end
+    }
+    
+    return nil
   end
 end
 
