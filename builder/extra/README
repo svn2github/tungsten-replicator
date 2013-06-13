@@ -44,8 +44,28 @@ you can see the instructions provided in the cookbook directory,
 by running:
    ./cookbook/readme
 
+4 UPGRADE
 
-4 LIMITATIONS
+The procedure for upgrade is straightforward. 
+  1) unpack the tarball in a staging directory
+  2) For each node in your deployment:
+    2.1. stop the replicator
+    2.2. run
+         ./tools/upgrade --release-directory=$PATH_TO_DEPLOYED_TUNGSTEN --host=$NODE
+    2.3 If your node has more than one service, restart the replicator
+
+If you are using the cookbook, you can run an upgrade using
+  ./cookbook/upgrade
+This command will ask for your current topology and then show all the commands that you should
+run to perform the upgrade, including adapt the cookbook scripts to use the new deployment.
+Be aware that the cookbook has evolved a lot from version 2.0.7 to 2.1.0. Many commands were
+deprecated and many were altered (simplified). For a complete list of the commands and some
+operational notes, run
+  ./cookbook/readme
+  and
+  ./cookbook/help
+
+5 LIMITATIONS
 
 Tungsten Replicator is certified for Linux platforms.  We also
 develop and test on Mac OS X though we do not certify operation on
@@ -53,12 +73,12 @@ that platform.  Please check for other platforms.
 
 For other limitations, check the release notes in the wiki. 
 
-5 PROBLEMS
+6 PROBLEMS
 
 This is open source software.  Check the wiki, issues list, and
 mailing lists to get help.
 
-6 COMMERCIAL SUPPORT
+7 COMMERCIAL SUPPORT
 
 Continuent offers support options for Tungsten Replicator.  To get
 further information please see our website at please contact:
@@ -69,7 +89,7 @@ We offer both support as well as sponsored development of features.
 Sponsored features go into open source, so that everyone can use
 them.
 
-7 CONCLUSION
+8 CONCLUSION
 
 Enjoy the software.  If you like it please let us and your friends
 know.  If you don't like something, please file bugs so we can make
