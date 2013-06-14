@@ -51,7 +51,7 @@ The procedure for upgrade is straightforward.
   2) For each node in your deployment:
     2.1. stop the replicator
     2.2. run
-         ./tools/upgrade --release-directory=$PATH_TO_DEPLOYED_TUNGSTEN --host=$NODE
+         ./tools/update --release-directory=$PATH_TO_DEPLOYED_TUNGSTEN --host=$NODE
     2.3 If your node has more than one service, restart the replicator
 
 If you are using the cookbook, you can run an upgrade using
