@@ -304,7 +304,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
 	end
 	
 	def create_tungsten_schema(schema_name = nil)
-	  sql_file = "#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/ruby/configure/sql/tungsten_schema.sql"
+	  sql_file = "#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/ruby-tpm/configure/sql/tungsten_schema.sql"
 	  if schema_name == nil
 	    schema_name = @config.getProperty(@prefix + [REPL_SVC_SCHEMA])
 	  end
