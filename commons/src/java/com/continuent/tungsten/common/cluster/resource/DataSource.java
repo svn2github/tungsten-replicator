@@ -18,6 +18,7 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.JsonPropertyOrder;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.patterns.order.HighWaterResource;
@@ -25,6 +26,7 @@ import com.continuent.tungsten.common.patterns.order.Sequence;
 
 @XmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder(alphabetic=true)
 public class DataSource extends Resource implements Serializable
 {
     private static final long       serialVersionUID               = 8153881753668230575L;
