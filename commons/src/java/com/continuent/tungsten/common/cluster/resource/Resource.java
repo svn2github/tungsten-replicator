@@ -6,6 +6,7 @@ import java.io.Serializable;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
@@ -18,6 +19,7 @@ import com.continuent.tungsten.common.utils.ResultFormatter;
  */
 @XmlRootElement
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder(alphabetic = true)
 public class Resource implements Serializable
 {
     /**
@@ -29,6 +31,7 @@ public class Resource implements Serializable
     protected String          description      = "";
     protected boolean         isContainer      = false;
     protected boolean         isExecutable     = false;
+    protected Boolean         compositeMember  = null;                      // True if part of a higher level Composite DataService
     protected ResourceType    childType        = ResourceType.UNDEFINED;
 
     public Resource()
@@ -71,6 +74,7 @@ public class Resource implements Serializable
         return describe(false);
     }
 
+    // ---------- Getters and Setters ----------
     /**
      * 
      */
@@ -159,6 +163,27 @@ public class Resource implements Serializable
         this.childType = childType;
     }
 
+    /**
+     * Returns the compositeMember value.
+     * 
+     * @return Returns the compositeMember. True if the resource is part of a higher level Composite DataService
+     */
+    public Boolean getCompositeMember()
+    {
+        return compositeMember;
+    }
+
+    /**
+     * Sets the compositeMember value.
+     * 
+     * @param compositeMember The compositeMember to set.
+     */
+    public void setCompositeMember(Boolean compositeMember)
+    {
+        this.compositeMember = compositeMember;
+    }
+
+    // --------------------------------- Utility functions ----------------------------------
     /**
      * Copies values from fields of this instance to another instance
      * 
