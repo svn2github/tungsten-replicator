@@ -256,12 +256,32 @@ class ReplicationServiceType < ConfigurePrompt
   def initialize
     super(REPL_SVC_SERVICE_TYPE, "What is the replication service type? (local|remote)", 
       PropertyValidator.new("local|remote",
-      "Value must be local or remote"), "local")
+      "Value must be local or remote"))
   end
   
   def update_deprecated_keys()
     replace_deprecated_key(get_member_key('repl_svc_service_type'))
     super()
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_M
+      @default = "local"
+    elsif @config.getProperty(get_member_key(REPL_SVC_ENABLE_SLAVE_THL_LISTENER)) == "false"
+      @default = "remote"
+    else
+      @default = "local"
+    end
+  end
+end
+
+class ReplicationServiceEnableTHLListener < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_SVC_ENABLE_SLAVE_THL_LISTENER, "Should this service allow THL connections?",
+      PV_BOOLEAN, "true")
   end
 end
 

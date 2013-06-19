@@ -1250,6 +1250,10 @@ class ConflictingReplicationServiceTHLPortsCheck < ConfigureValidationCheck
         next
       end
       
+      if @config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SERVICE_TYPE]) == "remote"
+        next
+      end
+      
       thl_port = @config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_THL_PORT])
       
       if thl_ports.has_key?(thl_port)
