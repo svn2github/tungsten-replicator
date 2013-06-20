@@ -1303,7 +1303,7 @@ class XtrabackupAvailableCheck < ConfigureValidationCheck
   end
   
   def enabled?
-    super() && @config.getProperty(get_member_key(REPL_BACKUP_METHOD)) == "xtrabackup"
+    super() && ["xtrabackup","xtrabackup-full","xtrabackup-incremental"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD)))
   end
 end
 
@@ -1394,7 +1394,7 @@ class XtrabackupDirectoryWriteableCheck < ConfigureValidationCheck
   end
 
   def enabled?
-    super() && ["xtrabackup-incremental"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD)))
+    super() && ["xtrabackup","xtrabackup-full","xtrabackup-incremental"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD)))
   end
 end
 

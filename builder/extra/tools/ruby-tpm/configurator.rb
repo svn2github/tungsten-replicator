@@ -430,6 +430,15 @@ class Configurator
           unless @command.is_valid?()
             cleanup(1)
           end
+          
+          h_alias = @config.getNestedProperty([DEPLOYMENT_HOST])
+          unless h_alias == nil
+            additional_path = @config.getProperty([HOSTS, h_alias, ADDITIONAL_PATH])
+            unless additional_path.to_s() == ""
+              debug("Adding #{additional_path} to $PATH")
+              ENV['PATH'] = ENV['PATH'] + ":" + additional_path
+            end
+          end
         end
       rescue IgnoreError
         cleanup()
