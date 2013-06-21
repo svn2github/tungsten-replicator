@@ -23,7 +23,8 @@ class TungstenInstall
         MGR_RMI_PORT,
         MGR_API,
         MGR_API_PORT,
-        MGR_API_ADDRESS
+        MGR_API_ADDRESS,
+        "preferred_path"
         ])
     else
       # Read the values from files
@@ -212,6 +213,12 @@ class TungstenInstall
     end
     
     raise "Unable to execute '#{cmd}' in cctrl"
+  end
+  
+  def inherit_path
+    if setting("preferred_path") != ""
+      ENV['PATH'] = setting("preferred_path") + ":" + ENV['PATH']
+    end
   end
   
   def self.get(path)

@@ -41,7 +41,7 @@ RELEASES_DIRECTORY = "releases_directory"
 LOGS_DIRECTORY = "logs_directory"
 DIRECTORY_LOCK_FILE = "directory_lock_file"
 PROFILE_SCRIPT = "profile_script"
-ADDITIONAL_PATH = "additional_path"
+PREFERRED_PATH = "preferred_path"
 SKIP_STATEMAP = "skip_statemap"
 
 STAGING_HOST = "staging_host"

@@ -16,7 +16,7 @@ set_tungsten_env() {
 		return 1
 	fi
 
-	export PATH=$PATH:$CONTINUENT_ROOT/tungsten/tungsten-manager/bin:$CONTINUENT_ROOT/tungsten/tungsten-replicator/bin:$CONTINUENT_ROOT/tungsten/cluster-home/bin:$CONTINUENT_ROOT/tungsten/tungsten-connector/bin:$CONTINUENT_ROOT/share:$CONTINUENT_ROOT/tungsten/tools@{ADDITIONAL_PATH}
+	export PATH=@{PREFERRED_PATH}:$PATH:$CONTINUENT_ROOT/tungsten/tungsten-manager/bin:$CONTINUENT_ROOT/tungsten/tungsten-replicator/bin:$CONTINUENT_ROOT/tungsten/cluster-home/bin:$CONTINUENT_ROOT/tungsten/tungsten-connector/bin:$CONTINUENT_ROOT/share:$CONTINUENT_ROOT/tungsten/tools
 	
 	
 	_cctrl()

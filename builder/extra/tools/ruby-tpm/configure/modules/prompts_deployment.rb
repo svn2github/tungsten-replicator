@@ -1149,22 +1149,12 @@ class HostSkippedWarnings < ConfigurePrompt
   end
 end
 
-class HostAdditionalPath < ConfigurePrompt
+class HostPreferredPath < ConfigurePrompt
   include ClusterHostPrompt
   include AdvancedPromptModule
   
   def initialize
-    super(ADDITIONAL_PATH, "Additional command path", PV_ANY, "")
-  end
-  
-  def get_template_value(transform_values_method)
-    v = get_value()
-    
-    if v.to_s == ""
-      return ""
-    else
-      return ":" + v
-    end
+    super(PREFERRED_PATH, "Additional command path", PV_ANY, "")
   end
 end
 

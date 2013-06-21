@@ -186,8 +186,12 @@ module TungstenScript
   end
   
   def validate
-    if require_installed_directory?() && TI == nil
-      TU.error("Unable to run #{$0} without the '--directory' argument pointing to an active Tungsten installation")
+    if require_installed_directory?()
+      if TI == nil
+        TU.error("Unable to run #{$0} without the '--directory' argument pointing to an active Tungsten installation")
+      else
+        TI.inherit_path()
+      end
     end
     
     if @command_definitions.size() > 0 && @command == nil

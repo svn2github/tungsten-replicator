@@ -23,18 +23,6 @@ class TungstenXtrabackupScript < TungstenBackupScript
       :default => false,
       :help => "Create the backup as an incremental snapshot since last backup"
     })
-    
-    add_option(:mysqluser, {
-      :on => "--mysqluser String",
-      :help => "The MySQL system user",
-      :default => "mysql"
-    })
-    
-    add_option(:mysqlgroup, {
-      :on => "--mysqlgroup String",
-      :help => "The MySQL system group",
-      :default => "mysql"
-    })
   end
   
   def backup
@@ -249,14 +237,14 @@ class TungstenXtrabackupScript < TungstenBackupScript
       end
 
       # Fix the permissions and restart the service
-      TU.cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqldatadir]}")
+      TU.cmd_result("chown -RL #{@options[:mysqluser]}: #{@options[:mysqldatadir]}")
 
       if @options[:mysqlibdatadir].to_s() != ""
-        TU.cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqlibdatadir]}")
+        TU.cmd_result("chown -RL #{@options[:mysqluser]}: #{@options[:mysqlibdatadir]}")
       end
 
       if @options[:mysqliblogdir].to_s() != ""
-        TU.cmd_result("chown -RL #{@options[:mysqluser]}:#{@options[:mysqlgroup]} #{@options[:mysqliblogdir]}")
+        TU.cmd_result("chown -RL #{@options[:mysqluser]}: #{@options[:mysqliblogdir]}")
       end
 
       TU.cmd_result("#{@options[:mysql_service_command]} start")
@@ -288,6 +276,10 @@ class TungstenXtrabackupScript < TungstenBackupScript
     @options[:mysqldatadir] = get_mysql_option("datadir")
     @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
     @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")
+    @options[:mysqluser] = get_mysql_option("user")
+    if @options[:mysqluser].to_s() == ""
+      @options[:mysqluser] = "mysql"
+    end
     
     @storage_dir = nil
     
@@ -365,8 +357,12 @@ class TungstenXtrabackupScript < TungstenBackupScript
   end
   
   def empty_mysql_directory
-    pid_file = get_mysql_variable("pid_file")
-    pid = TU.cmd_result("cat #{pid_file}")
+    begin
+      pid_file = get_mysql_variable("pid_file")
+      pid = TU.cmd_result("cat #{pid_file}")
+    rescue CommandError
+      pid = ""
+    end
     
     TU.output("Stop the MySQL server")
     TU.cmd_result("#{@options[:mysql_service_command]} stop")
@@ -518,7 +514,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
       return nil
     end
 
-    return val.split("=")[1]
+    return val.split("\n")[0].split("=")[1]
   end
   
   def get_mysql_variable(var)

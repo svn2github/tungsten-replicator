@@ -433,10 +433,10 @@ class Configurator
           
           h_alias = @config.getNestedProperty([DEPLOYMENT_HOST])
           unless h_alias == nil
-            additional_path = @config.getProperty([HOSTS, h_alias, ADDITIONAL_PATH])
-            unless additional_path.to_s() == ""
-              debug("Adding #{additional_path} to $PATH")
-              ENV['PATH'] = ENV['PATH'] + ":" + additional_path
+            path = @config.getProperty([HOSTS, h_alias, PREFERRED_PATH])
+            unless path.to_s() == ""
+              debug("Adding #{path} to $PATH")
+              ENV['PATH'] = ENV['PATH'] + ":" + path
             end
           end
         end

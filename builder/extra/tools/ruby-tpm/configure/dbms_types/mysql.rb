@@ -1437,14 +1437,14 @@ module ConfigureDeploymentStepMySQL
     if ads.is_a?(MySQLDatabasePlatform)
       File.open(@config.getProperty(get_service_key(REPL_MYSQL_SERVICE_CONF)), "w") {
         |file|
+        if @config.getPropertyOr(get_service_key(REPL_MYSQL_CONF), "") != ""
+          file.puts("!include #{@config.getProperty(get_service_key(REPL_MYSQL_CONF))}")
+          file.puts("")
+        end
+        
         file.puts("[client]")
         file.puts("user=#{ads.username}")
         file.puts("password=#{ads.password}")
-        file.puts("")
-        
-        if @config.getPropertyOr(get_service_key(REPL_MYSQL_CONF), "") != ""
-          file.puts("!include #{@config.getProperty(get_service_key(REPL_MYSQL_CONF))}")
-        end
       }
       watch_file(@config.getProperty(get_service_key(REPL_MYSQL_SERVICE_CONF)))
     end
