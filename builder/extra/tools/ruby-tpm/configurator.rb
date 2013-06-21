@@ -436,7 +436,7 @@ class Configurator
             path = @config.getProperty([HOSTS, h_alias, PREFERRED_PATH])
             unless path.to_s() == ""
               debug("Adding #{path} to $PATH")
-              ENV['PATH'] = ENV['PATH'] + ":" + path
+              ENV['PATH'] = path + ":" + ENV['PATH']
             end
           end
         end
