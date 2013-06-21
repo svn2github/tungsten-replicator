@@ -121,6 +121,15 @@ module RemoteCommand
       return false
     end
     
+    if host_configs.size() == 0
+      if has_command_hosts?()
+        Configurator.instance.error("No host configurations were found. Verify the value for --hosts, --user and --directory to load configuration information from other servers.")
+      else
+        Configurator.instance.error("No host configurations were found. Try specifying --hosts, --user and --directory to load configuration information from other servers.")
+      end
+      return false
+    end
+    
     sections_to_merge = [
       DATASERVICES,
       HOSTS,
