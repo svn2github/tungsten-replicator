@@ -17,6 +17,7 @@ class ConfigureServicePackage < ConfigurePackage
     unless Configurator.instance.display_preview?
       unless @config.props.size > 0
         error("Unable to run configure-service because this directory has not been setup")
+        error("Try running this command from the directory where Tungsten is installed or adding --host, --user and --release-directory for the server and directory you are trying to modify. These values should match what you provided when calling 'tools/configure'.")
         return false
       end
     end
