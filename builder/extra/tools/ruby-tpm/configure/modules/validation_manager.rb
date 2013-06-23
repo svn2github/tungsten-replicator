@@ -151,7 +151,33 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
   end
   
   def validate
-    @config.getProperty(DATASERVICE_WITNESSES).to_s().split(",").each{|witness|
+    mgr_address = @config.getProperty(get_member_key(MGR_LISTEN_ADDRESS))
+    mgr_netmask = nil
+    IfconfigWrapper.new().parse().each{
+      |iface|
+      begin
+        iface.networks.each_value{
+          |n|
+          if n.is_a?(Ipv4Network)
+            if n.addr.to_s() == mgr_address
+              mgr_netmask = n.mask
+            end
+          end
+        }
+      rescue ArgumentError
+      end
+    }
+    
+    if mgr_netmask == nil
+      error("Unable to identify the netmask for the Manager IP address")
+      return
+    end
+    
+    mgr_address_octets = mgr_address.split(".")
+    mgr_netmask_octets = mgr_netmask.split(".")
+    
+    @config.getProperty(DATASERVICE_WITNESSES).to_s().split(",").each{
+      |witness|
       witness_ips = Configurator.instance.get_ip_addresses(witness)
       if witness_ips == false
         error("Unable to find an IP address for #{witness}")
@@ -160,8 +186,25 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
       
       debug("Check if witness #{witness} is pingable")
       if Configurator.instance.check_addresses_is_pingable(witness) == false
-        error("The manager witness address  '#{witness}' is not returning pings")
+        error("The witness address  '#{witness}' is not returning pings")
         help("Specify a valid hostname or ip address for the witness host ")
+      end
+      
+      witness_octets = witness.split(".")
+      same_network = true
+      
+      4.times{
+        |i|
+        
+        a = (mgr_address_octets[i].to_i() & mgr_netmask_octets[i].to_i())
+        b = (witness_octets[i].to_i() & mgr_netmask_octets[i].to_i())
+        if a != b
+          same_network = false
+        end
+      }
+      
+      if same_network != true
+        error("The witness address '#{witness}' is not in the same subnet as the manager")
       end
     }
   end

@@ -2056,3 +2056,7 @@ module JSON
     end
   end
 end
+
+class NetworkAdapter
+  attr_reader :networks
+end
