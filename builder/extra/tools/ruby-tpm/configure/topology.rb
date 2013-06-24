@@ -52,6 +52,10 @@ module Topology
     ""
   end
   
+  def disable_relay_logs?
+    "false"
+  end
+  
   def _splice_hosts_port(hosts, default_port)
     values = []
     

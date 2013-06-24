@@ -288,7 +288,17 @@ class DatasourceDisableRelayLogs < ConfigurePrompt
   
   def initialize
     super(REPL_DISABLE_RELAY_LOGS, "Disable the use of relay-logs?",
-      PV_BOOLEAN, "true")
+      PV_BOOLEAN)
+  end
+  
+  def load_default_value
+    topology = get_topology()
+    
+    begin
+      @default = topology.disable_relay_logs?()
+    rescue
+      @default = "true"
+    end
   end
   
   def get_template_value(transform_values_method)
@@ -423,24 +433,15 @@ end
 
 class DirectDatasourceDisableRelayLogs < ConfigurePrompt
   include DatasourcePrompt
+  include ConstantValueModule
   
   def initialize
     super(EXTRACTOR_REPL_DISABLE_RELAY_LOGS, "Disable the use of relay-logs?",
-      PV_BOOLEAN, "false")
-  end
-  
-  def enabled_for_command_line?
-    false
+      PV_BOOLEAN)
   end
   
   def get_template_value(transform_values_method)
-    v = super(transform_values_method)
-    
-    if v == "false"
-      "true"
-    else
-      "false"
-    end
+    @config.getTemplateValue(get_member_key(REPL_DISABLE_RELAY_LOGS), transform_values_method)
   end
 end
 

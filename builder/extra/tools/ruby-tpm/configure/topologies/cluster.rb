@@ -9,6 +9,10 @@ if Configurator.instance.is_enterprise?()
     def use_connector?
       true
     end
+    
+    def disable_relay_logs?
+      "true"
+    end
   
     def self.get_name
       'clustered'
