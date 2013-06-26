@@ -67,6 +67,7 @@ public class CDCMetadataFilter implements Filter
     private String                  tableNameSuffix;
     private String                  toSingleSchema;
     private long                    sequenceBeginning = 1;
+    private boolean                 cdcColumnsAtFront = false;
 
     /**
      * Cache of last sequence numbers in a given change table:</br>
@@ -126,6 +127,15 @@ public class CDCMetadataFilter implements Filter
     public void setSequenceBeginning(long sequenceBeginning)
     {
         this.sequenceBeginning = sequenceBeginning;
+    }
+    
+    /**
+     * If true, CDC columns are expected to be at the front of original columns.
+     * If false - at the end.
+     */
+    public void setCDCColumnsAtFront(boolean atFront)
+    {
+        this.cdcColumnsAtFront = atFront;
     }
 
     /**
@@ -207,18 +217,23 @@ public class CDCMetadataFilter implements Filter
                                 val.add(columnVal);
                             }
 
+                            // Put CDC values at front or at the end.
+                            int cdcPos = val.size();
+                            if (cdcColumnsAtFront)
+                                cdcPos = 0;
+
                             // CDC values.
                             ColumnVal colVal = cdcRowChangeData.new ColumnVal();
                             colVal.setValue(orc.getAction().toString()
                                     .substring(0, 1));
-                            val.add(colVal);
+                            val.add(cdcPos, colVal);
                             colVal = cdcRowChangeData.new ColumnVal();
                             colVal.setValue(event.getDBMSEvent()
                                     .getSourceTstamp());
-                            val.add(colVal);
+                            val.add(cdcPos + 1, colVal);
                             colVal = cdcRowChangeData.new ColumnVal();
                             colVal.setValue(getNextSeq(schemaCDC, tableCDC));
-                            val.add(colVal);
+                            val.add(cdcPos + 2, colVal);
                         }
                     }
                     else
@@ -247,36 +262,46 @@ public class CDCMetadataFilter implements Filter
                             {
                                 val.add(columnVal);
                             }
+                            
+                            // Put CDC values at front or at the end.
+                            int cdcPos = val.size();
+                            if (cdcColumnsAtFront)
+                                cdcPos = 0;
 
                             // CDC values.
                             ColumnVal colVal = cdcRowChangeData.new ColumnVal();
                             colVal.setValue(orc.getAction().toString()
                                     .substring(0, 1));
-                            val.add(colVal);
+                            val.add(cdcPos, colVal);
                             colVal = cdcRowChangeData.new ColumnVal();
                             colVal.setValue(event.getDBMSEvent()
                                     .getSourceTstamp());
-                            val.add(colVal);
+                            val.add(cdcPos + 1, colVal);
                             colVal = cdcRowChangeData.new ColumnVal();
                             colVal.setValue(getNextSeq(schemaCDC, tableCDC));
-                            val.add(colVal);
+                            val.add(cdcPos + 2, colVal);
                         }
                     }
-                    
-                    // Add CDC columns after original ones.
+
+                    // Choose position for CDC columns.
+                    int cdcPos = cdcSpecs.size() + 1;
+                    if (cdcColumnsAtFront)
+                        cdcPos = 0;
+
+                    // Add CDC columns.
                     ColumnSpec spec = cdcRowChangeData.new ColumnSpec();
-                    spec.setIndex(cdcSpecs.size() + 1);
+                    spec.setIndex(cdcPos);
                     spec.setName("CDC_OP_TYPE");
                     spec.setType(java.sql.Types.VARCHAR);
                     spec.setLength(1); // (I)NSERT, (U)PDATE or (D)ELETE
                     cdcSpecs.add(spec);
                     spec = cdcRowChangeData.new ColumnSpec();
-                    spec.setIndex(cdcSpecs.size() + 1);
+                    spec.setIndex(cdcPos + 1);
                     spec.setName("CDC_TIMESTAMP");
                     spec.setType(java.sql.Types.TIMESTAMP);
                     cdcSpecs.add(spec);
                     spec = cdcRowChangeData.new ColumnSpec();
-                    spec.setIndex(cdcSpecs.size() + 1);
+                    spec.setIndex(cdcPos + 2);
                     spec.setName("CDC_SEQUENCE_NUMBER");
                     spec.setType(java.sql.Types.BIGINT);
                     cdcSpecs.add(spec);
