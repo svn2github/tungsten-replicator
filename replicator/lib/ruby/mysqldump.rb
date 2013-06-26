@@ -73,6 +73,10 @@ class TungstenMySQLdumpScript < TungstenBackupScript
       TU.error "You must specify the Tungsten backups storage directory"
     end
 
+    unless File.exist?(@options[:tungsten_backups])
+      TU.mkdir_if_absent(@options[:tungsten_backups])
+    end
+    
     unless File.writable?(@options[:tungsten_backups])
       TU.error "The directory '#{@options[:tungsten_backups]}' is not writeable"
     end
