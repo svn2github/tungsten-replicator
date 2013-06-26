@@ -47,7 +47,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
       TU.output("Create full backup in #{tar_file}")  
       TU.cmd_stderr("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{@options[:directory]} > #{tar_file}") {
         |line|
-        if line =~ /binlog/
+        if line =~ /MySQL binlog position/
           m = line.match(/filename \'([a-zA-Z0-9\.\-\_]*)\', position ([0-9]*)/)
           if m
             @binlog_file = m[1]
@@ -140,7 +140,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
       TU.output("Create full backup in #{@storage_dir}")
       TU.cmd_stderr("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{@storage_dir}") {
         |line|
-        if line =~ /binlog/
+        if line =~ /MySQL binlog position/
           m = line.match(/filename \'([a-zA-Z0-9\.\-\_]*)\', position ([0-9]*)/)
           if m
             @binlog_file = m[1]
@@ -156,7 +156,16 @@ class TungstenXtrabackupScript < TungstenBackupScript
 
       TU.output("Create an incremental backup from LSN #{incremental_lsn} in #{@storage_dir}")
       # Copy the database files and apply any pending log entries
-      TU.cmd_result("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{@storage_dir}")
+      TU.cmd_stderr("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{@storage_dir}") {
+        |line|
+        if line =~ /MySQL binlog position/
+          m = line.match(/filename \'([a-zA-Z0-9\.\-\_]*)\', position ([0-9]*)/)
+          if m
+            @binlog_file = m[1]
+            @binlog_position = m[2]
+          end
+        end
+      }
 
       File.open(@storage_dir + "/#{INCREMENTAL_BASEDIR_FILE}", "w") {
         |f|

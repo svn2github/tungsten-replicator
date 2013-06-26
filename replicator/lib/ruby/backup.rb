@@ -24,12 +24,45 @@ class TungstenBackupScript
         if @binlog_file == nil
           raise "Unable to find the binlog position information for this backup. Please try again or take the backup from a slave"
         end
-        TU.cmd_result("echo \"master_eventid=#{@binlog_file}:#{@binlog_position}\" >> #{@options[:properties]}")
-
+        binlog_regex = Regexp.new("#{@binlog_file}:[0]+#{@binlog_position}")
+        
         if start_thl_seqno == end_thl_seqno
           TU.debug("Compare seqno #{end_thl_seqno} to #{@binlog_file}:#{@binlog_position}")
+          
+          thl_result = TU.cmd_result("#{TI.thl(@options[:service])} list -headers -json -seqno #{end_thl_seqno}")
+          thl_records = JSON.parse(thl_result)
+          unless thl_records.instance_of?(Array)
+            TU.error("Unable to read the THL record for seqno #{end_thl_seqno}")
+          end
+          
+          thl_record = thl_records[0]
+          if thl_record["eventId"] =~ binlog_regex
+            TU.debug("Use #{thl_record['seqno']} and #{thl_record['eventId']}")
+            TU.cmd_result("echo \"master_backup_schema=#{TI.trepctl_property(@options[:service], 'replicator.schema')}\" >> #{@options[:properties]}")
+            TU.cmd_result("echo \"master_backup_seqno=#{thl_record['seqno']}\" >> #{@options[:properties]}")
+            TU.cmd_result("echo \"master_backup_epoch=#{thl_record['epoch']}\" >> #{@options[:properties]}")
+            TU.cmd_result("echo \"master_backup_eventid=#{thl_record['eventId']}\" >> #{@options[:properties]}")
+            TU.cmd_result("echo \"master_backup_sourceid=#{thl_record['sourceId']}\" >> #{@options[:properties]}")
+          end
         else
           TU.debug("Search thl from #{start_thl_seqno} to #{end_thl_seqno} for #{@binlog_file}:#{@binlog_position}")
+          
+          thl_result = TU.cmd_result("#{TI.thl(@options[:service])} list -headers -json -low #{start_thl_seqno} -high #{end_thl_seqno}")
+          thl_records = JSON.parse(thl_result)
+          unless thl_records.instance_of?(Array)
+            TU.error("Unable to read the THL record for seqno #{end_thl_seqno}")
+          end
+          
+          thl_records.each{
+            |thl_record|
+            if thl_record["eventId"] =~ binlog_regex
+              TU.debug("Use #{thl_record['seqno']} and #{thl_record['eventId']}")
+              TU.cmd_result("echo \"master_backup_seqno=#{thl_record['seqno']}\" >> #{@options[:properties]}")
+              TU.cmd_result("echo \"master_backup_epoch=#{thl_record['epoch']}\" >> #{@options[:properties]}")
+              TU.cmd_result("echo \"master_backup_eventid=#{thl_record['eventId']}\" >> #{@options[:properties]}")
+              TU.cmd_result("echo \"master_backup_sourceid=#{thl_record['sourceId']}\" >> #{@options[:properties]}")
+            end
+          }
         end
       end
     elsif @options[:action] == ACTION_RESTORE
