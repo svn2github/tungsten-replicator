@@ -48,6 +48,9 @@ public class RouterGatewayConstants
     public static final char   COMMAND_QUIT                = 'q';
     public static final char   COMMAND_MAINTENANCE_MODE    = 'a';
     public static final char   COMMAND_RESET_CLUSTER_VIEW  = 'e';
+    public static final char   COMMAND_RUN_GATEWAY         = 'U';
+    public static final char   COMMAND_STOP_GATEWAY        = 'S';
+    public static final char   COMMAND_GATEWAY_IS_RUNNING  = 'i';
 
     // Support for tracing
     public static final char   COMMAND_TRACE_GLOBAL_ENABLE = 'E';

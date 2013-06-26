@@ -227,6 +227,11 @@ public class CLUtils implements Serializable
     }
 
     /**
+     * @param dsProps
+     * @param header
+     * @param wasModified
+     * @param printDetails
+     * @param includeStatistics
      * @return a formatted string representing a datasource
      */
     public static String formatDsMap(Map<String, TungstenProperties> dsMap,
@@ -293,6 +298,7 @@ public class CLUtils implements Serializable
      * @param wasModified
      * @param printDetails
      * @param includeStatistics
+     * @return
      */
     public static String formatStatus(TungstenProperties dsProps,
             TungstenProperties replProps, TungstenProperties dbProps,
@@ -1000,6 +1006,26 @@ public class CLUtils implements Serializable
         }
 
         return builder.toString();
+    }
+
+    /**
+     * This method will format any iterable class into a simple newline
+     * delimited list.
+     * 
+     * @param iterable
+     * @return formatted string
+     */
+    public static String iterableToString(Iterable<?> iterable)
+    {
+        StringBuilder builder = new StringBuilder();
+
+        for (Object obj : iterable)
+        {
+            builder.append(String.format("%s\n", obj.toString()));
+        }
+
+        return builder.toString();
+
     }
 
     public static String stringListToString(List<String> list)

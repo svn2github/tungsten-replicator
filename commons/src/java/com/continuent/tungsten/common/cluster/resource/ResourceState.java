@@ -7,7 +7,7 @@ import com.continuent.tungsten.common.exception.ResourceException;
 
 public enum ResourceState
 {
-    ONLINE, OFFLINE, SYNCHRONIZING, JOINING, SUSPECT, STOPPED, UNKNOWN, TIMEOUT, DEGRADED, SHUNNED, CONSISTENT, MODIFIED, FAILED, BACKUP, UNREACHABLE, EXTENSION, RESTORING;
+    ONLINE, OFFLINE, SYNCHRONIZING, JOINING, SUSPECT, STOPPED, UNKNOWN, TIMEOUT, DEGRADED, SHUNNED, CONSISTENT, MODIFIED, FAILED, BACKUP, UNREACHABLE, EXTENSION, RESTORING, RUNNING;
 
     /**
      * Create a ResourceState from a non case sensitive String
@@ -23,7 +23,7 @@ public enum ResourceState
             if (x.equalsIgnoreCase(currentType.toString()))
                 return currentType;
         }
-        throw new ResourceException(MessageFormat.format("Cannot cast into a known ResourceState: {0}", x));
+        throw new ResourceException(MessageFormat.format(
+                "Cannot cast into a known ResourceState: {0}", x));
     }
-
 }

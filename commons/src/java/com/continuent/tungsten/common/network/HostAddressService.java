@@ -23,8 +23,12 @@
 package com.continuent.tungsten.common.network;
 
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.log4j.Logger;
+
+import com.continuent.tungsten.common.utils.CLUtils;
 
 /**
  * Implements a service for performing operations on Internet addresses, such as
@@ -179,11 +185,103 @@ public class HostAddressService
     }
 
     /** Returns a host address instance. */
-    public HostAddress getByName(String host) throws UnknownHostException
+    public static HostAddress getByName(String host)
+            throws UnknownHostException
     {
         InetAddress inetAddress = InetAddress.getByName(host);
         HostAddress address = new HostAddress(inetAddress);
         return address;
+    }
+
+    /**
+     * This method returns the host address, in string format, or UNKNOWN if
+     * there's a problem resolving the address.
+     * 
+     * @param host
+     * @return host address in string form or UNKNOWN
+     */
+    public static String getCanonicalAddress(String host)
+    {
+        try
+        {
+            return (getByName(host).getInetAddress().getHostAddress());
+        }
+        catch (Exception e)
+        {
+            return "UNKNOWN";
+        }
+    }
+
+    /**
+     * Given a pair of addresses and a single network prefix, determines if
+     * hosts are on the same subnet.
+     * 
+     * @param host1
+     * @param host2
+     * @param prefix
+     * @return
+     * @throws Exception
+     */
+    public static boolean addressesAreInSameSubnet(String host1, String host2,
+            short prefix) throws Exception
+    {
+        if (prefix <= 0)
+        {
+            throw new Exception("Invalid prefix " + prefix);
+        }
+
+        HostAddress host1Address = getByName(host1);
+        HostAddress host2Address = getByName(host2);
+
+        byte[] netMask = netMaskFromPrefixLength(prefix);
+
+        byte[] host1Raw = host1Address.getAddress();
+        byte[] host2Raw = host2Address.getAddress();
+
+        for (int octet = 0; octet < 4; octet++)
+        {
+            if ((host1Raw[octet] & netMask[octet]) != (host2Raw[octet] & netMask[octet]))
+                return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * This method returns true if the host addresses are equal to each other,
+     * otherwise false.
+     * 
+     * @param host1
+     * @param host2
+     * @return true if host addresses match, otherwise false.
+     */
+    public static boolean addressesAreEqual(String host1, String host2)
+    {
+        try
+        {
+
+            HostAddress host1Address = getByName(host1);
+            HostAddress host2Address = getByName(host2);
+
+            byte[] host1Raw = host1Address.getAddress();
+            byte[] host2Raw = host2Address.getAddress();
+
+            for (int octet = 0; octet < 4; octet++)
+            {
+                if (host1Raw[octet] != host2Raw[octet])
+                    return false;
+            }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            CLUtils.println(String.format(
+                    "addressesAreEqual(%s, %s) returns FALSE, Exception=%s",
+                    host1, host2, e));
+
+            return false;
+        }
     }
 
     /**
@@ -307,6 +405,80 @@ public class HostAddressService
                             methodClass, methodClass);
             throw new HostException(msg, e);
         }
+
+    }
+    
+    /**
+     * This method returns a prefix for a given internet address. It will only
+     * work on the host for which the address is bound.
+     * 
+     * @param memberAddr
+     * @return
+     * @throws Exception
+     */
+    public static short getLocalNetworkPrefix(String hostName) throws Exception
+    {
+        InetAddress memberAddr = getByName(hostName).getInetAddress();
+        try
+        {
+            Enumeration<NetworkInterface> nets = NetworkInterface
+                    .getNetworkInterfaces();
+
+            for (NetworkInterface netint : Collections.list(nets))
+            {
+                for (InetAddress inetAddress : Collections.list(netint
+                        .getInetAddresses()))
+                {
+                    if (inetAddress.equals(memberAddr))
+                    {
+                        List<InterfaceAddress> addresses = netint
+                                .getInterfaceAddresses();
+
+                        if (addresses == null || addresses.size() == 0)
+                        {
+                            return -1;
+                        }
+
+                        if (addresses.size() == 1)
+                        {
+                            return addresses.get(0).getNetworkPrefixLength();
+                        }
+                        else
+                        {
+                            return netint.getInterfaceAddresses().get(1)
+                                    .getNetworkPrefixLength();
+                        }
+
+                    }
+
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            logger.error(String.format(
+                    "Unable to determine network interface for address %s",
+                    memberAddr), e);
+
+        }
+
+        return -1;
+    }
+
+    public static byte[] netMaskFromPrefixLength(short prefix)
+    {
+        if (prefix < 0)
+        {
+            return null;
+        }
+
+        int mask = 0xffffffff << (32 - prefix);
+        int value = mask;
+        byte[] maskBytes = new byte[]{(byte) (value >>> 24),
+                (byte) (value >> 16 & 0xff), (byte) (value >> 8 & 0xff),
+                (byte) (value & 0xff)};
+
+        return maskBytes;
 
     }
 }
