@@ -158,7 +158,10 @@ class TungstenXtrabackupScript < TungstenBackupScript
       # Copy the database files and apply any pending log entries
       TU.cmd_result("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{@storage_dir}")
 
-      File.symlink(incremental_basedir, @storage_dir + "/#{INCREMENTAL_BASEDIR_FILE}")
+      File.open(@storage_dir + "/#{INCREMENTAL_BASEDIR_FILE}", "w") {
+        |f|
+        f.puts(incremental_basedir)
+      }
     end
   end
   
@@ -213,11 +216,19 @@ class TungstenXtrabackupScript < TungstenBackupScript
 
         TU.output("Apply the redo-log to #{staging_dir}")
         TU.cmd_result("#{get_xtrabackup_command()} --apply-log --redo-only #{staging_dir}")
+        
+        if File.exists?("#{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
+          TU.cmd_result("rm -f #{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
+        end
 
         lineage.each{
           |incremental_dir|
           TU.output("Apply the incremental updates from #{incremental_dir}")
           TU.cmd_result("#{get_xtrabackup_command()} --apply-log --incremental-dir=#{incremental_dir} #{staging_dir}")
+          
+          if File.exists?("#{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
+            TU.cmd_result("rm -f #{staging_dir}/#{INCREMENTAL_BASEDIR_FILE}")
+          end
         }
       end
 
@@ -453,21 +464,30 @@ class TungstenXtrabackupScript < TungstenBackupScript
 
     TU.output("Validate lineage of '#{restore_directory}'")
 
-    basedir_symlink = restore_directory.to_s + "/" + INCREMENTAL_BASEDIR_FILE
+    basedir_path = restore_directory.to_s + "/" + INCREMENTAL_BASEDIR_FILE
     checkpoints_file = restore_directory.to_s + "/xtrabackup_checkpoints"
     backup_type = read_property_from_file("backup_type", checkpoints_file)
 
     if backup_type == "full-backuped"
-      if File.exists?(basedir_symlink)
-        raise BrokenLineageError.new "Unexpected #{INCREMENTAL_BASEDIR_FILE} symlink found in full backup directory '#{restore_directory}'"
+      if File.exists?(basedir_path)
+        raise BrokenLineageError.new "Unexpected #{INCREMENTAL_BASEDIR_FILE} found in full backup directory '#{restore_directory}'"
       end
       lineage << restore_directory
     elsif backup_type == "incremental"
-      unless File.exists?(basedir_symlink) && File.symlink?(basedir_symlink)
+      if File.exists?(basedir_path)
+        if File.symlink?(basedir_path)
+          basedir = File.readlink(basedir_path)
+          File.unlink(basedir_path)
+          File.open(basedir_path, "w") {
+            |f|
+            f.puts(basedir)
+          }
+        end
+      else
         raise BrokenLineageError.new "Unable to find #{INCREMENTAL_BASEDIR_FILE} symlink in incremental backup directory '#{restore_directory}'"
       end
 
-      basedir = File.readlink(basedir_symlink)
+      basedir = TU.cmd_result("cat #{basedir_path}")
       lineage = get_snapshot_lineage(basedir)
       lineage << restore_directory
     else
@@ -504,7 +524,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
   end
 
   def get_xtrabackup_command
-    "innobackupex-1.5.1 --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]} --ibbackup=xtrabackup_51"
+    "innobackupex-1.5.1 --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]}"
   end
   
   def get_mysql_option(opt)
