@@ -176,7 +176,7 @@ public class ClusterMembershipDigest implements Serializable
             if (verbose)
             {
                 CLUtils.println("MEMBERSHIP IS CONSISTENT");
-                CLUtils.println("UNVALIDATED CURRENT MEMBERS ARE:\n"
+                CLUtils.println("GC VIEW OF CURRENT MEMBERS ARE:\n"
                         + CLUtils.iterableToString(getUnvalidatedMembers()));
                 CLUtils.println("VALIDATED CURRENT MEMBERS ARE:\n"
                         + CLUtils.iterableToString(getValidMembers()));
@@ -187,6 +187,8 @@ public class ClusterMembershipDigest implements Serializable
         if (verbose)
         {
             CLUtils.println("MEMBERSHIP IS NOT CONSISTENT");
+            CLUtils.println("GC VIEW OF CURRENT MEMBERS ARE:\n"
+                    + CLUtils.iterableToString(getUnvalidatedMembers()));
             CLUtils.println("VALIDATED CURRENT MEMBERS ARE:\n"
                     + CLUtils.iterableToString(getValidMembers()));
             CLUtils.println("UNREACHABLE MEMBERS ARE:\n"
