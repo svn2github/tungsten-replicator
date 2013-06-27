@@ -133,7 +133,7 @@ public class CDCMetadataFilter implements Filter
      * If true, CDC columns are expected to be at the front of original columns.
      * If false - at the end.
      */
-    public void setCDCColumnsAtFront(boolean atFront)
+    public void setCdcColumnsAtFront(boolean atFront)
     {
         this.cdcColumnsAtFront = atFront;
     }

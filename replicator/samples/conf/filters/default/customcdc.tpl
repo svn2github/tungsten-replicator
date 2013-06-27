@@ -2,6 +2,11 @@
 # change table.
 replicator.filter.customcdc=com.continuent.tungsten.replicator.filter.CDCMetadataFilter
 
+# Where to put CDC columns:
+# true - CDC columns are expected to be at front of the original ones;
+# false - at the end, after the original ones.
+replicator.filter.customcdc.cdcColumnsAtFront=false
+
 # Change table should be named with a suffix or be in a separate schema. 
 replicator.filter.customcdc.schemaNameSuffix=
 replicator.filter.customcdc.tableNameSuffix=
