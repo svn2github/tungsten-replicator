@@ -189,7 +189,12 @@ public class CDCMetadataFilter implements Filter
                             .getColumnSpec();
                     ArrayList<ArrayList<ColumnVal>> cdcValues = cdcRowChangeData
                             .getColumnValues();
-                    
+
+                    // Do we need to shift original column indexes to the back?
+                    int shiftOrigColumnsIdx = 0;
+                    if (cdcColumnsAtFront)
+                        shiftOrigColumnsIdx = 3;
+
                     if (orc.getAction() == ActionType.DELETE)
                     {
                         // For DELETE, get the key values
@@ -199,7 +204,8 @@ public class CDCMetadataFilter implements Filter
                         {
                             ColumnSpec spec = cdcRowChangeData.new ColumnSpec(
                                     sourceSpec);
-                            spec.setIndex(sourceSpec.getIndex());
+                            spec.setIndex(sourceSpec.getIndex()
+                                    + shiftOrigColumnsIdx);
                             cdcSpecs.add(spec);
                         }
 
@@ -245,7 +251,8 @@ public class CDCMetadataFilter implements Filter
                         {
                             ColumnSpec spec = cdcRowChangeData.new ColumnSpec(
                                     sourceSpec);
-                            spec.setIndex(sourceSpec.getIndex());
+                            spec.setIndex(sourceSpec.getIndex()
+                                    + shiftOrigColumnsIdx);
                             cdcSpecs.add(spec);
                         }
 
@@ -283,28 +290,8 @@ public class CDCMetadataFilter implements Filter
                         }
                     }
 
-                    // Choose position for CDC columns.
-                    int cdcPos = cdcSpecs.size() + 1;
-                    if (cdcColumnsAtFront)
-                        cdcPos = 0;
-
                     // Add CDC columns.
-                    ColumnSpec spec = cdcRowChangeData.new ColumnSpec();
-                    spec.setIndex(cdcPos);
-                    spec.setName("CDC_OP_TYPE");
-                    spec.setType(java.sql.Types.VARCHAR);
-                    spec.setLength(1); // (I)NSERT, (U)PDATE or (D)ELETE
-                    cdcSpecs.add(spec);
-                    spec = cdcRowChangeData.new ColumnSpec();
-                    spec.setIndex(cdcPos + 1);
-                    spec.setName("CDC_TIMESTAMP");
-                    spec.setType(java.sql.Types.TIMESTAMP);
-                    cdcSpecs.add(spec);
-                    spec = cdcRowChangeData.new ColumnSpec();
-                    spec.setIndex(cdcPos + 2);
-                    spec.setName("CDC_SEQUENCE_NUMBER");
-                    spec.setType(java.sql.Types.BIGINT);
-                    cdcSpecs.add(spec);
+                    addCdcColSpecs(cdcSpecs, cdcRowChangeData);
                 }
             }
         }
@@ -312,6 +299,39 @@ public class CDCMetadataFilter implements Filter
         return event;
     }
     
+    /**
+     * Add CDC column specifications.
+     * 
+     * @param cdcSpecs Where to add.
+     * @param cdcRowChangeData Used to create a valid ColumnSpec object.
+     */
+    private void addCdcColSpecs(ArrayList<ColumnSpec> cdcSpecs,
+            OneRowChange cdcRowChangeData)
+    {
+        // Choose position for CDC columns.
+        int cdcPos = cdcSpecs.size();
+        if (cdcColumnsAtFront)
+            cdcPos = 0;
+
+        // Add CDC columns.
+        ColumnSpec spec = cdcRowChangeData.new ColumnSpec();
+        spec.setIndex(cdcPos + 1); // Index starts from 1.
+        spec.setName("CDC_OP_TYPE");
+        spec.setType(java.sql.Types.VARCHAR);
+        spec.setLength(1); // (I)NSERT, (U)PDATE or (D)ELETE
+        cdcSpecs.add(cdcPos, spec);
+        spec = cdcRowChangeData.new ColumnSpec();
+        spec.setIndex(cdcPos + 1 + 1);
+        spec.setName("CDC_TIMESTAMP");
+        spec.setType(java.sql.Types.TIMESTAMP);
+        cdcSpecs.add(cdcPos + 1, spec);
+        spec = cdcRowChangeData.new ColumnSpec();
+        spec.setIndex(cdcPos + 1 + 2);
+        spec.setName("CDC_SEQUENCE_NUMBER");
+        spec.setType(java.sql.Types.BIGINT);
+        cdcSpecs.add(cdcPos + 2, spec);
+    }
+
     /**
      * Gets next value for the sequence number (primary key) for a particular
      * change table. First, maximum value is retrieved from the database and
