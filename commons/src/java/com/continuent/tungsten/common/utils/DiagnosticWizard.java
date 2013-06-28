@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,11 +23,6 @@
 package com.continuent.tungsten.common.utils;
 
 import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
-
-import org.apache.log4j.Logger;
-
-import sun.management.ManagementFactory;
 
 /**
  * Methods to help diagnosing and debugging current JAVA process.
@@ -37,49 +32,28 @@ import sun.management.ManagementFactory;
  */
 public class DiagnosticWizard
 {
-    private static Logger logger = Logger.getLogger(DiagnosticWizard.class);
-
     /**
-     * Returns all threads' ThreadInfo objects. Note that some array elements
-     * might contain null elements if threads died while enumerating them.
+     * Obsolete due to Java 1.7 limitations. Returned all threads' ThreadInfo
+     * objects. Note that some array elements might contain null elements if
+     * threads died while enumerating them.
      * 
      * @return All available ThreadInfo objects for this process.
      * @throws Exception
      */
+    @Deprecated
     public static ThreadInfo[] getAllThreadInfos() throws Exception
     {
-        final ThreadMXBean thbean = ManagementFactory.getThreadMXBean();
-        final long[] ids = thbean.getAllThreadIds();
-
-        ThreadInfo[] infos;
-        infos = thbean.getThreadInfo(ids, Integer.MAX_VALUE);
-
+        ThreadInfo[] infos = new ThreadInfo[0];
         return infos;
     }
 
     /**
      * Dumps a list of threads with their stack traces into the log.
      */
+    @Deprecated
     public static String dumpThreadStack() throws Exception
     {
-        StringBuffer out = new StringBuffer();
-        out.append("# Threads' stack traces\n");
-        ThreadInfo[] threadInfos = getAllThreadInfos();
-        for (ThreadInfo info : threadInfos)
-        {
-            if (info != null)
-            {
-                out.append("Thread (" + info.getThreadId() + "): "
-                        + info.getThreadName() + "\n");
-                StackTraceElement[] stack = info.getStackTrace();
-                for (StackTraceElement s : stack)
-                {
-                    out.append("  " + s.toString() + "\n");
-                }
-            }
-            out.append("\n");
-        }
-        return out.toString();
+        return "# Feature removed due to Java 1.7 limitations";
     }
 
     /**
@@ -87,40 +61,25 @@ public class DiagnosticWizard
      * 
      * @return Diagnostic information without component specific details.
      */
+    @Deprecated
     public static String diag() throws Exception
     {
         return diag(null);
     }
 
     /**
-     * Dumps various debugging information (thread list, thread stack trace,
-     * internal data structures, etc.) to the log.
+     * Obsolete. Dumped various debugging information (thread list, thread stack
+     * trace, internal data structures, etc.) to the log.
      * 
      * @throws Exception
      * @param componentDiag Component specific diagnostic information returning
      *            callback which data is included in the return value of this
      *            method.
      */
+    @Deprecated
     public static String diag(DiagnosticWizardPlugin componentDiag)
             throws Exception
     {
-        StringBuffer out = new StringBuffer("\n");
-
-        out.append("########################\n");
-        out.append("# Start of diag output #\n");
-        out.append("########################\n");
-
-        if (componentDiag != null)
-            out.append(componentDiag.diag() + "\n");
-
-        out.append(dumpThreadStack());
-
-        out.append("########################\n");
-        out.append("#  End of diag output  #\n");
-        out.append("########################\n");
-
-        logger.info(out);
-
-        return out.toString();
+        return "diag output is obsolete and not supported anymore";
     }
 }
