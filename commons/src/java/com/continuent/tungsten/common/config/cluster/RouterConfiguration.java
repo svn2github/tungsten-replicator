@@ -124,14 +124,21 @@ public class RouterConfiguration extends ClusterConfiguration
                                                                         .parseInt(ConfigurationConstants.TR_GW_PORT_DEFAULT);
     private String            c3p0JMXUrl                        = "service:jmx:rmi:///jndi/rmi://localhost:3100/jmxrmi";
     /** When disconnected from managers, time to wait before going offline */
-    private int               delayBeforeOfflineIfNoManager     = 30;
+    private int               delayBeforeOfflineIfNoManager     = ConfigurationConstants.DELAY_BEFORE_OFFLINE_IF_NO_MANAGER_DEFAULT;
     /**
      * Delay after which a manager connection is considered broken if no
-     * keep-alive command was received 0 (zero) value disables the feature. Must
-     * be enabled only if the manager has "manager.notifications.send" set to
-     * true
+     * keep-alive command was received. Make sure manager has
+     * "manager.notifications.send" set to true and frequency is higher than
+     * this value
      */
-    private int               keepAliveTimeout                  = 0;
+    private int               keepAliveTimeout                  = ConfigurationConstants.KEEP_ALIVE_TIMEOUT_DEFAULT;
+
+    /**
+     * When connecting to a manager, how long to wait for the connection to
+     * succeed before trying the next manager in line. Default 5s, must be
+     * positive and max 30s
+     */
+    private int               gatewayConnectTimeoutMs           = ConfigurationConstants.GATEWAY_CONNECT_TIMEOUT_MS_DEFAULT;
 
     private boolean           showRelativeLatency               = false;
 
@@ -594,6 +601,16 @@ public class RouterConfiguration extends ClusterConfiguration
         keepAliveTimeout = timeoutInMs;
     }
 
+    public void setGatewayConnectTimeoutMs(int timeoutMs)
+    {
+        gatewayConnectTimeoutMs = timeoutMs;
+    }
+
+    public int getGatewayConnectTimeoutMs()
+    {
+        return gatewayConnectTimeoutMs;
+    }
+
     @Override
     public Object clone()
     {
@@ -630,5 +647,51 @@ public class RouterConfiguration extends ClusterConfiguration
             int routerClientThreadsPerService)
     {
         this.routerClientThreadsPerService = routerClientThreadsPerService;
+    }
+
+    /**
+     * Checks critical configuration values and throws and exception if invalid
+     * settings are found. TUC-1738.
+     * 
+     * @throws ConfigurationException upon first invalid configuration value
+     */
+    public void validateConfigurationValues() throws ConfigurationException
+    {
+        if (getKeepAliveTimeout() <= 0
+                || getKeepAliveTimeout() > ConfigurationConstants.KEEP_ALIVE_TIMEOUT_MAX)
+        {
+            throw new ConfigurationException(
+                    "Detected invalid keepAliveTimeout of "
+                            + getKeepAliveTimeout()
+                            + "ms in router.properties. keepAliveTimeout must be positive and lower than "
+                            + ConfigurationConstants.KEEP_ALIVE_TIMEOUT_MAX
+                            + " ("
+                            + ConfigurationConstants.KEEP_ALIVE_TIMEOUT_MAX
+                            / 60000 + "min).");
+
+        }
+        if (getDelayBeforeOfflineIfNoManager() <= 0
+                || getDelayBeforeOfflineIfNoManager() > ConfigurationConstants.DELAY_BEFORE_OFFLINE_IF_NO_MANAGER_MAX)
+        {
+            throw new ConfigurationException(
+                    "Detected invalid delayBeforeOfflineIfNoManager of "
+                            + getDelayBeforeOfflineIfNoManager()
+                            + "ms in router.properties. It must be positive and lower than "
+                            + ConfigurationConstants.DELAY_BEFORE_OFFLINE_IF_NO_MANAGER_MAX
+                            + " ("
+                            + ConfigurationConstants.DELAY_BEFORE_OFFLINE_IF_NO_MANAGER_MAX
+                            / 60 + "min).");
+        }
+        if (getGatewayConnectTimeoutMs() <= 0
+                || getGatewayConnectTimeoutMs() >= ConfigurationConstants.GATEWAY_CONNECT_TIMEOUT_MS_MAX)
+        {
+            throw new ConfigurationException(
+                    "Detected invalid gatewayConnectTimeout of "
+                            + getGatewayConnectTimeoutMs()
+                            + "ms in router.properties. It must be positive and lower than "
+                            + ConfigurationConstants.GATEWAY_CONNECT_TIMEOUT_MS_MAX
+                            + "ms.");
+        }
+
     }
 }

@@ -519,7 +519,7 @@ class ConnectorDelayBeforeOffline < ConfigurePrompt
   include HiddenValueModule
   
   def initialize
-    super(ROUTER_DELAY_BEFORE_OFFLINE, "Time to wait to take a router offline after losing the connection to a manager", PV_INTEGER, "600")
+    super(ROUTER_DELAY_BEFORE_OFFLINE, "Time to wait to take a router offline after losing the connection to a manager", PV_INTEGER, "30")
   end
 end
 
