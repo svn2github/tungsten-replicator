@@ -90,8 +90,6 @@ public class RouterGatewayConstants
                 return "STATISTICS";
             case COMMAND_CONFIGURE :
                 return "CONFIGURE";
-            case COMMAND_DIAG :
-                return "DIAG";
             case COMMAND_OFFLINE :
                 return "OFFLINE";
             case COMMAND_ONLINE :
