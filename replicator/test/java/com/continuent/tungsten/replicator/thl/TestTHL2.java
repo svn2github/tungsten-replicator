@@ -640,8 +640,8 @@ public class TestTHL2
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline
-                .watchForProcessedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline.watchForCommittedSequenceNumber(
+                9, false);
         ReplDBMSHeader lastEvent = wait.get(5, TimeUnit.SECONDS);
         Assert.assertEquals("Expected 10 server events", 9,
                 lastEvent.getSeqno());
