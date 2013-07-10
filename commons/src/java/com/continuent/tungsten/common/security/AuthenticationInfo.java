@@ -30,7 +30,6 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
-import com.continuent.tungsten.common.utils.FileUtils;
 
 /**
  * Information class holding Authentication and Encryption parameters Some of
@@ -415,7 +414,7 @@ public final class AuthenticationInfo
                 if (candidateFile.isFile())
                 {
                     foundFile = candidateFile;
-                    logger.warn(MessageFormat.format("File was specified with name only, and found in default location: {0}",foundFile.getAbsoluteFile()));
+                    logger.debug(MessageFormat.format("File was specified with name only, and found in default location: {0}",foundFile.getAbsoluteFile()));
                 }
                 else
                     throw new ConfigurationException(MessageFormat.format("File does not exist: {0}", candidateFile.getAbsolutePath()));
@@ -423,7 +422,7 @@ public final class AuthenticationInfo
         }
         catch (ConfigurationException e)
         {
-            logger.warn(MessageFormat.format("Cannot find absolute path for file: {0} \n{1}", fileToFind.getName(), e.getMessage()));
+            logger.debug(MessageFormat.format("Cannot find absolute path for file: {0} \n{1}", fileToFind.getName(), e.getMessage()));
             return fileToFind;
         }
         

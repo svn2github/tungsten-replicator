@@ -28,11 +28,7 @@ import javax.management.remote.JMXAuthenticator;
 import javax.management.remote.JMXPrincipal;
 import javax.security.auth.Subject;
 
-import org.apache.log4j.Logger;
-
-import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
-import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
 
 /**
@@ -43,7 +39,7 @@ import com.continuent.tungsten.common.security.PasswordManager.ClientApplication
  */
 public class RealmJMXAuthenticator implements JMXAuthenticator
 {
-    private static final Logger logger                 = Logger.getLogger(JmxManager.class);
+//    private static final Logger logger                 = Logger.getLogger(JmxManager.class);
 //    private TungstenProperties  passwordProps          = null;
 
     private AuthenticationInfo  authenticationInfo     = null;
