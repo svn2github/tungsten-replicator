@@ -448,7 +448,7 @@ public class DDLScanCtrl
      * Return the service configuration file if there is one and only one file
      * that matches the static-svcname.properties pattern.
      */
-    private static String lookForConfigFile()
+    public static String lookForConfigFile()
     {
         File configDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
         FilenameFilter propFileFilter = new FilenameFilter()
@@ -475,7 +475,7 @@ public class DDLScanCtrl
         println("Syntax: ddlscan [conf|conn] [scan-spec] -db <db> -template <file> [template-options] [out]");
         println("Conf options:");
         println("  -conf path     - Path to a static-<svc>.properties file to read JDBC");
-        println("     OR            connection address and credentials or:");
+        println("     OR            connection address and credentials");
         println("  -service name  - Name of a replication service instead of path to config");
         println("OR connection options:");
         println("  -user user     - JDBC username");
@@ -491,19 +491,6 @@ public class DDLScanCtrl
         println(" [-opt opt val]  - Option(s) to pass to template, try: -opt help me");
         println(" [-out file]     - Render to file (print to stdout if not specified)");
         println("  -help          - Print this help display");
-    }
-
-    /**
-     * Appends a message to a given stringBuilder, adds a newline character at
-     * the end.
-     * 
-     * @param msg String to print.
-     * @param stringBuilder StringBuilder object to add a message to.
-     */
-    private static void println(StringBuilder stringBuilder, String msg)
-    {
-        stringBuilder.append(msg);
-        stringBuilder.append("\n");
     }
 
     /**
