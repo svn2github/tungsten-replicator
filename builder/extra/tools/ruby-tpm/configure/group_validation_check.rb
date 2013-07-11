@@ -154,16 +154,4 @@ module GroupValidationCheckMember
       super() && true
     end
   end
-  
-  def is_master?
-    @config.getPropertyOr(REPL_SERVICES, {}).each{
-      |service_alias,service_properties|
-      
-      if service_properties[REPL_ROLE] == REPL_ROLE_M
-        return true
-      end
-    }
-    
-    false
-  end
 end

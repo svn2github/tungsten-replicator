@@ -21,6 +21,7 @@ class MySQLTerminalCommand
   end
  
   def run
+    build_topologies(@config)
     unless @config.getProperty(HOST_ENABLE_REPLICATOR) == "true"
       error("Unable to run this command because the current host is not a database server")
       return false

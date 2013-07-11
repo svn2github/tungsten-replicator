@@ -30,6 +30,8 @@ module ClusterDiagnosticPackage
     
     get_deployment_configurations().each{
       |config|
+      build_topologies(config)
+      
       h_alias = config.getProperty(DEPLOYMENT_HOST)
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}")
       

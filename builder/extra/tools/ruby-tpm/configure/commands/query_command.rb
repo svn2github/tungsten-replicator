@@ -12,9 +12,10 @@ class QueryCommand
   QUERY_VALUES = "values"
   QUERY_MODIFIED_FILES = "modified-files"
   QUERY_USERMAP = "usermap"
+  QUERY_DEPLOYMENTS = "deployments"
   
   def allowed_subcommands
-    [QUERY_VERSION, QUERY_MANIFEST, QUERY_CONFIG, QUERY_TOPOLOGY, QUERY_DATASERVICES, QUERY_STAGING, QUERY_DEFAULT, QUERY_VALUES, QUERY_MODIFIED_FILES, QUERY_USERMAP]
+    [QUERY_VERSION, QUERY_MANIFEST, QUERY_CONFIG, QUERY_TOPOLOGY, QUERY_DATASERVICES, QUERY_STAGING, QUERY_DEFAULT, QUERY_VALUES, QUERY_MODIFIED_FILES, QUERY_USERMAP, QUERY_DEPLOYMENTS]
   end
   
   def allow_multiple_tpm_commands?
@@ -45,6 +46,8 @@ class QueryCommand
       output_modified_files()
     when QUERY_USERMAP
       output_usermap_summary()
+    when QUERY_DEPLOYMENTS
+      output_deployments()
     else
       output_usage()
     end
@@ -77,6 +80,7 @@ class QueryCommand
   end
   
   def get_topology
+    build_topologies(@config)
     c = Configurator.instance
     unless c.svc_is_running?(c.get_svc_path("manager", c.get_base_path()))
       raise "Tungsten Manager is not running on this machine"
@@ -120,6 +124,7 @@ class QueryCommand
   end
   
   def output_defaults
+    build_topologies(@config)
     @default_arguments.map!{
       |a|
       
@@ -170,6 +175,7 @@ class QueryCommand
   end
   
   def output_values
+    build_topologies(@config)
     values_matches = {}
     @values_arguments.each{
       |a|
@@ -243,6 +249,17 @@ class QueryCommand
       error("No file available at tungsten-connector/conf/user.map")
       return
     end
+  end
+  
+  def output_deployments
+    get_deployment_configurations().each{
+      |cfg|
+      cfg.setProperty(SYSTEM, nil)
+      cfg.setProperty(REMOTE, nil)
+      
+      build_topologies(cfg)
+      Configurator.instance.output(cfg.to_s())
+    }
   end
   
   def allow_command_hosts?

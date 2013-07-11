@@ -228,6 +228,9 @@ module ConfigurePromptInterface
     output_usage_line("--#{get_command_line_argument()}", get_prompt(), get_output_usage_value(), nil, get_prompt_description())
     get_command_line_aliases().each{
       |a|
+      if a == get_command_line_argument()
+        next
+      end
       output_usage_line("--#{a}", get_prompt() + " (Alias of --#{get_command_line_argument()})", get_output_usage_value(), nil, get_prompt_description())
     }
   end

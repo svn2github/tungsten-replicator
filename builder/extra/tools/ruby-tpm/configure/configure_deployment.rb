@@ -93,15 +93,11 @@ module ConfigureDeployment
       }
     end
     
-    post_build_deployment_configurations(config_objs)
+    config_objs
   end
   
   def get_deployment_configuration(host_alias)
     raise "Undefined function: get_deployment_configuration"
-  end
-  
-  def post_build_deployment_configurations(config_objs)
-    config_objs
   end
   
   def get_deployment_objects

@@ -56,6 +56,36 @@ module Topology
     "false"
   end
   
+  def build_services
+  end
+  
+  def add_built_service(service, ds_props, rs_props)
+    unless ds_props[DATASERVICE_MEMBERS].split(",").include?(@config.getProperty(HOST))
+      return
+    end
+    
+    host = @config.getProperty(DEPLOYMENT_HOST)
+    service = to_identifier(service)
+    ds_props[DATASERVICENAME] = service
+    rs_alias = "#{service}_#{host}"
+    
+    @config.include([DATASERVICES, service], ds_props)
+    @config.include([REPL_SERVICES, rs_alias], rs_props)
+    @config.setProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE], service)
+    @config.setProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_HOST], host)
+    @config.include([DATASERVICE_HOST_OPTIONS, service], @config.getPropertyOr([DATASERVICE_HOST_OPTIONS, @ds_alias], {}))
+    @config.include([DATASERVICE_REPLICATION_OPTIONS, service], @config.getPropertyOr([DATASERVICE_REPLICATION_OPTIONS, @ds_alias], {}))
+  end
+  
+  def remove_service(service)
+    host = @config.getProperty(HOST)
+    
+    @config.setProperty([REPL_SERVICES, to_identifier("#{service}_#{host}")], nil)
+    @config.setProperty([DATASERVICES, service], nil)
+    @config.setProperty([DATASERVICE_HOST_OPTIONS, service], nil)
+    @config.setProperty([DATASERVICE_REPLICATION_OPTIONS, service], nil)
+  end
+  
   def _splice_hosts_port(hosts, default_port)
     values = []
     

@@ -178,6 +178,7 @@ class ConfigureValidationHandler
   # Handle the remote side of the validate function
   def validate_config(config)
     @config.import(config)
+    Configurator.instance.command.build_topologies(@config)
     
     begin
       @deployment_checks.each{
@@ -261,6 +262,7 @@ class ConfigureValidationHandler
   # Handle the remote side of the validate function
   def validate_commit_config(config)
     @config.import(config)
+    Configurator.instance.command.build_topologies(@config)
     
     begin
       @commit_checks.each{

@@ -32,7 +32,7 @@ class TungstenInstall
       setting(HOST_ENABLE_MANAGER, "false")
       setting(HOST_ENABLE_CONNECTOR, "false")
       setting(REPL_RMI_PORT, TU.cmd_result("grep rmi_port #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/services.properties | grep -v '^#' | awk -F= '{print $2}' | tr -d ' '"))
-      setting("host_name", TU.cmd_result("egrep '^replicator.host=' tungsten/tungsten-replicator/conf/services.properties | awk -F= '{print $2}'"))
+      setting("host_name", TU.cmd_result("egrep '^replicator.host=' #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/services.properties | awk -F= '{print $2}'"))
     end
   end
   
@@ -49,18 +49,20 @@ class TungstenInstall
   end
   
   def dataservices
+    ds_list = TU.cmd_result("egrep \"^service.name\" #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/static-* | awk -F \"=\" '{print $2}'").split("\n")
+    
     if use_tpm?()
-      TU.cmd_result("#{tpm()} query dataservices | awk -F \" \" '{print $1}'").split("\n")
-    else
-      TU.cmd_result("egrep \"^service.name\" #{root()}/tungsten/conf/static-* | awk -F \"=\" '{print $2}'").split("\n")
+      ds_list = ds_list + TU.cmd_result("#{tpm()} query dataservices | grep COMPOSITE | awk -F \" \" '{print $1}'").split("\n")
     end
+    
+    ds_list.uniq()
   end
   
   def default_dataservice
     if is_manager?()
       setting("dataservice_name")
     elsif is_replicator?()
-      local_services = TU.cmd_result("egrep -l \"^replicator.service.type=local\" #{root()}/tungsten-replicator/conf/static*")
+      local_services = TU.cmd_result("egrep -l \"^replicator.service.type=local\" #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/static*")
       if local_services.size() == 0
         dataservices().get(0)
       else

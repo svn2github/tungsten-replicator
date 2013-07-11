@@ -20,6 +20,9 @@ DATASERVICE_IS_COMPOSITE = "dataservice_is_composite"
 DATASERVICE_COMPOSITE_DATASOURCES = "dataservice_composite_datasources"
 DATASERVICE_SCHEMA = "dataservice_schema"
 DATASERVICE_ENABLE_INSTRUMENTATION = "dataservice_enable_instrumentation"
+DATASERVICE_MASTER_SERVICES = "dataservice_master_services"
+DATASERVICE_HUB_MEMBER = "dataservice_hub_host"
+DATASERVICE_HUB_SERVICE = "dataservice_hub_service"
 
 class Clusters < GroupConfigurePrompt
   def initialize
@@ -625,6 +628,68 @@ class DataserviceCompositeDatasources < ConfigurePrompt
         end
       }
     end
+  end
+end
+
+class DataserviceMasterServices < ConfigurePrompt
+  include ClusterPrompt
+  
+  def initialize
+    super(DATASERVICE_MASTER_SERVICES, 
+      "Data service names that should be used on each master",
+      PV_ANY)
+    override_command_line_argument("master-services")
+  end
+  
+  def accept?(raw_value)
+    v = super(raw_value)
+    unless v == nil
+      v = v.split(",").map!{|ds| to_identifier(ds)}.join(",")
+    end
+    
+    return v
+  end
+  
+  def enabled_for_dataservice?
+    (get_topology().allow_multiple_masters?() == true)
+  end
+end
+
+class ClusterHubHost < ConfigurePrompt
+  include ClusterPrompt
+  include NoReplicatorRestart
+  include NoManagerRestart
+  include NoConnectorRestart
+  
+  def initialize
+    super(DATASERVICE_HUB_MEMBER, "What is the hub host for this all-masters dataservice?", 
+      PV_ANY)
+    self.extend(NotTungstenUpdatePrompt)
+    override_command_line_argument("hub")
+  end
+    
+  def allow_group_default
+    false
+  end
+  
+  def enabled_for_dataservice?
+    (get_topology().is_a?(StarTopology))
+  end
+end
+
+class DataserviceHubService < ConfigurePrompt
+  include ClusterPrompt
+  
+  def initialize
+    super(DATASERVICE_HUB_SERVICE, 
+      "The data service to use for the hub of a star topology",
+      PV_IDENTIFIER)
+    self.extend(NotTungstenUpdatePrompt)
+    override_command_line_argument("hub-service")
+  end
+  
+  def enabled_for_dataservice?
+    (get_topology().is_a?(StarTopology))
   end
 end
 

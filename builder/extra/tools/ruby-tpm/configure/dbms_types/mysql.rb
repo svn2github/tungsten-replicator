@@ -871,7 +871,7 @@ class MySQLPermissionsCheck < ConfigureValidationCheck
     
     #Check the system user can connect remotely to all the other instances
     #The managers need to do this TUC-1146
-    @config.getProperty('dataservice_hosts').split(",").each do |remoteHost|
+    @config.getPropertyOr('dataservice_hosts', '').split(",").each do |remoteHost|
       login_output = get_applier_datasource.run_remote("select 'ALIVE' as 'Return Value'",remoteHost)
       if login_output =~ /ALIVE/
         info("Able to logon remotely to #{remoteHost} MySQL Instance")

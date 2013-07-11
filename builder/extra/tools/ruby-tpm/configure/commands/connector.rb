@@ -34,6 +34,7 @@ class ConnectorTerminalCommand
   end
   
   def run
+    build_topologies(@config)
     if @display_samples == true
       display_samples()
     else

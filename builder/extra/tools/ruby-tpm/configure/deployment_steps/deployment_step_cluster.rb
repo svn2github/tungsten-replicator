@@ -116,6 +116,10 @@ module ConfigureDeploymentStepDeployment
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/datasource")
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/service")
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/extension")
+    if is_replicator?()
+      FileUtils.cp("#{get_deployment_basedir()}/tungsten-replicator/conf/replicator.service.properties", 
+        "#{get_deployment_basedir()}/cluster-home/conf/cluster/#{@config.getProperty(DATASERVICENAME)}/service/replicator.properties")
+    end
     
     Configurator.instance.write_header("Building the Tungsten home directory")
     mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/share")
@@ -297,6 +301,61 @@ EOF
           end
           FileUtils.touch(current_release_target_dir)
         end
+      end
+      
+      if is_manager?()
+        @config.getPropertyOr(DATASERVICES, {}).keys().each{
+          |comp_ds_alias|
+
+          if comp_ds_alias == DEFAULTS
+            next
+          end
+
+          if @config.getProperty([DATASERVICES, comp_ds_alias, DATASERVICE_IS_COMPOSITE]) == "false"
+            next
+          end
+
+          unless include_dataservice?(comp_ds_alias)
+            next
+          end
+
+          mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/service")
+          mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/datasource")
+          mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/extension")
+
+          @config.getProperty([DATASERVICES, comp_ds_alias, DATASERVICE_COMPOSITE_DATASOURCES]).to_s().split(",").each{
+            |ds_alias|
+            
+            path = "#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/datasource/#{ds_alias}.properties"
+            unless File.exist?(path)
+              if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_RELAY_SOURCE]).to_s() != ""
+                ds_role = "slave"
+              else
+                ds_role = "master"
+              end
+              
+              File.open(path, "w") {
+                |f|
+                f.puts "
+appliedLatency=-1.0
+precedence=1
+name=#{ds_alias}
+state=OFFLINE
+url=jdbc\:t-router\://#{ds_alias}/${DBNAME}
+alertMessage=
+isAvailable=true
+role=#{ds_role}
+isComposite=true
+alertStatus=OK
+alertTime=#{Time.now().strftime("%s000")}
+dataServiceName=#{comp_ds_alias}
+vendor=continuent
+driver=com.continuent.tungsten.router.jdbc.TSRDriver
+host=#{ds_alias}"
+              }
+            end
+          }
+        }
       end
       
       unless target_dir == prepare_dir

@@ -18,7 +18,8 @@ module ConfigureDeploymentStepReplicator
     mkdir_if_absent(@config.getProperty(REPL_BACKUP_STORAGE_DIR))
     mkdir_if_absent(@config.getProperty(REPL_RELAY_LOG_DIR))
     mkdir_if_absent(@config.getProperty(REPL_LOG_DIR))
-
+    
+    Configurator.instance.command.build_topologies(@config)
     @config.getPropertyOr(REPL_SERVICES, {}).each_key{
       |hs_alias|
       if hs_alias == DEFAULTS
@@ -59,8 +60,6 @@ module ConfigureDeploymentStepReplicator
     add_service("tungsten-replicator/bin/replicator")
     add_log_file("tungsten-replicator/log/trepsvc.log")
     set_run_as_user("#{get_deployment_basedir()}/tungsten-replicator/bin/replicator")
-    FileUtils.cp("#{get_deployment_basedir()}/tungsten-replicator/conf/replicator.service.properties", 
-      "#{get_deployment_basedir()}/cluster-home/conf/cluster/#{@config.getProperty(DATASERVICENAME)}/service/replicator.properties")
   end
   
   def write_replication_service_properties

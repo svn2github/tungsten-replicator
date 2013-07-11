@@ -295,7 +295,7 @@ class ReverseEngineerCommand
   end
   
   def self.get_command_aliases
-    ['reverse']
+    ['reverse', 'export']
   end
   
   def self.get_command_description

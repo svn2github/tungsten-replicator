@@ -63,7 +63,6 @@ module ClusterCommandModule
     modules << ConfigureDeploymentStepReplicationDataservice
     modules << ConfigureDeploymentStepConnector
     modules << ConfigureDeploymentStepServices
-    modules << ConfigureDeploymentStepDataService
   
     DatabaseTypeDeploymentStep.submodules().each{
       |klass|
@@ -1116,28 +1115,12 @@ module ClusterCommandModule
     return config_obj
   end
   
-  def post_build_deployment_configurations(config_objs)
-    config_objs.each{
-      |p_cfg|
-      p_alias = p_cfg.getProperty([DEPLOYMENT_HOST])
-      
-      config_objs.each{
-        |c_cfg|
-        c_alias = c_cfg.getProperty([DEPLOYMENT_HOST])
-
-        if c_cfg == p_cfg
-          next
-        end
-        
-        c_cfg.setProperty([REMOTE, HOSTS, p_alias, HOST], p_cfg.getProperty([HOSTS, p_alias, HOST]))
-        c_cfg.setProperty([REMOTE, HOSTS, p_alias, PORTS_FOR_USERS], p_cfg.getProperty([HOSTS, p_alias, PORTS_FOR_USERS]))
-        c_cfg.setProperty([REMOTE, HOSTS, p_alias, PORTS_FOR_CONNECTORS], p_cfg.getProperty([HOSTS, p_alias, PORTS_FOR_CONNECTORS]))
-        c_cfg.setProperty([REMOTE, HOSTS, p_alias, PORTS_FOR_MANAGERS], p_cfg.getProperty([HOSTS, p_alias, PORTS_FOR_MANAGERS]))
-        c_cfg.setProperty([REMOTE, HOSTS, p_alias, PORTS_FOR_REPLICATORS], p_cfg.getProperty([HOSTS, p_alias, PORTS_FOR_REPLICATORS]))
-      }
+  def build_topologies(config)
+    config.getPropertyOr(DATASERVICES, {}).each_key{
+      |ds_alias|
+      topology = Topology.build(ds_alias, config)
+      topology.build_services()
     }
-    
-    super(config_objs)
   end
   
   def output_cluster_completion_text
