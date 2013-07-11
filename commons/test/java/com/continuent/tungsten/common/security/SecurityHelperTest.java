@@ -87,5 +87,31 @@ public class SecurityHelperTest extends TestCase
         assertNotNull(configurationException);
 
     }
+    
+    /**
+     * Confirm that once we have loaded the security information, it becomes available in system properties
+     * @throws ConfigurationException 
+     *
+     */
+    public void testloadAuthenticationInformation_and_setSystemProperties() throws ConfigurationException
+    {
+        // Get authInfo from the configuration file on the SERVER_SIDE
+        AuthenticationInfo authInfo = SecurityHelper.loadAuthenticationInformation( "sample.security.properties", AUTH_USAGE.SERVER_SIDE);
+        assertNotNull(authInfo);
+        
+        // Check it's available in system wide properties
+        String systemProperty = null;
+        systemProperty = System.getProperty("javax.net.ssl.keyStore", null);
+        assertNotNull(systemProperty);
+        
+        systemProperty = System.getProperty("javax.net.ssl.keyStorePassword", null);
+        assertNotNull(systemProperty);
+        
+        systemProperty = System.getProperty("javax.net.ssl.trustStore", null);
+        assertNotNull(systemProperty);
+        
+        systemProperty = System.getProperty("javax.net.ssl.trustStorePassword", null);
+        assertNotNull(systemProperty);
+    }
 
 }

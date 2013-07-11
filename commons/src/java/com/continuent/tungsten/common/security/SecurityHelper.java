@@ -244,10 +244,10 @@ public class SecurityHelper
         authInfo.setUsername(userName);
 
         // --- Check information is correct ---
-        authInfo.checkAuthenticationInfo(); // Checks authentication and
-                                            // encryption parameters: file
-                                            // exists, ...
+        authInfo.checkAuthenticationInfo(); // Checks authentication and encryption parameters: file exists, ...
 
+        // --- Set critical properties as System Properties ---
+        SecurityHelper.setSecurityProperties(authInfo, true);
         return authInfo;
     }
 
@@ -258,28 +258,28 @@ public class SecurityHelper
      * @param authInfo Populated authenticatino information
      * @param verbose If true, log information
      */
-    public static void setSecurityProperties(AuthenticationInfo authInfo,
+    private static void setSecurityProperties(AuthenticationInfo authInfo,
             boolean verbose)
     {
         logger.info("Setting security properties!");
-        setSystemProperty("javax.net.ssl.keyStore",
-                authInfo.getKeystoreLocation(), verbose);
-        setSystemProperty("javax.net.ssl.keyStorePassword",
-                authInfo.getKeystorePassword(), verbose);
-        setSystemProperty("javax.net.ssl.trustStore",
-                authInfo.getTruststoreLocation(), verbose);
-        setSystemProperty("javax.net.ssl.trustStorePassword",
-                authInfo.getTruststorePassword(), verbose);
+        setSystemProperty("javax.net.ssl.keyStore", authInfo.getKeystoreLocation(), verbose);
+        setSystemProperty("javax.net.ssl.keyStorePassword", authInfo.getKeystorePassword(), verbose);
+        setSystemProperty("javax.net.ssl.trustStore", authInfo.getTruststoreLocation(), verbose);
+        setSystemProperty("javax.net.ssl.trustStorePassword", authInfo.getTruststorePassword(), verbose);
     }
 
-    // Sets a system property with a log message.
-    private static void setSystemProperty(String name, String value,
-            boolean verbose)
+    /**
+     * Sets a system property with a log message. Java -Dxxx system property
+     * 
+     * @param name the name of the system property to set
+     * @param value value of the system property
+     * @param verbose log the property being set if true.
+     */
+    private static void setSystemProperty(String name, String value, boolean verbose)
     {
         if (verbose)
         {
-            logger.info("Setting system property: name=" + name + " value="
-                    + value);
+            logger.info("Setting system property: name=" + name + " value=" + value);
         }
         System.setProperty(name, value);
     }

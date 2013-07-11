@@ -49,7 +49,6 @@ public class SocketHelper
             throw new ServerRuntimeException(
                     "Unable to locate security information; ensure security.properties file is configured");
         }
-        SecurityHelper.setSecurityProperties(authInfo, true);
     }
 
     /** Sends a string and confirms it is echoed back. */
