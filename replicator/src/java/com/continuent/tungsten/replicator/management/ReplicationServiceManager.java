@@ -110,10 +110,8 @@ public class ReplicationServiceManager
         try
         {
             logger.info("Loading security information");
-            AuthenticationInfo authenticationInfo = SecurityHelper
-                    .loadAuthenticationInformation();
+            AuthenticationInfo authenticationInfo = SecurityHelper.loadAuthenticationInformation();     // Load security information and set critical properties as system properties
             jmxProperties = authenticationInfo.getAsTungstenProperties();
-            SecurityHelper.setSecurityProperties(authenticationInfo, true);
         }
         catch (ConfigurationException ce)
         {
