@@ -57,7 +57,8 @@ public class THL implements Store
     public static final int    MAJOR                = 1;
     public static final int    MINOR                = 3;
     public static final String SUFFIX               = "";
-    public static final String URI_SCHEME           = "thl";
+    public static final String PLAINTEXT_URI_SCHEME = "thl";
+    public static final String SSL_URI_SCHEME       = "thls";
 
     // Name of this store.
     private String             name;

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,17 +24,16 @@ package com.continuent.tungsten.replicator.thl;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.channels.ClosedByInterruptException;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.sockets.ServerSocketService;
+import com.continuent.tungsten.common.sockets.SocketTerminationException;
+import com.continuent.tungsten.common.sockets.SocketWrapper;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
@@ -49,15 +48,14 @@ import com.continuent.tungsten.replicator.util.AtomicCounter;
  */
 public class Server implements Runnable
 {
-    private static Logger                         logger      = Logger
-                                                                      .getLogger(Server.class);
+    private static Logger                         logger      = Logger.getLogger(Server.class);
     private PluginContext                         context;
     private Thread                                thd;
     private THL                                   thl;
     private String                                host;
     private int                                   port        = 0;
-    private ServerSocketChannel                   serverChannel;
-    private ServerSocket                          socket;
+    private boolean                               useSSL;
+    private ServerSocketService                   socketService;
     private LinkedList<ConnectorHandler>          clients     = new LinkedList<ConnectorHandler>();
     private LinkedBlockingQueue<ConnectorHandler> deadClients = new LinkedBlockingQueue<ConnectorHandler>();
     private volatile boolean                      stopped     = false;
@@ -85,7 +83,15 @@ public class Server implements Runnable
             throw new THLException("Malformed URI: " + uriString);
         }
         String protocol = uri.getScheme();
-        if (protocol.equals(THL.URI_SCHEME) == false)
+        if (THL.PLAINTEXT_URI_SCHEME.equals(protocol))
+        {
+            this.useSSL = false;
+        }
+        else if (THL.SSL_URI_SCHEME.equals(protocol))
+        {
+            this.useSSL = true;
+        }
+        else
         {
             throw new THLException("Unsupported scheme " + protocol);
         }
@@ -105,9 +111,9 @@ public class Server implements Runnable
     {
         try
         {
-            SocketChannel clientChannel;
+            SocketWrapper socket;
             while ((stopped == false)
-                    && (clientChannel = serverChannel.accept()) != null)
+                    && (socket = this.socketService.accept()) != null)
             {
                 ConnectorHandler handler = (ConnectorHandler) PluginLoader
                         .load(context.getReplicatorProperties().getString(
@@ -115,7 +121,7 @@ public class Server implements Runnable
                                 ReplicatorConf.THL_PROTOCOL_DEFAULT, false)
                                 + "Handler");
                 handler.configure(context);
-                handler.setChannel(clientChannel);
+                handler.setSocket(socket);
                 handler.setServer(this);
                 handler.setThl(thl);
                 handler.prepare(context);
@@ -125,7 +131,7 @@ public class Server implements Runnable
                 removeFinishedClients();
             }
         }
-        catch (ClosedByInterruptException e)
+        catch (SocketTerminationException e)
         {
             if (stopped)
                 logger.info("Server thread cancelled");
@@ -153,8 +159,7 @@ public class Server implements Runnable
                 }
                 catch (InterruptedException e)
                 {
-                    logger
-                            .warn("Connector handler close interrupted unexpectedly");
+                    logger.warn("Connector handler close interrupted unexpectedly");
                 }
                 catch (Throwable t)
                 {
@@ -173,15 +178,15 @@ public class Server implements Runnable
             clients = null;
 
             // Close the socket.
-            if (socket != null)
+            if (socketService != null)
             {
                 logger.info("Closing socket: store=" + storeName + " host="
-                        + socket.getInetAddress() + " port="
-                        + socket.getLocalPort());
+                        + socketService.getAddress() + " port="
+                        + socketService.getLocalPort());
                 try
                 {
-                    socket.close();
-                    socket = null;
+                    socketService.close();
+                    socketService = null;
                 }
                 catch (Throwable t)
                 {
@@ -230,12 +235,12 @@ public class Server implements Runnable
         logger.info("Opening THL server: store name=" + storeName + " host="
                 + host + " port=" + port);
 
-        serverChannel = ServerSocketChannel.open();
-        socket = serverChannel.socket();
-        socket.bind(new InetSocketAddress(host, port));
-        socket.setReuseAddress(true);
-        logger.info("Opened socket: host=" + socket.getInetAddress() + " port="
-                + socket.getLocalPort());
+        socketService = new ServerSocketService();
+        socketService.setAddress(new InetSocketAddress(host, port));
+        socketService.setUseSSL(useSSL);
+        socketService.bind();
+        logger.info("Opened socket: host=" + socketService.getAddress()
+                + " port=" + socketService.getLocalPort() + " useSSL=" + useSSL);
 
         thd = new Thread(this, "THL Server [" + storeName + ":" + host + ":"
                 + port + "]");
@@ -256,6 +261,7 @@ public class Server implements Runnable
             try
             {
                 logger.info("Stopping server thread");
+                socketService.close();
                 thd.interrupt();
                 thd.join();
                 thd = null;
@@ -268,5 +274,4 @@ public class Server implements Runnable
         }
     }
 
-} 
-
+}

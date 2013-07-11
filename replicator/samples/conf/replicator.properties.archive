@@ -135,7 +135,6 @@ replicator.store.thl.log_file_size=@{REPL_THL_LOG_FILE_SIZE}
 # slow transitions to offline etc.
 replicator.thl.server.accept.timeout=5000
 
-
 # Change the following property to control the buffer size used for THL
 # I/O operations.  The default of 128k seems to work well. 
 replicator.store.thl.bufferSize=131072
@@ -173,11 +172,11 @@ replicator.store.thl.doChecksum=@{REPL_THL_DO_CHECKSUM}
 # but as with queue store sizes require more memory.
 replicator.thl.protocol.buffer_size=10
 
-# THL listener address for remote access.  To listen on all ports, 
-# use a value like thl://0.0.0.0:2112/.  (2112 is default
-# port for Tungsten configurations.)  Note that this URI must provide
-# a listener that corresponds to the URL in replicator.master.listen.uri, or 
-# slaves may connect to the wrong port. 
+# THL listener address for remote access.  To listen on all interfaces,
+# use a host value of 0.0.0.0, as in thl://0.0.0.0:2112/.  The port
+# defaults to 2112 if you do not specify a value.  To enable SSL use
+# 'thls' instead of 'thl'.  Note that clients must exactly match the
+# scheme (thl vs. thls), host, and port to connect. 
 replicator.store.thl.storageListenerUri=thl://0.0.0.0:@{REPL_SVC_THL_PORT}
 
 # The transfer rate between the master and the slave can be improved
@@ -193,7 +192,7 @@ replicator.store.thl.readOnly=@{REPL_SVC_THL_READ_ONLY}
 # EXTRACTORS #
 ##############
 
-# Remote THL extractor. 
+# Remote THL extractor.  
 replicator.extractor.thl-remote=com.continuent.tungsten.replicator.thl.RemoteTHLExtractor
 replicator.extractor.thl-remote.connectUri=${replicator.master.connect.uri}
 

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2012 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,12 +27,12 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.sockets.SocketWrapper;
 import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
@@ -59,7 +59,7 @@ public class Protocol
     public static String         MAX_SEQNO                = "max_seqno";
 
     protected PluginContext      pluginContext            = null;
-    protected SocketChannel      channel                  = null;
+    protected SocketWrapper      socket                   = null;
 
     // Capabilities from a THL server.
     protected TungstenProperties serverCapabilities;
@@ -99,23 +99,23 @@ public class Protocol
      * @param channel
      * @throws IOException
      */
-    public Protocol(PluginContext context, SocketChannel channel)
+    public Protocol(PluginContext context, SocketWrapper socket)
             throws IOException
     {
         this.pluginContext = context;
-        this.channel = channel;
+        this.socket = socket;
 
-        oos = new ObjectOutputStream(new BufferedOutputStream(this.channel
-                .socket().getOutputStream()));
+        oos = new ObjectOutputStream(new BufferedOutputStream(
+                socket.getOutputStream()));
         oos.flush();
 
         resetPeriod = 1;
     }
 
-    public Protocol(PluginContext context, SocketChannel channel,
-            int resetPeriod) throws IOException
+    public Protocol(PluginContext context, SocketWrapper socket, int resetPeriod)
+            throws IOException
     {
-        this(context, channel);
+        this(context, socket);
         this.resetPeriod = resetPeriod;
         this.bufferSize = context.getReplicatorProperties().getInt(
                 ReplicatorConf.THL_PROTOCOL_BUFFER_SIZE);
@@ -168,8 +168,8 @@ public class Protocol
     {
         if (ois == null)
         {
-            ois = new ObjectInputStream(new BufferedInputStream(this.channel
-                    .socket().getInputStream()));
+            ois = new ObjectInputStream(new BufferedInputStream(
+                    socket.getInputStream()));
         }
         Object obj;
         try

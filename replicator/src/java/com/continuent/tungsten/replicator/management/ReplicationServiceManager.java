@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -104,13 +104,16 @@ public class ReplicationServiceManager
         File propsFile = new File(confDir, "services.properties");
         serviceProps = PropertiesManager.loadProperties(propsFile);
 
-        // --- Get Authentication and Encryption parameters ---
+        // Get Authentication and encryption parameters for JMX and set SSL
+        // parameters required for secure operation.
         TungstenProperties jmxProperties = null;
         try
         {
+            logger.info("Loading security information");
             AuthenticationInfo authenticationInfo = SecurityHelper
                     .loadAuthenticationInformation();
             jmxProperties = authenticationInfo.getAsTungstenProperties();
+            SecurityHelper.setSecurityProperties(authenticationInfo, true);
         }
         catch (ConfigurationException ce)
         {
