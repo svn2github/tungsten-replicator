@@ -157,7 +157,7 @@ public class DDLScan
      * @throws ReplicatorException On parsing or CSV format errors.
      * @throws IOException If file cannot be read.
      * @see #resetRenameDefinitions()
-     * @see #scan(String, Writer)
+     * @see #scan(String, Hashtable, Writer)
      */
     public void parseRenameDefinitions(String definitionsFile)
             throws ReplicatorException, IOException
@@ -170,7 +170,7 @@ public class DDLScan
      * Stop using rename definitions file for future scan(...) calls.
      * 
      * @see #parseRenameDefinitions(String)
-     * @see #scan(String, Writer)
+     * @see #scan(String, Hashtable, Writer)
      */
     public void resetRenameDefinitions()
     {

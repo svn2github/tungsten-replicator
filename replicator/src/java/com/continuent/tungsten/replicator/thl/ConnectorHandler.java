@@ -648,8 +648,6 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
 
     /**
      * Sets the server value.
-     * 
-     * @param server The server to set.
      */
     public void setSocket(SocketWrapper socket)
     {

@@ -95,9 +95,6 @@ public class Protocol
 
     /**
      * Creates a new <code>Protocol</code> object
-     * 
-     * @param channel
-     * @throws IOException
      */
     public Protocol(PluginContext context, SocketWrapper socket)
             throws IOException

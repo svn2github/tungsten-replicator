@@ -74,7 +74,7 @@ public class LogRecord
     /**
      * Creates an empty record, which is optionally truncated.
      * 
-     * @param File File to which this record belongs
+     * @param file File to which this record belongs
      * @param offset Offset of this record in the file
      * @param truncated If true this record is truncated rather than merely
      *            empty

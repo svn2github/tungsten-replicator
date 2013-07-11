@@ -502,7 +502,7 @@ public class THLManagerCtrl
      * Prints a formatted header into StringBuilder for the given ReplDBMSEvent.
      * Note that ReplDBMSEvent doesn't contain eventId, thus it is not printed.
      * If you need to print eventId, use
-     * {@link #printHeader(StringBuilder, THLEvent)}
+     * {@link #printHeader(StringBuilder, THLEvent, int)}
      * 
      * @param stringBuilder StringBuilder object to append formatted contents
      *            to.
