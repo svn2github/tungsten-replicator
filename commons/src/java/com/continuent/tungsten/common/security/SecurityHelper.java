@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Ludovic Launer
+ * Contributors: Robert Hodges
  */
 
 package com.continuent.tungsten.common.security;
@@ -44,63 +45,77 @@ import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 public class SecurityHelper
 {
     private static final Logger logger = Logger.getLogger(SecurityHelper.class);
-    
-    
+
     /**
      * Save passwords from a TungstenProperties into a file
      * 
      * @param authenticationInfo containing password file location
      */
-    public static void saveCredentialsFromAuthenticationInfo(AuthenticationInfo authenticationInfo) throws ServerRuntimeException
+    public static void saveCredentialsFromAuthenticationInfo(
+            AuthenticationInfo authenticationInfo)
+            throws ServerRuntimeException
     {
-        String passwordFileLocation = authenticationInfo.getPasswordFileLocation();
-        
+        String passwordFileLocation = authenticationInfo
+                .getPasswordFileLocation();
+
         try
         {
             String username = authenticationInfo.getUsername();
             String password = authenticationInfo.getPassword();
-            
-            PropertiesConfiguration props = new PropertiesConfiguration(passwordFileLocation);      // Use Apache commons-configuration: preserves comments in .properties !
+
+            PropertiesConfiguration props = new PropertiesConfiguration(
+                    passwordFileLocation); // Use Apache commons-configuration:
+                                           // preserves comments in .properties
+                                           // !
             props.setProperty(username, password);
             props.save();
         }
         catch (org.apache.commons.configuration.ConfigurationException ce)
         {
-          logger.error("Error while saving properties for file:" + authenticationInfo.getPasswordFileLocation());
-          logger.debug(ce.getMessage());
-          throw new ServerRuntimeException("Error while saving Credentials: " + ce.getMessage());
+            logger.error("Error while saving properties for file:"
+                    + authenticationInfo.getPasswordFileLocation());
+            logger.debug(ce.getMessage());
+            throw new ServerRuntimeException("Error while saving Credentials: "
+                    + ce.getMessage());
         }
     }
-    
+
     /**
      * Delete a user and password from a file
      * 
      * @param authenticationInfo containing password file location
      */
-    public static void deleteUserFromAuthenticationInfo(AuthenticationInfo authenticationInfo) throws ServerRuntimeException
+    public static void deleteUserFromAuthenticationInfo(
+            AuthenticationInfo authenticationInfo)
+            throws ServerRuntimeException
     {
-        String username             = authenticationInfo.getUsername();
-        String passwordFileLocation = authenticationInfo.getPasswordFileLocation();
-        
+        String username = authenticationInfo.getUsername();
+        String passwordFileLocation = authenticationInfo
+                .getPasswordFileLocation();
+
         try
         {
-            PropertiesConfiguration props = new PropertiesConfiguration(passwordFileLocation);
-            
+            PropertiesConfiguration props = new PropertiesConfiguration(
+                    passwordFileLocation);
+
             // --- Check that the user exists ---
             String usernameInFile = props.getString(username);
-            if (usernameInFile==null)
+            if (usernameInFile == null)
             {
-                throw new ServerRuntimeException(MessageFormat.format("Username does not exist: {0}", username));
+                throw new ServerRuntimeException(MessageFormat.format(
+                        "Username does not exist: {0}", username));
             }
-            
+
             props.clearProperty(username);
             props.save();
         }
         catch (org.apache.commons.configuration.ConfigurationException ce)
         {
-          logger.error("Error while saving properties for file:" + authenticationInfo.getPasswordFileLocation());
-          logger.debug(ce.getMessage());
-          throw new ServerRuntimeException("Error while saving Credentials: " + ce.getMessage());
+            logger.error("Error while saving properties for file:"
+                    + authenticationInfo.getPasswordFileLocation());
+            logger.debug(ce.getMessage());
+            throw new ServerRuntimeException("Error while saving Credentials: "
+                    + ce.getMessage());
         }
     }
 
@@ -111,7 +126,8 @@ public class SecurityHelper
      *         values
      */
     public static TungstenProperties loadPasswordsFromAuthenticationInfo(
-            AuthenticationInfo authenticationInfo) throws ServerRuntimeException
+            AuthenticationInfo authenticationInfo)
+            throws ServerRuntimeException
     {
         try
         {
@@ -226,11 +242,46 @@ public class SecurityHelper
         authInfo.setTruststoreLocation(truststoreLocation);
         authInfo.setTruststorePassword(truststorePassword);
         authInfo.setUsername(userName);
-        
+
         // --- Check information is correct ---
-        authInfo.checkAuthenticationInfo();                     // Checks authentication and encryption parameters: file exists, ...
+        authInfo.checkAuthenticationInfo(); // Checks authentication and
+                                            // encryption parameters: file
+                                            // exists, ...
 
         return authInfo;
+    }
+
+    /**
+     * Set system properties required for SSL and password management. Since
+     * these settings are critical to correct operation we optionally log them.
+     * 
+     * @param authInfo Populated authenticatino information
+     * @param verbose If true, log information
+     */
+    public static void setSecurityProperties(AuthenticationInfo authInfo,
+            boolean verbose)
+    {
+        logger.info("Setting security properties!");
+        setSystemProperty("javax.net.ssl.keyStore",
+                authInfo.getKeystoreLocation(), verbose);
+        setSystemProperty("javax.net.ssl.keyStorePassword",
+                authInfo.getKeystorePassword(), verbose);
+        setSystemProperty("javax.net.ssl.trustStore",
+                authInfo.getTruststoreLocation(), verbose);
+        setSystemProperty("javax.net.ssl.trustStorePassword",
+                authInfo.getTruststorePassword(), verbose);
+    }
+
+    // Sets a system property with a log message.
+    private static void setSystemProperty(String name, String value,
+            boolean verbose)
+    {
+        if (verbose)
+        {
+            logger.info("Setting system property: name=" + name + " value="
+                    + value);
+        }
+        System.setProperty(name, value);
     }
 
     /**
@@ -298,10 +349,12 @@ public class SecurityHelper
         logger.info(MessageFormat.format(
                 "Security parameters loaded from: {0}",
                 securityPropertiesFile.getPath()));
-        
+
         // Update propertiesFileLocation with the location actualy used
-        securityProps.put(SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION, securityPropertiesFile.getAbsolutePath());
-        
+        securityProps.put(
+                SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION,
+                securityPropertiesFile.getAbsolutePath());
+
         return securityProps;
     }
 

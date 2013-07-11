@@ -221,6 +221,11 @@ public class Replicator
     public static final String PIPELINE_SOURCE             = "pipelineSource";
 
     /**
+     * Denotes the source of the head extractor.
+     */
+    public static final String SSL_LOG_CONNECTION          = "sslLogConnection";
+
+    /**
      * Denotes the number of channels for parallel apply.
      */
     public static final String CHANNELS                    = "channels";
