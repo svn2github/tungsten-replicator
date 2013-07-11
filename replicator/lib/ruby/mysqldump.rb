@@ -12,6 +12,9 @@ class TungstenMySQLdumpScript < TungstenBackupScript
         TU.cmd_result("echo \"-- Tungsten database dump - should not be logged on restore\n\" | gzip -c > #{mysqldump_file}");
         TU.cmd_result("echo \"SET SESSION SQL_LOG_BIN=0;\n\" | gzip -c >> #{mysqldump_file}");
         TU.cmd_result("#{get_mysqldump_command()} | gzip -c >> #{mysqldump_file}")
+        
+        # Find the CHANGE MASTER line so we can read the current binlog position
+        # unzip the file before sending it through the head command
         change_master_line = TU.cmd_result("gzip -cd #{mysqldump_file} | head -n50 | grep \"CHANGE MASTER\"")
       else
         mysqldump_file = @options[:tungsten_backups] + "/" + id + ".sql"
@@ -20,9 +23,12 @@ class TungstenMySQLdumpScript < TungstenBackupScript
         TU.cmd_result("echo \"-- Tungsten database dump - should not be logged on restore\n\" > #{mysqldump_file}");
         TU.cmd_result("echo \"SET SESSION SQL_LOG_BIN=0;\n\" >> #{mysqldump_file}");
         TU.cmd_result("#{get_mysqldump_command()} >> #{mysqldump_file}")
+        
+        # Find the CHANGE MASTER line so we can read the current binlog position
         change_master_line = TU.cmd_result("head -n50 #{mysqldump_file} | grep \"CHANGE MASTER\"")
       end
       
+      # Parse the CHANGE MASTER information for the file number and position
       if change_master_line != nil
         m = change_master_line.match(/MASTER_LOG_FILE='([a-zA-Z0-9\.\-\_]*)', MASTER_LOG_POS=([0-9]*)/)
         if m
@@ -36,8 +42,7 @@ class TungstenMySQLdumpScript < TungstenBackupScript
         TU.cmd_result("chown -R #{ENV['SUDO_USER']}: #{mysqldump_file}")
       end
 
-      # Write the directory name to the final storage file
-      TU.cmd_result("echo \"file=#{mysqldump_file}\" > #{@options[:properties]}")
+      return mysqldump_file
     rescue => e
       TU.error(e.message)
 
@@ -47,6 +52,22 @@ class TungstenMySQLdumpScript < TungstenBackupScript
       end
 
       raise e
+    end
+  end
+  
+  def store_master_position_sql(sql, storage_file)
+    # Append the UPDATE trep_commit_seqno statement to the end of the file
+    if @options[:gz] == "true"
+      # The contents must be zipped while added
+      sql.each{
+        |line|
+        TU.cmd_result("echo \"#{line}\" | gzip -c >> #{storage_file}");
+      }
+    else
+      sql.each{
+        |line|
+        TU.cmd_result("echo \"#{line}\" >> #{storage_file}");
+      }
     end
   end
 
