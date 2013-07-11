@@ -215,12 +215,6 @@ public class HostAddressService
     /**
      * Given a pair of addresses and a single network prefix, determines if
      * hosts are on the same subnet.
-     * 
-     * @param host1
-     * @param host2
-     * @param prefix
-     * @return
-     * @throws Exception
      */
     public static boolean addressesAreInSameSubnet(String host1, String host2,
             short prefix) throws Exception
@@ -411,10 +405,6 @@ public class HostAddressService
     /**
      * This method returns a prefix for a given internet address. It will only
      * work on the host for which the address is bound.
-     * 
-     * @param memberAddr
-     * @return
-     * @throws Exception
      */
     public static short getLocalNetworkPrefix(String hostName) throws Exception
     {
