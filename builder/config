@@ -13,7 +13,7 @@ TREP_EXT_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/replicator
 # Commons URL.
 TCOM_SVN_URL=https://tungsten-replicator.googlecode.com/svn/trunk/commons
 # Bristlecone URL.
-BRI_SVN_URL=https://bristlecone.svn.sourceforge.net/svnroot/bristlecone/trunk/bristlecone
+BRI_SVN_URL=svn://svn.code.sf.net/p/bristlecone/code/trunk/bristlecone
 # Tungsten Cookbook URL.
 COOK_SVN_URL=https://tungsten-toolbox.googlecode.com/svn/trunk/cookbook
 
