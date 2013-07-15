@@ -30,10 +30,19 @@ class ConnectorTerminalCommand
     opts.on("--samples") { @display_samples = true }
     @terminal_args = Configurator.instance.run_option_parser(opts, arguments)
     
+    unless Configurator.instance.is_enterprise?()
+      error "This command is not supported in the Tungsten Replicator package"
+    end
+    
     []
   end
   
   def run
+    unless Configurator.instance.is_locked?()
+      error("Unable to run this command because this is not the installed directory. If this is the staging directory, try running tpm from an installed Tungsten directory.")
+      return
+    end
+    
     build_topologies(@config)
     if @display_samples == true
       display_samples()

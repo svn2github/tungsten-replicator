@@ -8,7 +8,12 @@ class TungstenInstall
     TU.debug("Initialize #{self.class.name} from #{@root}")
     @settings = {}
     @topology = nil
-    @has_tpm = (TU.cmd_result("#{tpm()} query staging") != "")
+    
+    begin
+      @has_tpm = (TU.cmd_result("#{tpm()} query staging") != "")
+    rescue
+      @has_tpm = false
+    end
     
     # Preload settings about this installation
     if use_tpm?()

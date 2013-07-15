@@ -80,11 +80,15 @@ class QueryCommand
   end
   
   def get_topology
-    build_topologies(@config)
     c = Configurator.instance
+    unless c.is_enterprise?()
+      raise "This command is not supported in the Tungsten Replicator package"
+    end
     unless c.svc_is_running?(c.get_svc_path("manager", c.get_base_path()))
       raise "Tungsten Manager is not running on this machine"
     end
+    
+    build_topologies(@config)
 
     begin
       cctrl_output = Timeout.timeout(120) {
@@ -191,7 +195,7 @@ class QueryCommand
   
   def output_staging
     unless Configurator.instance.is_locked?()
-      error("Unable to show staging information because this directory is not configured")
+      error("Unable to show staging information because this is not the installed directory. If this is the staging directory, try running tpm from an installed Tungsten directory.")
       return
     end
     
@@ -206,7 +210,7 @@ class QueryCommand
   
   def output_modified_files
     unless Configurator.instance.is_locked?()
-      error("Unable to show modified files because this directory is not configured")
+      error("Unable to show modified files because this is not the installed directory. If this is the staging directory, try running tpm from an installed Tungsten directory.")
       return
     end
     
@@ -214,8 +218,11 @@ class QueryCommand
   end
   
   def output_usermap_summary
+    unless Configurator.instance.is_enterprise?()
+      raise "This command is not supported in the Tungsten Replicator package"
+    end
     unless Configurator.instance.is_locked?()
-      error("Unable to show usermap summary because this directory is not configured")
+      error("Unable to show usermap summary because this is not the installed directory. If this is the staging directory, try running tpm from an installed Tungsten directory.")
       return
     end
     

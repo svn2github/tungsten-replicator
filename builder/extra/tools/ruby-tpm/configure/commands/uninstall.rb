@@ -87,6 +87,7 @@ module UninstallClusterDeploymentStep
     end
     
     if is_replicator?()
+      Configurator.instance.command.build_topologies(@config)
       @config.getPropertyOr([REPL_SERVICES], {}).each_key{
         |rs_alias|
         if rs_alias == DEFAULTS

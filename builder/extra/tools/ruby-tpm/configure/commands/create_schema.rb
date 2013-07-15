@@ -75,6 +75,7 @@ module CreateSchemaDeploymentStep
   module_function :get_methods
   
   def create_service_schemas
+    Configurator.instance.command.build_topologies(@config)
     Configurator.instance.command.command_dataservices().each{
       |ds_alias|
       @config.getPropertyOr([REPL_SERVICES], {}).each_key{
