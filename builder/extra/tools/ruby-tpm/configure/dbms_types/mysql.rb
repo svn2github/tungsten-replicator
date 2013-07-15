@@ -1511,37 +1511,33 @@ class MySQLConnectorPermissionsCheck < ConfigureValidationCheck
     @title = "Connector Mysql user permissions check"
   end
   
-  def validate
-   
-    connuser = @config.getProperty('connector_user')
-    connpassword = @config.getProperty('connector_password')
+  def validate   
+    connuser = @config.getProperty(CONN_CLIENTLOGIN)
+    connpassword = @config.getProperty(CONN_CLIENTPASSWORD)
 
-    
     if get_applier_datasource.get_value("select user from mysql.user where user='#{connuser}'") == nil
       error("The user specified in --application-user (#{connuser}) does not exist")
       help("Ensure the user '#{connuser}' exists on all of the instances in the cluster being installed")
-    else 
+    else
+      hosts=get_applier_datasource.get_value_a("select host from mysql.user where user='#{connuser}'",'host')
     
-        hosts=get_applier_datasource.get_value_a("select host from mysql.user where user='#{connuser}'",'host')
-        
-        hosts.each do |host|
-        
-            if get_applier_datasource.get_value("select super_priv from mysql.user where user='#{connuser}' and host='#{host}'") == 'Y'
-                error("The user specified in --application-user (#{connuser}@#{host}) has super privileges and can not be safely used as a application-user")
-                help("The user #{connuser} has the SUPER privilege. This is not safe as it allows the application to write to READ_ONLY slave.Revoke this privilege using REVOKE SUPER on *.* from '#{connuser}'@'#{host}' ")
-            end
-            
-            if get_applier_datasource.get_value("select 'OK' from mysql.user where user='#{connuser}' and host='#{host}' and  password=password('#{connpassword}')")  != 'OK'
-                error("Password specifed for #{connuser}@#{host} does not match the running instance on #{get_applier_datasource.get_connection_summary()}")
-            end
-            
-            if @config.getProperty('connector_smartscale') == 'true'
-                if get_applier_datasource.get_value("select Repl_client_priv from mysql.user where user='#{connuser}' and host='#{host}'") == 'N'
-                    error("The user specified in --application-user (#{connuser}@#{host}) does not have REPLICATION CLIENT privileges and SMARTSCALE in enabled")
-                    help("When SmartScale is enabled, all application users require the REPLICATION CLIENT  privilege. Grant it to the user via GRANT REPLICATION CLIENT on *.* to '#{connuser}'@#{host}")
-                end
-            end
+      hosts.each do |host|
+        if get_applier_datasource.get_value("select super_priv from mysql.user where user='#{connuser}' and host='#{host}'") == 'Y'
+          error("The user specified in --application-user (#{connuser}@#{host}) has super privileges and can not be safely used as a application-user")
+          help("The user #{connuser} has the SUPER privilege. This is not safe as it allows the application to write to READ_ONLY slave.Revoke this privilege using REVOKE SUPER on *.* from '#{connuser}'@'#{host}' ")
         end
+        
+        if get_applier_datasource.get_value("select 'OK' from mysql.user where user='#{connuser}' and host='#{host}' and  password=password('#{connpassword}')")  != 'OK'
+          error("Password specifed for #{connuser}@#{host} does not match the running instance on #{get_applier_datasource.get_connection_summary()}. This may indicate that the user has a password using the old format.")
+        end
+        
+        if @config.getProperty('connector_smartscale') == 'true'
+          if get_applier_datasource.get_value("select Repl_client_priv from mysql.user where user='#{connuser}' and host='#{host}'") == 'N'
+            error("The user specified in --application-user (#{connuser}@#{host}) does not have REPLICATION CLIENT privileges and SMARTSCALE in enabled")
+            help("When SmartScale is enabled, all application users require the REPLICATION CLIENT  privilege. Grant it to the user via GRANT REPLICATION CLIENT on *.* to '#{connuser}'@#{host}")
+          end
+        end
+      end
     end
    end
 end
@@ -1555,11 +1551,23 @@ class MySQLPasswordSettingCheck < ConfigureValidationCheck
   end
   
   def validate
-       info("Checking old_passwords")
-       if get_applier_datasource.get_value("select min(length(password)) from mysql.user where length(password)>0") == '16'
-         error("old_passwords exist in mysql.user - Currently this is not supported")
-         help("Review https://docs.continuent.com/wiki/display/TEDOC/Changing+MySQL+old+passwords for more information on this problem")
-       end
+    info("Checking old_passwords")
+    
+    repluser = @config.getProperty(get_member_key(REPL_DBLOGIN))    
+    if get_applier_datasource.get_value("select min(length(password)) from mysql.user where length(password)>0 AND user='#{repluser}'") == '16'
+      error("old_passwords exist in mysql.user for #{repluser} - Currently this is not supported")
+    end
+    
+    if get_topology().use_connector?()
+      connuser = @config.getProperty(CONN_CLIENTLOGIN)   
+      if get_applier_datasource.get_value("select min(length(password)) from mysql.user where length(password)>0 AND user='#{connuser}'") == '16'
+        error("old_passwords exist in mysql.user for #{connuser} - Currently this is not supported")
+      end
+    end
+    
+    unless is_valid?()
+      help("Review https://docs.continuent.com/wiki/display/TEDOC/Changing+MySQL+old+passwords for more information on this problem")
+    end
   end
 end
 
