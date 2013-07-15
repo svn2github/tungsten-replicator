@@ -102,7 +102,7 @@ public class SecurityHelperTest extends TestCase
         TungstenProperties securityProp = authInfo.getAsTungstenProperties();
         assertNotNull(securityProp);
         
-        Boolean useJmxAuthentication = securityProp.getBoolean(SecurityConf.SECURITY_USE_AUTHENTICATION);
+        Boolean useJmxAuthentication = securityProp.getBoolean(SecurityConf.SECURITY_JMX_USE_AUTHENTICATION);
         assertNotNull(useJmxAuthentication);
     }
 

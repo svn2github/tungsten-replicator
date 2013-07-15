@@ -30,18 +30,20 @@ package com.continuent.tungsten.common.security;
  */
 public class SecurityConf
 {
-    static public final String SECURITY_PROPERTIES_PARENT_FILE_LOCATION                              = "security.properties.parent.file.location";      // Location of the file where this is all coming from
+    /** Location of the file where this is all coming from **/
+    static public final String SECURITY_PROPERTIES_PARENT_FILE_LOCATION                              = "security.properties.parent.file.location";     
+                                                                                                                                                                  
     static public final String SECURITY_PROPERTIES_FILE_NAME                                         = "security.properties";
 
     /** Location of file used for security **/
     static public final String SECURITY_DIR                                                          = "security.dir";
-    
+
     /** Authentication and Encryption */
-    static public final String SECURITY_USE_AUTHENTICATION                                           = "security.jmx.authentication";
-    static public final String SECURITY_USERNAME                                                     = "security.jmx.authentication.username";
-    static public final String SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM                            = "security.jmx.tungsten.authenticationRealm";
-    static public final String SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD         = "security.jmx.tungsten.authenticationRealm.encrypted.password";
-    static public final String SECURITY_USE_ENCRYPTION                                               = "security.jmx.encryption";
+    static public final String SECURITY_JMX_USE_AUTHENTICATION                                       = "security.jmx.authentication";
+    static public final String SECURITY_JMX_USERNAME                                                 = "security.jmx.authentication.username";
+    static public final String SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM                        = "security.jmx.tungsten.authenticationRealm";
+    static public final String SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD     = "security.jmx.tungsten.authenticationRealm.encrypted.password";
+    static public final String SECURITY_JMX_USE_ENCRYPTION                                           = "security.jmx.encryption";
     static public final String SECURITY_PASSWORD_FILE_LOCATION                                       = "security.password_file.location";
     static public final String SECURITY_ACCESS_FILE_LOCATION                                         = "security.access_file.location";
     static public final String SECURITY_KEYSTORE_LOCATION                                            = "security.keystore.location";

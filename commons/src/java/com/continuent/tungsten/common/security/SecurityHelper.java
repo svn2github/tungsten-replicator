@@ -196,19 +196,19 @@ public class SecurityHelper
         // Authorisation and/or encryption
         securityProperties.trim(); // Remove white spaces
         boolean useAuthentication = securityProperties.getBoolean(
-                SecurityConf.SECURITY_USE_AUTHENTICATION,
+                SecurityConf.SECURITY_JMX_USE_AUTHENTICATION,
                 SecurityConf.SECURITY_USE_AUTHENTICATION_DEFAULT, false);
         boolean useEncryption = securityProperties.getBoolean(
-                SecurityConf.SECURITY_USE_ENCRYPTION,
+                SecurityConf.SECURITY_JMX_USE_ENCRYPTION,
                 SecurityConf.SECURITY_USE_ENCRYPTION_DEFAULT, false);
         boolean useTungstenAuthenticationRealm = securityProperties
                 .getBoolean(
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM,
+                        SecurityConf.SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM,
                         SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT,
                         false);
         boolean useEncryptedPassword = securityProperties
                 .getBoolean(
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
+                        SecurityConf.SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
                         SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT,
                         false);
 
@@ -228,7 +228,7 @@ public class SecurityHelper
         String truststorePassword = securityProperties
                 .getString(SecurityConf.SECURITY_TRUSTSTORE_PASSWORD);
         String userName = securityProperties.getString(
-                SecurityConf.SECURITY_USERNAME, null, false);
+                SecurityConf.SECURITY_JMX_USERNAME, null, false);
 
         // Populate return object
         authInfo.setParentPropertiesFileLocation(securityPropertiesFileLocation);
