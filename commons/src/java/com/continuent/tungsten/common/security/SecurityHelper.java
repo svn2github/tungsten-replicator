@@ -188,6 +188,7 @@ public class SecurityHelper
             AuthenticationInfo.AUTH_USAGE authUsage)
             throws ConfigurationException
     {
+        // Load properties and perform substitution
         TungstenProperties securityProperties = loadSecurityPropertiesFromFile(propertiesFileLocation);
 
         AuthenticationInfo authInfo = new AuthenticationInfo(authUsage);
@@ -327,7 +328,7 @@ public class SecurityHelper
         {
             securityProps = new TungstenProperties();
             securityProps.load(new FileInputStream(securityPropertiesFile),
-                    false);
+                    true);
         }
         catch (FileNotFoundException e)
         {

@@ -89,6 +89,25 @@ public class SecurityHelperTest extends TestCase
     }
     
     /**
+     * Confirm that we can retrieve values from the security.properties file
+     * 
+     * @throws ConfigurationException
+     */
+    public void testRetrieveInformation() throws ConfigurationException
+    {
+        // Get authInfo from the configuration file on the SERVER_SIDE
+        AuthenticationInfo authInfo = SecurityHelper.loadAuthenticationInformation( "sample.security.properties", AUTH_USAGE.SERVER_SIDE);
+        assertNotNull(authInfo);
+        
+        TungstenProperties securityProp = authInfo.getAsTungstenProperties();
+        assertNotNull(securityProp);
+        
+        Boolean useJmxAuthentication = securityProp.getBoolean(SecurityConf.SECURITY_USE_AUTHENTICATION);
+        assertNotNull(useJmxAuthentication);
+    }
+
+    
+    /**
      * Confirm that once we have loaded the security information, it becomes available in system properties
      * @throws ConfigurationException 
      *
