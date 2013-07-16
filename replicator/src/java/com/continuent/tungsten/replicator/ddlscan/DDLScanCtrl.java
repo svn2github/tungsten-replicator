@@ -249,10 +249,6 @@ public class DDLScanCtrl
             String configFile = null;
             String service = null;
             
-            // TODO : Check if this variable is to be removed
-            @SuppressWarnings("unused")
-            String command = null;
-            
             String templateFile = null;
             String user = null;
             String pass = null;
@@ -351,8 +347,6 @@ public class DDLScanCtrl
                     printHelp();
                     fail();
                 }
-                else
-                    command = curArg;
             }
 
             if (templateFile == null)
