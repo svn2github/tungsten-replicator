@@ -248,7 +248,11 @@ public class DDLScanCtrl
             // Command line parameters and options.
             String configFile = null;
             String service = null;
+            
+            // TODO : Check if this variable is to be removed
+            @SuppressWarnings("unused")
             String command = null;
+            
             String templateFile = null;
             String user = null;
             String pass = null;
