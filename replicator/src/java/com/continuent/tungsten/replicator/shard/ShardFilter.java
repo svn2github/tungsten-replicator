@@ -63,7 +63,10 @@ public class ShardFilter implements Filter
     private boolean    enabled                  = false;
     private boolean    autoCreate               = false;
     private boolean    enforceHome              = false;
+    
+    @SuppressWarnings("unused")
     private boolean    allowWhitelisted         = false;
+    
     private Policy     unknownShardPolicy       = Policy.error;
     private String     unknownShardPolicyString = null;
     private Policy     unwantedShardPolicy       = Policy.drop;
