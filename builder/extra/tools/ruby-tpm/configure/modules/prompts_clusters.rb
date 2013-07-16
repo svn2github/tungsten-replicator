@@ -5,6 +5,7 @@ DATASERVICE_CONNECTOR_OPTIONS = "dataservice_connector_options"
 DATASERVICE_MANAGER_OPTIONS = "dataservice_manager_options"
 DATASERVICE_MEMBERS = "dataservice_hosts"
 DATASERVICE_MASTER_MEMBER = "dataservice_master_host"
+DATASERVICE_SLAVES = "dataservice_slaves"
 DATASERVICE_RELAY_ENABLED = "dataservice_relay_enabled"
 DATASERVICE_RELAY_SOURCE = "dataservice_relay_source"
 DATASERVICE_CONNECTORS = "dataservice_connectors"
@@ -239,6 +240,13 @@ class ClusterMembers < ConfigurePrompt
     false
   end
   
+  def load_default_value
+    members = @config.getProperty(get_member_key(DATASERVICE_MASTER_MEMBER)).to_s().split(",")
+    members = members + @config.getProperty(get_member_key(DATASERVICE_HUB_MEMBER)).to_s().split(",")
+    members = members + @config.getProperty(get_member_key(DATASERVICE_SLAVES)).to_s().split(",")
+    @default = members.uniq().join(",")
+  end
+  
   def validate_value(value)
     value_parts = value.to_s.split(',')
     
@@ -301,6 +309,7 @@ class ClusterMasterHost < ConfigurePrompt
       PV_ANY)
     self.extend(NotTungstenUpdatePrompt)
     override_command_line_argument("master")
+    add_command_line_alias("masters")
   end
     
   def enabled?
@@ -321,6 +330,36 @@ class ClusterMasterHost < ConfigurePrompt
   
   def required?
     super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true")
+  end
+  
+  def build_command_line_argument(v)
+    if v.to_s().split(",").size() > 1
+      ["--masters=#{v}"]
+    else
+      ["--master=#{v}"]
+    end
+  end
+end
+
+class ClusterSlaves < ConfigurePrompt
+  include ClusterPrompt
+  include NoReplicatorRestart
+  include NoManagerRestart
+  include NoConnectorRestart
+  
+  def initialize
+    super(DATASERVICE_SLAVES, "What are the slaves for this dataservice?", 
+      PV_ANY)
+    self.extend(NotTungstenUpdatePrompt)
+    override_command_line_argument("slaves")
+  end
+  
+  def allow_group_default
+    false
+  end
+  
+  def required?
+    false
   end
 end
 
