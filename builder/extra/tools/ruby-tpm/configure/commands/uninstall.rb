@@ -115,12 +115,33 @@ module UninstallClusterDeploymentStep
       }
     end
     
-    FileUtils.rmtree(@config.getProperty(RELEASES_DIRECTORY))
-    FileUtils.rmtree("#{@config.getProperty(HOME_DIRECTORY)}/share")
+    # Only remove the files in the share directory that we put in place
+    sharedir = Regexp.new("^#{@config.getProperty(HOME_DIRECTORY)}/share")
+    watchedfiles = @config.getProperty(CURRENT_RELEASE_DIRECTORY) + "/.watchfiles"
+    if File.exist?(watchedfiles)
+      File.open(watchedfiles, 'r') do |file|
+        file.read.each_line do |line|
+          line.strip!
+          if line =~ sharedir
+            FileUtils.rm_f(line)
+            original_file = File.dirname(line) + "/." + File.basename(line) + ".orig"
+            FileUtils.rm_f(original_file)
+          end
+        end
+      end
+    end
+    
+    if File.exist?("#{@config.getProperty(HOME_DIRECTORY)}/share/mysql-connector-java.jar")
+      linked = File.readlink("#{@config.getProperty(HOME_DIRECTORY)}/share/mysql-connector-java.jar")
+      FileUtils.rm_f(linked)
+      FileUtils.rm_f("#{@config.getProperty(HOME_DIRECTORY)}/share/mysql-connector-java.jar")
+    end
+
     FileUtils.rmtree("#{@config.getProperty(HOME_DIRECTORY)}/#{LOGS_DIRECTORY_NAME}")
     FileUtils.rmtree(@config.getProperty(CONFIG_DIRECTORY))
-    FileUtils.rmtree(@config.getProperty(CURRENT_RELEASE_DIRECTORY))
     FileUtils.rmtree(@config.getProperty(LOGS_DIRECTORY))
+    FileUtils.rmtree(@config.getProperty(RELEASES_DIRECTORY))
+    FileUtils.rmtree(@config.getProperty(CURRENT_RELEASE_DIRECTORY))
   end
 end
 
