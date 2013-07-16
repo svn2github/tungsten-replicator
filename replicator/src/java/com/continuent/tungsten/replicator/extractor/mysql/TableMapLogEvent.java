@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009 Continuent Inc.
+ * Copyright (C) 2009-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -49,19 +49,19 @@ public class TableMapLogEvent extends LogEvent
      * <li>1 byte. The length of the database name.</li>
      * <li>Variable-sized. The database name (null-terminated).</li>
      * <li>1 byte. The length of the table name.</li>
-     * <li> Variable-sized. The table name (null-terminated).</li>
+     * <li>Variable-sized. The table name (null-terminated).</li>
      * <li>Packed integer. The number of columns in the table.</li>
-     * <li> Variable-sized. An array of column types, one byte per column.</li>
-     * <li> Packed integer. The length of the metadata block.</li>
-     * <li> Variable-sized. The metadata block; see log_event.h for contents and
+     * <li>Variable-sized. An array of column types, one byte per column.</li>
+     * <li>Packed integer. The length of the metadata block.</li>
+     * <li>Variable-sized. The metadata block; see log_event.h for contents and
      * format.</li>
-     * <li> Variable-sized. Bit-field indicating whether each column can be
-     * NULL, one bit per column. For this field, the amount of storage required
-     * for N columns is INT((N+7)/8) bytes.</li>
+     * <li>Variable-sized. Bit-field indicating whether each column can be NULL,
+     * one bit per column. For this field, the amount of storage required for N
+     * columns is INT((N+7)/8) bytes.</li>
      * </ul>
      * Source : http://forge.mysql.com/wiki/MySQL_Internals_Binary_Log
      */
-    static Logger  logger = Logger.getLogger(MySQLExtractor.class);
+    static Logger  logger = Logger.getLogger(TableMapLogEvent.class);
 
     private long   tableId;
     private int    databaseNameLength;
@@ -178,6 +178,13 @@ public class TableMapLogEvent extends LogEvent
                     index += 2;
                     break;
                 }
+                case MysqlBinlog.MYSQL_TYPE_TIME2 :
+                case MysqlBinlog.MYSQL_TYPE_TIMESTAMP2 :
+                case MysqlBinlog.MYSQL_TYPE_DATETIME2 :
+                    metadata[i] = fieldMetadata[index];
+                    index++;
+                    break;
+
                 default :
                     metadata[i] = 0;
                     break;
@@ -189,11 +196,11 @@ public class TableMapLogEvent extends LogEvent
     }
 
     public TableMapLogEvent(byte[] buffer, int eventLength,
-            FormatDescriptionLogEvent descriptionEvent)
+            FormatDescriptionLogEvent descriptionEvent, String currentPosition)
             throws ReplicatorException
     {
         super(buffer, descriptionEvent, MysqlBinlog.TABLE_MAP_EVENT);
-
+        this.startPosition = currentPosition;
         int commonHeaderLength, postHeaderLength;
 
         int postHeaderIndex;
@@ -268,9 +275,7 @@ public class TableMapLogEvent extends LogEvent
                         + " Columns count: " + columnsCount);
 
             columnsTypes = new byte[(int) columnsCount];
-            System
-                    .arraycopy(buffer, index, columnsTypes, 0,
-                            (int) columnsCount);
+            System.arraycopy(buffer, index, columnsTypes, 0, (int) columnsCount);
 
             index += columnsCount;
 

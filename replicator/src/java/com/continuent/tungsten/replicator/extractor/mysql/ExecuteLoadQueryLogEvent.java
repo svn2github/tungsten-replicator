@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -36,13 +36,13 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
 
     /**
      * <ul>
-     * <li>4 bytes. The ID of the file to load. </li>
-     * <li> 4 bytes. The start position within the statement for filename
-     * substitution. </li>
-     * <li> 4 bytes. The end position within the statement for filename
-     * substitution. </li>
-     * <li> 1 byte. How to handle duplicates: LOAD_DUP_ERROR = 0,
-     * LOAD_DUP_IGNORE = 1, LOAD_DUP_REPLACE = 2 </li>
+     * <li>4 bytes. The ID of the file to load.</li>
+     * <li>4 bytes. The start position within the statement for filename
+     * substitution.</li>
+     * <li>4 bytes. The end position within the statement for filename
+     * substitution.</li>
+     * <li>1 byte. How to handle duplicates: LOAD_DUP_ERROR = 0, LOAD_DUP_IGNORE
+     * = 1, LOAD_DUP_REPLACE = 2</li>
      * </ul>
      */
 
@@ -55,10 +55,16 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
      */
 
     public ExecuteLoadQueryLogEvent(byte[] buffer, int eventLength,
-            FormatDescriptionLogEvent descriptionEvent, boolean parseStatements)
+            FormatDescriptionLogEvent descriptionEvent,
+            boolean parseStatements, String currentPosition)
             throws ReplicatorException
     {
         super(buffer, descriptionEvent, MysqlBinlog.EXECUTE_LOAD_QUERY_EVENT);
+
+        this.startPosition = currentPosition;
+        if (logger.isDebugEnabled())
+            logger.debug("Extracting event at position  : " + startPosition
+                    + " -> " + getNextEventPosition());
 
         this.parseStatements = parseStatements;
 
@@ -82,6 +88,12 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
             throw new MySQLExtractException("too short query event");
         }
 
+        if (descriptionEvent.useChecksum())
+        {
+            // Removing the checksum from the size of the event
+            eventLength -= 4;
+        }
+
         dataLength = eventLength - (commonHeaderLength + postHeaderLength);
 
         int index = commonHeaderLength;
@@ -101,8 +113,8 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
                     buffer, index);
 
             index++; // commonHeaderLength + MysqlBinlog.Q_ERR_CODE_OFFSET
-            errorCode = LittleEndianConversion.convert2BytesToInt(buffer,
-                    index);
+            errorCode = LittleEndianConversion
+                    .convert2BytesToInt(buffer, index);
 
             // TODO: add a check of all *_len vars
             index += 2; // commonHeaderLength +
@@ -175,6 +187,7 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
             }
         }
 
+        doChecksum(buffer, eventLength, descriptionEvent);
     }
 
     public int getEndPos()

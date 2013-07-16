@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2010 Continuent Inc.
+ * Copyright (C) 2009-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -42,7 +42,7 @@ import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndia
  */
 public class QueryLogEvent extends LogEvent
 {
-    static Logger                                            logger                 = Logger.getLogger(MySQLExtractor.class);
+    static Logger                                            logger                 = Logger.getLogger(QueryLogEvent.class);
 
     /**
      * Fixed data part:
@@ -137,8 +137,6 @@ public class QueryLogEvent extends LogEvent
     private static HashMap<String, MySQLStatementTranslator> translators            = new HashMap<String, MySQLStatementTranslator>();
     protected boolean                                        parseStatements;
 
-    private String                                           sessionVariables;
-
     private int                                              autoIncrementIncrement = -1;
 
     private int                                              autoIncrementOffset    = -1;
@@ -172,10 +170,16 @@ public class QueryLogEvent extends LogEvent
 
     public QueryLogEvent(byte[] buffer, int eventLength,
             FormatDescriptionLogEvent descriptionEvent,
-            boolean parseStatements, boolean useBytesForString)
-            throws ReplicatorException
+            boolean parseStatements, boolean useBytesForString,
+            String currentPosition) throws ReplicatorException
     {
         this(buffer, descriptionEvent, MysqlBinlog.QUERY_EVENT);
+
+        this.startPosition = currentPosition;
+        if (logger.isDebugEnabled())
+            logger.debug("Extracting event at position  : " + startPosition
+                    + " -> " + getNextEventPosition());
+
         this.parseStatements = parseStatements;
 
         int dataLength;
@@ -195,8 +199,13 @@ public class QueryLogEvent extends LogEvent
 
         if (eventLength < commonHeaderLength + postHeaderLength)
         {
-            logger.warn("query event length is too short");
-            throw new MySQLExtractException("too short query event");
+            throw new MySQLExtractException("query event length is too short");
+        }
+
+        if (descriptionEvent.useChecksum())
+        {
+            // Removing the checksum from the size of the event
+            eventLength -= 4;
         }
 
         dataLength = eventLength - (commonHeaderLength + postHeaderLength);
@@ -359,13 +368,14 @@ public class QueryLogEvent extends LogEvent
             query = new String(buffer, end + databaseNameLength + 1,
                     queryLength);
         }
+
+        doChecksum(buffer, eventLength, descriptionEvent);
+
     }
 
     protected int extractStatusVariables(byte[] buffer, int start, int end)
             throws ReplicatorException
     {
-        int flags2;
-
         int pos;
         for (pos = start; pos < end;)
         {
@@ -377,40 +387,7 @@ public class QueryLogEvent extends LogEvent
                 switch (variableCode)
                 {
                     case MysqlBinlog.Q_FLAGS2_CODE :
-                        /**
-                         * 4 bytes bit-field : These flags correspond to the SQL
-                         * variables SQL_AUTO_IS_NULL, FOREIGN_KEY_CHECKS,
-                         * UNIQUE_CHECKS, and AUTOCOMMIT, documented in the "SET
-                         * Syntax" section of the MySQL Manual. This field is
-                         * always written to the binlog in version >= 5.0, and
-                         * never written in version < 5.0.
-                         */
-
-                        flags2 = LittleEndianConversion.convert4BytesToInt(
-                                buffer, pos);
-                        if (logger.isDebugEnabled())
-                            logger.debug("In QueryLogEvent, flags2 = " + flags2
-                                    + " - row data : "
-                                    + hexdump(buffer, pos, 4));
-
-                        flagAutocommit = (flags2 & MysqlBinlog.OPTION_NOT_AUTOCOMMIT) != MysqlBinlog.OPTION_NOT_AUTOCOMMIT;
-                        flagAutoIsNull = (flags2 & MysqlBinlog.OPTION_AUTO_IS_NULL) == MysqlBinlog.OPTION_AUTO_IS_NULL;
-                        flagForeignKeyChecks = (flags2 & MysqlBinlog.OPTION_NO_FOREIGN_KEY_CHECKS) != MysqlBinlog.OPTION_NO_FOREIGN_KEY_CHECKS;
-                        flagUniqueChecks = (flags2 & MysqlBinlog.OPTION_RELAXED_UNIQUE_CHECKS) != MysqlBinlog.OPTION_RELAXED_UNIQUE_CHECKS;
-
-                        sessionVariables = "set @@session.foreign_key_checks="
-                                + (flagForeignKeyChecks ? 1 : 0)
-                                + ", @@session.sql_auto_is_null="
-                                + (flagAutoIsNull ? 1 : 0)
-                                + ", @@session.unique_checks="
-                                + (flagUniqueChecks ? 1 : 0)
-                                + ", @@session.autocommit="
-                                + (flagAutocommit ? 1 : 0);
-
-                        if (logger.isDebugEnabled())
-                        {
-                            logger.debug(sessionVariables);
-                        }
+                        readSessionVariables(buffer, pos);
                         pos += 4;
                         break;
                     case MysqlBinlog.Q_SQL_MODE_CODE :
@@ -715,5 +692,40 @@ public class QueryLogEvent extends LogEvent
     public String getCharsetName()
     {
         return charsetName;
+    }
+
+    private void readSessionVariables(byte[] buffer, int pos)
+            throws IOException
+    {
+        String sessionVariables;
+        int flags2;
+        /**
+         * 4 bytes bit-field : These flags correspond to the SQL variables
+         * SQL_AUTO_IS_NULL, FOREIGN_KEY_CHECKS, UNIQUE_CHECKS, and AUTOCOMMIT,
+         * documented in the "SET Syntax" section of the MySQL Manual. This
+         * field is always written to the binlog in version >= 5.0, and never
+         * written in version < 5.0.
+         */
+
+        flags2 = LittleEndianConversion.convert4BytesToInt(buffer, pos);
+        if (logger.isDebugEnabled())
+            logger.debug("In QueryLogEvent, flags2 = " + flags2
+                    + " - row data : " + hexdump(buffer, pos, 4));
+
+        flagAutocommit = (flags2 & MysqlBinlog.OPTION_NOT_AUTOCOMMIT) != MysqlBinlog.OPTION_NOT_AUTOCOMMIT;
+        flagAutoIsNull = (flags2 & MysqlBinlog.OPTION_AUTO_IS_NULL) == MysqlBinlog.OPTION_AUTO_IS_NULL;
+        flagForeignKeyChecks = (flags2 & MysqlBinlog.OPTION_NO_FOREIGN_KEY_CHECKS) != MysqlBinlog.OPTION_NO_FOREIGN_KEY_CHECKS;
+        flagUniqueChecks = (flags2 & MysqlBinlog.OPTION_RELAXED_UNIQUE_CHECKS) != MysqlBinlog.OPTION_RELAXED_UNIQUE_CHECKS;
+
+        sessionVariables = "set @@session.foreign_key_checks="
+                + (flagForeignKeyChecks ? 1 : 0)
+                + ", @@session.sql_auto_is_null=" + (flagAutoIsNull ? 1 : 0)
+                + ", @@session.unique_checks=" + (flagUniqueChecks ? 1 : 0)
+                + ", @@session.autocommit=" + (flagAutocommit ? 1 : 0);
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(sessionVariables);
+        }
     }
 }

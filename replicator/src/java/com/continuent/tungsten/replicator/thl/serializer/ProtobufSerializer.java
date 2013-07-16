@@ -389,6 +389,20 @@ public class ProtobufSerializer implements Serializer
         ProtobufRowValue.Builder rowBuilder;
         ProtobufColumnVal.Builder valueBuilder;
         ArrayList<OneRowChange> rowChanges = rowEv.getRowChanges();
+
+        List<ReplOption> options = rowEv.getOptions();
+        if (options != null && !options.isEmpty())
+        {
+            ProtobufEventOption.Builder optionsBuilder;
+            for (ReplOption replOption : options)
+            {
+                optionsBuilder = ProtobufEventOption.newBuilder();
+                optionsBuilder.setName(replOption.getOptionName());
+                optionsBuilder.setValue(replOption.getOptionValue());
+                rowDataBuilder.addOptions(optionsBuilder);
+            }
+        }
+
         trace = new StringBuffer();
         try
         {
@@ -667,17 +681,32 @@ public class ProtobufSerializer implements Serializer
                 else
                 {
                     long time = ((Timestamp) value).getTime();
+
+                    int nanos = ((Timestamp) value).getNanos()
+                            - ((int) (time % 1000L) * 1000000);
+
                     if (logger.isDebugEnabled())
                     {
                         trace.append(" / ");
                         trace.append(time);
                     }
                     valueBuilder.setLongValue(time);
+                    valueBuilder.setIntValue(nanos);
                 }
                 valueBuilder.setType(Type.TIMESTAMP);
                 break;
             case Types.TIME :
-                long time = ((Time) value).getTime();
+                long time = 0;
+                if (value instanceof Time)
+                    time = ((Time) value).getTime();
+                else if (value instanceof Timestamp)
+                {
+                    time = ((Timestamp) value).getTime();
+                    int nanos = ((Timestamp) value).getNanos()
+                            - ((int) (time % 1000L) * 1000000);
+                    valueBuilder.setIntValue(nanos);
+
+                }
                 if (logger.isDebugEnabled())
                 {
                     trace.append(" / ");
@@ -855,6 +884,11 @@ public class ProtobufSerializer implements Serializer
             data.appendOneRowChange(rowChange);
         }
 
+        for (ProtobufEventOption rowsDataOption : rows.getOptionsList())
+        {
+            data.addOption(rowsDataOption.getName(), rowsDataOption.getValue());
+        }
+
         return data;
     }
 
@@ -881,7 +915,18 @@ public class ProtobufSerializer implements Serializer
                 return columnVal.getStringValue();
             case TIMESTAMP :
                 if (columnVal.hasLongValue())
-                    return new Timestamp(columnVal.getLongValue());
+                {
+                    Timestamp timestamp = new Timestamp(
+                            columnVal.getLongValue());
+                    if (columnVal.hasIntValue())
+                    {
+                        // When setting nanos, don't forget millis that are
+                        // already stored in timestamp object
+                        timestamp.setNanos(timestamp.getNanos()
+                                + columnVal.getIntValue());
+                    }
+                    return timestamp;
+                }
                 else if (columnVal.hasIntValue())
                     return Integer.valueOf(0);
                 break;
@@ -907,7 +952,14 @@ public class ProtobufSerializer implements Serializer
                 }
                 break;
             case TIME :
-                return new Time(columnVal.getLongValue());
+                Timestamp time = new Timestamp(columnVal.getLongValue());
+                if (columnVal.hasIntValue())
+                {
+                    // When setting nanos, don't forget millis that are already
+                    // stored in timestamp object
+                    time.setNanos(time.getNanos() + columnVal.getIntValue());
+                }
+                return time;
             case FLOAT :
                 return Float.valueOf(columnVal.getFloatValue());
             case DOUBLE :

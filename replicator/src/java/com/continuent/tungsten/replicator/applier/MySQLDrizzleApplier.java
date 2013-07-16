@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -32,6 +32,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 
@@ -253,11 +254,12 @@ public class MySQLDrizzleApplier extends MySQLApplier
         {
             ((DrizzleStatement) statement).setLocalInfileInputStream(null);
         }
-        
+
         // Clean up the temp file as we may not get a delete file event.
         if (logger.isDebugEnabled())
         {
-            logger.debug("Deleting temp file: " + temporaryFile.getAbsolutePath());
+            logger.debug("Deleting temp file: "
+                    + temporaryFile.getAbsolutePath());
         }
         temporaryFile.delete();
     }
@@ -282,8 +284,19 @@ public class MySQLDrizzleApplier extends MySQLApplier
         }
         else if (columnSpec.getType() == Types.TIME)
         {
-            Time t = (Time) value.getValue();
-            prepStatement.setString(bindLoc, t.toString());
+            if (value.getValue() instanceof Timestamp)
+            {
+                Timestamp timestamp = ((Timestamp) value.getValue());
+                prepStatement.setString(bindLoc,
+                        new Time(timestamp.getTime()).toString() + "."
+                                + String.format("%09d%n" ,timestamp.getNanos()));
+            }
+            else
+            {
+
+                Time t = (Time) value.getValue();
+                prepStatement.setString(bindLoc, t.toString());
+            }
         }
         else if (columnSpec.getType() == Types.DOUBLE)
         {
@@ -313,6 +326,11 @@ public class MySQLDrizzleApplier extends MySQLApplier
                 prepStatement.setString(bindLoc,
                         hexdump((byte[]) value.getValue()));
         }
+        else if (columnSpec.getType() == Types.TIMESTAMP)
+        {
+            prepStatement.setString(bindLoc,
+                    ((Timestamp) value.getValue()).toString());
+        }
         else if (columnSpec.getType() == Types.BLOB
                 && value.getValue() instanceof SerialBlob
                 && columnSpec.getTypeDescription() != null
@@ -325,5 +343,4 @@ public class MySQLDrizzleApplier extends MySQLApplier
         else
             super.setObject(prepStatement, bindLoc, value, columnSpec);
     }
-
 }

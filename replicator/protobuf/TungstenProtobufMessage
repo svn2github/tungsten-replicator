@@ -63,6 +63,7 @@ message ProtobufOneRowChange {
 
 message ProtobufRowChangeData {  
   repeated ProtobufOneRowChange rowChange = 1;
+  repeated ProtobufEventOption options = 2;
 }
 
 message ProtobufOneChange {

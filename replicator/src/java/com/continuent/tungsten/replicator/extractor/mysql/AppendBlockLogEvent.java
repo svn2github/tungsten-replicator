@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,7 +28,6 @@ import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 
 /**
- * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
@@ -38,10 +37,15 @@ public class AppendBlockLogEvent extends LogEvent
     byte[] fileData;
 
     public AppendBlockLogEvent(byte[] buffer, int eventLength,
-            FormatDescriptionLogEvent descriptionEvent)
+            FormatDescriptionLogEvent descriptionEvent, String currentPosition)
             throws ReplicatorException
     {
         super(buffer, descriptionEvent, MysqlBinlog.APPEND_BLOCK_EVENT);
+
+        this.startPosition = currentPosition;
+        if (logger.isDebugEnabled())
+            logger.debug("Extracting event at position  : " + startPosition
+                    + " -> " + getNextEventPosition());
 
         int commonHeaderLength, postHeaderLength;
 
@@ -54,6 +58,12 @@ public class AppendBlockLogEvent extends LogEvent
             logger.debug("event length: " + eventLength
                     + " common header length: " + commonHeaderLength
                     + " post header length: " + postHeaderLength);
+
+        if (descriptionEvent.useChecksum())
+        {
+            // Removing the checksum from the size of the event
+            eventLength -= 4;
+        }
 
         /* Read the fixed data part */
         fixedPartIndex = commonHeaderLength;
@@ -69,9 +79,11 @@ public class AppendBlockLogEvent extends LogEvent
              * the remaining bytes represent the first bytes of the files to be
              * loaded
              */
-            int dataLength = buffer.length - fixedPartIndex;
+            int dataLength = eventLength - fixedPartIndex;
             fileData = new byte[dataLength];
             System.arraycopy(buffer, fixedPartIndex, fileData, 0, dataLength);
+
+            doChecksum(buffer, eventLength, descriptionEvent);
         }
         catch (IOException e)
         {

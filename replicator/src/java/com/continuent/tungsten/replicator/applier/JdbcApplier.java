@@ -1205,6 +1205,26 @@ public class JdbcApplier implements RawApplier
             }
         }
 
+        List<ReplOption> rowOptions = data.getOptions();
+        if (rowOptions != null)
+        {
+            try
+            {
+                if (applySessionVariables(rowOptions))
+                {
+                    // Apply session variables to the connection only if
+                    // something changed
+                    statement.executeBatch();
+                    statement.clearBatch();
+                }
+            }
+            catch (SQLException e)
+            {
+                throw new ApplierException("Failed to apply session variables",
+                        e);
+            }
+        }
+
         for (OneRowChange row : data.getRowChanges())
         {
             applyOneRowChangePrepared(row);

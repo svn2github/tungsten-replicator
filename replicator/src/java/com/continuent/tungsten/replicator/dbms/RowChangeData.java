@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s):
+ * Contributor(s): Stephane Giron
  */
 
 package com.continuent.tungsten.replicator.dbms;
@@ -28,53 +28,47 @@ import java.util.LinkedList;
 import com.continuent.tungsten.replicator.event.ReplOption;
 
 /**
- * This class defines a set of one or more row changes. 
+ * This class defines a set of one or more row changes.
  * 
  * @author <a href="mailto:seppo.jaakola@continuent.com">Seppo Jaakola</a>
  * @version 1.0
  */
 public class RowChangeData extends DBMSData
 {
-	public enum ActionType {
-		INSERT, DELETE, UPDATE
-	}
+    public enum ActionType
+    {
+        INSERT, DELETE, UPDATE
+    }
 
-	private static final long serialVersionUID = 1L;
-	private ArrayList<OneRowChange> rowChanges;
-	private LinkedList<ReplOption> options = new LinkedList<ReplOption>();
-	
+    private static final long       serialVersionUID = 1L;
+    private ArrayList<OneRowChange> rowChanges;
+
     /**
-     * 
      * Creates a new <code>RowChangeData</code> object
-     * 
      */
     public RowChangeData()
     {
-    	super();
-    	rowChanges = new ArrayList<OneRowChange>();
+        super();
+        rowChanges = new ArrayList<OneRowChange>();
     }
 
-	public ArrayList<OneRowChange> getRowChanges() {
-		return rowChanges;
-	}
+    public ArrayList<OneRowChange> getRowChanges()
+    {
+        return rowChanges;
+    }
 
-	public void setRowChanges(ArrayList<OneRowChange> rowChanges) {
-		this.rowChanges = rowChanges;
-	}
+    public void setRowChanges(ArrayList<OneRowChange> rowChanges)
+    {
+        this.rowChanges = rowChanges;
+    }
 
-	public void appendOneRowChange(OneRowChange rowChange) {
-		this.rowChanges.add(rowChange);
-	}
+    public void appendOneRowChange(OneRowChange rowChange)
+    {
+        this.rowChanges.add(rowChange);
+    }
 
     public void addOptions(LinkedList<ReplOption> savedOptions)
     {
         this.options.addAll(savedOptions);
     }
-
-    public LinkedList<ReplOption> getOptions()
-    {
-        return options;
-    }
-    
-
 }

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2011 Continuent Inc.
+ * Copyright (C) 2009-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -39,7 +39,7 @@ public class IntvarLogEvent extends LogEvent
      * <p>
      * Variable data part:
      * <ul>
-     * <li> 1 byte. A value indicating the variable type: LAST_INSERT_ID_EVENT =
+     * <li>1 byte. A value indicating the variable type: LAST_INSERT_ID_EVENT =
      * 1 or INSERT_ID_EVENT = 2.</li>
      * <li>8 bytes. An unsigned integer indicating the value to be used for the
      * LAST_INSERT_ID() invocation or AUTO_INCREMENT column.</li>
@@ -47,15 +47,20 @@ public class IntvarLogEvent extends LogEvent
      * Source : http://forge.mysql.com/wiki/MySQL_Internals_Binary_Log
      */
 
-    static Logger logger = Logger.getLogger(MySQLExtractor.class);
+    static Logger logger = Logger.getLogger(IntvarLogEvent.class);
 
     private long  value;
 
     public IntvarLogEvent(byte[] buffer, int eventLength,
-            FormatDescriptionLogEvent descriptionEvent)
+            FormatDescriptionLogEvent descriptionEvent, String currentPosition)
             throws ReplicatorException
     {
         super(buffer, descriptionEvent, MysqlBinlog.INTVAR_EVENT);
+
+        this.startPosition = currentPosition;
+        if (logger.isDebugEnabled())
+            logger.debug("Extracting event at position  : " + startPosition
+                    + " -> " + getNextEventPosition());
 
         int commonHeaderLength, postHeaderLength;
         int offset;
@@ -70,6 +75,12 @@ public class IntvarLogEvent extends LogEvent
 
         offset = commonHeaderLength + postHeaderLength
                 + MysqlBinlog.I_TYPE_OFFSET;
+
+        if (descriptionEvent.useChecksum())
+        {
+            // Removing the checksum from the size of the event
+            eventLength -= 4;
+        }
 
         /*
          * Check that the event length is greater than the calculated offset
@@ -91,7 +102,7 @@ public class IntvarLogEvent extends LogEvent
             throw new MySQLExtractException("Intvar extracting failed: " + e);
         }
 
-        return;
+        doChecksum(buffer, eventLength, descriptionEvent);
     }
 
     public int getType()

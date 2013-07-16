@@ -3069,10 +3069,25 @@ public final class TungstenProtos {
       return rowChange_.get(index);
     }
     
+    // repeated .TungstenProtobuf.ProtobufEventOption options = 2;
+    public static final int OPTIONS_FIELD_NUMBER = 2;
+    private java.util.List<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption> options_ =
+      java.util.Collections.emptyList();
+    public java.util.List<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption> getOptionsList() {
+      return options_;
+    }
+    public int getOptionsCount() { return options_.size(); }
+    public com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption getOptions(int index) {
+      return options_.get(index);
+    }
+    
     private void initFields() {
     }
     public final boolean isInitialized() {
       for (com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange element : getRowChangeList()) {
+        if (!element.isInitialized()) return false;
+      }
+      for (com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption element : getOptionsList()) {
         if (!element.isInitialized()) return false;
       }
       return true;
@@ -3083,6 +3098,9 @@ public final class TungstenProtos {
       getSerializedSize();
       for (com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange element : getRowChangeList()) {
         output.writeMessage(1, element);
+      }
+      for (com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption element : getOptionsList()) {
+        output.writeMessage(2, element);
       }
       getUnknownFields().writeTo(output);
     }
@@ -3096,6 +3114,10 @@ public final class TungstenProtos {
       for (com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange element : getRowChangeList()) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, element);
+      }
+      for (com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption element : getOptionsList()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, element);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -3243,6 +3265,10 @@ public final class TungstenProtos {
           result.rowChange_ =
             java.util.Collections.unmodifiableList(result.rowChange_);
         }
+        if (result.options_ != java.util.Collections.EMPTY_LIST) {
+          result.options_ =
+            java.util.Collections.unmodifiableList(result.options_);
+        }
         com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufRowChangeData returnMe = result;
         result = null;
         return returnMe;
@@ -3264,6 +3290,12 @@ public final class TungstenProtos {
             result.rowChange_ = new java.util.ArrayList<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange>();
           }
           result.rowChange_.addAll(other.rowChange_);
+        }
+        if (!other.options_.isEmpty()) {
+          if (result.options_.isEmpty()) {
+            result.options_ = new java.util.ArrayList<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption>();
+          }
+          result.options_.addAll(other.options_);
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -3294,6 +3326,12 @@ public final class TungstenProtos {
               com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.Builder subBuilder = com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.newBuilder();
               input.readMessage(subBuilder, extensionRegistry);
               addRowChange(subBuilder.buildPartial());
+              break;
+            }
+            case 18: {
+              com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption.Builder subBuilder = com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption.newBuilder();
+              input.readMessage(subBuilder, extensionRegistry);
+              addOptions(subBuilder.buildPartial());
               break;
             }
           }
@@ -3349,6 +3387,57 @@ public final class TungstenProtos {
       }
       public Builder clearRowChange() {
         result.rowChange_ = java.util.Collections.emptyList();
+        return this;
+      }
+      
+      // repeated .TungstenProtobuf.ProtobufEventOption options = 2;
+      public java.util.List<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption> getOptionsList() {
+        return java.util.Collections.unmodifiableList(result.options_);
+      }
+      public int getOptionsCount() {
+        return result.getOptionsCount();
+      }
+      public com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption getOptions(int index) {
+        return result.getOptions(index);
+      }
+      public Builder setOptions(int index, com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        result.options_.set(index, value);
+        return this;
+      }
+      public Builder setOptions(int index, com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption.Builder builderForValue) {
+        result.options_.set(index, builderForValue.build());
+        return this;
+      }
+      public Builder addOptions(com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        if (result.options_.isEmpty()) {
+          result.options_ = new java.util.ArrayList<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption>();
+        }
+        result.options_.add(value);
+        return this;
+      }
+      public Builder addOptions(com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption.Builder builderForValue) {
+        if (result.options_.isEmpty()) {
+          result.options_ = new java.util.ArrayList<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption>();
+        }
+        result.options_.add(builderForValue.build());
+        return this;
+      }
+      public Builder addAllOptions(
+          java.lang.Iterable<? extends com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption> values) {
+        if (result.options_.isEmpty()) {
+          result.options_ = new java.util.ArrayList<com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption>();
+        }
+        super.addAll(values, result.options_);
+        return this;
+      }
+      public Builder clearOptions() {
+        result.options_ = java.util.Collections.emptyList();
         return this;
       }
       
@@ -7043,44 +7132,45 @@ public final class TungstenProtos {
       "AMP\020\006\022\007\n\003BIT\020\007\022\010\n\004TIME\020\010\022\010\n\004DATE\020\t\022\010\n\004BL" +
       "OB\020\n\022\010\n\004NULL\020\013\022\013\n\007DECIMAL\020\014\022\020\n\014BINARYSTR" +
       "ING\020\r\"0\n\nActionType\022\n\n\006INSERT\020\001\022\n\n\006DELET" +
-      "E\020\002\022\n\n\006UPDATE\020\003\"R\n\025ProtobufRowChangeData" +
-      "\0229\n\trowChange\030\001 \003(\0132&.TungstenProtobuf.P" +
-      "rotobufOneRowChange\"\310\004\n\021ProtobufOneChang" +
-      "e\0226\n\004type\030\001 \002(\0162(.TungstenProtobuf.Proto" +
-      "bufOneChange.Type\0225\n\004data\030\002 \001(\0132\'.Tungst",
-      "enProtobuf.ProtobufRowChangeData\022:\n\tstat" +
-      "ement\030\003 \001(\0132\'.TungstenProtobuf.ProtobufS" +
-      "tatementData\0222\n\005rowId\030\004 \001(\0132#.TungstenPr" +
-      "otobuf.ProtobufRowIdData\022D\n\014fileFragment" +
-      "\030\005 \001(\0132..TungstenProtobuf.ProtobufLoadDa" +
-      "taFileFragment\022>\n\tfileQuery\030\006 \001(\0132+.Tung" +
-      "stenProtobuf.ProtobufLoadDataFileQuery\022@" +
-      "\n\nfileDelete\030\007 \001(\0132,.TungstenProtobuf.Pr" +
-      "otobufLoadDataFileDelete\"\213\001\n\004Type\022\014\n\010ROW" +
-      "_DATA\020\001\022\022\n\016STATEMENT_DATA\020\002\022\017\n\013ROW_ID_DA",
-      "TA\020\003\022\033\n\027LOAD_DATA_FILE_FRAGMENT\020\004\022\030\n\024LOA" +
-      "D_DATA_FILE_QUERY\020\005\022\031\n\025LOAD_DATA_FILE_DE" +
-      "LETE\020\006\"\275\001\n\025ProtobufReplDBMSEvent\0223\n\006chan" +
-      "ge\030\001 \003(\0132#.TungstenProtobuf.ProtobufOneC" +
-      "hange\0227\n\010metadata\030\002 \003(\0132%.TungstenProtob" +
-      "uf.ProtobufEventOption\0226\n\007options\030\003 \003(\0132" +
-      "%.TungstenProtobuf.ProtobufEventOption\"\257" +
-      "\001\n\025ProtobufStatementData\022\025\n\rdefaultSchem" +
-      "a\030\001 \001(\t\022\021\n\ttimestamp\030\002 \001(\003\022\r\n\005query\030\003 \001(" +
-      "\t\0226\n\007options\030\004 \003(\0132%.TungstenProtobuf.Pr",
-      "otobufEventOption\022\021\n\terrorCode\030\005 \002(\005\022\022\n\n" +
-      "queryBytes\030\006 \001(\014\"2\n\023ProtobufEventOption\022" +
-      "\014\n\004name\030\001 \002(\t\022\r\n\005value\030\002 \002(\t\"-\n\021Protobuf" +
-      "RowIdData\022\n\n\002id\030\001 \002(\003\022\014\n\004type\030\002 \001(\005\"N\n\034P" +
-      "rotobufLoadDataFileFragment\022\016\n\006fileId\030\001 " +
-      "\002(\005\022\014\n\004data\030\002 \002(\014\022\020\n\010database\030\003 \001(\t\"\231\001\n\031" +
-      "ProtobufLoadDataFileQuery\022:\n\tstatement\030\001" +
-      " \002(\0132\'.TungstenProtobuf.ProtobufStatemen" +
-      "tData\022\016\n\006fileId\030\002 \002(\005\022\030\n\020filenameStartPo" +
-      "s\030\003 \002(\005\022\026\n\016filenameEndPos\030\004 \002(\005\"+\n\032Proto",
-      "bufLoadDataFileDelete\022\r\n\005int32\030\001 \002(\005BA\n/" +
-      "com.continuent.tungsten.replicator.thl.p" +
-      "rotobufB\016TungstenProtos"
+      "E\020\002\022\n\n\006UPDATE\020\003\"\212\001\n\025ProtobufRowChangeDat" +
+      "a\0229\n\trowChange\030\001 \003(\0132&.TungstenProtobuf." +
+      "ProtobufOneRowChange\0226\n\007options\030\002 \003(\0132%." +
+      "TungstenProtobuf.ProtobufEventOption\"\310\004\n" +
+      "\021ProtobufOneChange\0226\n\004type\030\001 \002(\0162(.Tungs",
+      "tenProtobuf.ProtobufOneChange.Type\0225\n\004da" +
+      "ta\030\002 \001(\0132\'.TungstenProtobuf.ProtobufRowC" +
+      "hangeData\022:\n\tstatement\030\003 \001(\0132\'.TungstenP" +
+      "rotobuf.ProtobufStatementData\0222\n\005rowId\030\004" +
+      " \001(\0132#.TungstenProtobuf.ProtobufRowIdDat" +
+      "a\022D\n\014fileFragment\030\005 \001(\0132..TungstenProtob" +
+      "uf.ProtobufLoadDataFileFragment\022>\n\tfileQ" +
+      "uery\030\006 \001(\0132+.TungstenProtobuf.ProtobufLo" +
+      "adDataFileQuery\022@\n\nfileDelete\030\007 \001(\0132,.Tu" +
+      "ngstenProtobuf.ProtobufLoadDataFileDelet",
+      "e\"\213\001\n\004Type\022\014\n\010ROW_DATA\020\001\022\022\n\016STATEMENT_DA" +
+      "TA\020\002\022\017\n\013ROW_ID_DATA\020\003\022\033\n\027LOAD_DATA_FILE_" +
+      "FRAGMENT\020\004\022\030\n\024LOAD_DATA_FILE_QUERY\020\005\022\031\n\025" +
+      "LOAD_DATA_FILE_DELETE\020\006\"\275\001\n\025ProtobufRepl" +
+      "DBMSEvent\0223\n\006change\030\001 \003(\0132#.TungstenProt" +
+      "obuf.ProtobufOneChange\0227\n\010metadata\030\002 \003(\013" +
+      "2%.TungstenProtobuf.ProtobufEventOption\022" +
+      "6\n\007options\030\003 \003(\0132%.TungstenProtobuf.Prot" +
+      "obufEventOption\"\257\001\n\025ProtobufStatementDat" +
+      "a\022\025\n\rdefaultSchema\030\001 \001(\t\022\021\n\ttimestamp\030\002 ",
+      "\001(\003\022\r\n\005query\030\003 \001(\t\0226\n\007options\030\004 \003(\0132%.Tu" +
+      "ngstenProtobuf.ProtobufEventOption\022\021\n\ter" +
+      "rorCode\030\005 \002(\005\022\022\n\nqueryBytes\030\006 \001(\014\"2\n\023Pro" +
+      "tobufEventOption\022\014\n\004name\030\001 \002(\t\022\r\n\005value\030" +
+      "\002 \002(\t\"-\n\021ProtobufRowIdData\022\n\n\002id\030\001 \002(\003\022\014" +
+      "\n\004type\030\002 \001(\005\"N\n\034ProtobufLoadDataFileFrag" +
+      "ment\022\016\n\006fileId\030\001 \002(\005\022\014\n\004data\030\002 \002(\014\022\020\n\010da" +
+      "tabase\030\003 \001(\t\"\231\001\n\031ProtobufLoadDataFileQue" +
+      "ry\022:\n\tstatement\030\001 \002(\0132\'.TungstenProtobuf" +
+      ".ProtobufStatementData\022\016\n\006fileId\030\002 \002(\005\022\030",
+      "\n\020filenameStartPos\030\003 \002(\005\022\026\n\016filenameEndP" +
+      "os\030\004 \002(\005\"+\n\032ProtobufLoadDataFileDelete\022\r" +
+      "\n\005int32\030\001 \002(\005BA\n/com.continuent.tungsten" +
+      ".replicator.thl.protobufB\016TungstenProtos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -7132,7 +7222,7 @@ public final class TungstenProtos {
           internal_static_TungstenProtobuf_ProtobufRowChangeData_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_TungstenProtobuf_ProtobufRowChangeData_descriptor,
-              new java.lang.String[] { "RowChange", },
+              new java.lang.String[] { "RowChange", "Options", },
               com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufRowChangeData.class,
               com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufRowChangeData.Builder.class);
           internal_static_TungstenProtobuf_ProtobufOneChange_descriptor =
