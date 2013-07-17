@@ -260,8 +260,9 @@ class Configurator
   # Parse command line arguments.
   def parsed_options?()
     arguments = ARGV
-    
-    log(JSON.pretty_generate(arguments))
+    if arguments.size() > 0
+      log(JSON.pretty_generate(arguments))
+    end
     
     begin
       arguments = arguments.map{|arg|
