@@ -94,7 +94,12 @@ import com.continuent.tungsten.replicator.consistency.ConsistencyException;
 import com.continuent.tungsten.replicator.filter.FilterManualProperties;
 import com.continuent.tungsten.replicator.management.events.GoOfflineEvent;
 import com.continuent.tungsten.replicator.management.events.OfflineNotification;
+import com.continuent.tungsten.replicator.management.tungsten.TungstenPlugin;
 import com.continuent.tungsten.replicator.plugin.PluginException;
+import com.continuent.tungsten.replicator.storage.Store;
+import com.continuent.tungsten.replicator.thl.ConnectorHandler;
+import com.continuent.tungsten.replicator.thl.ProtocolParams;
+import com.continuent.tungsten.replicator.thl.THL;
 
 /**
  * This class provides overall management for the replication and is the
@@ -163,6 +168,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     /** Cluster name to which replicator belongs. */
     private String                  clusterName;
 
+    private String                  rmiHost                 = null;
     private int                     rmiPort                 = -1;
 
     // Open replicator plugin
@@ -1620,6 +1626,42 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         return properties.getString(ReplicatorConf.MASTER_LISTEN_URI);
     }
 
+    @MethodDesc(description = "Returns clients (slaves) of this server", usage = "getClients")
+    public List<Map<String, String>> getClients() throws Exception
+    {
+        if (openReplicator instanceof TungstenPlugin)
+        {
+            TungstenPlugin tungsten = (TungstenPlugin) openReplicator;
+
+            if (tungsten.getReplicatorRuntime() == null)
+                throw new Exception("No runtime found. Is Replicator ONLINE?");
+
+            // Drill down through the pipeline and collect clients of configured
+            // THL store(s).
+            List<Map<String, String>> clients = new ArrayList<Map<String, String>>();
+            for (Store store : tungsten.getReplicatorRuntime().getStores())
+            {
+                if (store instanceof THL)
+                {
+                    THL thl = (THL) store;
+                    for (ConnectorHandler handler : thl.getClients())
+                    {
+                        Map<String, String> client = new HashMap<String, String>();
+                        client.put(ProtocolParams.RMI_HOST,
+                                handler.getRmiHost());
+                        client.put(ProtocolParams.RMI_PORT,
+                                handler.getRmiPort());
+                        clients.add(client);
+                    }
+                }
+            }
+            return clients;
+        }
+        else
+            throw new Exception(
+                    "Unable to retrieve clients, because Replicator is not a TungstenPlugin instance");
+    }
+    
     @MethodDesc(description = "Gets the replicator's current role.", usage = "getRole")
     public String getRole()
     {
@@ -2911,6 +2953,22 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         this.doneLatch = doneLatch;
     }
 
+    /**
+     * Returns RMI port.
+     */
+    public String getRmiHost()
+    {
+        return rmiHost;
+    }
+    
+    /**
+     * Sets RMI host.
+     */
+    public void setRmiHost(String rmiHost)
+    {
+        this.rmiHost = rmiHost;
+    }
+    
     /**
      * Returns the rmiPort value.
      * 

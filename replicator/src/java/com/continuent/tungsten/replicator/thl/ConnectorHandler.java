@@ -62,6 +62,9 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
     private volatile boolean cancelled       = false;
     private volatile boolean finished        = false;
 
+    private String           rmiHost         = null;
+    private String           rmiPort         = null;
+
     private volatile boolean checkFirstSeqno = true;
 
     private static Logger    logger          = Logger.getLogger(ConnectorHandler.class);
@@ -95,6 +98,10 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                     + " options="
                     + new TungstenProperties(handshakeResponse.getOptions())
                             .toString());
+            
+            setRmiHost(handshakeResponse.getOption(ProtocolParams.RMI_HOST));
+            setRmiPort(handshakeResponse.getOption(ProtocolParams.RMI_PORT));
+            
             if (heartbeatMillis <= 0)
                 throw new THLException(
                         "Client heartbeat requests must be greater than zero: "
@@ -672,5 +679,37 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
     public void setThl(THL thl)
     {
         this.thl = thl;
+    }
+
+    /**
+     * Sets client's RMI host.
+     */
+    public void setRmiHost(String rmiHost)
+    {
+        this.rmiHost = rmiHost;
+    }
+
+    /**
+     * Sets client's RMI port.
+     */
+    public void setRmiPort(String rmiPort)
+    {
+        this.rmiPort = rmiPort;
+    }
+
+    /**
+     * Gets client's RMI host.
+     */
+    public String getRmiHost()
+    {
+        return rmiHost;
+    }
+
+    /**
+     * Gets client's RMI port.
+     */
+    public String getRmiPort()
+    {
+        return rmiPort;
     }
 }

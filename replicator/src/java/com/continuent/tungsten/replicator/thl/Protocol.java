@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s): Robert Hodges
+ * Contributor(s): Robert Hodges, Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.thl;
@@ -36,9 +36,11 @@ import com.continuent.tungsten.common.sockets.SocketWrapper;
 import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
+import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSFilteredEvent;
 import com.continuent.tungsten.replicator.event.ReplEvent;
+import com.continuent.tungsten.replicator.management.OpenReplicatorManager;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
@@ -86,6 +88,9 @@ public class Protocol
     private ArrayList<ReplEvent> buffer                   = new ArrayList<ReplEvent>();
     private boolean              buffering                = false;
 
+    private String               rmiHost                  = null;
+    private int                  rmiPort                  = -1;
+
     /**
      * Creates a new <code>Protocol</code> object
      */
@@ -105,6 +110,19 @@ public class Protocol
         oos = new ObjectOutputStream(new BufferedOutputStream(
                 socket.getOutputStream()));
         oos.flush();
+
+        // Retrieve parameters available only in a casual Replicator service.
+        if (context instanceof ReplicatorRuntime)
+        {
+            ReplicatorRuntime runtime = (ReplicatorRuntime) context;
+            if (runtime.getOpenReplicatorContext() instanceof OpenReplicatorManager)
+            {
+                OpenReplicatorManager manager = (OpenReplicatorManager) runtime
+                        .getOpenReplicatorContext();
+                rmiHost = manager.getRmiHost();
+                rmiPort = manager.getRmiPort();
+            }
+        }
 
         resetPeriod = 1;
     }
@@ -276,6 +294,8 @@ public class Protocol
                 heartbeatMillis);
         response.setOption(VERSION,
                 ManifestParser.parseReleaseWithBuildNumber());
+        response.setOption(ProtocolParams.RMI_HOST, rmiHost);
+        response.setOption(ProtocolParams.RMI_PORT, Integer.toString(rmiPort));
         if (lastEventId != null)
             response.setOption(ProtocolParams.INIT_EVENT_ID, lastEventId);
         writeMessage(response);

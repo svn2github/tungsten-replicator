@@ -110,6 +110,11 @@ public interface OpenReplicatorManagerMBean
     public int getMasterListenPort();
 
     /**
+     * Returns clients (slaves) of this server.
+     */
+    public List<Map<String, String>> getClients() throws Exception;
+    
+    /**
      * Returns the current replicator state.
      */
     public String getState();

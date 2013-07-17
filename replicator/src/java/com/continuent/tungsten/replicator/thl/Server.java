@@ -274,4 +274,11 @@ public class Server implements Runnable
         }
     }
 
+    /**
+     * Returns list of this server's clients.
+     */
+    public LinkedList<ConnectorHandler> getClients()
+    {
+        return clients;
+    }
 }

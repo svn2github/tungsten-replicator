@@ -723,6 +723,14 @@ public class ReplicatorRuntime implements PluginContext
         return new PluginSpecification(pluginPrefix, name, pluginClass,
                 pluginProperties);
     }
+    
+    /**
+     * Returns OpenReplicatorContext used for registering current runtime.
+     */
+    public OpenReplicatorContext getOpenReplicatorContext()
+    {
+        return context;
+    }
 
     /**
      * Returns the current replicator properties.

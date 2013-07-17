@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.thl;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
 
@@ -583,4 +584,13 @@ public class THL implements Store
 
         return props;
     }
+    
+    /**
+     * Returns list of currently connected clients.
+     */
+    public LinkedList<ConnectorHandler> getClients()
+    {
+        return server.getClients();
+    }
+
 }

@@ -67,6 +67,7 @@ import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.shard.ShardManager;
 import com.continuent.tungsten.replicator.shard.ShardManagerMBean;
 import com.continuent.tungsten.replicator.shard.ShardTable;
+import com.continuent.tungsten.replicator.thl.ProtocolParams;
 
 /**
  * This class defines a ReplicatorManagerCtrl that implements a simple utility
@@ -134,6 +135,7 @@ public class OpenReplicatorManagerCtrl
         println("Service-Specific Commands (Require -service option)");
         println("  backup [-backup agent] [-storage agent] [-limit s]  - Backup database");
         println("  clear                        - Clear one or all dynamic variables");
+        println("  clients [-json]              - Clients (replicators) that have been connected during this ONLINE state");
         println("  configure [file]             - Reload replicator properties file");
         println("  flush [-limit s]             - Synchronize transaction history log to database");
         println("  heartbeat [-name name]       - Insert a heartbeat event with optional name");
@@ -357,6 +359,8 @@ public class OpenReplicatorManagerCtrl
                 doStatus();
             else if (command.equals(Commands.PROPERTIES))
                 doProperties();
+            else if (command.equals(Commands.CLIENTS))
+                doClients();
             else if (command.equals(Commands.HELP))
                 printHelp();
             else if (command.equals(Commands.VERSION))
@@ -663,6 +667,59 @@ public class OpenReplicatorManagerCtrl
         }
 
         printPropertiesJSON(mbean.properties(containing));
+    }
+
+    /**
+     * List currently connected slave Replicator processes.
+     */
+    private void doClients() throws Exception
+    {
+        String curArg = null;
+        boolean json = false;
+        while (argvIterator.hasNext())
+        {
+            curArg = argvIterator.next();
+            if ("-json".equals(curArg))
+                json = true;
+        }
+
+        if (json)
+            println("[");
+        else
+            println("Processing clients command...");
+            
+
+        OpenReplicatorManagerMBean mbean = getOpenReplicator();
+        List<Map<String, String>> clients = mbean.getClients();
+        if (clients != null)
+        {
+            int propIdx = 0;
+            for (Map<String, String> client : clients)
+            {
+                if (json)
+                {
+                    if (propIdx > 0)
+                        println(",");
+                    printPropertiesJSON(client, propIdx);
+                }
+                else
+                {
+
+                    println(String.format("%s:%s",
+                            client.get(ProtocolParams.RMI_HOST),
+                            client.get(ProtocolParams.RMI_PORT)));
+                }
+                propIdx++;
+            }
+        }
+        else
+            fatal("No clients found. Maybe unsupported Replicator plugin?",
+                    null);
+
+        if (json)
+            println("\n]");
+        else
+            println("Finished clients command...");
     }
 
     // Start a service.
@@ -1888,6 +1945,7 @@ public class OpenReplicatorManagerCtrl
         public static final String SETROLE          = "setrole";
         public static final String CLEAR            = "clear";
         public static final String STATS            = "status";
+        public static final String CLIENTS          = "clients";
         public static final String PROPERTIES       = "properties";
         public static final String HELP             = "help";
         public static final String VERSION          = "version";

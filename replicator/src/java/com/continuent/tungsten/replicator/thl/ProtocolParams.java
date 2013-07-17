@@ -33,4 +33,10 @@ public class ProtocolParams
      * search for and return the transaction that matches this native event ID.
      */
     public static final String INIT_EVENT_ID = "extractFromId";
+    
+    /** Client's RMI host. **/
+    public static final String RMI_HOST = "rmiHost";
+    
+    /** Client's RMI port. **/
+    public static final String RMI_PORT = "rmiPort";
 }

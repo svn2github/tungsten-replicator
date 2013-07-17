@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s):
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.management;
@@ -78,6 +78,7 @@ public class ReplicationServiceManager
     private int                                         masterListenPortStart = 2111;
     private int                                         masterListenPortMax   = masterListenPortStart;
 
+    private String                                      managerRMIHost        = null;
     private int                                         managerRMIPort        = -1;
 
     private static final String                         CONFIG_FILE_PREFIX    = "static-";
@@ -126,9 +127,9 @@ public class ReplicationServiceManager
         // --- Start JMX registry ----
         managerRMIPort = serviceProps.getInt(ReplicatorConf.RMI_PORT,
                 ReplicatorConf.RMI_DEFAULT_PORT, false);
-        String rmiHost = getHostName(serviceProps);
+        managerRMIHost = getHostName(serviceProps);
 
-        JmxManager jmxManager = new JmxManager(rmiHost, managerRMIPort,
+        JmxManager jmxManager = new JmxManager(managerRMIHost, managerRMIPort,
                 ReplicatorConf.RMI_DEFAULT_SERVICE_NAME, jmxProperties);
         jmxManager.start();
 
@@ -636,6 +637,7 @@ public class ReplicationServiceManager
         try
         {
             OpenReplicatorManager orm = new OpenReplicatorManager(serviceName);
+            orm.setRmiHost(managerRMIHost);
             orm.setRmiPort(managerRMIPort);
             orm.advertiseInternal();
             return (OpenReplicatorManagerMBean) orm;
