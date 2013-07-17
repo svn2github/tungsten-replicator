@@ -230,7 +230,7 @@ public class MysqlBinlog
         sql_modes.put(Long.valueOf(0x400000), "STRICT_ALL_TABLES");
         sql_modes.put(Long.valueOf(0x800000), "NO_ZERO_IN_DATE");
         sql_modes.put(Long.valueOf(0x1000000), "NO_ZERO_DATE");
-        sql_modes.put(Long.valueOf(0x2000000), "INVALID_DATES");
+        sql_modes.put(Long.valueOf(0x2000000), "ALLOW_INVALID_DATES");
         sql_modes.put(Long.valueOf(0x4000000), "ERROR_FOR_DIVISION_BY_ZERO");
         sql_modes.put(Long.valueOf(0x8000000), "TRADITIONAL");
         sql_modes.put(Long.valueOf(0x10000000), "NO_AUTO_CREATE_USER");
