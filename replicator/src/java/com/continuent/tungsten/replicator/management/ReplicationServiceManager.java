@@ -35,15 +35,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
 
-import javax.management.remote.JMXConnector;
-
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.cluster.resource.ResourceState;
 import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
-import com.continuent.tungsten.common.exec.ProcessExecutor;
 import com.continuent.tungsten.common.jmx.DynamicMBeanHelper;
 import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.common.jmx.MethodDesc;
@@ -593,7 +590,8 @@ public class ReplicationServiceManager
         {
             if (isDetached)
             {
-                orm = createDetachedService(serviceName);
+                throw new ReplicatorException(
+                        "Creating of detached service is no longer supported");
             }
             else
             {
@@ -650,49 +648,6 @@ public class ReplicationServiceManager
         }
     }
 
-    /**
-     * Creates a replication service that will run in a separate process/JVM but
-     * that can also be controlled from this manager.
-     * 
-     * @param serviceName
-     * @throws Exception
-     */
-    private OpenReplicatorManagerMBean createDetachedService(String serviceName)
-            throws Exception
-    {
-
-        TungstenProperties replProps = OpenReplicatorManager
-                .getConfigurationProperties(serviceName);
-
-        ArrayList<String> execList = new ArrayList<String>();
-
-        int serviceRMIPort = replProps.getInt(ReplicatorConf.RMI_PORT);
-
-        logger.info(String.format(
-                "Starting replication service: name=%s, port=%d", serviceName,
-                serviceRMIPort));
-
-        execList.add("/home/edward/tungsten/tungsten-replicator/bin/repservice");
-        execList.add("start");
-        execList.add(serviceName);
-        execList.add(Integer.toString(serviceRMIPort));
-
-        ProcessExecutor processExecutor = new ProcessExecutor();
-        processExecutor.setWorkDirectory(null); // Uses current working dir.
-        processExecutor
-                .setCommands(execList.toArray(new String[execList.size()]));
-        processExecutor.run();
-
-        String stdOut = processExecutor.getStdout();
-        String stdErr = processExecutor.getStderr();
-
-        if (stdOut != null)
-            logger.info(stdOut);
-        if (stdErr != null)
-            logger.info(stdErr);
-
-        return getReplicationServiceMBean(serviceName, serviceRMIPort);
-    }
 
     // Utility routine to start a replication service.
     private void stopReplicationService(String name) throws Exception
@@ -860,31 +815,6 @@ public class ReplicationServiceManager
     public void setMaxPort(int maxPort)
     {
         this.masterListenPortMax = maxPort;
-    }
-
-    /**
-     * Returns the MBean for an open replicator. This is to be used when we
-     * start an OpenReplicatorManager that is in a separate process.
-     * 
-     * @param serviceName
-     * @param rmiPort
-     * @return
-     * @throws Exception
-     */
-    private OpenReplicatorManagerMBean getReplicationServiceMBean(
-            String serviceName, int rmiPort) throws Exception
-    {
-
-        JMXConnector connection = JmxManager.getRMIConnector(
-                JmxManager.getHostName(), rmiPort, serviceName);
-
-        // Fetch MBean with service name.
-        OpenReplicatorManagerMBean openReplicatorMBean = (OpenReplicatorManagerMBean) JmxManager
-                .getMBeanProxy(connection, OpenReplicatorManager.class,
-                        OpenReplicatorManagerMBean.class, serviceName, false,
-                        false);
-
-        return openReplicatorMBean;
     }
 
     /**
