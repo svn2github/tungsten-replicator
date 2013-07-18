@@ -52,6 +52,8 @@ import com.continuent.tungsten.replicator.event.ReplEvent;
 import com.continuent.tungsten.replicator.event.ReplOption;
 import com.continuent.tungsten.replicator.thl.log.DiskLog;
 import com.continuent.tungsten.replicator.thl.log.LogConnection;
+import com.continuent.tungsten.replicator.thl.log.LogEventReadFilter;
+import com.continuent.tungsten.replicator.thl.log.LogEventReplReader;
 
 /**
  * This class defines a THLManagerCtrl that implements a utility to access
@@ -345,6 +347,22 @@ public class THLManagerCtrl
 
         if (json)
             println("[");
+
+        if (headersOnly)
+        {
+            // Add a read filter that will accept only events that are in this
+            // partition. We use an inner class so we can access the partitioner
+            // and task id easily.
+            LogEventReadFilter filter = new LogEventReadFilter()
+            {
+                public boolean accept(LogEventReplReader reader)
+                        throws ReplicatorException
+                {
+                    return false;
+                }
+            };
+            conn.setReadFilter(filter);
+        }
 
         // Iterate until we run out of sequence numbers.
         THLEvent thlEvent = null;
