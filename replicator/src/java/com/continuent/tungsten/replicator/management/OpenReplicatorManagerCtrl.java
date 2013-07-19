@@ -134,6 +134,7 @@ public class OpenReplicatorManagerCtrl
         println("  kill [-y]                    - Exit immediately without shutting down services");
         println("Service-Specific Commands (Require -service option)");
         println("  backup [-backup agent] [-storage agent] [-limit s]  - Backup database");
+        println("  check <table> [-limit offset,limit] [-method m]     - Generate consistency check for the given table");
         println("  clear                        - Clear one or all dynamic variables");
         println("  clients [-json]              - Clients (replicators) that have been connected during this ONLINE state");
         println("  configure [file]             - Reload replicator properties file");
@@ -155,9 +156,8 @@ public class OpenReplicatorManagerCtrl
         println("  status [-name {channel-assignments|services|shards|stages|stores|tasks|watches}] [-json]");
         println("                               - Print replicator status information");
         println("  stop [-y]                    - Stop replication service");
-        println("  wait -state s [-limit s]     - Wait up to s seconds for replicator state s");
-        println("  wait -applied n [-limit s]   - Wait up to s seconds for seqno to be applied");
-        println("  check <table> [-limit offset,limit] [-method m] - generate consistency check for the given table");
+        println("  wait -state s [-limit n]     - Wait up to n seconds for replicator state s");
+        println("  wait -applied s [-limit n]   - Wait up to n seconds for seqno s to be applied");
         println("Shard Commands:");
         println("  shard [-list ] - List shards installed in a given service");
         println("  shard [-insert shard_definition] - Add a new shard");
