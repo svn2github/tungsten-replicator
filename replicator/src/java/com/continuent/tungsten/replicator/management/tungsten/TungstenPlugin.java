@@ -159,12 +159,14 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
      * @see com.continuent.tungsten.replicator.management.OpenReplicatorPlugin#consistencyCheck(java.lang.String,
      *      java.lang.String, java.lang.String, int, int)
      */
-    public void consistencyCheck(String method, String schemaName,
+    public int consistencyCheck(String method, String schemaName,
             String tableName, int rowOffset, int rowLimit) throws Exception
     {
         logger.info("Got consistency check request: " + method + ":"
                 + schemaName + "." + tableName + ":" + rowOffset + ","
                 + rowLimit);
+        
+        int id = -1;
 
         // Ensure we have a runtime. This is null if we are offline.
         // TODO: This command should execute in a state machine.
@@ -244,7 +246,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
 
             // Find the last consistency check id
             Table ct = null;
-            int id = 1;
+            id = 1;
             try
             {
                 Statement st;
@@ -293,6 +295,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         {
             conn.close();
         }
+        return id;
     }
 
     /**

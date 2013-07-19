@@ -447,7 +447,7 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
                 new RestoreCompletionNotification(real_uri));
     }
 
-    public void consistencyCheck(String method, String schemaName,
+    public int consistencyCheck(String method, String schemaName,
             String tableName, int rowOffset, int rowLimit) throws Exception
     {
         throw new ReplicatorException("Consistency check is not supported");

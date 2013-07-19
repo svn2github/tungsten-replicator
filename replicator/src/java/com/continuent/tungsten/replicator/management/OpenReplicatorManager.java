@@ -2513,7 +2513,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
      */
 
     @MethodDesc(description = "Perform a cluster-wide consistency check", usage = "consistencyCheck <schema>[.{<table> | *}]")
-    public void consistencyCheck(
+    public int consistencyCheck(
             @ParamDesc(name = "method", description = "md5") String method,
             @ParamDesc(name = "schemaName", description = "schema to check") String schemaName,
             @ParamDesc(name = "tableName", description = "name of table to check") String tableName,
@@ -2527,8 +2527,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                     + schemaName + "." + tableName + ":" + rowOffset + ","
                     + rowLimit);
 
-            openReplicator.consistencyCheck(method, schemaName, tableName,
-                    rowOffset, rowLimit);
+            return openReplicator.consistencyCheck(method, schemaName,
+                    tableName, rowOffset, rowLimit);
         }
         catch (Exception e)
         {

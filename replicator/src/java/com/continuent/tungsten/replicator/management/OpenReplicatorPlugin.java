@@ -198,9 +198,10 @@ public interface OpenReplicatorPlugin
      *            with 0). If negative - whole table is checked.
      * @param rowLimit limit consistency check to that many rows. If rowOffset
      *            is negative this is ignored.
+     * @return Executed consistency check's ID.
      * @throws Exception
      */
-    public void consistencyCheck(String method, String schemaName,
+    public int consistencyCheck(String method, String schemaName,
             String tableName, int rowOffset, int rowLimit) throws Exception;
 
     /**
