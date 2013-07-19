@@ -129,12 +129,14 @@ public class OpenReplicatorManagerCtrl
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
         println("  services [-json] [-full]     - List replication services");
-        println("  capabilities                 - List replicator capabilities");
         println("  shutdown [-y]                - Shut down replication services cleanly and exit");
         println("  kill [-y]                    - Exit immediately without shutting down services");
         println("Service-Specific Commands (Require -service option)");
-        println("  backup [-backup agent] [-storage agent] [-limit s]  - Backup database");
-        println("  check <table> [-limit offset,limit] [-method m]     - Generate consistency check for the given table");
+        println("  backup [-backup agent] [-storage agent] [-limit s]");
+        println("                               - Backup database");
+        println("  capabilities                 - List replicator capabilities");
+        println("  check <table> [-limit offset,limit] [-method m]");
+        println("                               - Generate consistency check for the given table");
         println("  clear                        - Clear one or all dynamic variables");
         println("  clients [-json]              - Clients (replicators) that have been connected during this ONLINE state");
         println("  configure [file]             - Reload replicator properties file");
@@ -150,19 +152,19 @@ public class OpenReplicatorManagerCtrl
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
         println("  reset [-y]                   - Deletes the replicator service");
-        println("  restore [-uri uri] [-limit s]    - Restore database");
-        println("  setrole -role role [-uri uri]    - Set replicator role");
+        println("  restore [-uri u] [-limit s]  - Restore database");
+        println("  setrole -role r [-uri u]     - Set replicator role");
         println("  start                        - Start start replication service");
         println("  status [-name {channel-assignments|services|shards|stages|stores|tasks|watches}] [-json]");
         println("                               - Print replicator status information");
         println("  stop [-y]                    - Stop replication service");
-        println("  wait -state s [-limit n]     - Wait up to n seconds for replicator state s");
-        println("  wait -applied s [-limit n]   - Wait up to n seconds for seqno s to be applied");
+        println("  wait -state st [-limit s]    - Wait up to s seconds for replicator state st");
+        println("  wait -applied x [-limit s]   - Wait up to s seconds for seqno x to be applied");
         println("Shard Commands:");
-        println("  shard [-list ] - List shards installed in a given service");
+        println("  shard [-list ]                   - List shards installed in a given service");
         println("  shard [-insert shard_definition] - Add a new shard");
         println("  shard [-update shard_definition] - Update a shard");
-        println("  shard [-delete shardId] - Delete a shard");
+        println("  shard [-delete shardId]          - Delete a shard");
     }
 
     /**
