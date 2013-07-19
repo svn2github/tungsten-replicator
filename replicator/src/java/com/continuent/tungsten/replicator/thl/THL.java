@@ -587,10 +587,14 @@ public class THL implements Store
     
     /**
      * Returns list of currently connected clients.
+     * 
+     * @throws ReplicatorException If there's no listener.
      */
-    public LinkedList<ConnectorHandler> getClients()
+    public LinkedList<ConnectorHandler> getClients() throws ReplicatorException
     {
-        return server.getClients();
+        if (server != null)
+            return server.getClients();
+        else
+            throw new ReplicatorException("THL has no server listener");
     }
-
 }
