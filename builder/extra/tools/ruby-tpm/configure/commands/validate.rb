@@ -2,7 +2,6 @@ class ValidateCommand
   include ConfigureCommand
   include ResetConfigPackageModule
   include ClusterCommandModule
-  include RequireDataserviceArgumentModule
   
   def output_command_usage()
     super()

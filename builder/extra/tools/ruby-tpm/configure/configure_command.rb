@@ -23,6 +23,19 @@ module ConfigureCommand
     @command_dataservices = []
     @fixed_properties = []
     @removed_properties = []
+    
+    # Look to see if there is INI file to use to drive configurations
+    @config_ini_path = nil
+    [
+      "#{ENV['HOME']}/tungsten.ini",
+      "/etc/tungsten/tungsten.ini",
+      "/etc/tungsten.ini"
+    ].each{
+      |path|
+      if File.exist?(path)
+        @config_ini_path = path
+      end
+    }
   end
   
   def distribute_log?(v = nil)
@@ -117,6 +130,19 @@ module ConfigureCommand
     end
   end
   
+  def use_external_configuration?
+    (@config_ini_path != nil)
+  end
+  
+  def external_configuration_summary
+    if @config_ini_path != nil
+      @config_ini_path
+    else
+      raise "Unable to provide an external configuration summary because one is not being used"
+    end
+  end
+  
+  # Limit the command to certain hosts
   def command_hosts(hosts = nil)
     if hosts != nil
       if allow_command_hosts?() == false
@@ -134,6 +160,7 @@ module ConfigureCommand
           next
         end
         
+        # Store the original hostname and a normalized version
         @command_hosts << v
         @command_aliases << to_identifier(v)
       }
@@ -151,7 +178,7 @@ module ConfigureCommand
   end
   
   def include_host?(host)
-    if @command_aliases == nil || @command_aliases.empty?()
+    if include_all_hosts?()
       return true
     else
       return (@command_aliases.include?(to_identifier(host)))
@@ -213,6 +240,24 @@ module ConfigureCommand
     end
     
     @command_dataservices
+  end
+  
+  def replace_command_dataservices(ds, replacements)
+    if @command_dataservices == nil || @command_dataservices.empty?()
+      return
+    else
+      ds_alias = to_identifier(ds)
+      if @command_dataservices.include?(ds_alias)
+        @command_dataservices.delete_if{
+          |v|
+          (v == ds_alias)
+        }
+        replacements.each{
+          |r|
+          @command_dataservices << to_identifier(r)
+        }
+      end
+    end
   end
   
   def include_dataservice?(ds, check_composite_dataservices = true)
@@ -361,26 +406,28 @@ module ConfigureCommand
     check_current_version()
     
     begin
+      # Apply any command line arguments to the configuration or collect
+      # additional information
       unless skip_prompts?()
         unless load_prompts()
           return false
         end
       end
       
+      # If there is no validation or deployment, then there is nothing to do
       if skip_validation?() && skip_deployment?()
         return true
       end
       
+      # The get_deployment_configurations() function takes the current
+      # configuration and parses it into individual configurations for
+      # each host. This will take into account the command_dataservices()
+      # and command_hosts() functions to limit the returned objects.
+      #
+      # If there are none returned, then there is nothing to do
       if get_deployment_configurations().size() == 0 && Configurator.instance.is_locked?() != true
         error("Unable to find any host configurations for the data service specified.  Check the list of configured data services by running 'tools/tpm query dataservices'.")
         return false
-      end
-      
-      unless skip_prompts?()
-        get_deployment_configurations().each{
-          |cfg|
-          Configurator.instance.log(cfg.to_s())
-        }
       end
       
       # Make sure that basic connectivity to the hosts works
@@ -394,7 +441,7 @@ module ConfigureCommand
         end
       end
       
-      # Copy over configuration script code and the host configuration file
+      # Copy over the installation package and the host configuration file
       debug("Prepare the configuration on each host")
       unless prepare()
         write_header("There are errors with the values provided in the configuration file", Logger::ERROR)
@@ -536,6 +583,9 @@ module ConfigureCommand
                                         skip_deployment?(true) }
     remainder = Configurator.instance.run_option_parser(opts, arguments)
     
+    # If the first remaining argument does not start with a dash
+    # attempt to set it as the subcommand. The subcommand() function will
+    # throw an exception if it isn't valid.
     unless remainder.empty?() || remainder[0][0,1] == "-"
       begin
         subcommand(remainder[0])
@@ -549,13 +599,17 @@ module ConfigureCommand
   end
   
   def arguments_valid?
-    if require_dataservice?() && command_dataservices().empty?()
-      error("You must provide one or more data services for this command to run on")
+    unless use_external_configuration?
+      if require_dataservice?() && command_dataservices().empty?()
+        error("You must provide one or more data services for this command to run on")
+      end
     end
     
     return is_valid?()
   end
   
+  # Return an array of arguments that should be added to each call
+  # to a remote tpm command.
   def get_remote_tpm_options
     extra_args = []
     
@@ -681,6 +735,8 @@ module ConfigureCommand
       val = "#{Configurator.instance.get_base_path()}/#{Configurator::HOST_CONFIG}"
       if File.exist?(val)
         return val
+      else
+        return "#{Configurator.instance.get_continuent_root()}/#{CONFIG_DIRECTORY_NAME}/#{Configurator::HOST_CONFIG}"
       end
     else
       if profiles_dir.to_s() != ""
@@ -694,16 +750,12 @@ module ConfigureCommand
       if File.exist?(val)
         return val
       end
-    end
-    
-    if Configurator.instance.is_locked?()
-      return "#{Configurator.instance.get_continuent_root()}/#{CONFIG_DIRECTORY_NAME}/#{Configurator::HOST_CONFIG}"
-    else
+      
       if profiles_dir.to_s() != ""
         return "#{profiles_dir}/#{Configurator::DATASERVICE_CONFIG}"
+      else
+        return "#{Configurator.instance.get_base_path()}/#{Configurator::DATASERVICE_CONFIG}"
       end
-      
-      return "#{Configurator.instance.get_base_path()}/#{Configurator::DATASERVICE_CONFIG}"
     end
   end
   
@@ -798,5 +850,15 @@ end
 module RequireDataserviceArgumentModule
   def require_dataservice?
     true
+  end
+end
+
+module DisabledForExternalConfiguration
+  def parsed_options?(arguments)
+    if use_external_configuration?()
+      raise("Unable to run this command because configuration is based on #{external_configuration_summary()}. Update the configuration there and run `tpm update` to apply changes.")
+    end
+    
+    super(arguments)
   end
 end

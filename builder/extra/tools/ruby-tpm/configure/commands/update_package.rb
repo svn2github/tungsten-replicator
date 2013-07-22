@@ -127,7 +127,7 @@ module NotTungstenUpdatePrompt
       return false
     end
     
-    if [UpdateCommand.name, ValidateUpdateCommand.name, PrepareCommand.name, PromoteCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
+    if [UpdateCommand.name, ValidateUpdateCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
       return false
     else
       return (super() && true)
@@ -137,7 +137,11 @@ end
 
 module NotTungstenUpdateCheck
   def enabled?
-    if [UpdateCommand.name, ValidateUpdateCommand.name, PrepareCommand.name, PromoteCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
+    if [UpdateCommand.name, ValidateUpdateCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
+      return false
+    end
+    
+    if Configurator.instance.is_locked?
       return false
     end
     
@@ -147,7 +151,7 @@ end
 
 module TungstenUpdateCheck
   def enabled?
-    if [UpdateCommand.name, ValidateUpdateCommand.name, PrepareCommand.name, PromoteCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
+    if [UpdateCommand.name, ValidateUpdateCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
       return (super() && true)
     end
     

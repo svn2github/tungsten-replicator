@@ -3,18 +3,7 @@ module ClusterCommandModule
   
   def initialize(config)
     super(config)
-    
-    @general_options = Properties.new()
-    @dataservice_options = Properties.new()
-    @host_options = Properties.new()
-    @manager_options = Properties.new()
-    @connector_options = Properties.new()
-    @replication_options = Properties.new()
-    
-    @add_members = nil
-    @remove_members = nil
-    @add_connectors = nil
-    @remove_connectors = nil
+    reset_cluster_options()
   end
   
   def get_prompts
@@ -77,6 +66,27 @@ module ClusterCommandModule
     true
   end
   
+  def reset_cluster_options
+    @general_options = Properties.new()
+    @dataservice_options = Properties.new()
+    @host_options = Properties.new()
+    @manager_options = Properties.new()
+    @connector_options = Properties.new()
+    @replication_options = Properties.new()
+    
+    @add_members = nil
+    @remove_members = nil
+    @add_connectors = nil
+    @remove_connectors = nil
+    
+    @add_fixed_properties = []
+    @remove_fixed_properties = []
+    @skip_validation_checks = []
+    @enable_validation_checks = []
+    @skip_validation_warnings = []
+    @enable_validation_warnings = []
+  end
+  
   def parsed_options?(arguments)
     arguments = super(arguments)
     
@@ -92,6 +102,10 @@ module ClusterCommandModule
       return arguments
     end
     
+    return parse_cluster_options(arguments, defaults_only?())
+  end
+  
+  def parse_cluster_options(arguments, defaults = false)
     opts = OptionParser.new
     
     each_prompt(nil){
@@ -136,7 +150,7 @@ module ClusterCommandModule
       add_prompt(opts, prompt, @replication_options, [REPL_SERVICES])
     }
     
-    unless defaults_only?
+    unless defaults
       opts.on("--members+ String") {
         |val|
         @add_members = val.split(",")
@@ -157,8 +171,107 @@ module ClusterCommandModule
         }
       end
     end
+    
+    opts.on("--property String")      {|val|
+                                        if val.index('=') == nil
+                                          error "Invalid value #{val} given for '--property'. There should be a key/value pair joined by a single =."
+                                        end
+                                        @add_fixed_properties << val
+                                      }
+    opts.on("--remove-property String") {|val|
+                                        @remove_fixed_properties << val
+                                      }
+    opts.on("--skip-validation-check String")      {|val|
+                                        val.split(",").each{
+                                          |v|
+                                          @skip_validation_checks << v
+                                        }
+                                      }
+    opts.on("--enable-validation-check String")      {|val|
+                                        val.split(",").each{
+                                          |v|
+                                          @enable_validation_checks << v
+                                        }
+                                      }
+    opts.on("--skip-validation-warnings String")      {|val|
+                                        val.split(",").each{
+                                          |v|
+                                          @skip_validation_warnings << v
+                                        }
+                                      }
+    opts.on("--enable-validation-warnings String")      {|val|
+                                        val.split(",").each{
+                                          |v|
+                                          @enable_validation_warnings << v
+                                        }
+                                      }
 
     return Configurator.instance.run_option_parser(opts, arguments)
+  end
+  
+  def arguments_valid?
+    super()
+    
+    if use_external_configuration?() && cluster_options_provided?()
+      error("Command line arguments are not allowed because configuration is driven by #{external_configuration_summary()}. Update the configuration there and run `tpm update` to apply changes.")
+    end
+    
+    return is_valid?()
+  end
+  
+  def load_external_configuration
+    @config.reset()
+    args = get_external_option_arguments()
+    
+    args.each{
+      |section, arguments|
+      reset_cluster_options()
+      
+      if section == DEFAULTS
+        parse_cluster_options(arguments, true)
+        load_cluster_defaults()
+      else
+        parse_cluster_options(arguments)
+        load_cluster_options([to_identifier(section)])
+      end
+    }
+  end
+  
+  def get_external_option_arguments
+    external_arguments = {}
+    
+    if @config_ini_path != nil
+      debug("Load external configuration from #{@config_ini_path}")
+      
+      require 'iniparse'
+      ini = IniParse.open(@config_ini_path)
+      ini.each{
+        |section|
+        if section.key == "defaults"
+          section.key = DEFAULTS
+        end
+        unless external_arguments.has_key?(section.key)
+          external_arguments[section.key] = []
+        end
+        
+        section.each{
+          |line|
+          unless line.is_a?(Array)
+            values = [line]
+          else
+            values = line
+          end
+          
+          values.each{
+            |value|
+            argument = "--" + value.key.gsub(/_/, "-")
+            external_arguments[section.key] << "#{argument}=#{value.value}"
+          }
+        }
+      }
+    end
+    
+    external_arguments
   end
   
   def load_prompts
@@ -223,21 +336,24 @@ module ClusterCommandModule
     @config.override([REPL_SERVICES, DEFAULTS], @replication_options.getProperty([REPL_SERVICES, DEFAULTS]))
     
     _load_fixed_properties([HOSTS, DEFAULTS, FIXED_PROPERTY_STRINGS])
+    _load_fixed_properties([HOSTS, DEFAULTS, FIXED_PROPERTY_STRINGS], @add_fixed_properties, @remove_fixed_properties)
     _load_skipped_validation_classes([HOSTS, DEFAULTS, SKIPPED_VALIDATION_CLASSES])
+    _load_skipped_validation_classes([HOSTS, DEFAULTS, SKIPPED_VALIDATION_CLASSES], @skip_validation_checks, @enable_validation_checks)
     _load_skipped_validation_warnings([HOSTS, DEFAULTS, SKIPPED_VALIDATION_WARNINGS])
+    _load_skipped_validation_warnings([HOSTS, DEFAULTS, SKIPPED_VALIDATION_WARNINGS], @skip_validation_warnings, @enable_validation_warnings)
   
     clean_cluster_configuration()
     
     if is_valid?()
-      notice("Configuration defaults updated in #{Configurator.instance.get_config_filename()}")
-      save_config_file()
+      unless use_external_configuration?()
+        notice("Configuration defaults updated in #{Configurator.instance.get_config_filename()}")
+        save_config_file()
+      end
     end
   end
   
-  def load_cluster_options
-    @config.props = @config.props.merge(@general_options.getPropertyOr([COMMAND], {}))
-    
-    all_empty = true
+  def cluster_options_provided?
+    options_provided=false
     [
       @dataservice_options,
       @host_options,
@@ -257,21 +373,32 @@ module ClusterCommandModule
     ].each{
       |opts|
       
-      unless opts == nil || opts.empty?()
-        all_empty = false
+      if opts == nil
+        next
+      end
+      unless opts.empty?()
+        options_provided = true
       end
     }
     
-    if all_empty
+    return options_provided
+  end
+  
+  def load_cluster_options(dataservices = nil)
+    @config.props = @config.props.merge(@general_options.getPropertyOr([COMMAND], {}))
+    
+    if cluster_options_provided?() == false
       debug("No options given so skipping load_cluster_options")
       return
     end
     
-    dataservices = command_dataservices()
-    if dataservices.empty?()
-      dataservices = @config.getPropertyOr([DATASERVICES], {}).keys().delete_if{|v| (v == DEFAULTS)}
-      if dataservices.size() == 0
-        raise "You must specify a dataservice name after the command or by the --dataservice-name argument"
+    if dataservices == nil
+      dataservices = command_dataservices()
+      if dataservices.empty?()
+        dataservices = @config.getPropertyOr([DATASERVICES], {}).keys().delete_if{|v| (v == DEFAULTS)}
+        if dataservices.size() == 0
+          raise "You must specify a dataservice name after the command or by the --dataservice-name argument"
+        end
       end
     end
     
@@ -340,7 +467,7 @@ module ClusterCommandModule
         @config.setProperty([HOSTS, h_alias, HOST], host)
       }
       
-      if include_all_hosts?()
+      if include_all_hosts?() || (dataservice_hosts+connector_hosts).uniq().size() == 0
         if @config.getProperty([DATASERVICES, dataservice_alias, DATASERVICE_IS_COMPOSITE]) == "true"
           @config.getProperty([DATASERVICES, dataservice_alias, DATASERVICE_COMPOSITE_DATASOURCES]).to_s().split(",").each{
             |composite_ds_member|
@@ -367,8 +494,11 @@ module ClusterCommandModule
           @config.override([HOSTS, h_alias], @host_options.getProperty([HOSTS, COMMAND]))
 
           _load_fixed_properties([HOSTS, h_alias, FIXED_PROPERTY_STRINGS])
+          _load_fixed_properties([HOSTS, h_alias, FIXED_PROPERTY_STRINGS], @add_fixed_properties, @remove_fixed_properties)
           _load_skipped_validation_classes([HOSTS, h_alias, SKIPPED_VALIDATION_CLASSES])
+          _load_skipped_validation_classes([HOSTS, h_alias, SKIPPED_VALIDATION_CLASSES], @skip_validation_checks, @enable_validation_checks)
           _load_skipped_validation_warnings([HOSTS, h_alias, SKIPPED_VALIDATION_WARNINGS])
+          _load_skipped_validation_warnings([HOSTS, h_alias, SKIPPED_VALIDATION_WARNINGS], @skip_validation_warnings, @enable_validation_warnings)
         }
         
         dataservice_hosts.each{
@@ -414,16 +544,6 @@ module ClusterCommandModule
       end
     }
     
-    unless include_all_hosts?()
-      command_hosts().each{
-        |host|
-        
-        if @config.getPropertyOr([HOSTS, to_identifier(host)], nil) == nil
-          warning("Unable to find an entry for #{host}")
-        end
-      }
-    end
-    
     clean_cluster_configuration()
     
     if is_valid?()
@@ -432,25 +552,34 @@ module ClusterCommandModule
         dataservices = @config.getPropertyOr([DATASERVICES], {}).keys().delete_if{|v| (v == DEFAULTS)}
       end
       
-      notice("Data service(s) #{dataservices.join(',')} updated in #{Configurator.instance.get_config_filename()}")
-      save_config_file()
+      unless use_external_configuration?()
+        notice("Data service(s) #{dataservices.join(',')} updated in #{Configurator.instance.get_config_filename()}")
+        save_config_file()
+      end
       
-      if Configurator.instance.is_locked?()
+      if Configurator.instance.is_locked?() && use_external_configuration?() != true
         warning("Updating individual hosts may cause an inconsistent configuration file on your staging server.  You should refresh the configuration by running `tools/tpm fetch #{dataservices.join(',')}`.")
       end
     end
   end
   
-  def _load_fixed_properties(target_key)
-    @config.append(target_key, fixed_properties())
+  def _load_fixed_properties(target_key, add = nil, remove = nil)
+    if add == nil
+      add = fixed_properties()
+    end
+    if remove == nil
+      remove = removed_properties()
+    end
     
-    if removed_properties().size() > 0
+    @config.append(target_key, add)
+    
+    if remove.size() > 0
       props = @config.getNestedProperty(target_key)
       if props == nil
         return
       end
       
-      removed_properties().each{
+      remove.each{
         |remove_key|
         
         props.delete_if{
@@ -466,16 +595,23 @@ module ClusterCommandModule
     end
   end
   
-  def _load_skipped_validation_classes(target_key)
-    @config.append(target_key, ConfigureValidationHandler.get_skipped_validation_classes())
+  def _load_skipped_validation_classes(target_key, skip = nil, enable = nil)
+    if skip == nil
+      skip = ConfigureValidationHandler.get_skipped_validation_classes()
+    end
+    if enable == nil
+      enable = ConfigureValidationHandler.get_enabled_validation_classes()
+    end
     
-    if ConfigureValidationHandler.get_enabled_validation_classes().size() > 0
+    @config.append(target_key, skip)
+    
+    if enable.size() > 0
       klasses = @config.getNestedProperty(target_key)
       if klasses == nil
         return
       end
       
-      ConfigureValidationHandler.get_enabled_validation_classes().each{
+      enable.each{
         |enable_class|
         
         klasses.delete_if{
@@ -491,16 +627,23 @@ module ClusterCommandModule
     end
   end
   
-  def _load_skipped_validation_warnings(target_key)
-    @config.append(target_key, ConfigureValidationHandler.get_skipped_validation_warnings())
+  def _load_skipped_validation_warnings(target_key, skip = nil, enable = nil)
+    if skip == nil
+      skip = ConfigureValidationHandler.get_skipped_validation_warnings()
+    end
+    if enable == nil
+      enable = ConfigureValidationHandler.get_enabled_validation_warnings()
+    end
     
-    if ConfigureValidationHandler.get_enabled_validation_warnings().size() > 0
+    @config.append(target_key, skip)
+    
+    if enable.size() > 0
       klasses = @config.getNestedProperty(target_key)
       if klasses == nil
         return
       end
       
-      ConfigureValidationHandler.get_enabled_validation_warnings().each{
+      enable.each{
         |enable_class|
         
         klasses.delete_if{
@@ -522,8 +665,11 @@ module ClusterCommandModule
     @config.override([DATASERVICE_HOST_OPTIONS, dataservice_alias], @host_options.getProperty([HOSTS, COMMAND]))
     
     _load_fixed_properties([DATASERVICE_HOST_OPTIONS, dataservice_alias, FIXED_PROPERTY_STRINGS])
+    _load_fixed_properties([DATASERVICE_HOST_OPTIONS, dataservice_alias, FIXED_PROPERTY_STRINGS], @add_fixed_properties, @remove_fixed_properties)
     _load_skipped_validation_classes([DATASERVICE_HOST_OPTIONS, dataservice_alias, SKIPPED_VALIDATION_CLASSES])
+    _load_skipped_validation_classes([DATASERVICE_HOST_OPTIONS, dataservice_alias, SKIPPED_VALIDATION_CLASSES], @skip_validation_checks, @enable_validation_checks)
     _load_skipped_validation_warnings([DATASERVICE_HOST_OPTIONS, dataservice_alias, SKIPPED_VALIDATION_WARNINGS])
+    _load_skipped_validation_warnings([DATASERVICE_HOST_OPTIONS, dataservice_alias, SKIPPED_VALIDATION_WARNINGS], @skip_validation_warnings, @enable_validation_warnings)
   
     if topology.use_management?()
       @config.override([DATASERVICE_MANAGER_OPTIONS, dataservice_alias], @manager_options.getProperty([MANAGERS, DEFAULTS]))
@@ -961,8 +1107,8 @@ module ClusterCommandModule
         config_obj.setProperty([SYSTEM, CONFIG_TARGET_BASENAME], File.basename(current_full_path))
         config_obj.setProperty([CONFIG_TARGET_BASENAME], File.basename(current_full_path))
       else
-        config_obj.setProperty([SYSTEM, CONFIG_TARGET_BASENAME], @config.getProperty(CONFIG_TARGET_BASENAME))
-        config_obj.setProperty([CONFIG_TARGET_BASENAME], @config.getProperty(CONFIG_TARGET_BASENAME))
+        config_obj.setProperty([SYSTEM, CONFIG_TARGET_BASENAME], config_obj.getProperty(CONFIG_TARGET_BASENAME))
+        config_obj.setProperty([CONFIG_TARGET_BASENAME], config_obj.getProperty(CONFIG_TARGET_BASENAME))
         
         config_obj.setProperty(STAGING_HOST, Configurator.instance.hostname())
         config_obj.setProperty(STAGING_USER, Configurator.instance.whoami())
@@ -1048,6 +1194,14 @@ module ClusterCommandModule
       config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_RELAY_SOURCE], "").split(",").each{
         |rds_alias|
         ds_list << rds_alias
+      }
+      config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MASTER_SERVICES], "").split(",").each{
+        |mds_alias|
+        ds_list << mds_alias
+      }
+      config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_HUB_SERVICE], "").split(",").each{
+        |hds_alias|
+        ds_list << hds_alias
       }
     }
     

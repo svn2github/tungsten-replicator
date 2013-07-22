@@ -141,12 +141,6 @@ module ConfigureDeploymentCore
     @config.getProperty(PREPARE_DIRECTORY)
   end
   
-  def get_deployment_config_file
-    file = @config.getProperty(CONFIG_FILENAME)
-    mkdir_if_absent(File.dirname(file))
-    return file
-  end
-  
   def alter_deployment_method_name(method_name)
     method_name
   end

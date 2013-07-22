@@ -181,6 +181,8 @@ class Configurator
       @log = nil
     end
     
+    # Depending on the requested command, we will transfer the log file to
+    # the configured directory on each affected server
     if @command && @command.distribute_log?()
       @command.distribute_log(get_log_filename())
     end
@@ -188,14 +190,21 @@ class Configurator
     exit(code)
   end
 
-  # The standard process, collect prompt values, validate on each host
-  # then deploy on each host
   def run
+    # Each of these directories includes Ruby Classes and Modules that extend
+    # the behavior of tpm. Some of them will raise an IgnoreError exception
+    # if they should not be enabled.
     Dir[File.dirname(__FILE__) + '/configure/modules/*.rb'].sort().each do |file| 
-      require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+      begin
+        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+      rescue IgnoreError
+      end
     end
-    Dir[File.dirname(__FILE__) + '/configure/commands/*.rb'].sort().each do |file| 
-      require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+    Dir[File.dirname(__FILE__) + '/configure/commands/*.rb'].sort().each do |file|
+      begin
+        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+      rescue IgnoreError
+      end
     end
     Dir[File.dirname(__FILE__) + '/configure/dbms_types/*.rb'].sort().each do |file| 
       begin
@@ -210,12 +219,17 @@ class Configurator
       end
     end
     
-    get_release_version()
-    
+    # The get_default_filenames() files allow users to place configuration
+    # defaults in files on the system that will override any programmed
+    # default value
     load_default_files()
-    parsed_options?()
-    debug("Logging started to #{get_log_filename()}")
     
+    # Take the arguments provided on the command line and parse out generic
+    # options as well as options for the requested command
+    parsed_options?()
+    
+    # Hand of control to the ConfigureCommand object. After completion
+    # cleanup the process and exit with a 0 or 1
     begin
       if @command.run() == false
         cleanup(1)
@@ -238,6 +252,8 @@ class Configurator
     ]
   end
   
+  # Parse the get_default_filenames() files to override default values
+  # for all configurations
   def load_default_files
     get_default_filenames().each{
       |filename|
@@ -265,6 +281,7 @@ class Configurator
     end
     
     begin
+      # Eliminate characters that will cause exceptions in the Ruby parsing
       arguments = arguments.map{|arg|
         newarg = ''
         arg.split("").each{|b| 
@@ -287,24 +304,30 @@ class Configurator
       
       # Backwards compatibility
       opts.on("--master-slave")         {}
+      # alias for `tpm configure`
       opts.on("--build-config")         { @command = ConfigureDataServiceCommand.new(@config) }
+      # alias for `tpm configure defaults`
       opts.on("--defaults-only")        { @command = ConfigureDataServiceCommand.new(@config)
                                           @command.subcommand(ConfigureDataServiceCommand::CONFIGURE_DEFAULTS)
       }
+      # alias for `tpm configure --hosts=<val>`
       opts.on("--build-host String")    { |val|
                                           @command = ConfigureDataServiceCommand.new(@config) 
                                           @command.command_hosts(val)
       }
-      opts.on("--interactive")          { @command = InteractiveCommand.new(@config) }
+      # alias for `tpm install`
       opts.on("-b", "--batch")          { @command = InstallCommand.new(@config) }
+      # Displays the possible keys that can be used in the deploy.cfg file
       opts.on("--config-file-help")     {
                                           @command = HelpCommand.new(@config)
                                           @command.subcommand(HelpCommand::HELP_CONFIG_FILE)
       }
+      # Displays the possible template placeholders
       opts.on("--template-file-help")   {
                                           @command = HelpCommand.new(@config)
                                           @command.subcommand(HelpCommand::HELP_TEMPLATE_FILE)
       }
+      # Force logging to be enabled for this command
       opts.on("--log String")           { |val|
         @options.log_name = val
       }
@@ -312,13 +335,15 @@ class Configurator
     
       # Attempt to identify the TPM command if one has not been chosen
       if arguments.size() > 0
+        # Guess the command class based on the first remaining argument
+        # This will return nil if the first argument isn't a valid command
         command_class = ConfigureCommand.get_command_class(arguments[0])
 
         if command_class
-          # Remove the first argument which was our command
+          # Remove the first argument since it is the command class
           arguments.shift()
         else
-          # Look for a command argument
+          # Look for a command argument in the remaining values
           opts=OptionParser.new
           # Needed again so that an exception isn't thrown
           opts.on("-p", "--package String") {|klass|
@@ -331,6 +356,7 @@ class Configurator
           arguments = run_option_parser(opts, arguments)
         end
         
+        # Instantiate the command option based on the class that we found
         if @command == nil && command_class
           begin
             unless defined?(command_class)
@@ -349,16 +375,17 @@ class Configurator
       end
       
       if @command == nil
-        # Fall back to the help command
+        # Fall back to the help command when nothing else has worked
         @command = HelpCommand.new(@config)
       else
-        # Apply the display_help setting to the command
+        # Apply the display_help setting to the command object
         @command.display_help?(display_help)
       end  
       @command.advanced?(advanced)
       
       if @command.enable_log?()
         initialize_log()
+        debug("Logging started to #{get_log_filename()}")
       else
         disable_log()
       end
@@ -367,7 +394,14 @@ class Configurator
       start_alive_thread()
       
       opts=OptionParser.new
-      opts.on("--profile String", "-c String", "--config String")  {|val| @options.config = val }
+      # Define the file to use for storing the staging configuration
+      opts.on("--profile String", "-c String", "--config String")  {|val| 
+                                        if is_locked?()
+                                          error("The '--profile=#{val}' argument is not valid for an installed directory")
+                                        else
+                                          @options.config = val
+                                        end
+                                        }
       opts.on("--skip-validation-check String")      {|val|
                                           val.split(",").each{
                                             |v|
@@ -410,11 +444,13 @@ class Configurator
 
       remainder = run_option_parser(opts, arguments)
 
-      unless display_help?() || arguments_valid?() 
+      if arguments_valid?() != true && display_help?() != true
         cleanup(1)
       end
     
       begin
+        # Hand off option parsing to the command object. This will run through
+        # the command class and any included modules
         remainder = @command.parsed_options?(remainder)
         unless display_help?()
           unless @command.is_valid?() && remainder.empty?()
@@ -426,19 +462,10 @@ class Configurator
             
             cleanup(1)
           end
-          
+
           @command.arguments_valid?()
           unless @command.is_valid?()
             cleanup(1)
-          end
-          
-          h_alias = @config.getNestedProperty([DEPLOYMENT_HOST])
-          unless h_alias == nil
-            path = @config.getProperty([HOSTS, h_alias, PREFERRED_PATH])
-            unless path.to_s() == ""
-              debug("Adding #{path} to $PATH")
-              ENV['PATH'] = path + ":" + ENV['PATH']
-            end
           end
         end
       rescue IgnoreError
@@ -457,6 +484,17 @@ class Configurator
     rescue => e
       exception(e)
       cleanup(1)
+    end
+    
+    # Extend the path for this command so utilities in uncommon locations
+    # can be found
+    h_alias = @config.getNestedProperty([DEPLOYMENT_HOST])
+    unless h_alias == nil
+      path = @config.getProperty([HOSTS, h_alias, PREFERRED_PATH])
+      unless path.to_s() == ""
+        debug("Adding #{path} to $PATH")
+        ENV['PATH'] = path + ":" + ENV['PATH']
+      end
     end
     
     # Some commands (query) need to be able to run while a higher level TPM script is running
@@ -491,23 +529,22 @@ class Configurator
       end
     end
     
-    if is_interactive?()
-      # For interactive mode, must be able to write the config file.
-      if File.exist?(@options.config)
-        if ! File.writable?(@options.config)
-          write "Config file must be writable for interactive mode: #{@options.config}", Logger::ERROR
-          return false
-        end
-      else
-        if ! File.writable?(File.dirname(@options.config))
-          write "Config file directory must be writable for interactive mode: #{@options.config}", Logger::ERROR
-          return false
-        end
+    if File.exist?(@options.config)
+      if ! File.writable?(@options.config)
+        write "Config file must be writable: #{@options.config}", Logger::ERROR
+        return false
       end
-    else
-      # For batch mode, options file must be readable.
       if ! File.readable?(@options.config) && File.exist?(@options.config)
         write "Config file is not readable: #{@options.config}", Logger::ERROR
+        return false
+      end
+    else
+      if ! File.writable?(File.dirname(@options.config))
+        write "Config file directory must be writable: #{@options.config}", Logger::ERROR
+        return false
+      end
+      if ! File.readable?(File.dirname(@options.config))
+        write "Config file directory must be readable: #{@options.config}", Logger::ERROR
         return false
       end
     end
@@ -1026,7 +1063,6 @@ class Configurator
   end
   
   def get_release_details
-    
     version=''
     unless @release_details
       # Read manifest to find build version. 
@@ -1069,6 +1105,7 @@ class Configurator
     get_basename()
   end
   
+  # Parse the manifest to determine what kind of package this is
   def get_release_version
     release_details = get_release_details()
     release_details["version"]

@@ -26,6 +26,9 @@ class AllMastersTopology
       })
     }
     
+    new_services = @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_MASTER_SERVICES]).split(",")
+    Configurator.instance.command.replace_command_dataservices(@ds_alias, 
+      new_services)
     remove_service(@ds_alias)
   end
   

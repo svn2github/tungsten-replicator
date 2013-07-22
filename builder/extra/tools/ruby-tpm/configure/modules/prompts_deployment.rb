@@ -248,7 +248,9 @@ class ConfigTargetBasenamePrompt < ConfigurePrompt
   end
   
   def load_default_value
-    if Configurator.instance.is_locked?()
+    if "#{@config.getProperty(HOME_DIRECTORY)}/#{RELEASES_DIRECTORY_NAME}/#{Configurator.instance.get_basename()}" == Configurator.instance.get_base_path()
+      @default = Configurator.instance.get_basename()
+    elsif Configurator.instance.is_locked?()
       @default = Configurator.instance.get_basename()
     else
       @default = Configurator.instance.get_unique_basename()
@@ -375,19 +377,6 @@ class ConfigDirectoryPrompt < ConfigurePrompt
   
   def load_default_value
     @default = "#{@config.getProperty(get_member_key(HOME_DIRECTORY))}/#{CONFIG_DIRECTORY_NAME}"
-  end
-end
-
-class ConfigFilenamePrompt < ConfigurePrompt
-  include ClusterHostPrompt
-  include ConstantValueModule
-  
-  def initialize
-    super(CONFIG_FILENAME, "Filename for storing the current host config", PV_FILENAME)
-  end
-  
-  def load_default_value
-    @default = "#{@config.getProperty(get_member_key(CONFIG_DIRECTORY))}/#{Configurator::HOST_CONFIG}"
   end
 end
 

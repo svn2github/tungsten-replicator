@@ -871,7 +871,8 @@ class RestartComponentsCheck < ConfigureValidationCheck
       if realpath == @config.getProperty(TARGET_DIRECTORY)
         @original_config = Properties.new()
         @original_config.load(current_release_directory + "/." + Configurator::HOST_CONFIG + '.orig')
-      
+        Configurator.instance.command.build_topologies(@original_config)
+        
         updated_keys = @config.getPromptHandler().get_updated_keys(@original_config)
         unless is_valid?()
           return is_valid?()

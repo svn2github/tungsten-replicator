@@ -1,5 +1,6 @@
 class ResetConfigCommand
   include ConfigureCommand
+  include DisabledForExternalConfiguration
   
   def run
     @config.props = {}

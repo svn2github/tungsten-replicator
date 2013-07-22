@@ -2,6 +2,7 @@ class TranslateConfigCommand
   include ConfigureCommand
   include ResetConfigPackageModule
   include ClusterCommandModule
+  include DisabledForExternalConfiguration
   
   def get_validation_checks
     []

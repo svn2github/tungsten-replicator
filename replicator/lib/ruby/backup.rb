@@ -57,7 +57,9 @@ class TungstenBackupScript
           # record
           TU.debug("Search thl from #{start_thl_seqno} to #{end_thl_seqno} for #{@binlog_file}:#{@binlog_position}")
           
+          TU.log_cmd_results?(false)
           thl_result = TU.cmd_result("#{TI.thl(@options[:service])} list -headers -json -low #{start_thl_seqno} -high #{end_thl_seqno}")
+          TU.log_cmd_results?(true)
           thl_records = JSON.parse(thl_result)
           unless thl_records.instance_of?(Array)
             TU.error("Unable to read the THL record for seqno #{end_thl_seqno}")

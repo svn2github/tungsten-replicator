@@ -123,7 +123,6 @@ module ConfigureDeploymentStepDeployment
     
     Configurator.instance.write_header("Building the Tungsten home directory")
     mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/share")
-    mkdir_if_absent(@config.getProperty(CONFIG_DIRECTORY))
     
     # Create share/env.sh script.
     script = "#{@config.getProperty(HOME_DIRECTORY)}/#{CONTINUENT_ENVIRONMENT_SCRIPT}"
@@ -296,9 +295,6 @@ EOF
             FileUtils.cp(connector_user_map, prepare_dir + '/tungsten-connector/conf')
           end
           
-          if File.exists?(@config.getProperty(CONFIG_DIRECTORY))
-            FileUtils.mv(Dir.glob(@config.getProperty(CONFIG_DIRECTORY) + '/*.cfg'), current_release_target_dir)
-          end
           FileUtils.touch(current_release_target_dir)
         end
       end
@@ -368,7 +364,9 @@ host=#{ds_alias}"
       FileUtils.ln_s(target_dir, current_release_directory)
     end
     
-    FileUtils.cp(Dir.glob(target_dir + '/*.cfg'), @config.getProperty(CONFIG_DIRECTORY))
+    if File.exists?(@config.getProperty(CONFIG_DIRECTORY))
+      FileUtils.rmtree(@config.getProperty(CONFIG_DIRECTORY))
+    end
     FileUtils.touch(target_dir)
     
     FileUtils.cp(current_release_directory + '/' + Configurator::HOST_CONFIG, current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig')

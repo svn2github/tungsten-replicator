@@ -3,6 +3,19 @@ require "resolv"
 require "ifconfig"
 
 class TungstenUtil
+  # Disable debug logging of command output
+  def log_cmd_results?(v = nil)
+    if v != nil
+      @log_results = v
+    end
+    
+    if @log_results == false
+      false
+    else
+      true
+    end
+  end
+  
   # Run the {command} and return a string of STDOUT
   def cmd_result(command, ignore_fail = false)
     errors = nil
@@ -23,7 +36,11 @@ class TungstenUtil
       errors = "Errors: #{errors}"
     end
 
-    debug("RC: #{rc}, Result: #{result}, #{errors}")
+    if log_cmd_results?()
+      debug("RC: #{rc}, Result: #{result}, #{errors}")
+    else
+      debug("RC: #{rc}, Result length #{result.length}, #{errors}")
+    end
     if rc != 0 && ! ignore_fail
       raise CommandError.new(command, rc, result)
     end
@@ -54,7 +71,11 @@ class TungstenUtil
       errors = "Errors: #{errors}"
     end
 
-    debug("RC: #{rc}, Result: #{result}, #{errors}")
+    if log_cmd_results?()
+      debug("RC: #{rc}, Result: #{result}, #{errors}")
+    else
+      debug("RC: #{rc}, Result length #{result.length}, #{errors}")
+    end
     if rc != 0 && ! ignore_fail
       raise CommandError.new(command, rc, result)
     end
@@ -85,7 +106,11 @@ class TungstenUtil
       errors = "Errors: #{errors}"
     end
 
-    debug("RC: #{rc}, Result: #{result}, #{errors}")
+    if log_cmd_results?()
+      debug("RC: #{rc}, Result: #{result}, #{errors}")
+    else
+      debug("RC: #{rc}, Result length #{result.length}, #{errors}")
+    end
     if rc != 0 && ! ignore_fail
       raise CommandError.new(command, rc, result)
     end
@@ -175,7 +200,11 @@ class TungstenUtil
     if rc != 0
       raise RemoteCommandError.new(user, host, command, rc, result)
     else
-      debug("RC: #{rc}, Result: #{result}")
+      if log_cmd_results?()
+        debug("RC: #{rc}, Result: #{result}")
+      else
+        debug("RC: #{rc}, Result length #{result.length}")
+      end
     end
 
     return result

@@ -51,6 +51,10 @@ class StarTopology
         fp + ["local.service.name=#{master_service}"])
     }
     
+    new_services = @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_MASTER_SERVICES]).split(",")
+    new_services << @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_HUB_SERVICE])
+    Configurator.instance.command.replace_command_dataservices(@ds_alias, 
+      new_services)
     remove_service(@ds_alias)
   end
   
