@@ -27,7 +27,7 @@ module Topology
     hosts = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_MASTERHOST]).to_s().split(",")
     port = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_MASTERPORT])
     
-    return _splice_hosts_port(hosts, port)
+    return _splice_hosts_port(hosts, port, @config.getProperty([REPL_SERVICES, rs_alias, REPL_THL_PROTOCOL]))
   end
   
   def get_role(hostname)
@@ -86,16 +86,16 @@ module Topology
     @config.setProperty([DATASERVICE_REPLICATION_OPTIONS, service], nil)
   end
   
-  def _splice_hosts_port(hosts, default_port)
+  def _splice_hosts_port(hosts, default_port, protocol)
     values = []
     
     hosts.each{
       |host|
       
       if host.index(':') == nil
-        values << "thl://#{host}:#{default_port}/"
+        values << "#{protocol}://#{host}:#{default_port}/"
       else
-        values << "thl://#{host}"
+        values << "#{protocol}://#{host}"
       end
     }
     

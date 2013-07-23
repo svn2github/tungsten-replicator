@@ -130,13 +130,20 @@ module ConfigureDeploymentStepDeployment
     transformer = Transformer.new(
 		  "#{get_deployment_basedir()}/cluster-home/samples/conf/env.sh.tpl",
 			script, "#")
-
     transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
 	  transformer.transform_values(method(:transform_values))
-
     transformer.output
     watch_file(transformer.get_filename())
     FileUtils.chmod(0755, script)
+    
+    # Write the cluster-home/conf/security.properties file
+    transformer = Transformer.new(
+		  "#{get_deployment_basedir()}/cluster-home/samples/conf/security.properties.tpl",
+			"#{get_deployment_basedir()}/cluster-home/conf/security.properties", "#")
+    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
+	  transformer.transform_values(method(:transform_values))
+    transformer.output
+    watch_file(transformer.get_filename())
     
     if Configurator.instance.is_enterprise?()
       debug("Write INSTALLED cookbook scripts")

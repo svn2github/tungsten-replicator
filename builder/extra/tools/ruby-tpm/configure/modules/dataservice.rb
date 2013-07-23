@@ -796,6 +796,31 @@ class THLStorageRetention < ConfigurePrompt
   end
 end
 
+class THLSSL < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(REPL_ENABLE_THL_SSL, "Enable SSL encryption of THL communication for this service", PV_BOOLEAN, "false")
+    add_command_line_alias("thl-ssl")
+  end
+end
+
+class THLProtocol < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(REPL_THL_PROTOCOL, "Protocol to use for THL communication with this service", PV_ANY)
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(REPL_ENABLE_THL_SSL)) == "true"
+      @default = "thls"
+    else
+      @default = "thl"
+    end
+  end
+end
+
 class THLStorageConsistency < ConfigurePrompt
   include ReplicationServicePrompt
   include AdvancedPromptModule

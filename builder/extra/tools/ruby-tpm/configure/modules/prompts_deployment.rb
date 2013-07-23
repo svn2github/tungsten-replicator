@@ -1187,6 +1187,60 @@ class HostDataServiceName < ConfigurePrompt
   end
 end
 
+class HostSecurityDirectory < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(SECURITY_DIRECTORY, "Storage directory for the Java security/encryption files", PV_FILENAME)
+  end
+  
+  def load_default_value
+    @default = "#{@config.getProperty(get_member_key(HOME_DIRECTORY))}/share"
+  end
+end
+
+class HostEnableRMIAuthentication < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(ENABLE_RMI_AUTHENTICATION, "Enable RMI authentication for the services running on this host", PV_BOOLEAN, "false")
+    add_command_line_alias("rmi-authentication")
+  end
+end
+
+class HostEnableRMISSL < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(ENABLE_RMI_SSL, "Enable SSL encryption of RMI communication on this host", PV_BOOLEAN, "false")
+    add_command_line_alias("rmi-ssl")
+  end
+end
+
+class HostRMIUser < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(RMI_USER, "The username for RMI authentication", PV_ANY, "tungsten")
+  end
+end
+
+class HostJavaKeystorePassword < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(JAVA_KEYSTORE_PASSWORD, "The password for unlocking the tungsten_keystore.jks file in the security directory", PV_ANY, "tungsten")
+  end
+end
+
+class HostJavaTruststorePassword < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(JAVA_TRUSTSTORE_PASSWORD, "The password for unlocking the tungsten_truststore.jks file in the security directory", PV_ANY, "tungsten")
+  end
+end
+
 class HostPortsForUsers < ConfigurePrompt
   include ClusterHostPrompt
   include ConstantValueModule

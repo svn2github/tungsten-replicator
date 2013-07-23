@@ -53,6 +53,13 @@ PORTS_FOR_CONNECTORS = "ports_for_connectors"
 PORTS_FOR_MANAGERS = "ports_for_managers"
 PORTS_FOR_REPLICATORS = "ports_for_replicators"
 
+SECURITY_DIRECTORY = "security_directory"
+ENABLE_RMI_AUTHENTICATION = "enable_rmi_authentication"
+ENABLE_RMI_SSL = "enable_rmi_ssl"
+RMI_USER = "rmi_user"
+JAVA_KEYSTORE_PASSWORD = "java_keystore_password"
+JAVA_TRUSTSTORE_PASSWORD = "java_truststore_password"
+
 # Operating system service parameters.
 SVC_INSTALL = "install"
 SVC_START = "start"
@@ -106,6 +113,8 @@ REPL_THL_DO_CHECKSUM = "repl_thl_do_checksum"
 REPL_THL_LOG_CONNECTION_TIMEOUT = "repl_thl_log_connection_timeout"
 REPL_THL_LOG_FILE_SIZE = "repl_thl_log_file_size"
 REPL_THL_LOG_FSYNC = "repl_thl_log_fsync"
+REPL_ENABLE_THL_SSL = "repl_enable_thl_ssl"
+REPL_THL_PROTOCOL = "repl_thl_protocol"
 
 REPL_DBTYPE = "repl_datasource_type"
 REPL_DBHOST = "repl_datasource_host"

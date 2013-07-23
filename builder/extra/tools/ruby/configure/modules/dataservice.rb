@@ -444,14 +444,15 @@ class ReplicationServiceTHLMasterURI < ConfigurePrompt
     
     hosts = @config.getPropertyOr(get_member_key(REPL_MASTERHOST), "").split(",")
     port = @config.getProperty(get_member_key(REPL_MASTERPORT))
+    protocol = @config.getProperty(get_member_key(REPL_THL_PROTOCOL))
     
     hosts.each{
       |host|
       
       if host.index(':') == nil
-        values << "thl://#{host}:#{port}/"
+        values << "#{protocol}://#{host}:#{port}/"
       else
-        values << "thl://#{host}"
+        values << "#{protocol}://#{host}"
       end
     }
     
@@ -846,6 +847,15 @@ class THLStorageRetention < ConfigurePrompt
   
   def enabled?
     super() && @config.getProperty(get_host_key(REPL_LOG_TYPE)) == "disk"
+  end
+end
+
+class THLProtocol < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_THL_PROTOCOL, "Protocol to use for THL communication with this service", PV_ANY, "thl")
   end
 end
 

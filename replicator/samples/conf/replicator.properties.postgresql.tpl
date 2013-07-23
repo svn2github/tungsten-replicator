@@ -19,7 +19,7 @@ replicator.master.connect.uri=wal://@{REPL_MASTERHOST}/
 
 # URI for our listener when we are acting as a master.  Slaves 
 # use this as their connect URI.  
-replicator.master.listen.uri=thl://@{HOST.HOST}:@{REPL_SVC_THL_PORT}/
+replicator.master.listen.uri=@{REPL_THL_PROTOCOL}://@{HOST.HOST}:@{REPL_SVC_THL_PORT}/
 
 # Replicator auto-enable.  If true, replicator automatically goes online 
 # at start-up time. 

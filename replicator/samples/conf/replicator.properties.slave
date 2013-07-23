@@ -236,7 +236,7 @@ replicator.thl.protocol.buffer_size=10
 # defaults to 2112 if you do not specify a value.  To enable SSL use
 # 'thls' instead of 'thl'.  Note that clients must exactly match the
 # scheme (thl vs. thls), host, and port to connect. 
-replicator.store.thl.storageListenerUri=thl://0.0.0.0:@{REPL_SVC_THL_PORT}
+replicator.store.thl.storageListenerUri=@{REPL_THL_PROTOCOL}://0.0.0.0:@{REPL_SVC_THL_PORT}
 
 # The transfer rate between the master and the slave can be improved
 # by setting the following setting to a value greater than 1, which
