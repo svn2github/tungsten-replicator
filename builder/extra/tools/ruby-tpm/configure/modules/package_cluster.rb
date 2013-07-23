@@ -1270,7 +1270,7 @@ module ClusterCommandModule
   end
   
   def build_topologies(config)
-    config.getPropertyOr(DATASERVICES, {}).each_key{
+    config.getPropertyOr(DATASERVICES, {}).keys().each{
       |ds_alias|
       topology = Topology.build(ds_alias, config)
       topology.build_services()
