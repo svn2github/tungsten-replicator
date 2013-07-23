@@ -324,20 +324,24 @@ public class JdbcApplier implements RawApplier
                 String msg = "Consistency check succeeded on table '"
                         + schemaName + "." + tableName + "' id: " + id
                         + ", offset: " + rowOffset + ", limit: " + rowLimit
-                        + ", method: '" + method + "' succeeded:"
-                        + "\nthis_cnt  : " + this_cnt + "\nmaster_cnt: "
+                        + ", method: '" + method + "' succeeded";
+                logger.info(msg);
+                String debug = "this_cnt  : " + this_cnt + "\nmaster_cnt: "
                         + master_cnt + "\nthis_crc  : " + this_crc
                         + "\nmaster_crc: " + master_crc;
-                logger.info(msg);
+                if (logger.isDebugEnabled())
+                    logger.debug(debug);
                 return;
             }
         }
 
         String msg = "Consistency check failed on table '" + schemaName + "."
                 + tableName + "' id: " + id + ", offset: " + rowOffset
-                + ", limit: " + rowLimit + ", method: '" + method + "' failed:"
-                + "\nthis_cnt  : " + this_cnt + "\nmaster_cnt: " + master_cnt
-                + "\nthis_crc  : " + this_crc + "\nmaster_crc: " + master_crc;
+                + ", limit: " + rowLimit + ", method: '" + method + "' failed";
+        if (logger.isDebugEnabled())
+            msg += "\nthis_cnt  : " + this_cnt + "\nmaster_cnt: " + master_cnt
+                    + "\nthis_crc  : " + this_crc + "\nmaster_crc: "
+                    + master_crc;
 
         throw new ConsistencyException(msg);
     }
