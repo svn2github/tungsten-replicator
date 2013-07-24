@@ -39,11 +39,11 @@ public class SecurityConf
     static public final String SECURITY_DIR                                                          = "security.dir";
 
     /** Authentication and Encryption */
-    static public final String SECURITY_JMX_USE_AUTHENTICATION                                       = "security.jmx.authentication";
-    static public final String SECURITY_JMX_USERNAME                                                 = "security.jmx.authentication.username";
-    static public final String SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM                        = "security.jmx.tungsten.authenticationRealm";
-    static public final String SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD     = "security.jmx.tungsten.authenticationRealm.encrypted.password";
-    static public final String SECURITY_JMX_USE_ENCRYPTION                                           = "security.jmx.encryption";
+    static public final String SECURITY_JMX_USE_AUTHENTICATION                                       = "security.rmi.authentication";
+    static public final String SECURITY_JMX_USERNAME                                                 = "security.rmi.authentication.username";
+    static public final String SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM                        = "security.rmi.tungsten.authenticationRealm";
+    static public final String SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD     = "security.rmi.tungsten.authenticationRealm.encrypted.password";
+    static public final String SECURITY_JMX_USE_ENCRYPTION                                           = "security.rmi.encryption";
     static public final String SECURITY_PASSWORD_FILE_LOCATION                                       = "security.password_file.location";
     static public final String SECURITY_ACCESS_FILE_LOCATION                                         = "security.access_file.location";
     static public final String SECURITY_KEYSTORE_LOCATION                                            = "security.keystore.location";
