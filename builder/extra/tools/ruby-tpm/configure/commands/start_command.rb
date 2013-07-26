@@ -175,7 +175,7 @@ module StartClusterDeploymentStep
 
       # Grep for the last position noted in the log.  
       if @config.getProperty(ROOT_PREFIX) == "true"
-        sudo = "sudo"
+        sudo = "sudo -n"
       else
         sudo = ""
       end

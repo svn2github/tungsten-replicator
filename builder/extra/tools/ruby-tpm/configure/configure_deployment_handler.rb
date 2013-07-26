@@ -34,7 +34,7 @@ class ConfigureDeploymentHandler
         user = @config.getProperty(USERID)
         ssh_user = Configurator.instance.get_ssh_user(user)
         if user != ssh_user
-          ssh_result("sudo chown -R #{ssh_user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+          ssh_result("sudo -n chown -R #{ssh_user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
         end
         
         if @config.getProperty(REMOTE_PACKAGE_PATH) == nil
@@ -64,12 +64,12 @@ class ConfigureDeploymentHandler
         File.unlink(config_tempfile.path())
       
         if user != ssh_user
-          ssh_result("sudo chown -R #{user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+          ssh_result("sudo -n chown -R #{user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
         
           gid = ssh_result("id -g #{ssh_user}", @config.getProperty(HOST), ssh_user)
           if gid != ""
-            ssh_result("sudo chgrp #{gid} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
-            ssh_result("sudo chmod g+w #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+            ssh_result("sudo -n chgrp #{gid} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+            ssh_result("sudo -n chmod g+w #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
           end
         end
         
@@ -155,18 +155,18 @@ class ConfigureDeploymentHandler
           user = @config.getProperty(USERID)
           ssh_user = Configurator.instance.get_ssh_user(user)
           if user != ssh_user
-            ssh_result("sudo chown -R #{ssh_user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+            ssh_result("sudo -n chown -R #{ssh_user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
           end
 
           cmd_result("rsync -aze 'ssh -p#{Configurator.instance.get_ssh_port()}' --delete #{Configurator.instance.get_base_path()}/ #{ssh_user}@#{@config.getProperty(HOST)}:#{@config.getProperty(REMOTE_PACKAGE_PATH)}")
         
           if user != ssh_user
-            ssh_result("sudo chown -R #{user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+            ssh_result("sudo -n chown -R #{user} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
 
             gid = ssh_result("id -g #{ssh_user}", @config.getProperty(HOST), ssh_user)
             if gid != ""
-              ssh_result("sudo chgrp #{gid} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
-              ssh_result("sudo chmod g+w #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+              ssh_result("sudo -n chgrp #{gid} #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
+              ssh_result("sudo -n chmod g+w #{validation_temp_directory}", @config.getProperty(HOST), ssh_user)
             end
           end
         end

@@ -367,7 +367,7 @@ class DatasourceBootScriptCheck < ConfigureValidationCheck
       if @config.getProperty(get_host_key(ROOT_PREFIX)) == "true"
         begin
           # Test if this script can be run via sudo w/o actually running it
-          cmd_result("sudo -l #{script}")
+          cmd_result("sudo -n -l #{script}")
         rescue CommandError
           error("Unable to run 'sudo #{script}'")
           help("Update the /etc/sudoers file or disable sudo by adding --enable-sudo-access=false")

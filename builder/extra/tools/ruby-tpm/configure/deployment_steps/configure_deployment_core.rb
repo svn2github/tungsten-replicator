@@ -170,7 +170,7 @@ module ConfigureDeploymentCore
   def get_root_prefix()
     prefix = @config.getProperty(ROOT_PREFIX)
     if prefix == "true" or prefix == "sudo"
-      return "sudo"
+      return "sudo -n"
     else
       return ""
     end

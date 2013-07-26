@@ -479,7 +479,7 @@ class SudoCheck < ConfigureValidationCheck
       add_help()
     else
       # Get the allowed sudo settings and commands
-      sudo_output = cmd_result("sudo -l")
+      sudo_output = cmd_result("sudo -n -l")
       if sudo_output =~ /requiretty/
         unless sudo_output =~ /!requiretty/
           error "Sudo has the requiretty option enabled"

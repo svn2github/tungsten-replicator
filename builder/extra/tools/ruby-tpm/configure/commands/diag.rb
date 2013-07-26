@@ -80,7 +80,7 @@ class DiagnosticCommand
       filename = File.basename(get_diagnostic_file())
 
       if @config.getProperty(ROOT_PREFIX) == "true"
-        sendmail_prefix = "sudo"
+        sendmail_prefix = "sudo -n"
       else
         sendmail_prefix = ""
       end

@@ -160,6 +160,7 @@ class Configurator
     @options = OpenStruct.new
     @options.output_threshold = Logger::NOTICE
     @options.stream_output = false
+    @options.fake_tty = false
     @options.ssh_options = {
       :timeout => 5,
       :auth_methods => ["publickey", "hostbased"],
@@ -441,6 +442,7 @@ class Configurator
     
       # Argument used by the validation and deployment handlers
       opts.on("--stream")               {@options.stream_output = true }
+      opts.on("--tty")                  {@options.fake_tty = true }
 
       remainder = run_option_parser(opts, arguments)
 
@@ -1031,7 +1033,11 @@ class Configurator
   end
   
   def has_tty?
-    (`tty > /dev/null 2>&1; echo $?`.chomp == "0")
+    if @options.fake_tty == true
+      return true
+    else
+      (`tty > /dev/null 2>&1; echo $?`.chomp == "0")
+    end
   end
   
   def enable_output?
@@ -1480,7 +1486,7 @@ class SSHConnections
     if user != ssh_user
       Configurator.instance.debug("SSH user changed to #{ssh_user}")
       command = command.tr('"', '\"')
-      command = "echo \"#{command}\" | sudo -u #{user} -i"
+      command = "echo \"#{command}\" | sudo -n -u #{user} -i"
     end
 
     Configurator.instance.debug("Execute `#{command}` on #{host} as #{user}")
@@ -1711,7 +1717,7 @@ def scp_result(local_file, remote_file, host, user)
     end
     
     if user != ssh_user
-      ssh_result("sudo chown -R #{user} #{remote_file}", host, ssh_user)
+      ssh_result("sudo -n chown -R #{user} #{remote_file}", host, ssh_user)
     end
     
     return true

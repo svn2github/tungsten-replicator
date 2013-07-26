@@ -720,7 +720,7 @@ class RootCommandPrefixPrompt < ConfigurePrompt
   
   def get_template_value(transform_values_method)
     if get_value() == "true"
-      "sudo"
+      "sudo -n"
     else
       ""
     end
