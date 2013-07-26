@@ -876,9 +876,20 @@ class MySQLPermissionsCheck < ConfigureValidationCheck
       if login_output =~ /ALIVE/
         info("Able to logon remotely to #{remoteHost} MySQL Instance")
       else
-        error("Unable to connect to the MySQL server on #{remoteHost}")
-        help("The management process needs to be able to connect to remote database servers to verify status")
+        if remoteHost == @config.getProperty(HOST)
+          error("Unable to connect to the MySQL server on #{remoteHost}")
+        else
+          if Configurator.instance.check_addresses_is_pingable(remoteHost)
+            error("Unable to connect to the MySQL server on #{remoteHost}")
+          else
+            warning("Unable to connect to the MySQL server on #{remoteHost}")
+          end
+        end
       end
+    end
+    
+    unless is_valid?()
+      help("The management process needs to be able to connect to remote database servers to verify status")
     end
   end
 end
