@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
@@ -455,32 +456,60 @@ public class THLParallelReadQueue
     }
 
     /**
-     * Removes the next element from the event queue.
+     * Removes the next event from the queue, waiting indefinitely for something
+     * to arrive.
+     * 
+     * @return An event
+     * @throws InterruptedException Thrown if thread is interrupted.
      */
     public ReplEvent take() throws InterruptedException
+    {
+        ReplEvent event = null;
+        while (event == null)
+        {
+            event = take(1000, TimeUnit.MILLISECONDS);
+        }
+        return event;
+    }
+
+    /**
+     * Removes the next element from the event queue, returning null if it
+     * cannot be found within the timeout.
+     * 
+     * @param timeout Interval to wait
+     * @param unit Unit of time
+     * @return An event or null if we time out
+     * @throws InterruptedException Thrown if thread is interrupted.
+     */
+    public ReplEvent take(long timeout, TimeUnit unit)
+            throws InterruptedException
     {
         // If there is nothing in the queue yet, remove this task
         // from interval tracking.
         if (eventQueue.size() == 0)
             intervalGuard.unreport(this.taskId);
 
-        // Grab the next event.
-        ReplEvent event = eventQueue.take();
+        // Grab the next event. We poll to ensure a timeout.
+        ReplEvent event = eventQueue.poll(timeout, unit);
 
-        // Report the event we are processing to interval tracking.
-        if (event instanceof ReplDBMSEvent)
+        // Report the event we are processing to interval tracking if we got
+        // something.
+        if (event != null)
         {
-            ReplDBMSEvent rde = (ReplDBMSEvent) event;
-            intervalGuard.report(taskId, rde.getSeqno(), rde
-                    .getExtractedTstamp().getTime());
-        }
-        else if (event instanceof ReplControlEvent)
-        {
-            ReplControlEvent rce = (ReplControlEvent) event;
-            if (rce.getHeader() != null)
+            if (event instanceof ReplDBMSEvent)
             {
-                intervalGuard.report(taskId, rce.getHeader().getSeqno(), rce
-                        .getHeader().getExtractedTstamp().getTime());
+                ReplDBMSEvent rde = (ReplDBMSEvent) event;
+                intervalGuard.report(taskId, rde.getSeqno(), rde
+                        .getExtractedTstamp().getTime());
+            }
+            else if (event instanceof ReplControlEvent)
+            {
+                ReplControlEvent rce = (ReplControlEvent) event;
+                if (rce.getHeader() != null)
+                {
+                    intervalGuard.report(taskId, rce.getHeader().getSeqno(),
+                            rce.getHeader().getExtractedTstamp().getTime());
+                }
             }
         }
 
