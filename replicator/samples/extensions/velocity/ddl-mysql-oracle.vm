@@ -25,6 +25,7 @@
 #parse("includes/ddl-mysql-oracle-table.vm")
 ## Primary key.
 #if ( $table.getPrimaryKey() )
+,
   PRIMARY KEY (##
 #foreach ( $key in $table.getPrimaryKey().getColumns() )
 $key.getName()##

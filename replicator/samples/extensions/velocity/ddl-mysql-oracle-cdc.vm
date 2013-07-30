@@ -17,6 +17,7 @@ Options:
                              specified).
   -opt tableSuffix suffix  - suffix to add to table names (no suffix, if not
                              specified).
+  -opt cdcColumnsAtFront b - true for CDC columns at front (default: false).
 
 Resulting tables have CDC columns added.
 
@@ -36,9 +37,17 @@ $table.setSchema($table.getSchema().concat($schemaSuffix))##
 #if( $tableSuffix )
 $table.setTable($table.getName().concat($tableSuffix))##
 #end
-#parse("includes/ddl-mysql-oracle-table.vm")
 ## CDC (logging) columns.
-  CDC_OP_TYPE VARCHAR(1), /* CDC column */
+#set ( $cdcColumns = "  CDC_OP_TYPE VARCHAR(1), /* CDC column */
   CDC_TIMESTAMP TIMESTAMP, /* CDC column */
-  CDC_SEQUENCE_NUMBER NUMBER PRIMARY KEY /* CDC column */
+  CDC_SEQUENCE_NUMBER NUMBER PRIMARY KEY /* CDC column */" )
+#if( $cdcColumnsAtFront == "true" )
+#set ( $customColumns = "$cdcColumns,")
+#end
+#parse("includes/ddl-mysql-oracle-table.vm")
+#if( !$cdcColumnsAtFront || $cdcColumnsAtFront != "true" )
+,
+$cdcColumns##
+#end
+
 );
