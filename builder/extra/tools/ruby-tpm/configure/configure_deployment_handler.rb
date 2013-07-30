@@ -55,6 +55,19 @@ class ConfigureDeploymentHandler
             return
           end
         end
+        
+        DeploymentFiles.prompts.each{
+          |p|
+          if @config.getProperty(p[:global]) != nil
+            if File.file?(@config.getProperty(p[:global]))
+              debug("Transfer #{File.basename(@config.getProperty(p[:global]))} to #{@config.getProperty(HOST)}")
+              scp_result(@config.getProperty(p[:global]), @config.getProperty(p[:local]), @config.getProperty(HOST), @config.getProperty(USERID))
+            elsif Configurator.instance.is_locked?() == false
+              error("Unable to transfer #{File.basename(@config.getProperty(p[:global]))} because it does not exist or is not a complete file name")
+              return
+            end
+          end
+        }
 
         debug("Transfer host configuration file to #{@config.getProperty(HOST)}")
         config_tempfile = Tempfile.new("tcfg")

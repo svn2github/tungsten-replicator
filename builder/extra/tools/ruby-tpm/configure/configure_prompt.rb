@@ -782,3 +782,13 @@ module PortForReplicators
     @paths || []
   end
 end
+module DeploymentFiles
+  def self.register(local, global)
+    @prompts ||= []
+    @prompts << {:local => local, :global => global}
+  end
+
+  def self.prompts
+    @prompts || []
+  end
+end

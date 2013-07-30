@@ -1241,6 +1241,126 @@ class HostJavaTruststorePassword < ConfigurePrompt
   end
 end
 
+class HostJavaKeystorePath < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(JAVA_KEYSTORE_PATH, "Local path to the Java Keystore file.", PV_FILENAME)
+  end
+  
+  def get_template_value(transform_values_method)
+    @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/tungsten_keystore.jks"
+  end
+  
+  def required?
+    false
+  end
+  
+  DeploymentFiles.register(JAVA_KEYSTORE_PATH, GLOBAL_JAVA_KEYSTORE_PATH)
+end
+
+class GlobalHostJavaKeystorePath < ConfigurePrompt
+  include ClusterHostPrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(GLOBAL_JAVA_KEYSTORE_PATH, "Staging path to the Java Keystore file", 
+      PV_FILENAME)
+  end
+end
+
+class HostJavaTruststorePath < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(JAVA_TRUSTSTORE_PATH, "Local path to the Java Truststore file.", PV_FILENAME)
+  end
+  
+  def get_template_value(transform_values_method)
+    @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/tungsten_truststore.ts"
+  end
+  
+  def required?
+    false
+  end
+  
+  DeploymentFiles.register(JAVA_TRUSTSTORE_PATH, GLOBAL_JAVA_TRUSTSTORE_PATH)
+end
+
+class GlobalHostJavaTruststorePath < ConfigurePrompt
+  include ClusterHostPrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(GLOBAL_JAVA_TRUSTSTORE_PATH, "Staging path to the Java Truststore file", 
+      PV_FILENAME)
+  end
+end
+
+class HostJavaJMXRemoteAccessPath < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(JAVA_JMXREMOTE_ACCESS_PATH, "Local path to the Java JMX Remote Access file.", PV_FILENAME)
+  end
+  
+  def get_template_value(transform_values_method)
+    @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/jmxremote.access"
+  end
+  
+  def required?
+    false
+  end
+  
+  DeploymentFiles.register(JAVA_JMXREMOTE_ACCESS_PATH, GLOBAL_JAVA_JMXREMOTE_ACCESS_PATH)
+end
+
+class GlobalHostJavaJMXRemoteAccessPath < ConfigurePrompt
+  include ClusterHostPrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(GLOBAL_JAVA_JMXREMOTE_ACCESS_PATH, "Staging path to the Java JMX Remote Access file", 
+      PV_FILENAME)
+  end
+end
+
+class HostJavaPasswordStorePath < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(JAVA_PASSWORDSTORE_PATH, "Local path to the Java Password Store file.", PV_FILENAME)
+  end
+  
+  def get_template_value(transform_values_method)
+    @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/passwords.store"
+  end
+  
+  def required?
+    false
+  end
+  
+  DeploymentFiles.register(JAVA_PASSWORDSTORE_PATH, GLOBAL_JAVA_PASSWORDSTORE_PATH)
+end
+
+class GlobalHostJavaPasswordStorePath < ConfigurePrompt
+  include ClusterHostPrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(GLOBAL_JAVA_PASSWORDSTORE_PATH, "Staging path to the Java Password Store file", 
+      PV_FILENAME)
+  end
+end
+
 class HostPortsForUsers < ConfigurePrompt
   include ClusterHostPrompt
   include ConstantValueModule

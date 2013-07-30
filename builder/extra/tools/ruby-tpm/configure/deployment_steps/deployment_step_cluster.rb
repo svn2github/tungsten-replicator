@@ -124,6 +124,15 @@ module ConfigureDeploymentStepDeployment
     Configurator.instance.write_header("Building the Tungsten home directory")
     mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/share")
     
+    DeploymentFiles.prompts.each{
+      |p|
+      if @config.getProperty(p[:local]) != nil && File.exist?(@config.getProperty(p[:local]))
+        target = @config.getTemplateValue(p[:local])
+        mkdir_if_absent(File.dirname(target))
+    		FileUtils.cp(@config.getProperty(p[:local]), target)
+    	end
+    }
+    
     # Create share/env.sh script.
     script = "#{@config.getProperty(HOME_DIRECTORY)}/#{CONTINUENT_ENVIRONMENT_SCRIPT}"
     debug("Generate environment at #{script}")

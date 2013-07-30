@@ -313,9 +313,11 @@ module ClusterCommandModule
         next
       end
       
-      if Configurator.instance.is_locked?() && prompt.allow_inplace_upgrade?() == false
-        error("Unable to accept \"--#{prompt.get_command_line_argument()}\" in an installed directory.  Try running 'tpm update' from a staging directory.")
-        next
+      unless use_external_configuration?()
+        if Configurator.instance.is_locked?() && prompt.allow_inplace_upgrade?() == false
+          error("Unable to accept \"--#{prompt.get_command_line_argument()}\" in an installed directory.  Try running 'tpm update' from a staging directory.")
+          next
+        end
       end
       
       if prompt.is_a?(GroupConfigurePromptMember) && prompt.allow_group_default()
@@ -1261,9 +1263,19 @@ module ClusterCommandModule
       config_obj.setProperty(DEPLOY_PACKAGE_URI, "file://localhost#{config_obj.getProperty([HOSTS, host_alias, TEMP_DIRECTORY])}/#{package_basename}")
     end
     
-    if !(Configurator.instance.is_localhost?(config_obj.getProperty([HOSTS, host_alias, HOST]))) && config_obj.getProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH])
-      config_obj.setProperty([HOSTS, host_alias, GLOBAL_REPL_MYSQL_CONNECTOR_PATH], config_obj.getProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH]))
-      config_obj.setProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH], "#{config_obj.getProperty([HOSTS, host_alias, TEMP_DIRECTORY])}/#{config_obj.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(config_obj.getProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH]))}")
+    if !(Configurator.instance.is_localhost?(config_obj.getProperty([HOSTS, host_alias, HOST])))
+      if config_obj.getProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH])
+        config_obj.setProperty([HOSTS, host_alias, GLOBAL_REPL_MYSQL_CONNECTOR_PATH], config_obj.getProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH]))
+        config_obj.setProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH], "#{config_obj.getProperty([HOSTS, host_alias, TEMP_DIRECTORY])}/#{config_obj.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(config_obj.getProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH]))}")
+      end
+      
+      DeploymentFiles.prompts.each{
+        |p|
+        if config_obj.getProperty([HOSTS, host_alias, p[:local]]) != nil
+          config_obj.setProperty([HOSTS, host_alias, p[:global]], config_obj.getProperty([HOSTS, host_alias, p[:local]]))
+          config_obj.setProperty([HOSTS, host_alias, p[:local]], "#{config_obj.getProperty([HOSTS, host_alias, TEMP_DIRECTORY])}/#{config_obj.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(config_obj.getProperty([HOSTS, host_alias, p[:local]]))}")
+        end
+      }
     end
     
     return config_obj
