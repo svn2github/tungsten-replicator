@@ -10,7 +10,7 @@ security.rmi.authentication=@{ENABLE_RMI_AUTHENTICATION}
 security.rmi.tungsten.authenticationRealm=true
 security.rmi.tungsten.authenticationRealm.encrypted.password=true
 security.rmi.encryption=@{ENABLE_RMI_SSL}
-security.rmi.username=@{RMI_USER}
+security.rmi.authentication.username=@{RMI_USER}
 
 # Password and access file
 security.password_file.location=@{JAVA_PASSWORDSTORE_PATH}
@@ -21,3 +21,4 @@ security.keystore.location=@{JAVA_KEYSTORE_PATH}
 security.keystore.password=@{JAVA_KEYSTORE_PASSWORD}
 security.truststore.location=@{JAVA_TRUSTSTORE_PATH}
 security.truststore.password=@{JAVA_TRUSTSTORE_PASSWORD}
+
