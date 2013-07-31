@@ -239,8 +239,8 @@ class ConfigureDeploymentHandler
         
         unless run_locally?()
           if Configurator.instance.command.use_remote_package?()
-           ssh_result("rm -rf #{get_validation_temp_directory()}", 
-             @config.getProperty(HOST), @config.getProperty(USERID))
+            ssh_result("rm -rf #{get_validation_temp_directory()}", 
+              @config.getProperty(HOST), @config.getProperty(USERID))
           end
           
           ssh_result("rm -f #{remote_additional_properties_filename}", @config.getProperty(HOST), @config.getProperty(USERID))

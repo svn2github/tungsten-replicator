@@ -397,11 +397,7 @@ class Configurator
       opts=OptionParser.new
       # Define the file to use for storing the staging configuration
       opts.on("--profile String", "-c String", "--config String")  {|val| 
-                                        if is_locked?()
-                                          error("The '--profile=#{val}' argument is not valid for an installed directory")
-                                        else
-                                          @options.config = val
-                                        end
+                                        @options.config = val
                                         }
       opts.on("--skip-validation-check String")      {|val|
                                           val.split(",").each{
