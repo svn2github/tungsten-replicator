@@ -156,8 +156,8 @@ public class PasswordManagerTest extends TestCase
         }
         
         // Try to get password without having loaded the passwords
-        goodEncryptedPassword   = pwd.getEncryptedPasswordForUser("tungstenRMI");
-        goodPassword            = pwd.getClearTextPasswordForUser("tungstenRMI");
+        goodEncryptedPassword   = pwd.getEncryptedPasswordForUser("tungsten");
+        goodPassword            = pwd.getClearTextPasswordForUser("tungsten");
         
         assertNotNull(goodEncryptedPassword);                   // We should get something
         assertNotNull(goodPassword);
