@@ -127,7 +127,7 @@ module NotTungstenUpdatePrompt
       return false
     end
     
-    if [UpdateCommand.name, ValidateUpdateCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
+    if [UpdateCommand.name, ValidateUpdateCommand.name].include?(@config.getNestedProperty([DEPLOYMENT_COMMAND]))
       return false
     else
       return (super() && true)
@@ -137,7 +137,7 @@ end
 
 module NotTungstenUpdateCheck
   def enabled?
-    if [UpdateCommand.name, ValidateUpdateCommand.name].include?(@config.getProperty(DEPLOYMENT_COMMAND))
+    if [UpdateCommand.name, ValidateUpdateCommand.name].include?(@config.getNestedProperty([DEPLOYMENT_COMMAND]))
       return false
     end
     
