@@ -183,9 +183,13 @@ public class PasswordManagerTest extends TestCase
         PasswordManager pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
         
         // -- Try to create a new username=password
+        String username = "ludovic";
+        String password = "ludovic_password";
+        String new_password = "my_new_password";
+        
         try
         {
-            pwd.setPasswordForUser("ludovic", "ludovic_password");
+            pwd.setPasswordForUser(username, password);
         }
         catch (Exception e)
         {
@@ -194,16 +198,16 @@ public class PasswordManagerTest extends TestCase
        
         // --- Try to retrieve what we've just stored ---
         pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
-        String retrievePassword = pwd.getClearTextPasswordForUser("ludovic");
-        assertEquals("ludovic_password", retrievePassword);
+        String retrievePassword = pwd.getClearTextPasswordForUser(username);
+        assertEquals(password, retrievePassword);
         
         // --- Try to update exising password ---
-        pwd.setPasswordForUser("ludovic", "my_new_password");
+        pwd.setPasswordForUser(username, new_password);
         
         // --- Again, try to retrieve the new password ---
         pwd = new PasswordManager("sample.security.properties", ClientApplicationType.RMI_JMX);
-        retrievePassword = pwd.getClearTextPasswordForUser("ludovic");
-        assertEquals("my_new_password", retrievePassword); 
+        retrievePassword = pwd.getClearTextPasswordForUser(username);
+        assertEquals(new_password, retrievePassword); 
         
         // ##### Backward compatibility ###
         // --- Retrieve the list of passwords using standard TungstenProperties ---
@@ -215,7 +219,7 @@ public class PasswordManagerTest extends TestCase
         assertEquals(true, passwdProps.size() != 0);
         
         // And we can retrieve a password for an existing user
-        String goodPassword = passwdProps.get(pwd.getApplicationSpecificUsername("ludovic"));
+        String goodPassword = passwdProps.get(pwd.getApplicationSpecificUsername(username));
         assertNotNull(goodPassword);
         // ################################
         

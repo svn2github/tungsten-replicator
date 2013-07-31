@@ -147,7 +147,7 @@ public class Encryptor
     }
 
     /**
-     * Encrypt a String using private key located in keystore.
+     * Encrypt a String using public key located in truststore.
      * 
      * @param message to be encrypted
      * @return Base64 encoded and encryoted message
@@ -155,12 +155,12 @@ public class Encryptor
     public String encrypt(String message)
     {
         String base64 = null;
-        PrivateKey privateKey = this.getPrivateKey_from_KeyStore();
+        PublicKey publicKey = this.getPublicKey_from_Truststore();
 
         try
         {
-            Cipher cipher = Cipher.getInstance(privateKey.getAlgorithm());
-            cipher.init(Cipher.ENCRYPT_MODE, privateKey);
+            Cipher cipher = Cipher.getInstance(publicKey.getAlgorithm());
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 
             // Gets the raw bytes to encrypt, UTF8 is needed for
             // having a standard character set
@@ -184,7 +184,7 @@ public class Encryptor
     }
 
     /**
-     * Encrypt a String using private key located in truststore.
+     * Decrypt a String using private key located in KeyStore.
      * 
      * @param encryptedMessage
      * @return Decrypted String
@@ -197,12 +197,12 @@ public class Encryptor
             return null;
 
         String clearMessage = null;
-        PublicKey publicKey = this.getPublicKey_from_Truststore();
+        PrivateKey privateKey = this.getPrivateKey_from_KeyStore();
 
         try
         {
-            Cipher cipher = Cipher.getInstance(publicKey.getAlgorithm());
-            cipher.init(Cipher.DECRYPT_MODE, publicKey);
+            Cipher cipher = Cipher.getInstance(privateKey.getAlgorithm());
+            cipher.init(Cipher.DECRYPT_MODE, privateKey);
 
             // Decode the BASE64 coded message
             byte[] raw = DatatypeConverter.parseBase64Binary(encryptedMessage);
@@ -211,7 +211,8 @@ public class Encryptor
             byte[] stringBytes = cipher.doFinal(raw);
 
             // converts the decoded message to a String
-            clearMessage = new String(stringBytes, "UTF8");
+            clearMessage = new String(stringBytes, "UTF8");      
+            
         }
         catch (Exception e)
         {
