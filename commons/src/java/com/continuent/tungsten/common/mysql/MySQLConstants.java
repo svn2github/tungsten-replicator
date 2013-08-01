@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -162,9 +162,9 @@ public class MySQLConstants
 
     public static final short  SERVER_QUERY_NO_INDEX_USED      = 32;
 
-    public static final int    SERVER_STATUS_CURSOR_EXISTS     = 64;
+    public static final short  SERVER_STATUS_CURSOR_EXISTS     = 64;
 
-    public static final int    SERVER_STATUS_LAST_ROW_SENT     = 128;
+    public static final short  SERVER_STATUS_LAST_ROW_SENT     = 128;
 
     /* Field flags from include/mysql_com.h. */
     public static final int    NOT_NULL_FLAG                   = 1;
@@ -288,7 +288,7 @@ public class MySQLConstants
     public static final int    ER_LOST_CONNECTION              = 2013;
 
     public static final int    ER_SERVER_GONE_AWAY             = 2006;
-    
+
     public static final int    ER_CON_COUNT_ERROR              = 1040;
 
     /* Misc constants */
