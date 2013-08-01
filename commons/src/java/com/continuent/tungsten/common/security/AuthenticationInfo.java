@@ -30,6 +30,8 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.utils.CLLogLevel;
+import com.continuent.tungsten.common.utils.CLUtils;
 
 /**
  * Information class holding Authentication and Encryption parameters Some of
@@ -108,7 +110,7 @@ public final class AuthenticationInfo
                 String msg = MessageFormat.format(
                         "Cannot find or read {0} file: {1}", KEYSTORE_LOCATION,
                         this.keystoreLocation);
-                logger.error(msg);
+                CLUtils.println(msg, CLLogLevel.detailed);
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
             }
@@ -130,7 +132,7 @@ public final class AuthenticationInfo
                 String msg = MessageFormat.format(
                         "Cannot find or read {0} file: {1}",
                         TRUSTSTORE_LOCATION, this.truststoreLocation);
-                logger.error(msg);
+                CLUtils.println(msg, CLLogLevel.detailed);
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
             }
@@ -152,7 +154,7 @@ public final class AuthenticationInfo
                 String msg = MessageFormat.format(
                         "Cannot find or read {0} file: {1}",
                         SecurityConf.SECURITY_PASSWORD_FILE_LOCATION, this.passwordFileLocation);
-                logger.error(msg);
+                CLUtils.println(msg, CLLogLevel.detailed);
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
             }
@@ -174,7 +176,7 @@ public final class AuthenticationInfo
                 String msg = MessageFormat.format(
                         "Cannot find or read {0} file: {1}",
                         SecurityConf.SECURITY_ACCESS_FILE_LOCATION, this.accessFileLocation);
-                logger.error(msg);
+                CLUtils.println(msg, CLLogLevel.detailed);
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
             }

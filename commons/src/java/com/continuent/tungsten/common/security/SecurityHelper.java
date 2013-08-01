@@ -35,6 +35,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 
 /**
  * Helper class for security related topics
@@ -245,10 +246,13 @@ public class SecurityHelper
         authInfo.setUsername(userName);
 
         // --- Check information is correct ---
-        authInfo.checkAuthenticationInfo(); // Checks authentication and encryption parameters: file exists, ...
+        authInfo.checkAuthenticationInfo(); // Checks authentication and
+                                            // encryption parameters: file
+                                            // exists, ...
 
         // --- Set critical properties as System Properties ---
-        SecurityHelper.setSecurityProperties(authInfo, true);
+        SecurityHelper.setSecurityProperties(authInfo,
+                (authUsage == AUTH_USAGE.SERVER_SIDE ? true : false));
         return authInfo;
     }
 
@@ -262,11 +266,18 @@ public class SecurityHelper
     private static void setSecurityProperties(AuthenticationInfo authInfo,
             boolean verbose)
     {
-        logger.info("Setting security properties!");
-        setSystemProperty("javax.net.ssl.keyStore", authInfo.getKeystoreLocation(), verbose);
-        setSystemProperty("javax.net.ssl.keyStorePassword", authInfo.getKeystorePassword(), verbose);
-        setSystemProperty("javax.net.ssl.trustStore", authInfo.getTruststoreLocation(), verbose);
-        setSystemProperty("javax.net.ssl.trustStorePassword", authInfo.getTruststorePassword(), verbose);
+        if (verbose)
+        {
+            logger.info("Setting security properties!");
+        }
+        setSystemProperty("javax.net.ssl.keyStore",
+                authInfo.getKeystoreLocation(), verbose);
+        setSystemProperty("javax.net.ssl.keyStorePassword",
+                authInfo.getKeystorePassword(), verbose);
+        setSystemProperty("javax.net.ssl.trustStore",
+                authInfo.getTruststoreLocation(), verbose);
+        setSystemProperty("javax.net.ssl.trustStorePassword",
+                authInfo.getTruststorePassword(), verbose);
     }
 
     /**
@@ -276,11 +287,13 @@ public class SecurityHelper
      * @param value value of the system property
      * @param verbose log the property being set if true.
      */
-    private static void setSystemProperty(String name, String value, boolean verbose)
+    private static void setSystemProperty(String name, String value,
+            boolean verbose)
     {
         if (verbose)
         {
-            logger.info("Setting system property: name=" + name + " value=" + value);
+            logger.info("Setting system property: name=" + name + " value="
+                    + value);
         }
         System.setProperty(name, value);
     }
@@ -347,9 +360,11 @@ public class SecurityHelper
             throw new ConfigurationException(msg);
         }
 
-        logger.info(MessageFormat.format(
-                "Security parameters loaded from: {0}",
-                securityPropertiesFile.getPath()));
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(MessageFormat.format(": {0}",
+                    securityPropertiesFile.getPath()));
+        }
 
         // Update propertiesFileLocation with the location actualy used
         securityProps.put(
