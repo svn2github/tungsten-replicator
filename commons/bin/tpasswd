@@ -14,12 +14,11 @@ PASWORD_MGR_NAME=com.continuent.tungsten.common.security.PasswordManagerCtrl
 # Find home. 
 PASWORD_MGR_RPBIN=`dirname $0`
 PASWORD_MGR_HOME=`cd $PASWORD_MGR_RPBIN/..; pwd`
-CLUSTER_HOME=$PASWORD_MGR_HOME/../../cluster-home
+CLUSTER_HOME=$PASWORD_MGR_HOME/../cluster-home
 
 # Add configuration directory to class path. 
 CP=$CP:$PASWORD_MGR_HOME/conf
-CP=$CP:$PASWORD_MGR_HOME/build/java/classes		# Used while developping only.
-CP=$CP:$PASWORD_MGR_HOME/lib/*					# Add all jars
+CP=$CP:$PASWORD_MGR_HOME/../tungsten-replicator/lib/*		# Add all jars
 
 # Find Java.
 if [ -z "$JAVA_HOME" ]; then
@@ -33,11 +32,21 @@ if [ ! -x "$JAVA" ]; then
   exit 1
 fi
 
+# Set log directory. 
+if [ -z "$TPASSWD_LOG_DIR" ]; then 
+  TPASSWD_LOG_DIR=$CLUSTER_HOME/log
+fi
+if [ ! -d "$TPASSWD_LOG_DIR" ]; then
+  echo "Cannot find tpasswd log directory: $TPASSWD_LOG_DIR"
+  exit 1
+fi
+JVM_OPTIONS="${JVM_OPTIONS} -Dtpasswd.log.dir=$TPASSWD_LOG_DIR" 
+
+# Set other JVM options
 JVM_OPTIONS="${JVM_OPTIONS} \
--Dcluster_home=$CLUSTER_HOME \
+-Dcluster.home=$CLUSTER_HOME \
 -Dlog4j.configuration=log4j.commandline.properties \
 " 
-
 
 # Uncomment to debug Password Manager. 
 #PASSWORD_MANAGER_JVMDEBUG_PORT=54002
