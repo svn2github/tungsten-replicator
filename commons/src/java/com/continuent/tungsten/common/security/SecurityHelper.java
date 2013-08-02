@@ -184,9 +184,18 @@ public class SecurityHelper
      * @throws ConfigurationException
      * @throws ReplicatorException
      */
+    public static AuthenticationInfo loadAuthenticationInformation(String propertiesFileLocation,
+    AuthenticationInfo.AUTH_USAGE authUsage)
+    throws ConfigurationException
+    {
+        return loadAuthenticationInformation(propertiesFileLocation, authUsage, true);
+    }
+
     public static AuthenticationInfo loadAuthenticationInformation(
             String propertiesFileLocation,
-            AuthenticationInfo.AUTH_USAGE authUsage)
+            AuthenticationInfo.AUTH_USAGE authUsage,
+            boolean doConsistencyChecks
+            )
             throws ConfigurationException
     {
         // Load properties and perform substitution
@@ -246,13 +255,11 @@ public class SecurityHelper
         authInfo.setUsername(userName);
 
         // --- Check information is correct ---
-        authInfo.checkAuthenticationInfo(); // Checks authentication and
-                                            // encryption parameters: file
-                                            // exists, ...
+        if (doConsistencyChecks)
+            authInfo.checkAuthenticationInfo(); // Checks authentication and encryption parameters: file exists, ...
 
         // --- Set critical properties as System Properties ---
-        SecurityHelper.setSecurityProperties(authInfo,
-                (authUsage == AUTH_USAGE.SERVER_SIDE ? true : false));
+        SecurityHelper.setSecurityProperties(authInfo, true);
         return authInfo;
     }
 

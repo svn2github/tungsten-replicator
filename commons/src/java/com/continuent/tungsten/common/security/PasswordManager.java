@@ -108,7 +108,7 @@ public class PasswordManager
             this.authenticationInfo = SecurityHelper
                     .loadAuthenticationInformation(
                             securityPropertiesFileLocation,
-                            AUTH_USAGE.CLIENT_SIDE);
+                            AUTH_USAGE.CLIENT_SIDE, false);
         }
         catch (ConfigurationException ce)
         {
