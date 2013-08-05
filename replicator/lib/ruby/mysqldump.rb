@@ -11,7 +11,10 @@ class TungstenMySQLdumpScript < TungstenBackupScript
         TU.output("Create mysqldump in #{mysqldump_file}")
         TU.cmd_result("echo \"-- Tungsten database dump - should not be logged on restore\n\" | gzip -c > #{mysqldump_file}");
         TU.cmd_result("echo \"SET SESSION SQL_LOG_BIN=0;\n\" | gzip -c >> #{mysqldump_file}");
+        TU.cmd_result("echo \"/*!50112 SET @OLD_SLOW_QUERY_LOG=@@SLOW_QUERY_LOG */;\n\" | gzip -c >> #{mysqldump_file}");
+        TU.cmd_result("echo \"/*!50112 SET GLOBAL SLOW_QUERY_LOG=0 */;\n\" | gzip -c >> #{mysqldump_file}");
         TU.cmd_result("#{get_mysqldump_command()} | gzip -c >> #{mysqldump_file}")
+        TU.cmd_result("echo \"/*!50112 SET GLOBAL SLOW_QUERY_LOG=@OLD_SLOW_QUERY_LOG */;\n\" | gzip -c >> #{mysqldump_file}");
         
         # Find the CHANGE MASTER line so we can read the current binlog position
         # unzip the file before sending it through the head command
@@ -22,7 +25,10 @@ class TungstenMySQLdumpScript < TungstenBackupScript
         TU.output("Create mysqldump in #{mysqldump_file}")
         TU.cmd_result("echo \"-- Tungsten database dump - should not be logged on restore\n\" > #{mysqldump_file}");
         TU.cmd_result("echo \"SET SESSION SQL_LOG_BIN=0;\n\" >> #{mysqldump_file}");
+        TU.cmd_result("echo \"/*!50112 SET @OLD_SLOW_QUERY_LOG=@@SLOW_QUERY_LOG */;\n\" >> #{mysqldump_file}");
+        TU.cmd_result("echo \"/*!50112 SET GLOBAL SLOW_QUERY_LOG=0 */;\n\" >> #{mysqldump_file}");
         TU.cmd_result("#{get_mysqldump_command()} >> #{mysqldump_file}")
+        TU.cmd_result("echo \"/*!50112 SET GLOBAL SLOW_QUERY_LOG=@OLD_SLOW_QUERY_LOG */;\n\" >> #{mysqldump_file}");
         
         # Find the CHANGE MASTER line so we can read the current binlog position
         change_master_line = TU.cmd_result("head -n50 #{mysqldump_file} | grep \"CHANGE MASTER\"")
