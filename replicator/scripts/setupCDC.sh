@@ -30,6 +30,7 @@ fi
 
 DEFAULT_CHANGE_SET="TUNGSTEN_CHANGE_SET"
 CHANGE_SET=${DEFAULT_CHANGE_SET}
+[ -z "${service}" ] && echo "ERROR: service must be defined in ${CNF_FILE}" && exit 1
 [ ! -z "${service}" ] && CHANGE_SET="TUNGSTEN_CS_${service}"
 
 if [ -n "${sys_user}" ]
