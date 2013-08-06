@@ -352,6 +352,15 @@ class TungstenXtrabackupScript < TungstenBackupScript
     
     # Read data locations from the my.cnf file
     @options[:mysqldatadir] = get_mysql_option("datadir")
+    if @options[:mysqldatadir].to_s() == ""
+      # The configuration file doesn't have a datadir value
+      # See if MySQL will give one and store it in wrapper config file
+      @options[:mysqldatadir] = get_mysql_variable("datadir")
+      if @options[:mysqldatadir].to_s() != ""
+        extra_defaults_value("datadir=#{@options[:mysqldatadir]}")
+      end
+    end
+    
     @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
     @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")
     @options[:mysqluser] = get_mysql_option("user")
@@ -402,8 +411,12 @@ class TungstenXtrabackupScript < TungstenBackupScript
       TU.error "The MySQL log dir '#{@options[:mysqllogdir]}' is not writeable"
     end
 
-    unless File.writable?(@options[:mysqldatadir])
-      TU.error "The MySQL data dir '#{@options[:mysqldatadir]}' is not writeable"
+    if @options[:mysqldatadir].to_s() == ""
+      TU.error "The configuration file at #{@options[:my_cnf]} does not define a datadir value."
+    else
+      unless File.writable?(@options[:mysqldatadir])
+        TU.error "The MySQL data dir '#{@options[:mysqldatadir]}' is not writeable"
+      end
     end
     
     if @options[:action] == ACTION_RESTORE
@@ -602,7 +615,15 @@ class TungstenXtrabackupScript < TungstenBackupScript
   end
 
   def get_xtrabackup_command
-    "innobackupex-1.5.1 --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]}"
+    # Use the configured my.cnf file, or the additional config file 
+    # if we created one
+    if @options[:extra_defaults_file] == nil
+      defaults_file = @options[:my_cnf]
+    else
+      defaults_file = @options[:extra_defaults_file].path()
+    end
+    
+    "innobackupex-1.5.1 --defaults-file=#{defaults_file} --host=#{@options[:host]} --port=#{@options[:port]}"
   end
   
   def get_mysql_option(opt)
@@ -632,6 +653,19 @@ class TungstenXtrabackupScript < TungstenBackupScript
     }
     
     return nil
+  end
+  
+  # Store additional MySQL configuration values in a temporary file
+  def extra_defaults_value(value)
+    if @options[:extra_defaults_file] == nil
+      @options[:extra_defaults_file] = Tempfile.new("xtracfg")
+      @options[:extra_defaults_file].puts("!include #{@options[:my_cnf]}")
+      @options[:extra_defaults_file].puts("")
+      @options[:extra_defaults_file].puts("[mysqld]")
+    end
+    
+    @options[:extra_defaults_file].puts(value)
+    @options[:extra_defaults_file].flush()
   end
 end
 
