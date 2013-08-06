@@ -526,7 +526,8 @@ module HiddenValueModule
   def output_usage
   end
   
-  def output_template_file_usage
+  def required?
+    false
   end
 end
 

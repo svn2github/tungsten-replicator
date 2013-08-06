@@ -261,7 +261,11 @@ module ConfigurePromptInterface
   
   # Output how to specify this value in a template file
   def output_template_file_usage
-    output_usage_line(get_template_file_usage_symbol(), get_prompt())
+    if enabled_for_command_line?()
+      output_usage_line(get_template_file_usage_symbol(), "--#{get_command_line_argument()}")
+    else
+      output_usage_line(get_template_file_usage_symbol(), get_prompt())
+    end
   end
   
   # The template parameter to output in output_template_file_usage
