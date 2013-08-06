@@ -135,12 +135,10 @@ class Transformer
   def output
     if @outfile
       out = File.open(@outfile, "w")
-      @output.each { |line| out.puts line }
-      out.puts
-    
       if @end_comment
         out.puts @end_comment + "AUTO-GENERATED: #{DateTime.now}"
       end
+      @output.each { |line| out.puts line }
       out.close
       if defined?(Configurator)
         Configurator.instance.info("OUTPUT TO: " + @outfile)
