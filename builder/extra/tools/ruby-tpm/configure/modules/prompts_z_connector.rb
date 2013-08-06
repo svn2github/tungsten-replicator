@@ -27,6 +27,7 @@ ROUTER_KEEP_ALIVE_TIMEOUT = "connector_keepalive_timeout"
 ROUTER_DELAY_BEFORE_OFFLINE = "connector_delay_before_offline"
 CONN_JAVA_MEM_SIZE = "conn_java_mem_size"
 CONN_JAVA_ENABLE_CONCURRENT_GC = "conn_java_enable_concurrent_gc"
+CONN_RR_INCLUDE_MASTER = "conn_round_robin_include_master"
 
 class Connectors < GroupConfigurePrompt
   def initialize
@@ -584,5 +585,15 @@ class ConnectorJavaGarbageCollection < ConfigurePrompt
     else
       "#"
     end
+  end
+end
+
+class ConnectorRoundRobinIncludeMaster < ConfigurePrompt
+  include ConnectorPrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(CONN_RR_INCLUDE_MASTER, "Should the Connector include the master in round-robin load balancing",
+      PV_BOOLEAN, "false")
   end
 end
