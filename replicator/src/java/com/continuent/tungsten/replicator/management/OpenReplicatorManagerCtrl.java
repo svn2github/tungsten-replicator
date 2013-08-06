@@ -1152,8 +1152,15 @@ public class OpenReplicatorManagerCtrl
             println("Only schema name supplied, row limits will be ignored.");
         }
 
-        getOpenReplicator().consistencyCheck(ccType, schemaName, tableName,
-                rowOffset, rowLimit);
+        int id = getOpenReplicator().consistencyCheck(ccType, schemaName,
+                tableName, rowOffset, rowLimit);
+        println("Check (id=" + id + ") issued");
+
+        if (getOpenReplicator().getRole().equals("slave"))
+        {
+            println("WARN: check should be issued from the master as opposed to the slave;"
+                    + " to avoid duplicate key errors, remove it from the consistency table when done");
+        }
     }
 
     // Perform a heartbeat operation.
