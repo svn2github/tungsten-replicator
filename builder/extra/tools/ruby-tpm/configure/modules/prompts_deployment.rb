@@ -1257,6 +1257,17 @@ class HostJavaKeystorePath < ConfigurePrompt
     false
   end
   
+  def validate_value(value)
+    super(value)
+    if is_valid?() && value != ""
+      unless File.exists?(value)
+        error("The file #{value} does not exist")
+      end
+    end
+    
+    is_valid?()
+  end
+  
   DeploymentFiles.register(JAVA_KEYSTORE_PATH, GLOBAL_JAVA_KEYSTORE_PATH)
 end
 
@@ -1285,6 +1296,17 @@ class HostJavaTruststorePath < ConfigurePrompt
   
   def required?
     false
+  end
+  
+  def validate_value(value)
+    super(value)
+    if is_valid?() && value != ""
+      unless File.exists?(value)
+        error("The file #{value} does not exist")
+      end
+    end
+    
+    is_valid?()
   end
   
   DeploymentFiles.register(JAVA_TRUSTSTORE_PATH, GLOBAL_JAVA_TRUSTSTORE_PATH)
@@ -1317,6 +1339,17 @@ class HostJavaJMXRemoteAccessPath < ConfigurePrompt
     false
   end
   
+  def validate_value(value)
+    super(value)
+    if is_valid?() && value != ""
+      unless File.exists?(value)
+        error("The file #{value} does not exist")
+      end
+    end
+    
+    is_valid?()
+  end
+  
   DeploymentFiles.register(JAVA_JMXREMOTE_ACCESS_PATH, GLOBAL_JAVA_JMXREMOTE_ACCESS_PATH)
 end
 
@@ -1345,6 +1378,17 @@ class HostJavaPasswordStorePath < ConfigurePrompt
   
   def required?
     false
+  end
+  
+  def validate_value(value)
+    super(value)
+    if is_valid?() && value != ""
+      unless File.exists?(value)
+        error("The file #{value} does not exist")
+      end
+    end
+    
+    is_valid?()
   end
   
   DeploymentFiles.register(JAVA_PASSWORDSTORE_PATH, GLOBAL_JAVA_PASSWORDSTORE_PATH)

@@ -1327,3 +1327,66 @@ class MissingReplicationServiceConfigurationCheck < ConfigureValidationCheck
     end
   end
 end
+
+class EncryptionKeystoreCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  include ReplicatorEnabledCheck
+  
+  def set_vars
+    @title = "Test that all files for RMI encryption are created properly"
+  end
+  
+  def validate
+    keystore_path = @config.getProperty(JAVA_KEYSTORE_PATH)
+    if keystore_path.to_s() == ""
+      if File.exist?(@config.getTemplateValue(JAVA_KEYSTORE_PATH))
+        keystore_path = @config.getTemplateValue(JAVA_KEYSTORE_PATH)
+      else
+        error("Unable to find #{@config.getTemplateValue(JAVA_KEYSTORE_PATH)} for use with SSL encryption. You must create the file or provide a path to it with --java-keystore-path.")
+      end
+    end
+    
+    if keystore_path.to_s() != ""
+      begin
+        cmd_result("keytool -list -keystore #{keystore_path} -storepass #{@config.getProperty(JAVA_KEYSTORE_PASSWORD)}")
+      rescue CommandError => ce
+        error("There was an issue validating the SSL keystore: #{ce.result}. Check the values of --java-keystore-path and --java-keystore-password. If you did not provide --java-keystore-path, check the file at #{@config.getTemplateValue(JAVA_KEYSTORE_PATH)}")
+      end
+    end
+    
+    truststore_path = @config.getProperty(JAVA_TRUSTSTORE_PATH)
+    if truststore_path.to_s() == ""
+      if File.exist?(@config.getTemplateValue(JAVA_TRUSTSTORE_PATH))
+        truststore_path = @config.getTemplateValue(JAVA_TRUSTSTORE_PATH)
+      else
+        error("Unable to find #{@config.getTemplateValue(JAVA_TRUSTSTORE_PATH)} for use with SSL encryption. You must create the file or provide a path to it with --java-truststore-path.")
+      end
+    end
+    
+    if truststore_path.to_s() != ""
+      begin
+        cmd_result("keytool -list -keystore #{truststore_path} -storepass #{@config.getProperty(JAVA_TRUSTSTORE_PASSWORD)}")
+      rescue CommandError => ce
+        error("There was an issue validating the SSL truststore: #{ce.result}. Check the values of --java-truststore-path and --java-truststore-password. If you did not provide --java-truststore-path, check the file at #{@config.getTemplateValue(JAVA_TRUSTSTORE_PATH)}")
+      end
+    end
+  end
+  
+  def enabled?
+    ssl_enabled = false
+    if @config.getProperty(ENABLE_RMI_SSL) == "true"
+      ssl_enabled = true
+    end
+    @config.getPropertyOr([REPL_SERVICES], {}).keys().each{
+      |rs_alias|
+      if rs_alias == DEFAULTS
+        next
+      end
+      if @config.getProperty([REPL_SERVICES, rs_alias, REPL_ENABLE_THL_SSL]) == "true"
+        ssl_enabled = true
+      end
+    }
+    
+    super() && ssl_enabled
+  end
+end
