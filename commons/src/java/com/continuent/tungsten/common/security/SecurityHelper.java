@@ -199,67 +199,80 @@ public class SecurityHelper
             throws ConfigurationException
     {
         // Load properties and perform substitution
-        TungstenProperties securityProperties = loadSecurityPropertiesFromFile(propertiesFileLocation);
+        TungstenProperties securityProperties = null;
+        try
+        {
+            securityProperties = loadSecurityPropertiesFromFile(propertiesFileLocation);
+        }
+        catch (ConfigurationException ce)
+        {
+            if (doConsistencyChecks)
+                throw ce;
+        }
+        
 
         AuthenticationInfo authInfo = new AuthenticationInfo(authUsage);
 
         // Authorisation and/or encryption
-        securityProperties.trim(); // Remove white spaces
-        boolean useAuthentication = securityProperties.getBoolean(
-                SecurityConf.SECURITY_JMX_USE_AUTHENTICATION,
-                SecurityConf.SECURITY_USE_AUTHENTICATION_DEFAULT, false);
-        boolean useEncryption = securityProperties.getBoolean(
-                SecurityConf.SECURITY_JMX_USE_ENCRYPTION,
-                SecurityConf.SECURITY_USE_ENCRYPTION_DEFAULT, false);
-        boolean useTungstenAuthenticationRealm = securityProperties
-                .getBoolean(
-                        SecurityConf.SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM,
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT,
-                        false);
-        boolean useEncryptedPassword = securityProperties
-                .getBoolean(
-                        SecurityConf.SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
-                        SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT,
-                        false);
+        if (securityProperties!=null)
+        {
+            securityProperties.trim(); // Remove white spaces
+            boolean useAuthentication = securityProperties.getBoolean(
+                    SecurityConf.SECURITY_JMX_USE_AUTHENTICATION,
+                    SecurityConf.SECURITY_USE_AUTHENTICATION_DEFAULT, false);
+            boolean useEncryption = securityProperties.getBoolean(
+                    SecurityConf.SECURITY_JMX_USE_ENCRYPTION,
+                    SecurityConf.SECURITY_USE_ENCRYPTION_DEFAULT, false);
+            boolean useTungstenAuthenticationRealm = securityProperties
+                    .getBoolean(
+                            SecurityConf.SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM,
+                            SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_DEFAULT,
+                            false);
+            boolean useEncryptedPassword = securityProperties
+                    .getBoolean(
+                            SecurityConf.SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD,
+                            SecurityConf.SECURITY_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD_DEFAULT,
+                            false);
 
-        // Retrieve properties
-        String securityPropertiesFileLocation = securityProperties
-                .getString(SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION);
-        String passwordFileLocation = securityProperties
-                .getString(SecurityConf.SECURITY_PASSWORD_FILE_LOCATION);
-        String accessFileLocation = securityProperties
-                .getString(SecurityConf.SECURITY_ACCESS_FILE_LOCATION);
-        String keystoreLocation = securityProperties
-                .getString(SecurityConf.SECURITY_KEYSTORE_LOCATION);
-        String keystorePassword = securityProperties
-                .getString(SecurityConf.SECURITY_KEYSTORE_PASSWORD);
-        String truststoreLocation = securityProperties
-                .getString(SecurityConf.SECURITY_TRUSTSTORE_LOCATION);
-        String truststorePassword = securityProperties
-                .getString(SecurityConf.SECURITY_TRUSTSTORE_PASSWORD);
-        String userName = securityProperties.getString(
-                SecurityConf.SECURITY_JMX_USERNAME, null, false);
+            // Retrieve properties
+            String securityPropertiesFileLocation = securityProperties
+                    .getString(SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION);
+            String passwordFileLocation = securityProperties
+                    .getString(SecurityConf.SECURITY_PASSWORD_FILE_LOCATION);
+            String accessFileLocation = securityProperties
+                    .getString(SecurityConf.SECURITY_ACCESS_FILE_LOCATION);
+            String keystoreLocation = securityProperties
+                    .getString(SecurityConf.SECURITY_KEYSTORE_LOCATION);
+            String keystorePassword = securityProperties
+                    .getString(SecurityConf.SECURITY_KEYSTORE_PASSWORD);
+            String truststoreLocation = securityProperties
+                    .getString(SecurityConf.SECURITY_TRUSTSTORE_LOCATION);
+            String truststorePassword = securityProperties
+                    .getString(SecurityConf.SECURITY_TRUSTSTORE_PASSWORD);
+            String userName = securityProperties.getString(
+                    SecurityConf.SECURITY_JMX_USERNAME, null, false);
 
-        // Populate return object
-        authInfo.setParentPropertiesFileLocation(securityPropertiesFileLocation);
-        authInfo.setAuthenticationNeeded(useAuthentication);
-        authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
-        authInfo.setUseEncryptedPasswords(useEncryptedPassword);
-        authInfo.setEncryptionNeeded(useEncryption);
-        authInfo.setPasswordFileLocation(passwordFileLocation);
-        authInfo.setAccessFileLocation(accessFileLocation);
-        authInfo.setKeystoreLocation(keystoreLocation);
-        authInfo.setKeystorePassword(keystorePassword);
-        authInfo.setTruststoreLocation(truststoreLocation);
-        authInfo.setTruststorePassword(truststorePassword);
-        authInfo.setUsername(userName);
+            // Populate return object
+            authInfo.setParentPropertiesFileLocation(securityPropertiesFileLocation);
+            authInfo.setAuthenticationNeeded(useAuthentication);
+            authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
+            authInfo.setUseEncryptedPasswords(useEncryptedPassword);
+            authInfo.setEncryptionNeeded(useEncryption);
+            authInfo.setPasswordFileLocation(passwordFileLocation);
+            authInfo.setAccessFileLocation(accessFileLocation);
+            authInfo.setKeystoreLocation(keystoreLocation);
+            authInfo.setKeystorePassword(keystorePassword);
+            authInfo.setTruststoreLocation(truststoreLocation);
+            authInfo.setTruststorePassword(truststorePassword);
+            authInfo.setUsername(userName);
 
-        // --- Check information is correct ---
-        if (doConsistencyChecks)
-            authInfo.checkAuthenticationInfo(); // Checks authentication and encryption parameters: file exists, ...
+            // --- Check information is correct ---
+            if (doConsistencyChecks)
+                authInfo.checkAuthenticationInfo(); // Checks authentication and encryption parameters: file exists, ...
 
-        // --- Set critical properties as System Properties ---
-        SecurityHelper.setSecurityProperties(authInfo, true);
+            // --- Set critical properties as System Properties ---
+            SecurityHelper.setSecurityProperties(authInfo, true);
+        }
         return authInfo;
     }
 

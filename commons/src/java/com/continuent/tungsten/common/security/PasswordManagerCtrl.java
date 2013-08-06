@@ -38,6 +38,7 @@ import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
 
 /**
@@ -48,62 +49,89 @@ import com.continuent.tungsten.common.security.PasswordManager.ClientApplication
  */
 public class PasswordManagerCtrl
 {
-    
-    private static  Logger                                  logger  = Logger.getLogger(PasswordManagerCtrl.class);
-    
-    private         Options                                 options                 = new Options();
-    private static  PasswordManagerCtrl                     pwd;
-    private static  PasswordManager.ClientApplicationType   clientApplicationType   = null;
-    public          PasswordManager                         passwordManager         = null;
-    
+
+    private static Logger                                logger                  = Logger.getLogger(PasswordManagerCtrl.class);
+
+    private Options                                      options                 = new Options();
+    private static PasswordManagerCtrl                   pwd;
+    private static PasswordManager.ClientApplicationType clientApplicationType   = null;
+    public PasswordManager                               passwordManager         = null;
+
+    // --- Options overriding elements in security.properties ---
+    private Boolean                                      useEncryptedPassword    = null;
+    private String                                       truststoreLocation      = null;
+    private String                                       truststorePassword      = null;
+    private String                                       passwordFileLocation    = null;
+
     // -- Define constants for command line arguments ---
-    private static final String _HELP = "help";
-    private static final String CREATE = "create";
-    private static final String _CREATE = "c";
-    private static final String DELETE = "delete";
-    private static final String _DELETE = "d";
-    private static final String FILE = "file";
-    private static final String _FILE = "f";
-    private static final String TARGET_APPLICATION = "target";
-    private static final String _TARGET_APPLICATION = "t";
-    
-    static Option create;
+    private static final String                          _HELP                   = "help";
+    private static final String                          CREATE                  = "create";
+    private static final String                          _CREATE                 = "c";
+    private static final String                          DELETE                  = "delete";
+    private static final String                          _DELETE                 = "d";
+    private static final String                          FILE                    = "file";
+    private static final String                          _FILE                   = "f";
+    private static final String                          TARGET_APPLICATION      = "target";
+    private static final String                          _TARGET_APPLICATION     = "t";
+    private static final String                          _ENCRYPTED_PASSWORD     = "e";
+    private static final String                          ENCRYPTED_PASSWORD      = "encrypted.password";
+    private static final String                          _TRUSTSTORE_LOCATION    = "ts";
+    private static final String                          TRUSTSTORE_LOCATION     = "truststore.location";
+    private static final String                          _TRUSTSTORE_PASSWORD    = "tsp";
+    private static final String                          TRUSTSTORE_PASSWORD     = "truststore.password";
+    private static final String                          _PASSWORD_FILE_LOCATION = "p";
+    private static final String                          PASSWORD_FILE_LOCATION  = "password_file.location";
+
+    static Option                                        create;
 
     /**
      * Setup command line options
-     * 
      */
     @SuppressWarnings("static-access")
     private void setupCommandLine()
     {
         // --- Options on the command line ---
         Option help = new Option(_HELP, "print this message");
-        Option file = OptionBuilder.withLongOpt(FILE).withArgName("filename").hasArgs().withDescription(SecurityConf.SECURITY_PROPERTIES_FILE_NAME + " file location").create(_FILE);
-    
+        Option file = OptionBuilder.withLongOpt(FILE).withArgName("filename").hasArgs()
+                .withDescription(SecurityConf.SECURITY_PROPERTIES_FILE_NAME + " file location").create(_FILE);
+
         // Mutually excluding options
-        OptionGroup optionGroup = new OptionGroup( );
-         create = OptionBuilder.withLongOpt(CREATE).hasArgs(2).withArgName("username> <password").withDescription("Creates or Updates a user").create(_CREATE);
+        OptionGroup optionGroup = new OptionGroup();
+        create = OptionBuilder.withLongOpt(CREATE).hasArgs(2).withArgName("username> <password").withDescription("Creates or Updates a user").create(_CREATE);
         Option delete = OptionBuilder.withLongOpt(DELETE).withArgName("username").hasArgs().withDescription("Deletes a user").create(_DELETE);
-        
-        
-        
+
         optionGroup.addOption(create);
         optionGroup.addOption(delete);
         optionGroup.setRequired(true);      // At least 1 command required
-        
-        Option targetApplication = OptionBuilder.withLongOpt(TARGET_APPLICATION).withArgName("target").hasArgs().withDescription("Target application: " + getListOfClientApplicationType()).create(_TARGET_APPLICATION);
-        
+
+        Option targetApplication = OptionBuilder.withLongOpt(TARGET_APPLICATION).withArgName("target").hasArgs()
+                .withDescription("Target application: " + getListOfClientApplicationType()).create(_TARGET_APPLICATION);
+
+        // --- Options replacing parameters from security.properties ---
+        Option encryptedPassword = OptionBuilder.withLongOpt(ENCRYPTED_PASSWORD).withArgName("encrypt password").withDescription("Encrypts the password")
+                .create(_ENCRYPTED_PASSWORD);
+        Option truststoreLocation = OptionBuilder.withLongOpt(TRUSTSTORE_LOCATION).withArgName("truststore location").hasArg()
+                .withDescription("Encrypts the password").create(_TRUSTSTORE_LOCATION);
+        Option truststorePassword = OptionBuilder.withLongOpt(TRUSTSTORE_PASSWORD).withArgName("truststore password").hasArg()
+                .withDescription("Encrypts the password").create(_TRUSTSTORE_PASSWORD);
+        Option passwordFileLocation = OptionBuilder.withLongOpt(PASSWORD_FILE_LOCATION).withArgName("password file location").hasArg()
+                .withDescription("Encrypts the password").create(_PASSWORD_FILE_LOCATION);
+
         // --- Add options to the list ---
         this.options.addOptionGroup(optionGroup);
         this.options.addOption(help);
         this.options.addOption(file);
-        
+
+        this.options.addOption(encryptedPassword);
+        this.options.addOption(truststoreLocation);
+        this.options.addOption(truststorePassword);
+        this.options.addOption(passwordFileLocation);
+
         this.options.addOption(targetApplication);
     }
 
     /**
      * Creates a new <code>PasswordManager</code> object
-     * 
      */
     public PasswordManagerCtrl()
     {
@@ -119,58 +147,102 @@ public class PasswordManagerCtrl
     public static void main(String argv[]) throws Exception
     {
         pwd = new PasswordManagerCtrl();
-        
-        // --- Options ---
-        ClientApplicationType   clientApplicationType           = null;
-        String                  securityPropertiesFileLocation  = null;
-        String                  username                        = null;
-        String                  password                        = null;
 
-        try {
+        // --- Options ---
+        ClientApplicationType clientApplicationType = null;
+        String securityPropertiesFileLocation = null;
+        String username = null;
+        String password = null;
+
+        try
+        {
             CommandLineParser parser = new GnuParser();
             // parse the command line arguments
-            CommandLine line = parser.parse( pwd.options, argv );
+            CommandLine line = parser.parse(pwd.options, argv);
 
             // --- Handle options ---
             if (line.hasOption(_HELP))
             {
                 DisplayHelpAndExit();
             }
-            
+
             // --- Optional arguments : Get options ---
             if (line.hasOption(_TARGET_APPLICATION))                        // Target Application
-            {  
+            {
                 String target = line.getOptionValue(TARGET_APPLICATION);
                 clientApplicationType = PasswordManagerCtrl.getClientApplicationType(target);
             }
             if (line.hasOption(_FILE))                                      // security.properties file location
-            {  
+            {
                 securityPropertiesFileLocation = line.getOptionValue(_FILE);
             }
             if (line.hasOption(_CREATE))                                    // Make sure username + password are provided
-            {   
+            {
                 String[] createArgs = line.getOptionValues(_CREATE);
-                if (createArgs.length<2)
+                if (createArgs.length < 2)
                     throw new MissingArgumentException(create);
-                
+
                 username = createArgs[0];
                 password = createArgs[1];
             }
-            
-            
+            // --- Options to replace values in security.properties file ---
+            if (line.hasOption(_ENCRYPTED_PASSWORD))
+                pwd.useEncryptedPassword = true;
+            if (line.hasOption(_TRUSTSTORE_LOCATION))
+                pwd.truststoreLocation = line.getOptionValue(_TRUSTSTORE_LOCATION);
+            if (line.hasOption(_TRUSTSTORE_PASSWORD))
+                pwd.truststorePassword = line.getOptionValue(_TRUSTSTORE_PASSWORD);
+            if (line.hasOption(_PASSWORD_FILE_LOCATION))
+                pwd.passwordFileLocation = (String) line.getOptionValue(_PASSWORD_FILE_LOCATION);
+
             try
             {
                 pwd.passwordManager = new PasswordManager(securityPropertiesFileLocation, clientApplicationType);
+
+                AuthenticationInfo authenticationInfo = pwd.passwordManager.getAuthenticationInfo();
+                // --- Substitute with user provided options
+                if (pwd.useEncryptedPassword != null)
+                    authenticationInfo.setUseEncryptedPasswords(pwd.useEncryptedPassword);
+                if (pwd.truststoreLocation != null)
+                    authenticationInfo.setTruststoreLocation(pwd.truststoreLocation);
+                if (pwd.truststorePassword != null)
+                    authenticationInfo.setTruststorePassword(pwd.truststorePassword);
+                if (pwd.passwordFileLocation != null)
+                    authenticationInfo.setPasswordFileLocation(pwd.passwordFileLocation);
+                // --- AuthenticationInfo consistency check
+                authenticationInfo.checkAuthenticationInfo();
+                
+                // --- Display summary of used parameters ---
+                logger.info("Using parameters: ");
+                logger.info("-----------------");
+                if (authenticationInfo.getParentPropertiesFileLocation()!=null)
+                    logger.info(MessageFormat.format("security.properties \t = {0}", authenticationInfo.getParentPropertiesFileLocation()));
+                logger.info(MessageFormat.format("password_file.location \t = {0}", authenticationInfo.getPasswordFileLocation()));
+                logger.info(MessageFormat.format("encrypted.password \t = {0}", authenticationInfo.isUseEncryptedPasswords()));
+                
+                if (authenticationInfo.isUseEncryptedPasswords())
+                {
+                    logger.info(MessageFormat.format("truststore.location \t = {0}", authenticationInfo.getTruststoreLocation()));
+                    logger.info(MessageFormat.format("truststore.password \t = {0}", authenticationInfo.getTruststorePassword()));
+                }
+                logger.info("-----------------");
+                
             }
             catch (ConfigurationException ce)
             {
-                logger.error(MessageFormat.format("Could not retrieve configuration information: {0}\n Try to specify a security.properties file location or have the cluster.home variable set.", ce.getMessage()));
+                logger.error(MessageFormat
+                        .format("Could not retrieve configuration information: {0}\n Try to specify a security.properties file location, provide options on the command line, or have the cluster.home variable set.",
+                                ce.getMessage()));
                 System.exit(0);
             }
-            
+            catch (ServerRuntimeException sre)
+            {
+                // AuthenticationInfo consistency check : failed
+                DisplayHelpAndExit();
+            }
 
             // --- Perform commands ---
-            
+
             // ######### Create ##########
             if (line.hasOption(_CREATE))
             {
@@ -184,12 +256,12 @@ public class PasswordManagerCtrl
                     logger.error(MessageFormat.format("Error while creating user: {0}", e.getMessage()));
                 }
             }
-            
+
             // ########## DELETE ##########
             else if (line.hasOption(_DELETE))
             {
                 username = line.getOptionValue(_DELETE);
-                
+
                 try
                 {
                     pwd.passwordManager.deleteUser(username);
@@ -200,17 +272,16 @@ public class PasswordManagerCtrl
                     logger.error(MessageFormat.format("Error while deleting user: {0}", e.getMessage()));
                 }
             }
-           
-           
+
         }
-        catch( ParseException exp ) {
+        catch (ParseException exp)
+        {
             logger.error(exp.getMessage());
-            
+
             DisplayHelpAndExit();
         }
     }
-    
-    
+
     /**
      * Get the list of ClientApplicationType as a string
      * 
@@ -219,17 +290,16 @@ public class PasswordManagerCtrl
     private static String getListOfClientApplicationType()
     {
         String listApplicationType = "";
-        
-        
-       for (ClientApplicationType appType: ClientApplicationType.values())
-       {
-           listApplicationType += ( (listApplicationType.isEmpty()?"":" | ") + appType.toString().toLowerCase() );
-       }
-       listApplicationType.trim();
-        
+
+        for (ClientApplicationType appType : ClientApplicationType.values())
+        {
+            listApplicationType += ((listApplicationType.isEmpty() ? "" : " | ") + appType.toString().toLowerCase());
+        }
+        listApplicationType.trim();
+
         return listApplicationType;
     }
-    
+
     /**
      * Get the application type argument.
      * Populates the <code>clientApplicationType</code> property
@@ -248,25 +318,19 @@ public class PasswordManagerCtrl
         {
             throw new UnrecognizedOptionException(MessageFormat.format("The target application type does not exist: {0}", commandLineTargetApplicationType));
         }
-        
+
         return clientApplicationType;
     }
-    
+
     /**
      * Display the program help and exits
-     * 
      */
     private static void DisplayHelpAndExit()
     {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("PasswordManager", pwd.options);
+        formatter.setWidth(120);
+        formatter.printHelp("tpasswd", pwd.options);
         System.exit(0);
     }
-    
-    
-    
-    
-    
-    
-    
+
 }
