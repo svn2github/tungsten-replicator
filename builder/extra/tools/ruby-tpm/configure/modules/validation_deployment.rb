@@ -465,28 +465,33 @@ class OpenFilesLimitCheck < ConfigureValidationCheck
   end
 end
 
-#class ProcessLimitCheck < ConfigureValidationCheck
-#  
-#  def set_vars
-##  include ClusterHostCheck
-#    @title = "Allowed number of processes check" 
-##  end
-#  def validate
-#    # Look for Java.
-#    limit = cmd_result("ulimit -u")
-#    
-#    if limit.to_i < 8096
-#      warning("We suggest a processes limit of at least 8096")
-#      warning("Add '#{@config.getProperty(USERID)}       -    nproc  8096' to your /etc/security/limits.conf and restart your session")
-#    else
-#      info("The processes limit is set to #{limit}")
-#    end
-#  end
-#  def enabled?
-#    super() && ((@config.getProperty(HOST_ENABLE_MANAGER) == "true") || 
-#      (@config.getProperty(HOST_ENABLE_CONNECTOR) == "true"))
-#  end
-#end
+class ProcessLimitCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  
+  def set_vars
+    @title = "Allowed number of processes check" 
+  end
+  
+  def validate
+    begin
+      limit = cmd_result("echo 'ulimit -u' | bash")
+    
+      if limit.to_i < 8096
+        warning("We suggest a processes limit of at least 8096")
+        warning("Add '#{@config.getProperty(USERID)}       -    nproc  8096' to your /etc/security/limits.conf and restart Tungsten processes")
+      else
+        info("The processes limit is set to #{limit}")
+      end
+    rescue CommandError => ce
+      warning("There was an error while checking the processes limit")
+    end
+  end
+
+  def enabled?
+    super() && ((@config.getProperty(HOST_ENABLE_MANAGER) == "true") || 
+      (@config.getProperty(HOST_ENABLE_CONNECTOR) == "true"))
+  end
+end
 
 class SudoCheck < ConfigureValidationCheck
   include ClusterHostCheck
