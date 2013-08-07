@@ -38,6 +38,8 @@ public class PasswordManagerTest extends TestCase
 {
 
     /**
+     * Confirm that we can create an instance of PasswordManager with a non existing security.proprties.
+     * The exception is raised once we do a check on the AuthenticationInfo
      * Create an instance of a PasswordManager reading from a
      * security.properties file
      * 
@@ -50,15 +52,21 @@ public class PasswordManagerTest extends TestCase
         PasswordManager pwd = new PasswordManager("sample.security.properties");
         assertTrue(true);
 
-        // This one should raise an exception as it does not exist
+        // This one should load fine too
         try
         {
             pwd = new PasswordManager(
                     "sample.security.properties_DOES_NOT_EXIST");
-            assertTrue(false);
+           AuthenticationInfo authenticationInfo = pwd.getAuthenticationInfo();
+           authenticationInfo.checkAuthenticationInfo();
         }
         catch (ConfigurationException e)
         {
+            assertTrue(false);
+        }
+        catch (ServerRuntimeException sre)
+        {
+            // That's the expected exception from checkAuthenticationInfo();
             assertTrue(true);
         }
 

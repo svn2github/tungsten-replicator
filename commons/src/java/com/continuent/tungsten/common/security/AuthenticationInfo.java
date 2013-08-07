@@ -84,9 +84,15 @@ public final class AuthenticationInfo
     /**
      * Creates a new <code>AuthenticationInfo</code> object
      */
-    public AuthenticationInfo(AUTH_USAGE authUsage)
+    public AuthenticationInfo(AUTH_USAGE authUsage, String parentPropertiesFileLocation)
     {
         this.authUsage = authUsage;
+        this.parentPropertiesFileLocation = parentPropertiesFileLocation;
+    }
+    
+    public AuthenticationInfo(AUTH_USAGE authUsage)
+    {
+        this(authUsage, null);
     }
 
     /**
@@ -94,7 +100,28 @@ public final class AuthenticationInfo
      */
     public void checkAuthenticationInfo() throws ServerRuntimeException
     {   
-     // --- Check Keystore location ---
+        // --- Check security.properties location ---
+        if (this.parentPropertiesFileLocation != null)
+        {
+            File f = new File(this.parentPropertiesFileLocation);
+            // --- Find absolute path if needed
+            if (!f.isFile())
+            {
+                f = this.findAbsolutePath(f);
+                this.parentPropertiesFileLocation = f.getAbsolutePath();
+            }
+            // --- Check file is readable
+            if (!f.isFile() || !f.canRead())
+            {
+                String msg = MessageFormat.format(
+                        "Cannot find or read {0} file: {1}", SECURITY_CONFIG_FILE_LOCATION,
+                        this.parentPropertiesFileLocation);
+                CLUtils.println(msg, CLLogLevel.detailed);
+                throw new ServerRuntimeException(msg, new AssertionError(
+                        "File must exist"));
+            }
+        }
+        // --- Check Keystore location ---
         if (this.isEncryptionNeeded() && this.keystoreLocation != null)
         {
             File f = new File(this.keystoreLocation);

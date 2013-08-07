@@ -211,7 +211,7 @@ public class SecurityHelper
         }
         
 
-        AuthenticationInfo authInfo = new AuthenticationInfo(authUsage);
+        AuthenticationInfo authInfo = new AuthenticationInfo(authUsage, propertiesFileLocation);
 
         // Authorisation and/or encryption
         if (securityProperties!=null)
@@ -235,8 +235,6 @@ public class SecurityHelper
                             false);
 
             // Retrieve properties
-            String securityPropertiesFileLocation = securityProperties
-                    .getString(SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION);
             String passwordFileLocation = securityProperties
                     .getString(SecurityConf.SECURITY_PASSWORD_FILE_LOCATION);
             String accessFileLocation = securityProperties
@@ -253,7 +251,6 @@ public class SecurityHelper
                     SecurityConf.SECURITY_JMX_USERNAME, null, false);
 
             // Populate return object
-            authInfo.setParentPropertiesFileLocation(securityPropertiesFileLocation);
             authInfo.setAuthenticationNeeded(useAuthentication);
             authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
             authInfo.setUseEncryptedPasswords(useEncryptedPassword);
