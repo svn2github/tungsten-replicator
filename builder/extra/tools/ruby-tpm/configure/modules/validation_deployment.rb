@@ -453,14 +453,16 @@ class OpenFilesLimitCheck < ConfigureValidationCheck
   end
   
   def validate
-    # Look for Java.
-    limit = cmd_result("ulimit -n")
+    begin
+      limit = Process.getrlimit(Process::RLIMIT_NOFILE)[0]
     
-    if limit.to_i < 65535
-      warning("We suggest an open files limit of at least 65535")
-      warning("Add '*       -    nofile  65535' to your /etc/security/limits.conf and restart your session")
-    else
-      info("The open files limit is set to #{limit}")
+      if limit.to_i < 65535
+        warning("The open file limit is set to #{limit}, we suggest a value of 65535. Add '*       -    nofile  65535' to your /etc/security/limits.conf and restart your session")
+      else
+        info("The open files limit is set to #{limit}")
+      end
+    rescue
+      error("There was an error while checking the open files limit")
     end
   end
 end
@@ -474,16 +476,15 @@ class ProcessLimitCheck < ConfigureValidationCheck
   
   def validate
     begin
-      limit = cmd_result("echo 'ulimit -u' | bash")
+      limit = Process.getrlimit(Process::RLIMIT_NPROC)[0]
     
       if limit.to_i < 8096
-        warning("We suggest a processes limit of at least 8096")
-        warning("Add '#{@config.getProperty(USERID)}       -    nproc  8096' to your /etc/security/limits.conf and restart Tungsten processes")
+        warning("The process limit is set to #{limit}, we suggest a value of at least 8096. Add '#{@config.getProperty(USERID)}       -    nproc  8096' to your /etc/security/limits.conf and restart Tungsten processes.")
       else
         info("The processes limit is set to #{limit}")
       end
-    rescue CommandError => ce
-      warning("There was an error while checking the processes limit")
+    rescue
+      error("There was an error while checking the processes limit")
     end
   end
 
