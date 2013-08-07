@@ -1148,7 +1148,19 @@ public abstract class RowsLogEvent extends LogEvent
                     spec.setIndex(i + 1);
                     oneRowChange.getKeySpec().add(spec);
                 }
-
+                else
+                {
+                    // Check if column was null until now
+                    ColumnSpec keySpec = oneRowChange.getKeySpec().get(i);
+                    if (keySpec != null
+                            && keySpec.getType() == java.sql.Types.NULL
+                            && !isNull)
+                    {
+                        spec = keySpec;
+                    }
+                    else
+                        spec = null;
+                }
                 oneRowChange.getKeyValues().get(rowIndex).add(value);
             }
             else
