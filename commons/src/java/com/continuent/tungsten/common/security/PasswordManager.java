@@ -22,6 +22,8 @@
 
 package com.continuent.tungsten.common.security;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.MessageFormat;
 
 import org.apache.log4j.Logger;
@@ -42,7 +44,7 @@ public class PasswordManager
     private static Logger logger = Logger.getLogger(PasswordManager.class);
 
     /*
-     * Type of Client application. 
+     * Type of Client application.
      * This allows for application specific management of passwords
      */
     public enum ClientApplicationType
@@ -50,7 +52,7 @@ public class PasswordManager
         UNKNOWN,
         RMI_JMX,                    // Any application: generic RMI+JMX
         CONNECTOR;                   // The Tungsten Connector
-        
+
         public static ClientApplicationType fromString(String x) throws IllegalArgumentException
         {
             if (x == null)
@@ -68,15 +70,14 @@ public class PasswordManager
     };
 
     // Authentication and Encryption information
-    private AuthenticationInfo authenticationInfo  = null;
-    private TungstenProperties passwordsProperties = null;
+    private AuthenticationInfo    authenticationInfo    = null;
+    private TungstenProperties    passwordsProperties   = null;
     private ClientApplicationType clientApplicationType = null;
 
     /**
-     * 
      * Creates a new <code>PasswordManager</code> object
      * 
-    * @param securityPropertiesFileLocation location of the security.properties
+     * @param securityPropertiesFileLocation location of the security.properties
      *            file. If set to null will look for the default file.
      * @throws ConfigurationException
      */
@@ -85,7 +86,7 @@ public class PasswordManager
     {
         this(securityPropertiesFileLocation, ClientApplicationType.UNKNOWN);
     }
-    
+
     /**
      * Creates a new <code>PasswordManager</code> object Loads Security related
      * properties from a file. File location =
@@ -99,7 +100,7 @@ public class PasswordManager
     public PasswordManager(String securityPropertiesFileLocation, ClientApplicationType clientApplicationType) throws ConfigurationException
     {
         this.setClientApplicationType(clientApplicationType);
-        
+
         // --- Try to get Security information from properties file ---
         // If securityPropertiesFileLocation==null will try to locate
         // default file
@@ -123,7 +124,7 @@ public class PasswordManager
                     sre.getMessage()));
         }
     }
-    
+
     /**
      * Creates a new <code>PasswordManager</code> object
      * 
@@ -132,10 +133,10 @@ public class PasswordManager
      */
     public PasswordManager(AuthenticationInfo authenticationInfo, ClientApplicationType clientApplicationType)
     {
-        this.authenticationInfo     = authenticationInfo;
+        this.authenticationInfo = authenticationInfo;
         this.setClientApplicationType(clientApplicationType);
     }
-    
+
     /**
      * Passwords loaded from file as TungstenProperties. Example:
      * getPasswordsAsTungstenProperties.get(username);
@@ -150,7 +151,6 @@ public class PasswordManager
         return passwordsProperties;
     }
 
-    
     /**
      * Get clear text password for a username: decrypts password if needed
      * 
@@ -161,7 +161,7 @@ public class PasswordManager
     {
         return this.getPasswordForUser(username, true);
     }
-    
+
     /**
      * Get Encrypted (or "as it is") password for a user
      * 
@@ -172,7 +172,7 @@ public class PasswordManager
     {
         return this.getPasswordForUser(username, false);
     }
-    
+
     /**
      * Get clear text password for a username: decrypts password if needed
      * The list of passwords is loaded from the file if it hasn't been done before
@@ -185,14 +185,14 @@ public class PasswordManager
     private String getPasswordForUser(String username, boolean decryptPassword) throws ConfigurationException
     {
         String userPassword = null;
-        String _username    = this.getApplicationSpecificUsername(username);          // Take application specific information into account
-        
+        String _username = this.getApplicationSpecificUsername(username);          // Take application specific information into account
+
         // --- Load passwords from file if necessary
         if (this.passwordsProperties == null)
             this.loadPasswordsAsTungstenProperties();
 
         userPassword = this.passwordsProperties.get(_username);
-        
+
         // --- Decrypt password if asked for ---
         if (decryptPassword)
         {
@@ -201,11 +201,10 @@ public class PasswordManager
 
             userPassword = this.authenticationInfo.getDecryptedPassword();
         }
-       
 
         return userPassword;
     }
-    
+
     /**
      * Set and store the password for a given user.
      * The password is encryted if authenticationInfo requires so
@@ -215,16 +214,16 @@ public class PasswordManager
      */
     public void setPasswordForUser(String username, String password) throws ServerRuntimeException
     {
-        String _password    = this.createPasswordForUser(password);
-        String _username    = this.getApplicationSpecificUsername(username);          // Take application specific information into account
-        
+        String _password = this.createPasswordForUser(password);
+        String _username = this.getApplicationSpecificUsername(username);          // Take application specific information into account
+
         this.authenticationInfo.setUsername(_username);
         this.authenticationInfo.setPassword(_password);
-        
+
         // Load passwords and add / update the new or existing one
-        SecurityHelper.saveCredentialsFromAuthenticationInfo(this.authenticationInfo);   
+        SecurityHelper.saveCredentialsFromAuthenticationInfo(this.authenticationInfo);
     }
-    
+
     /**
      * Delete a user from the password file
      * 
@@ -235,12 +234,12 @@ public class PasswordManager
     {
         String _username = this.getApplicationSpecificUsername(username);
         this.authenticationInfo.setUsername(_username);
-        
+
         // Delete user from password file
-        SecurityHelper.deleteUserFromAuthenticationInfo(this.authenticationInfo);   
-        
+        SecurityHelper.deleteUserFromAuthenticationInfo(this.authenticationInfo);
+
     }
-    
+
     /**
      * Refactor a username prior to adding it into the list.
      * Takes into account application specific configuration and add prefix to link username to an application
@@ -253,20 +252,20 @@ public class PasswordManager
         String _username = username;
         // --- Take application specific information into account ---
         // Appends application name before the property
-        if (this.clientApplicationType!=null && this.clientApplicationType!=ClientApplicationType.UNKNOWN)
+        if (this.clientApplicationType != null && this.clientApplicationType != ClientApplicationType.UNKNOWN)
             switch (this.clientApplicationType)
             {
-                case RMI_JMX : 
+                case RMI_JMX :
                     _username = SecurityConf.SECURITY_APPLICATION_RMI_JMX + "." + username;
                     break;
-                case CONNECTOR:
+                case CONNECTOR :
                     _username = SecurityConf.SECURITY_APPLICATION_CONNECTOR + "." + username;
                     break;
             }
-        
+
         return _username;
     }
-    
+
     /**
      * create an encoded or clear text password (depending on settings) for the given user.
      * 
@@ -276,14 +275,41 @@ public class PasswordManager
     private String createPasswordForUser(String clearTextPassword)
     {
         String encryptedPassword = clearTextPassword;
-        
+
         if (this.authenticationInfo.isUseEncryptedPasswords())
         {
             Encryptor encryptor = new Encryptor(this.authenticationInfo);
             encryptedPassword = encryptor.encrypt(clearTextPassword);
         }
-        
+
         return encryptedPassword;
+    }
+
+    /**
+     * When possible, tries to create files needed by the Password Manager.
+     * Best effort: not successs guaranted
+     */
+    public void try_createAuthenticationInfoFiles()
+    {
+        // --- Try to create password_file.location ---
+        File f = new File(this.authenticationInfo.getPasswordFileLocation());
+        try
+        {
+            if (!f.isFile() || !f.canRead())
+            {
+                logger.warn(MessageFormat.format("Creating non existing file: {0}", f.getAbsolutePath()));
+                
+                File pathToTarget = new File(f.getParent());    // Create parent directories
+                if (!pathToTarget.isDirectory())
+                    pathToTarget.mkdirs();
+                f.createNewFile();                              // Create file
+               
+            }
+        }
+        catch (IOException e)
+        {
+            logger.warn(MessageFormat.format("Could not create file: {0}", f.getAbsolutePath()));
+        }
     }
 
     public AuthenticationInfo getAuthenticationInfo()
@@ -298,12 +324,10 @@ public class PasswordManager
 
     public void setClientApplicationType(ClientApplicationType clientApplicationType)
     {
-        if (clientApplicationType==null)
+        if (clientApplicationType == null)
             this.clientApplicationType = ClientApplicationType.UNKNOWN;
         else
             this.clientApplicationType = clientApplicationType;
     }
-
-   
 
 }

@@ -194,7 +194,7 @@ public class PasswordManagerCtrl
                 pwd.truststorePassword = line.getOptionValue(_TRUSTSTORE_PASSWORD);
             if (line.hasOption(_PASSWORD_FILE_LOCATION))
                 pwd.passwordFileLocation = (String) line.getOptionValue(_PASSWORD_FILE_LOCATION);
-
+            
             try
             {
                 pwd.passwordManager = new PasswordManager(securityPropertiesFileLocation, clientApplicationType);
@@ -209,9 +209,7 @@ public class PasswordManagerCtrl
                     authenticationInfo.setTruststorePassword(pwd.truststorePassword);
                 if (pwd.passwordFileLocation != null)
                     authenticationInfo.setPasswordFileLocation(pwd.passwordFileLocation);
-                // --- AuthenticationInfo consistency check
-                authenticationInfo.checkAuthenticationInfo();
-                
+       
                 // --- Display summary of used parameters ---
                 logger.info("Using parameters: ");
                 logger.info("-----------------");
@@ -227,6 +225,10 @@ public class PasswordManagerCtrl
                 }
                 logger.info("-----------------");
                 
+                // --- AuthenticationInfo consistency check
+                pwd.passwordManager.try_createAuthenticationInfoFiles();            // Try to create files if possible
+                authenticationInfo.checkAuthenticationInfo();
+                
             }
             catch (ConfigurationException ce)
             {
@@ -237,6 +239,7 @@ public class PasswordManagerCtrl
             }
             catch (ServerRuntimeException sre)
             {
+                logger.error(sre.getLocalizedMessage());
                 // AuthenticationInfo consistency check : failed
                 DisplayHelpAndExit();
             }
