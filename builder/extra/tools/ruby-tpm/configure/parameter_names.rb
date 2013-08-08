@@ -206,3 +206,5 @@ REPL_API_PORT = "repl_api_port"
 REPL_API_HOST = "repl_api_host"
 REPL_API_USER = "repl_api_user"
 REPL_API_PASSWORD = "repl_api_password"
+
+MYSQL_DRIVER = "mysql_driver"
