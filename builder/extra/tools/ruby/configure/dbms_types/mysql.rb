@@ -3,6 +3,7 @@ require 'tempfile'
 DBMS_MYSQL = "mysql"
 
 # MySQL-specific parameters
+MYSQL_DRIVER = "mysql_driver"
 REPL_MYSQL_DATADIR = "repl_datasource_mysql_data_directory"
 REPL_MYSQL_IBDATADIR = "repl_datasource_mysql_ibdata_directory"
 REPL_MYSQL_IBLOGDIR = "repl_datasource_mysql_iblog_directory"
@@ -199,6 +200,25 @@ end
 #
 # Prompts
 #
+
+class MySQLDriver < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    pv = PropertyValidator.new("^mysql|drizzle|mariadb$", 
+      "Value must be mysql, drizzle or mariadb")
+      
+    super(MYSQL_DRIVER, "MySQL Driver Vendor", pv, "mysql")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "drizzle"
+      "mysql:thin"
+    else
+      "mysql"
+    end
+  end
+end
 
 class MySQLConfigurePrompt < ConfigurePrompt
   def get_default_value

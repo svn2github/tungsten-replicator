@@ -88,6 +88,7 @@ REPL_DBBASICJDBCURL = "repl_datasource_basicjdbcurl"
 REPL_DBJDBCURL = "repl_datasource_jdbcurl"
 REPL_DBJDBCDRIVER = "repl_datasource_jdbcdriver"
 REPL_DBJDBCVENDOR = "repl_datasource_jdbcvendor"
+REPL_DBJDBCSCHEME = "repl_datasource_jdbcscheme"
 REPL_DBBACKUPAGENTS = "repl_datasource_backupagents"
 REPL_DBDEFAULTBACKUPAGENT = "repl_datasource_defaultbackupagent"
 

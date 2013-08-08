@@ -332,6 +332,19 @@ class DatasourceVendor < ConfigurePrompt
   end
 end
 
+class DatasourceJDBCScheme < ConfigurePrompt
+  include DatasourcePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_DBJDBCSCHEME, "Datasource JDBC Scheme")
+  end
+  
+  def get_template_value(transform_values_method)
+    get_datasource().getJdbcScheme()
+  end
+end
+
 class DatasourceBackupAgents < ConfigurePrompt
   include DatasourcePrompt
   include ConstantValueModule
