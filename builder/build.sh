@@ -347,7 +347,7 @@ echo "HOST: `hostname`" >> $manifest
 echo "SVN URLs:" >> $manifest
 echo "  ${TCOM_SVN_URL}" >> $manifest
 echo "  ${TREP_SVN_URL}" >> $manifest
-echo "  ${TREP_EXT_SVN_URL}" >> $manifest
+#echo "  ${TREP_EXT_SVN_URL}" >> $manifest
 echo "  ${BRI_SVN_URL}" >> $manifest
 echo "  ${COOK_SVN_URL}" >> $manifest
 
