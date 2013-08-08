@@ -81,6 +81,10 @@ class ConfigureDatabasePlatform
     raise "Undefined function: #{self.class.name}.getJdbcDriver"
   end
   
+  def getJdbcScheme()
+    getVendor()
+  end
+  
   def getVendor()
     raise "Undefined function: #{self.class.name}.getVendor"
   end

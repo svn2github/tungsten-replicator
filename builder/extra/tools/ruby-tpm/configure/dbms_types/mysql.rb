@@ -1,6 +1,7 @@
 DBMS_MYSQL = "mysql"
 
 # MySQL-specific parameters
+MYSQL_DRIVER = "mysql_driver"
 GLOBAL_REPL_MYSQL_CONNECTOR_PATH = "global_mysql_connectorj_path"
 REPL_MYSQL_CONNECTOR_PATH = "mysql_connectorj_path"
 REPL_MYSQL_DATADIR = "repl_datasource_mysql_data_directory"
@@ -234,11 +235,29 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getJdbcUrl()
-    "jdbc:mysql://${replicator.global.db.host}:${replicator.global.db.port}/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false"
+    if @config.getProperty(MYSQL_DRIVER) == "drizzle"
+      scheme = "mysql:thin"
+    else
+      scheme = "mysql"
+    end
+    
+    "jdbc:#{scheme}://${replicator.global.db.host}:${replicator.global.db.port}/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false"
   end
   
   def getJdbcDriver()
-    "com.mysql.jdbc.Driver"
+    if @config.getProperty(MYSQL_DRIVER) == "drizzle"
+      "org.drizzle.jdbc.DrizzleDriver"
+    else
+      "com.mysql.jdbc.Driver"
+    end
+  end
+  
+  def getJdbcScheme
+    if @config.getProperty(MYSQL_DRIVER) == "drizzle"
+      "mysql:thin"
+    else
+      "mysql"
+    end
   end
   
   def getVendor()
@@ -326,6 +345,25 @@ end
 #
 # Prompts
 #
+
+class MySQLDriver < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    pv = PropertyValidator.new("^mysql|drizzle|mariadb$", 
+      "Value must be mysql, drizzle or mariadb")
+      
+    super(MYSQL_DRIVER, "MySQL Driver Vendor", pv, "mysql")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "drizzle"
+      "mysql:thin"
+    else
+      "mysql"
+    end
+  end
+end
 
 class MySQLConfigurePrompt < ConfigurePrompt
   def load_default_value
@@ -1426,6 +1464,10 @@ class MysqlConnectorCheck < ConfigureValidationCheck
         help("Download the MySQL Connector/J file to the installation server and add it to the configuration by running 'tools/tpm configure defaults --mysql-connectorj-path=/path/to/mysql-connector-java-5.1.17-bin.jar")
       end
     end
+  end
+  
+  def enabled?
+    super() && @config.getProperty(MYSQL_DRIVER) == "mysql"
   end
 end
 
