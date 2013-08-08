@@ -234,18 +234,14 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getJdbcUrl()
-    if @config.getProperty(MYSQL_DRIVER) == "drizzle"
-      scheme = "mysql:thin"
-    else
-      scheme = "mysql"
-    end
-    
-    "jdbc:#{scheme}://${replicator.global.db.host}:${replicator.global.db.port}/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false"
+    "jdbc:#{getJdbcScheme()}://${replicator.global.db.host}:${replicator.global.db.port}/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false"
   end
   
   def getJdbcDriver()
     if @config.getProperty(MYSQL_DRIVER) == "drizzle"
       "org.drizzle.jdbc.DrizzleDriver"
+    elsif @config.getProperty(MYSQL_DRIVER) == "mariadb"
+      "org.mariadb.jdbc.Driver"
     else
       "com.mysql.jdbc.Driver"
     end
@@ -254,6 +250,8 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def getJdbcScheme
     if @config.getProperty(MYSQL_DRIVER) == "drizzle"
       "mysql:thin"
+    elsif @config.getProperty(MYSQL_DRIVER) == "mariadb"
+      "mariadb"
     else
       "mysql"
     end
@@ -358,6 +356,8 @@ class MySQLDriver < ConfigurePrompt
   def get_template_value(transform_values_method)
     if get_value() == "drizzle"
       "mysql:thin"
+    elsif get_value() == "mariadb"
+      "mariadb"
     else
       "mysql"
     end

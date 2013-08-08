@@ -392,6 +392,19 @@ that Sun Java 6 or greater (http://java.sun.com/) and Ant 1.7 or greater
     Description: Provides connectivity to MongoDB server
     Notes:
     
+  - File(s): drizzle-jdbc-1.2-SNAPSHOT.jar
+    Project name: Drizzle
+    Version: 1.2
+    License: BSD
+    Web site: https://github.com/krummas/DrizzleJDBC
+  
+  - File(s): mariadb-java-client-1.1.3.jar
+    Project name: MariaDB
+    Version: 1.1.3
+    License: LGPL
+    Web site: https://downloads.mariadb.org/client-java/
+    
+    
 ########## Tungsten TPM ##########
     - File(s): cluster-home/lib/ruby/escape.rb
     Project name: escape
