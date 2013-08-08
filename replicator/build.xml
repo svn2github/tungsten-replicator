@@ -221,10 +221,12 @@
 	<copy todir="${dist.dir}/bin">
 	    <fileset dir="${bin.dir}">
 	        <include name="*"/>
+	    	<include name="pg/**"/>
 	        <exclude name="extras"/>
 	    </fileset>
 	</copy>
 	<chmod dir="${dist.dir}/bin" perm="ug+rx" includes="*" excludes="*.bat"/>
+    <chmod dir="${dist.dir}/bin/pg" perm="ug+rx" includes="pg-*"/>
     	<copy todir="${dist.dir}/conf">
             <fileset dir="conf" excludes="replicator.properties"/>
         </copy>
