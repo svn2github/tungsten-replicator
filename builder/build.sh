@@ -230,7 +230,7 @@ fi
 echo "### List of source locations"
 echo "# Commons:    $source_commons"
 echo "# Replicator: $source_replicator"
-echo "# Replicator Extras: $source_replicator_extra"
+#echo "# Replicator Extras: $source_replicator_extra"
 echo "# Bristlecone: $source_bristlecone"
 echo "# Cookbook: $source_cookbook"
 
@@ -437,17 +437,17 @@ echo    "}" >> $manifestJSON
 
 ##########################################################################
 
-extra_ent_replicator=$source_replicator_extra
-reldir_replicator=$reldir/tungsten-replicator
+#extra_ent_replicator=$source_replicator_extra
+#reldir_replicator=$reldir/tungsten-replicator
 
-echo "### Adding extra bin scripts for replicator plugins"
-cp -r $extra_ent_replicator/bin/pg $reldir_replicator/bin
+#echo "### Adding extra bin scripts for replicator plugins"
+#cp -r $extra_ent_replicator/bin/pg $reldir_replicator/bin
 
-echo "### Copying in Ruby replication plugin libraries"
-cp -r $extra_ent_replicator/lib/ruby $reldir_replicator/lib
+#echo "### Copying in Ruby replication plugin libraries"
+#cp -r $extra_ent_replicator/lib/ruby $reldir_replicator/lib
 
-echo "### Copying in extra sample scripts"
-cp -r $extra_ent_replicator/samples $reldir_replicator
+#echo "### Copying in extra sample scripts"
+#cp -r $extra_ent_replicator/samples $reldir_replicator
 
 echo "### Removing old protobuf libraries"
 mv $reldir_replicator/lib/protobuf-java-2.2.0.jar $reldir_replicator/lib/protobuf-java-2.2.0.jar.old
