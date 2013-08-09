@@ -299,11 +299,14 @@ public class PasswordManager
             {
                 logger.warn(MessageFormat.format("Creating non existing file: {0}", f.getAbsolutePath()));
                 
-                File pathToTarget = new File(f.getParent());    // Create parent directories
-                if (!pathToTarget.isDirectory())
-                    pathToTarget.mkdirs();
+                String parentPath = f.getParent();
+                if (parentPath!=null)
+                {
+                    File pathToTarget = new File(parentPath);    // Create parent directories
+                    if (!pathToTarget.isDirectory())
+                        pathToTarget.mkdirs();
+                }
                 f.createNewFile();                              // Create file
-               
             }
         }
         catch (IOException e)
