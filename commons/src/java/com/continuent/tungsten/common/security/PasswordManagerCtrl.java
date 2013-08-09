@@ -93,7 +93,7 @@ public class PasswordManagerCtrl
         // --- Options on the command line ---
         Option help = new Option(_HELP, "print this message");
         Option file = OptionBuilder.withLongOpt(FILE).withArgName("filename").hasArgs()
-                .withDescription(SecurityConf.SECURITY_PROPERTIES_FILE_NAME + " file location").create(_FILE);
+                .withDescription("Location of the " + SecurityConf.SECURITY_PROPERTIES_FILE_NAME + " file").create(_FILE);
 
         // Mutually excluding options
         OptionGroup optionGroup = new OptionGroup();
@@ -110,12 +110,12 @@ public class PasswordManagerCtrl
         // --- Options replacing parameters from security.properties ---
         Option encryptedPassword = OptionBuilder.withLongOpt(ENCRYPTED_PASSWORD).withArgName("encrypt password").withDescription("Encrypts the password")
                 .create(_ENCRYPTED_PASSWORD);
-        Option truststoreLocation = OptionBuilder.withLongOpt(TRUSTSTORE_LOCATION).withArgName("truststore location").hasArg()
-                .withDescription("Encrypts the password").create(_TRUSTSTORE_LOCATION);
-        Option truststorePassword = OptionBuilder.withLongOpt(TRUSTSTORE_PASSWORD).withArgName("truststore password").hasArg()
-                .withDescription("Encrypts the password").create(_TRUSTSTORE_PASSWORD);
-        Option passwordFileLocation = OptionBuilder.withLongOpt(PASSWORD_FILE_LOCATION).withArgName("password file location").hasArg()
-                .withDescription("Encrypts the password").create(_PASSWORD_FILE_LOCATION);
+        Option truststoreLocation = OptionBuilder.withLongOpt(TRUSTSTORE_LOCATION).withArgName("filename").hasArg()
+                .withDescription("Location of the tuststore file").create(_TRUSTSTORE_LOCATION);
+        Option truststorePassword = OptionBuilder.withLongOpt(TRUSTSTORE_PASSWORD).withArgName("password").hasArg()
+                .withDescription("Password for the truststore file").create(_TRUSTSTORE_PASSWORD);
+        Option passwordFileLocation = OptionBuilder.withLongOpt(PASSWORD_FILE_LOCATION).withArgName("filename").hasArg()
+                .withDescription("Location of the password file").create(_PASSWORD_FILE_LOCATION);
 
         // --- Add options to the list ---
         this.options.addOptionGroup(optionGroup);
@@ -194,7 +194,7 @@ public class PasswordManagerCtrl
                 pwd.truststorePassword = line.getOptionValue(_TRUSTSTORE_PASSWORD);
             if (line.hasOption(_PASSWORD_FILE_LOCATION))
                 pwd.passwordFileLocation = (String) line.getOptionValue(_PASSWORD_FILE_LOCATION);
-            
+
             try
             {
                 pwd.passwordManager = new PasswordManager(securityPropertiesFileLocation, clientApplicationType);
@@ -209,26 +209,26 @@ public class PasswordManagerCtrl
                     authenticationInfo.setTruststorePassword(pwd.truststorePassword);
                 if (pwd.passwordFileLocation != null)
                     authenticationInfo.setPasswordFileLocation(pwd.passwordFileLocation);
-       
+
                 // --- Display summary of used parameters ---
                 logger.info("Using parameters: ");
                 logger.info("-----------------");
-                if (authenticationInfo.getParentPropertiesFileLocation()!=null)
+                if (authenticationInfo.getParentPropertiesFileLocation() != null)
                     logger.info(MessageFormat.format("security.properties \t = {0}", authenticationInfo.getParentPropertiesFileLocation()));
                 logger.info(MessageFormat.format("password_file.location \t = {0}", authenticationInfo.getPasswordFileLocation()));
                 logger.info(MessageFormat.format("encrypted.password \t = {0}", authenticationInfo.isUseEncryptedPasswords()));
-                
+
                 if (authenticationInfo.isUseEncryptedPasswords())
                 {
                     logger.info(MessageFormat.format("truststore.location \t = {0}", authenticationInfo.getTruststoreLocation()));
                     logger.info(MessageFormat.format("truststore.password \t = {0}", authenticationInfo.getTruststorePassword()));
                 }
                 logger.info("-----------------");
-                
+
                 // --- AuthenticationInfo consistency check
                 pwd.passwordManager.try_createAuthenticationInfoFiles();            // Try to create files if possible
                 authenticationInfo.checkAuthenticationInfo();
-                
+
             }
             catch (ConfigurationException ce)
             {
