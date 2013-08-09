@@ -299,6 +299,10 @@ fixWrapperBin $replicator_bin
 echo "### Creating cluster home"
 cluster_home=$reldir/cluster-home
 mkdir -p $cluster_home/conf/cluster
+mkdir -p $cluster_home/log					# log directory for cluster-home/bin programs
+
+echo "# Copying cluser-home/conf files"
+cp -r $extra_cluster_home/conf/* $cluster_home/conf
 
 echo "# Copying cluser-home bin scripts"
 cp -r $extra_cluster_home/bin $cluster_home
