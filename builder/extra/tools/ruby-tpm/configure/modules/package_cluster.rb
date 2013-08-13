@@ -309,6 +309,7 @@ module ClusterCommandModule
       begin
         validated = prompt.accept?(val)
       rescue => e
+        debug(e.message + "\n" + e.backtrace.join("\n"))
         error("Unable to parse \"--#{prompt.get_command_line_argument()}\": #{e.message}")
         next
       end
