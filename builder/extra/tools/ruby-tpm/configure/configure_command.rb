@@ -420,7 +420,7 @@ module ConfigureCommand
       end
       
       # Update old configuration keys
-      update_deprecated_keys
+      update_deprecated_keys()
       
       # The get_deployment_configurations() function takes the current
       # configuration and parses it into individual configurations for
@@ -428,8 +428,13 @@ module ConfigureCommand
       # and command_hosts() functions to limit the returned objects.
       #
       # If there are none returned, then there is nothing to do
-      if get_deployment_configurations().size() == 0 && Configurator.instance.is_locked?() != true
-        error("Unable to find any host configurations for the data service specified.  Check the list of configured data services by running 'tools/tpm query dataservices'.")
+      if get_deployment_configurations().size() == 0
+        if Configurator.instance.is_locked?() != true
+          error("Unable to find any host configurations for the data service specified.  Check the list of configured data services by running 'tools/tpm query dataservices'.")
+        else
+          error("This directory was installed using tools/tungsten-installer or tools/configure. Check the documentation for instructions on upgrading to tpm.")
+        end
+        
         return false
       end
       
@@ -735,12 +740,7 @@ module ConfigureCommand
     profiles_dir = get_profiles_dir()
     
     if Configurator.instance.is_locked?()
-      val = "#{Configurator.instance.get_base_path()}/#{Configurator::HOST_CONFIG}"
-      if File.exist?(val)
-        return val
-      else
-        return "#{Configurator.instance.get_continuent_root()}/#{CONFIG_DIRECTORY_NAME}/#{Configurator::HOST_CONFIG}"
-      end
+      return "#{Configurator.instance.get_base_path()}/#{Configurator::HOST_CONFIG}"
     else
       if profiles_dir.to_s() != ""
         val = "#{profiles_dir}/#{Configurator::DATASERVICE_CONFIG}"
