@@ -952,14 +952,22 @@ public class ProtobufSerializer implements Serializer
                 }
                 break;
             case TIME :
-                Timestamp time = new Timestamp(columnVal.getLongValue());
                 if (columnVal.hasIntValue())
                 {
+                    // This is time with microseconds (since MySQL 5.6)
+                    // We need to use timestamps in order to save microseconds
+                    Timestamp time = new Timestamp(columnVal.getLongValue());
+   
                     // When setting nanos, don't forget millis that are already
                     // stored in timestamp object
                     time.setNanos(time.getNanos() + columnVal.getIntValue());
+                    return time;                    
                 }
-                return time;
+                else
+                {
+                    // Fall back on previous behavior
+                    return new Time(columnVal.getLongValue());
+                }
             case FLOAT :
                 return Float.valueOf(columnVal.getFloatValue());
             case DOUBLE :
