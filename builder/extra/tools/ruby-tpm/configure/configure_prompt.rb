@@ -517,9 +517,6 @@ module ConstantValueModule
     
     return enabled_for_config?()
   end
-  
-  def output_config_file_usage
-  end
 end
 
 module HiddenValueModule
@@ -740,6 +737,25 @@ module NoStoredServerConfigValue
       @config.setProperty(get_name(), nil)
       @config.setProperty([SYSTEM] + get_name().split('.'), nil)
     end
+  end
+end
+
+module MigrateFromReplicationServices
+  def update_deprecated_keys
+    @config.getPropertyOr([REPL_SERVICES], {}).each{
+      |rs_alias,rs_props|
+      if rs_props.has_key?(@name)
+        @config.setProperty([HOSTS, rs_props[DEPLOYMENT_HOST], @name], rs_props[@name])
+        rs_props.delete(@name)
+      end
+    }
+    @config.getPropertyOr([DATASERVICE_REPLICATION_OPTIONS], {}).each{
+      |rs_alias,rs_props|
+      if rs_props.has_key?(@name)
+        @config.setProperty([DATASERVICE_HOST_OPTIONS, rs_alias, @name], rs_props[@name])
+        rs_props.delete(@name)
+      end
+    }
   end
 end
 

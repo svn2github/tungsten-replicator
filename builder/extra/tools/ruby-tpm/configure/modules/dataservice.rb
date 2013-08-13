@@ -224,31 +224,6 @@ class ReplicationRMIAddress < ConfigurePrompt
   end
 end
 
-class ReplicationRMIPort < ConfigurePrompt
-  include ReplicationServicePrompt
-  
-  def initialize
-    super(REPL_RMI_PORT, "Replication RMI listen port", 
-      PV_INTEGER, 10000)
-  end
-  
-  PortForManagers.register(REPL_SERVICES, REPL_RMI_PORT, REPL_RMI_RETURN_PORT)
-end
-
-class ReplicationReturnRMIPort < ConfigurePrompt
-  include ReplicationServicePrompt
-  include HiddenValueModule
-  
-  def initialize
-    super(REPL_RMI_RETURN_PORT, "Replication RMI return port", 
-      PV_INTEGER)
-  end
-  
-  def load_default_value
-    @default = (@config.getProperty(get_member_key(REPL_RMI_PORT)).to_i() + 1).to_s
-  end
-end
-
 class ReplicationServiceType < ConfigurePrompt
   include ReplicationServicePrompt
   include AdvancedPromptModule
@@ -848,6 +823,15 @@ class THLStorageFsync < ConfigurePrompt
   end
 end
 
+class RelayEnabled < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(RELAY_ENABLED, "Should the replicator service be setup as a relay master", 
+      PV_BOOLEAN, "false")
+  end
+end
+
 class LogSlaveUpdates < ConfigurePrompt
   include ReplicationServicePrompt
   
@@ -976,6 +960,17 @@ class BatchLoadTemplate < ConfigurePrompt
   end
 end
 
+class BatchLoadLanguage < ConfigurePrompt
+  include ReplicationServicePrompt
+  include BatchModule
+
+  def initialize
+    super(BATCH_LOAD_LANGUAGE, 
+      "Which script language to use for batch loading (js|sql)", 
+      PropertyValidator.new("sql|js", "Value must be sql or js"), "sql")
+  end
+end
+
 class ReplicationServiceConfigFile < ConfigurePrompt
   include ReplicationServicePrompt
   include HiddenValueModule
@@ -1003,62 +998,6 @@ class ReplicationServiceDynamicConfigFile < ConfigurePrompt
   
   def get_default_value
     "#{@config.getProperty(PREPARE_DIRECTORY)}/tungsten-replicator/conf/dynamic-#{@config.getProperty(get_member_key(DEPLOYMENT_SERVICE))}.properties"
-  end
-end
-
-class JavaMemorySize < ConfigurePrompt
-  include ReplicationServicePrompt
-  include AdvancedPromptModule
-  
-  def initialize
-    super(REPL_JAVA_MEM_SIZE, "Replicator Java heap memory size in Mb (min 128)",
-      PV_JAVA_MEM_SIZE, 1024)
-  end
-end
-
-class JavaFileEncoding < ConfigurePrompt
-  include ReplicationServicePrompt
-  include AdvancedPromptModule
-  
-  def initialize
-    super(REPL_JAVA_FILE_ENCODING, "Java platform charset (esp. for heterogeneous replication)",
-      PV_ANY, "")
-  end
-  
-  def required?
-    false
-  end
-end
-
-class JavaUserTimezone < ConfigurePrompt
-  include ReplicationServicePrompt
-  include AdvancedPromptModule
-  
-  def initialize
-    super(REPL_JAVA_USER_TIMEZONE, "Java VM Timezone (esp. for cross-site replication)",
-      PV_ANY, "")
-  end
-  
-  def required?
-    false
-  end
-end
-
-class JavaGarbageCollection < ConfigurePrompt
-  include ReplicationServicePrompt
-  include AdvancedPromptModule
-  
-  def initialize
-    super(REPL_JAVA_ENABLE_CONCURRENT_GC, "Replicator Java uses concurrent garbage collection",
-      PV_BOOLEAN, "false")
-  end
-  
-  def get_template_value(transform_values_method)
-    if get_value() == "true"
-      ""
-    else
-      "#"
-    end
   end
 end
 

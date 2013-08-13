@@ -86,13 +86,6 @@ class Properties
       
       original_props = @props.dup
       
-      #
-      # Not really necessary for now
-      #
-      #if usePromptHandler()
-      #  getPromptHandler.update_deprecated_keys()
-      #end
-      
       if original_props != @props
         Configurator.instance.warning("Deprecated keys in the config file were updated")
       end

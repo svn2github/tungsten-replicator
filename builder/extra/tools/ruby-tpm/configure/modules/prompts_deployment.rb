@@ -493,11 +493,137 @@ class PrepareDirectoryPrompt < ConfigurePrompt
   
   def get_default_value
     target_directory = @config.getProperty(get_member_key(TARGET_DIRECTORY))
-    if File.exist?(target_directory)
+    if target_directory != nil && File.exist?(target_directory)
       return target_directory
     else
       return "#{@config.getProperty(get_member_key(HOME_DIRECTORY))}/#{RELEASES_DIRECTORY_NAME}/#{PREPARE_RELEASE_DIRECTORY}/#{@config.getProperty(get_member_key(TARGET_BASENAME))}"
     end
+  end
+end
+
+class JavaMemorySize < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  include MigrateFromReplicationServices
+  
+  def initialize
+    super(REPL_JAVA_MEM_SIZE, "Replicator Java heap memory size in Mb (min 128)",
+      PV_JAVA_MEM_SIZE, 1024)
+  end
+end
+
+class JavaFileEncoding < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  include MigrateFromReplicationServices
+  
+  def initialize
+    super(REPL_JAVA_FILE_ENCODING, "Java platform charset (esp. for heterogeneous replication)",
+      PV_ANY, "")
+  end
+  
+  def required?
+    false
+  end
+end
+
+class JavaUserTimezone < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  include MigrateFromReplicationServices
+  
+  def initialize
+    super(REPL_JAVA_USER_TIMEZONE, "Java VM Timezone (esp. for cross-site replication)",
+      PV_ANY, "")
+  end
+  
+  def required?
+    false
+  end
+end
+
+class ReplicationAPI < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_API, "Enable the replication API", PV_BOOLEAN, "false")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "true"
+      ""
+    else
+      "#"
+    end
+  end
+end
+
+class ReplicationAPIHost < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_API_HOST, "Hostname that the replication API should listen on", PV_HOSTNAME, "localhost")
+  end
+  
+  def enabled?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
+  end
+
+  def enabled_for_config?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
+  end
+end
+
+class ReplicationAPIPort < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_API_PORT, "Port that the replication API should bind to", PV_INTEGER, "19999")
+  end
+
+  def enabled?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
+  end
+
+  def enabled_for_config?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
+  end
+end
+
+class ReplicationAPIUser < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_API_USER, "HTTP basic auth username for the replication API", PV_ANY, "tungsten")
+  end
+  
+  def enabled?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
+  end
+
+  def enabled_for_config?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
+  end
+end
+
+class ReplicationAPIPassword < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_API_PASSWORD, "HTTP basic auth password for the replication API", PV_ANY, "secret")
+  end
+  
+  def enabled?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
+  end
+
+  def enabled_for_config?
+    super() && @config.getProperty(get_member_key(REPL_API)) == "true"
   end
 end
 
@@ -732,6 +858,51 @@ class RootCommandPrefixPrompt < ConfigurePrompt
   
   def get_command_line_aliases
     [@name.gsub("_", "-")]
+  end
+end
+
+class JavaGarbageCollection < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  include MigrateFromReplicationServices
+  
+  def initialize
+    super(REPL_JAVA_ENABLE_CONCURRENT_GC, "Replicator Java uses concurrent garbage collection",
+      PV_BOOLEAN, "false")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "true"
+      ""
+    else
+      "#"
+    end
+  end
+end
+
+class ReplicationRMIPort < ConfigurePrompt
+  include ClusterHostPrompt
+  include MigrateFromReplicationServices
+  
+  def initialize
+    super(REPL_RMI_PORT, "Replication RMI listen port", 
+      PV_INTEGER, 10000)
+  end
+  
+  PortForManagers.register(HOSTS, REPL_RMI_PORT, REPL_RMI_RETURN_PORT)
+end
+
+class ReplicationReturnRMIPort < ConfigurePrompt
+  include ClusterHostPrompt
+  include HiddenValueModule
+  
+  def initialize
+    super(REPL_RMI_RETURN_PORT, "Replication RMI return port", 
+      PV_INTEGER)
+  end
+  
+  def load_default_value
+    @default = (@config.getProperty(get_member_key(REPL_RMI_PORT)).to_i() + 1).to_s
   end
 end
 

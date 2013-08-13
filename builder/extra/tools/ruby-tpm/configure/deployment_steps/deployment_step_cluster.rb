@@ -383,6 +383,12 @@ host=#{ds_alias}"
     if File.exists?(@config.getProperty(CONFIG_DIRECTORY))
       FileUtils.rmtree(@config.getProperty(CONFIG_DIRECTORY))
     end
+    if File.exists?(@config.getProperty(HOME_DIRECTORY) + "/configs")
+      FileUtils.rmtree(@config.getProperty(HOME_DIRECTORY) + "/configs")
+    end
+    if File.exists?(@config.getProperty(HOME_DIRECTORY) + "/service-logs")
+      FileUtils.rmtree(@config.getProperty(HOME_DIRECTORY) + "/service-logs")
+    end
     FileUtils.touch(target_dir)
     
     FileUtils.cp(current_release_directory + '/' + Configurator::HOST_CONFIG, current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig')

@@ -953,8 +953,10 @@ class CurrentVersionCheck < ConfigureValidationCheck
   def validate
     begin
       if File.exists?("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/tpm")
-        current_version = cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/tpm query version")
-        output_property(ACTIVE_VERSION, current_version)
+        unless File.exists?("#{@config.getProperty(HOME_DIRECTORY)}/configs/tungsten.cfg")
+          current_version = cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/tpm query version")
+          output_property(ACTIVE_VERSION, current_version)
+        end
       end
     rescue CommandError => ce
       exception(ce)

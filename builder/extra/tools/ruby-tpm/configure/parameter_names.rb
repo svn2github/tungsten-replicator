@@ -190,6 +190,7 @@ PREFETCH_SCHEMA = "prefetch_schema"
 
 BATCH_ENABLED = "batch_enabled"
 BATCH_LOAD_TEMPLATE = "batch_load_template"
+BATCH_LOAD_LANGUAGE = "batch_load_language"
 BATCH_INSERT_TEMPLATE = "batch_insert_template"
 BATCH_DELETE_TEMPLATE = "batch_delete_template"
 

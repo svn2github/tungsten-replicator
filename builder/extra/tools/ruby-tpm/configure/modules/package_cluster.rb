@@ -688,6 +688,8 @@ module ClusterCommandModule
   end
   
   def clean_cluster_configuration
+    update_deprecated_keys()
+    
     # Reduce the component options to remove values that are the same as their defaults
     [DATASERVICES, HOSTS, MANAGERS, CONNECTORS, REPL_SERVICES].each{
       |group_name|

@@ -445,7 +445,7 @@ class Configurator
       if arguments_valid?() != true && display_help?() != true
         cleanup(1)
       end
-    
+      
       begin
         # Hand off option parsing to the command object. This will run through
         # the command class and any included modules

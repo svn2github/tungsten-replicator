@@ -419,6 +419,9 @@ module ConfigureCommand
         return true
       end
       
+      # Update old configuration keys
+      update_deprecated_keys
+      
       # The get_deployment_configurations() function takes the current
       # configuration and parses it into individual configurations for
       # each host. This will take into account the command_dataservices()
@@ -757,6 +760,11 @@ module ConfigureCommand
         return "#{Configurator.instance.get_base_path()}/#{Configurator::DATASERVICE_CONFIG}"
       end
     end
+  end
+  
+  def update_deprecated_keys
+    ph = ConfigurePromptHandler.new(@config)
+    ph.update_deprecated_keys()
   end
   
   def save_config_file

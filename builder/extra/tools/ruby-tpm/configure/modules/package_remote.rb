@@ -2,6 +2,7 @@ module RemoteCommand
   def initialize(config)
     super(config)
     @load_remote_config = false
+    @build_members_list = false
   end
   
   def require_remote_config?
@@ -37,6 +38,7 @@ module RemoteCommand
     @override_differences = false
     
     opts=OptionParser.new
+    opts.on("--build-members-list")             { @build_members_list = true }
     opts.on("--default-host String")            { |val|
       if target_hosts.include?(val)
         default_host = val
@@ -128,6 +130,10 @@ module RemoteCommand
         Configurator.instance.error("No host configurations were found. Try specifying --hosts, --user and --directory to load configuration information from other servers.")
       end
       return false
+    end
+    
+    if @build_members_list
+      build_members_lists(host_configs)
     end
     
     sections_to_merge = [
@@ -254,6 +260,7 @@ module RemoteCommand
       }
     }
     clean_cluster_configuration()
+    update_deprecated_keys()
     
     if is_valid?()
       @load_remote_config = true
@@ -269,11 +276,26 @@ module RemoteCommand
 
       info "Load the current config from #{target_user}@#{target_host}:#{target_home_directory}"
       
-      command = "#{target_home_directory}/tools/tpm query config"    
-      config_output = ssh_result(command, target_host, target_user)
-      parsed_contents = JSON.parse(config_output)
-      unless parsed_contents.instance_of?(Hash)
-        raise "Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+      begin
+        command = "#{target_home_directory}/tools/tpm query config"    
+        config_output = ssh_result(command, target_host, target_user)
+        parsed_contents = JSON.parse(config_output)
+        unless parsed_contents.instance_of?(Hash)
+          raise "Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+        end
+      rescue CommandError => ce
+        parent_dir = File.dirname(target_home_directory)
+        # This is an indication that tpm may not have been used for installation
+        if ssh_result("if [ -f #{parent_dir}/configs/tungsten.cfg ]; then echo 0; else echo 1; fi", target_host, target_user) == "0"
+          config_output = ssh_result("cat #{parent_dir}/configs/tungsten.cfg | egrep -v '^#'", target_host, target_user)
+          parsed_contents = JSON.parse(config_output)
+          unless parsed_contents.instance_of?(Hash)
+            raise "Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+          end
+          
+          migrate_tungsten_installer_configuration(parsed_contents)
+          @build_members_list = true
+        end
       end
       
       host_configs[target_host] = parsed_contents.dup
@@ -323,5 +345,149 @@ module RemoteCommand
     else
       raise "Unable to find #{target_home_directory}/#{DIRECTORY_LOCK_FILENAME}.  Try running with --directory=autodetect."
     end
+  end
+  
+  def migrate_tungsten_installer_configuration(cfg)
+    cfg[DATASERVICES] = {}
+    if cfg.has_key?(REPL_SERVICES)
+      cfg[REPL_SERVICES].keys().each{
+        |rs_alias|
+        if rs_alias == DEFAULTS
+          next
+        end
+
+        # Determine the proper host alias to use for this replication service
+        h_alias = cfg[REPL_SERVICES][rs_alias][DEPLOYMENT_HOST]
+        if h_alias == nil
+          h_alias = cfg[DEPLOYMENT_HOST]
+        end
+
+        dataservice = cfg[REPL_SERVICES][rs_alias][DEPLOYMENT_SERVICE]
+        role = cfg[REPL_SERVICES][rs_alias][REPL_ROLE]
+
+        # Start the hash that will be come the dataservice properties
+        ds_props = {
+          DATASERVICENAME => dataservice,
+          DATASERVICE_MEMBERS => cfg[HOSTS][h_alias][HOST]
+        }
+        
+        if role == REPL_ROLE_M
+          ds_props[DATASERVICE_MASTER_MEMBER] = cfg[HOSTS][h_alias][HOST]
+          cfg[REPL_SERVICES][rs_alias].delete(REPL_ROLE)
+        elsif role == REPL_ROLE_S
+          ds_props[DATASERVICE_MASTER_MEMBER] = cfg[REPL_SERVICES][rs_alias][REPL_MASTERHOST]
+          cfg[REPL_SERVICES][rs_alias].delete(REPL_ROLE)
+        elsif role == REPL_ROLE_DI
+          ds_alias = cfg[REPL_SERVICES][rs_alias][REPL_MASTER_DATASOURCE]
+          ds_props[DATASERVICE_TOPOLOGY] = "direct"
+          ds_props[DATASERVICE_MASTER_MEMBER] = cfg[DATASOURCES][ds_alias][REPL_DBHOST]
+          cfg[REPL_SERVICES][rs_alias].delete(REPL_ROLE)
+        end
+        cfg[DATASERVICES][to_identifier(dataservice)] = ds_props
+        
+        # Merge all datasource properties into the replication service
+        ds_alias = cfg[REPL_SERVICES][rs_alias][REPL_DATASOURCE]
+        if ds_alias.to_s != ""
+          if cfg[DATASOURCES].has_key?(ds_alias)
+            cfg[REPL_SERVICES][rs_alias] =
+              cfg[REPL_SERVICES][rs_alias].merge(cfg[DATASOURCES][ds_alias])
+            cfg[REPL_SERVICES][rs_alias].delete(REPL_DATASOURCE)
+          else
+            raise "Unable to find a datasource definition for #{ds_alias} in the #{rs_alias} service"
+          end
+        end
+        
+        # Merge extractor properties for direct replication into the 
+        # replication service
+        ds_alias = cfg[REPL_SERVICES][rs_alias][REPL_MASTER_DATASOURCE]
+        if ds_alias.to_s != ""
+          if cfg[DATASOURCES].has_key?(ds_alias)
+            {
+              REPL_DBTYPE => EXTRACTOR_REPL_DBTYPE,
+              REPL_DBPORT => EXTRACTOR_REPL_DBPORT,
+              REPL_DBLOGIN => EXTRACTOR_REPL_DBLOGIN,
+              REPL_DBPASSWORD => EXTRACTOR_REPL_DBPASSWORD,
+              REPL_MASTER_LOGDIR => EXTRACTOR_REPL_MASTER_LOGDIR,
+              REPL_MASTER_LOGPATTERN => EXTRACTOR_REPL_MASTER_LOGPATTERN,
+              REPL_DISABLE_RELAY_LOGS => EXTRACTOR_REPL_DISABLE_RELAY_LOGS,
+              REPL_ORACLE_SERVICE => EXTRACTOR_REPL_ORACLE_SERVICE,
+              REPL_ORACLE_SCAN => EXTRACTOR_REPL_ORACLE_SCAN
+            }.each{
+              |src,tgt|
+              if cfg[DATASOURCES][ds_alias].has_key?(src)
+                cfg[REPL_SERVICES][rs_alias][tgt] = cfg[DATASOURCES][ds_alias][src]
+              end
+            }
+            cfg[REPL_SERVICES][rs_alias].delete(REPL_MASTER_DATASOURCE)
+          else
+            raise "Unable to find a master datasource definition for #{ds_alias} in the #{rs_alias} service"
+          end
+        end
+        
+        cfg[REPL_SERVICES][rs_alias][DEPLOYMENT_HOST] = to_identifier(h_alias)
+        # Remove unsupported replication service properties
+        cfg[REPL_SERVICES][rs_alias].delete(DEPLOYMENT_SERVICE)
+        cfg[REPL_SERVICES][rs_alias].delete(REPL_SVC_START)
+        cfg[REPL_SERVICES][rs_alias].delete(REPL_SVC_REPORT)
+        
+        # This replication service must end up with this alias
+        new_rs_alias = to_identifier("#{dataservice}_#{cfg[HOSTS][h_alias][HOST]}")
+        if rs_alias != new_rs_alias
+          cfg[REPL_SERVICES][new_rs_alias] = cfg[REPL_SERVICES][rs_alias].dup()
+          cfg[REPL_SERVICES].delete(rs_alias)
+        end
+      }
+      cfg.delete(DATASOURCES)
+      
+      cfg[HOSTS].keys().each{
+        |h_alias|
+        if h_alias != to_identifier(cfg[HOSTS][h_alias][HOST])
+          cfg[HOSTS][to_identifier(cfg[HOSTS][h_alias][HOST])] = cfg[HOSTS][h_alias].dup()
+          cfg[HOSTS].delete(h_alias)
+        end
+      }
+    end
+  end
+  
+  def build_members_lists(cfgs)
+    ds_members = {}
+    
+    cfgs.each{
+      |host,cfg|
+      
+      unless cfg.has_key?(DATASERVICES)
+        next
+      end
+      
+      cfg[DATASERVICES].each_key{
+        |ds_alias|
+        if ds_alias == DEFAULTS
+          next
+        end
+      
+        unless ds_members.has_key?(ds_alias)
+          ds_members[ds_alias] = []
+        end
+        
+        ds_members[ds_alias] = ds_members[ds_alias] +
+          cfg[DATASERVICES][ds_alias][DATASERVICE_MEMBERS].to_s().split(",")
+      }
+    }
+    
+    cfgs.each{
+      |host,cfg|
+      
+      unless cfg.has_key?(DATASERVICES)
+        next
+      end
+      
+      ds_members.each{
+        |ds_alias,members|
+        
+        if cfg[DATASERVICES].has_key?(ds_alias)
+          cfg[DATASERVICES][ds_alias][DATASERVICE_MEMBERS] = members.join(",")
+        end
+      }
+    }
   end
 end

@@ -31,6 +31,7 @@ module Topology
   end
   
   def get_role(hostname)
+    rs_alias = @ds_alias + "_" + to_identifier(hostname)
     if @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_MASTER_MEMBER]) == hostname
       relay_source = @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_RELAY_SOURCE])
       
@@ -39,6 +40,8 @@ module Topology
       else
         return REPL_ROLE_R
       end
+    elsif @config.getProperty([REPL_SERVICES, rs_alias, RELAY_ENABLED]) == "true"
+      return REPL_ROLE_S_RELAY
     else
       return REPL_ROLE_S
     end
