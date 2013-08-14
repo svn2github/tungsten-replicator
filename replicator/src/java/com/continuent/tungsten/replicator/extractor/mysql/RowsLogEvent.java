@@ -31,6 +31,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 import org.apache.log4j.Logger;
 
@@ -684,7 +685,10 @@ public abstract class RowsLogEvent extends LogEvent
                 // construct timestamp from time components
                 java.sql.Timestamp ts = null;
 
-                Calendar cal = Calendar.getInstance();
+                // Force the use of GMT as calendar for DATETIME datatype
+                Calendar cal = Calendar
+                        .getInstance(TimeZone.getTimeZone("GMT"));
+
                 // Month value is 0-based. e.g., 0 for January.
                 cal.set(year, month - 1, day, hour, min, sec);
 
@@ -694,7 +698,7 @@ public abstract class RowsLogEvent extends LogEvent
 
                 value.setValue(ts);
                 if (spec != null)
-                    spec.setType(java.sql.Types.TIMESTAMP);
+                    spec.setType(java.sql.Types.DATE);
                 return 8;
             }
             case MysqlBinlog.MYSQL_TYPE_DATETIME2 :
@@ -750,10 +754,10 @@ public abstract class RowsLogEvent extends LogEvent
                 // construct timestamp from time components
                 java.sql.Timestamp ts = null;
 
-                Calendar cal = Calendar.getInstance();
-                if (logger.isDebugEnabled())
-                    logger.debug("Timezone is "
-                            + cal.getTimeZone().getDisplayName());
+                // Calendar cal = Calendar.getInstance();
+                // Force the use of GMT as calendar
+                Calendar cal = Calendar
+                        .getInstance(TimeZone.getTimeZone("GMT"));
 
                 // Month value is 0-based. e.g., 0 for January.
                 cal.set(year, month - 1, day, hour, minute, seconds);
@@ -762,7 +766,7 @@ public abstract class RowsLogEvent extends LogEvent
 
                 value.setValue(ts);
                 if (spec != null)
-                    spec.setType(java.sql.Types.TIMESTAMP);
+                    spec.setType(java.sql.Types.DATE);
 
                 int secPartsLength = getSecondPartsLength(meta);
                 rowPos += 5;

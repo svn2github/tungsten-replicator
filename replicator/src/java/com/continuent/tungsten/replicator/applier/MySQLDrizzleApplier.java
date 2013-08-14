@@ -34,7 +34,9 @@ import java.sql.SQLWarning;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.log4j.Logger;
 import org.drizzle.jdbc.DrizzleStatement;
@@ -55,9 +57,12 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 public class MySQLDrizzleApplier extends MySQLApplier
 {
 
-    static Logger   logger        = Logger.getLogger(MySQLDrizzleApplier.class);
+    static Logger                         logger        = Logger.getLogger(MySQLDrizzleApplier.class);
 
-    private boolean alreadyLogged = false;
+    private boolean                       alreadyLogged = false;
+
+    private static final SimpleDateFormat formatter     = new SimpleDateFormat(
+                                                                "yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void configure(PluginContext context) throws ReplicatorException
@@ -80,6 +85,7 @@ public class MySQLDrizzleApplier extends MySQLApplier
         }
         else if (logger.isDebugEnabled())
             logger.debug("Property url already set; ignoring host and port properties");
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
         super.configure(context);
     }
 
@@ -287,9 +293,14 @@ public class MySQLDrizzleApplier extends MySQLApplier
             if (value.getValue() instanceof Timestamp)
             {
                 Timestamp timestamp = ((Timestamp) value.getValue());
-                prepStatement.setString(bindLoc,
-                        new Time(timestamp.getTime()).toString() + "."
-                                + String.format("%09d%n" ,timestamp.getNanos()));
+                StringBuffer time = new StringBuffer(new Time(
+                        timestamp.getTime()).toString());
+                if (timestamp.getNanos() > 0)
+                {
+                    time.append(".");
+                    time.append(String.format("%09d%n", timestamp.getNanos()));
+                }
+                prepStatement.setString(bindLoc, time.toString());
             }
             else
             {
@@ -330,6 +341,19 @@ public class MySQLDrizzleApplier extends MySQLApplier
         {
             prepStatement.setString(bindLoc,
                     ((Timestamp) value.getValue()).toString());
+        }
+        else if (columnSpec.getType() == Types.DATE
+                && value.getValue() instanceof Timestamp)
+        {
+            Timestamp ts = (Timestamp) value.getValue();
+            StringBuffer date = new StringBuffer(formatter.format(ts));
+            if (ts.getNanos() > 0)
+            {
+                date.append(".");
+                date.append(String.format("%09d%n", ts.getNanos()));
+            }
+            prepStatement.setString(bindLoc, date.toString());
+
         }
         else if (columnSpec.getType() == Types.BLOB
                 && value.getValue() instanceof SerialBlob

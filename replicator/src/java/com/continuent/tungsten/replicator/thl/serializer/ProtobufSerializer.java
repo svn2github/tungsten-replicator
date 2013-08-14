@@ -41,31 +41,15 @@ import javax.sql.rowset.serial.SerialException;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.Header;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufLoadDataFileFragment;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufLoadDataFileQuery;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneChange;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufReplDBMSEvent;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufRowChangeData;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufRowIdData;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufStatementData;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneChange.Builder;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ActionType;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufColumnSpec;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufRowValue;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufRowValue.ProtobufColumnVal;
-import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufRowValue.ProtobufColumnVal.Type;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileFragment;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileQuery;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
+import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
+import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowIdData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
-import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
-import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSFilteredEvent;
@@ -73,6 +57,22 @@ import com.continuent.tungsten.replicator.event.ReplEvent;
 import com.continuent.tungsten.replicator.event.ReplOption;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 import com.continuent.tungsten.replicator.thl.THLEvent;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.Header;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufEventOption;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufLoadDataFileFragment;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufLoadDataFileQuery;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneChange;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneChange.Builder;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ActionType;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufColumnSpec;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufRowValue;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufRowValue.ProtobufColumnVal;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufOneRowChange.ProtobufRowValue.ProtobufColumnVal.Type;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufReplDBMSEvent;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufRowChangeData;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufRowIdData;
+import com.continuent.tungsten.replicator.thl.protobuf.TungstenProtos.ProtobufStatementData;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 
@@ -691,7 +691,8 @@ public class ProtobufSerializer implements Serializer
                         trace.append(time);
                     }
                     valueBuilder.setLongValue(time);
-                    valueBuilder.setIntValue(nanos);
+                    if (nanos > 0)
+                        valueBuilder.setIntValue(nanos);
                 }
                 valueBuilder.setType(Type.TIMESTAMP);
                 break;
@@ -704,7 +705,8 @@ public class ProtobufSerializer implements Serializer
                     time = ((Timestamp) value).getTime();
                     int nanos = ((Timestamp) value).getNanos()
                             - ((int) (time % 1000L) * 1000000);
-                    valueBuilder.setIntValue(nanos);
+                    if (nanos > 0)
+                        valueBuilder.setIntValue(nanos);
 
                 }
                 if (logger.isDebugEnabled())
@@ -718,6 +720,18 @@ public class ProtobufSerializer implements Serializer
             case Types.DATE :
                 if (value instanceof Integer)
                     valueBuilder.setIntValue(0);
+                else if (value instanceof Timestamp)
+                {
+                    // Handling DATETIME datatype (using GMT to apply)
+                    time = ((Timestamp) value).getTime();
+                    valueBuilder.setLongValue(time);
+                    valueBuilder.setStringValue("GMT");
+
+                    int nanos = ((Timestamp) value).getNanos()
+                            - ((int) (time % 1000L) * 1000000);
+                    if (nanos > 0)
+                        valueBuilder.setIntValue(nanos);
+                }
                 else
                 {
                     time = ((Date) value).getTime();
@@ -932,7 +946,21 @@ public class ProtobufSerializer implements Serializer
                 break;
             case DATE :
                 if (columnVal.hasLongValue())
-                    return new Date(columnVal.getLongValue());
+                {
+                    if (columnVal.hasStringValue())
+                    {
+                        // Handling DATETIME datatype (using GMT to apply)
+                        Timestamp timestamp = new Timestamp(
+                                columnVal.getLongValue());
+                        if (columnVal.hasIntValue())
+                            timestamp.setNanos(timestamp.getNanos()
+                                    + columnVal.getIntValue());
+                        return timestamp;
+
+                    }
+                    else
+                        return new Date(columnVal.getLongValue());
+                }
                 else if (columnVal.hasIntValue())
                     return Integer.valueOf(0);
                 break;
@@ -957,11 +985,11 @@ public class ProtobufSerializer implements Serializer
                     // This is time with microseconds (since MySQL 5.6)
                     // We need to use timestamps in order to save microseconds
                     Timestamp time = new Timestamp(columnVal.getLongValue());
-   
+
                     // When setting nanos, don't forget millis that are already
                     // stored in timestamp object
                     time.setNanos(time.getNanos() + columnVal.getIntValue());
-                    return time;                    
+                    return time;
                 }
                 else
                 {
