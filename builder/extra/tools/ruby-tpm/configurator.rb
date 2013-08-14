@@ -23,6 +23,7 @@ system_require 'pp'
 system_require 'timeout'
 system_require 'cgi'
 system_require 'json'
+system_require 'iniparse'
 system_require 'escape'
 system_require 'transformer'
 system_require 'validator'
@@ -2099,4 +2100,14 @@ end
 
 class NetworkAdapter
   attr_reader :networks
+end
+
+module IniParse
+  module Lines
+    class Option
+      def self.typecast(value)
+        value
+      end
+    end
+  end
 end

@@ -243,7 +243,6 @@ module ClusterCommandModule
     if @config_ini_path != nil
       debug("Load external configuration from #{@config_ini_path}")
       
-      require 'iniparse'
       ini = IniParse.open(@config_ini_path)
       ini.each{
         |section|
