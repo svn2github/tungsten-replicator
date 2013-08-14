@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -79,8 +79,12 @@ public class PrimaryKeyFilter implements Filter
     private boolean                                     addPkeyToInserts     = false;
     private boolean                                     addColumnsToDeletes  = false;
 
+    private long                                        reconnectTimeoutInSeconds = 60;
+
     // SQL parser.
-    SqlOperationMatcher                                 sqlMatcher           = new MySQLOperationMatcher();
+    SqlOperationMatcher                                 sqlMatcher                = new MySQLOperationMatcher();
+
+    private long                                        lastConnectionTime;
 
     /**
      * {@inheritDoc}
@@ -130,6 +134,8 @@ public class PrimaryKeyFilter implements Filter
         try
         {
             conn = DatabaseFactory.createDatabase(url, user, password);
+            if (reconnectTimeoutInSeconds > 0)
+                lastConnectionTime = System.currentTimeMillis();
             conn.connect();
         }
         catch (SQLException e)
@@ -298,6 +304,7 @@ public class PrimaryKeyFilter implements Filter
                 logger.debug("Detected a schema change for table "
                         + orc.getSchemaName() + "." + tableName
                         + " - Removing table metadata from cache");
+            reconnectIfNeeded();
             Table newTable = conn.findTable(orc.getSchemaName(),
                     orc.getTableName());
             if (newTable != null)
@@ -432,6 +439,19 @@ public class PrimaryKeyFilter implements Filter
         }
     }
 
+    private void reconnectIfNeeded() throws SQLException
+    {
+        long currentTime = System.currentTimeMillis();
+        if (reconnectTimeoutInSeconds > 0
+                && currentTime - lastConnectionTime > reconnectTimeoutInSeconds * 1000)
+        {
+            // Time to reconnect now
+            lastConnectionTime = currentTime;
+            conn.close();
+            conn.connect();
+        }
+    }
+    
     public void setUser(String user)
     {
         this.user = user;
@@ -469,4 +489,10 @@ public class PrimaryKeyFilter implements Filter
     {
         this.addColumnsToDeletes = addColumnsToDeletes;
     }
+    
+    public void setReconnectTimeout(long seconds)
+    {
+        reconnectTimeoutInSeconds = seconds;
+    }
+
 }
