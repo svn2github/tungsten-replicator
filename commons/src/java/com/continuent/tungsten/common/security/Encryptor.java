@@ -58,8 +58,10 @@ public class Encryptor
      * Creates a new <code>Encryptor</code> object
      * 
      * @param authenticationInfo
+     * @throws ConfigurationException 
+     * @throws ServerRuntimeException 
      */
-    public Encryptor(AuthenticationInfo authenticationInfo)
+    public Encryptor(AuthenticationInfo authenticationInfo) throws ServerRuntimeException, ConfigurationException
     {
         this.authenticationInfo = authenticationInfo;
 

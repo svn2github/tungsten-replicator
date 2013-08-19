@@ -263,7 +263,7 @@ public class PasswordManagerCtrl
                 logger.error(MessageFormat
                         .format("Could not retrieve configuration information: {0}\nTry to specify a security.properties file location, provide options on the command line, or have the cluster.home variable set.",
                                 ce.getMessage()));
-                System.exit(0);
+                System.exit(EXIT_CODE.EXIT_ERROR.value);
             }
             catch (ServerRuntimeException sre)
             {

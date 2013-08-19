@@ -25,6 +25,8 @@ import java.security.KeyPair;
 
 import junit.framework.TestCase;
 
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 
 /**
@@ -46,7 +48,18 @@ public class EncryptorTest extends TestCase
 //        authInfo.setKeystore("tungsten_keystore.jks", "tungsten");
 //        authInfo.setTruststore("tungsten_truststore.ts", "tungsten");
         
-        this.encryptor = new Encryptor(authInfo);
+        try
+        {
+            this.encryptor = new Encryptor(authInfo);
+        }
+        catch (ServerRuntimeException e)
+        {
+            assertTrue(false);
+        }
+        catch (ConfigurationException e)
+        {
+            assertTrue(false);
+        }
     }
     
     /**

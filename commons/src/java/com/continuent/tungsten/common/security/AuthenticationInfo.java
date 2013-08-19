@@ -97,8 +97,9 @@ public final class AuthenticationInfo
 
     /**
      * Check Authentication information consistency
+     * @throws  ConfigurationException 
      */
-    public void checkAuthenticationInfo() throws ServerRuntimeException
+    public void checkAuthenticationInfo() throws ServerRuntimeException, ConfigurationException
     {   
         // --- Check security.properties location ---
         if (this.parentPropertiesFileLocation != null)
@@ -163,6 +164,16 @@ public final class AuthenticationInfo
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
             }
+        }
+        else if (this.isEncryptionNeeded() && this.truststoreLocation == null)
+        {
+            throw new ConfigurationException("truststore.location");
+        }
+        
+        // --- Check password for Truststore ---
+        if (this.isEncryptionNeeded() && this.truststorePassword == null)
+        {
+            throw new ConfigurationException("truststore.password");
         }
         
         // --- Check password file location ---

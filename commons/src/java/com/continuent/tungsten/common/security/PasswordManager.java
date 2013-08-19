@@ -278,8 +278,17 @@ public class PasswordManager
 
         if (this.authenticationInfo.isUseEncryptedPasswords())
         {
-            Encryptor encryptor = new Encryptor(this.authenticationInfo);
-            encryptedPassword = encryptor.encrypt(clearTextPassword);
+            Encryptor encryptor = null;;
+            try
+            {
+                encryptor = new Encryptor(this.authenticationInfo);
+            }
+            catch (ConfigurationException e)
+            {
+                throw new ServerRuntimeException(e.getMessage());
+            }
+            if (encryptor!=null)
+                encryptedPassword = encryptor.encrypt(clearTextPassword);
         }
 
         return encryptedPassword;
