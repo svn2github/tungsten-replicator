@@ -85,6 +85,19 @@ public class PasswordManagerCtrl
     private static final String                          PASSWORD_FILE_LOCATION  = "password_file.location";
 
     private static Option                                create;
+    
+    // --- Exit codes ---
+    private enum EXIT_CODE
+    {
+        EXIT_OK(0),
+        EXIT_ERROR(1);
+       
+        private final int value;
+        private EXIT_CODE(int value) {
+            this.value = value;
+        }
+    }
+    
 
     /**
      * Setup command line options
@@ -169,7 +182,7 @@ public class PasswordManagerCtrl
             line = parser.parse(pwd.helpOptions, argv, true);
             if (line.hasOption(_HELP))
             {
-                DisplayHelpAndExit();
+                DisplayHelpAndExit(EXIT_CODE.EXIT_OK);
             }
 
             // --- Program command line options
@@ -180,7 +193,7 @@ public class PasswordManagerCtrl
             // --- Optional arguments : Get options ---
             if (line.hasOption(_HELP))
             {
-                DisplayHelpAndExit();
+                DisplayHelpAndExit(EXIT_CODE.EXIT_OK);
             }
             if (line.hasOption(_TARGET_APPLICATION))                        // Target Application
             {
@@ -256,7 +269,7 @@ public class PasswordManagerCtrl
             {
                 logger.error(sre.getLocalizedMessage());
                 // AuthenticationInfo consistency check : failed
-                DisplayHelpAndExit();
+                DisplayHelpAndExit(EXIT_CODE.EXIT_ERROR);
             }
 
             // --- Perform commands ---
@@ -296,7 +309,7 @@ public class PasswordManagerCtrl
         {
             logger.error(exp.getMessage());
 
-            DisplayHelpAndExit();
+            DisplayHelpAndExit(EXIT_CODE.EXIT_ERROR);
         }
     }
 
@@ -343,12 +356,12 @@ public class PasswordManagerCtrl
     /**
      * Display the program help and exits
      */
-    private static void DisplayHelpAndExit()
+    private static void DisplayHelpAndExit(EXIT_CODE exitCode)
     {
         HelpFormatter formatter = new HelpFormatter();
         formatter.setWidth(120);
         formatter.printHelp("tpasswd", pwd.options);
-        System.exit(0);
+        System.exit(exitCode.value);
     }
 
 }
