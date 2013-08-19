@@ -52,6 +52,7 @@ public class PasswordManagerCtrl
 
     private static Logger                                logger                  = Logger.getLogger(PasswordManagerCtrl.class);
 
+    private Options                                      helpOptions             = new Options();
     private Options                                      options                 = new Options();
     private static PasswordManagerCtrl                   pwd;
     private static PasswordManager.ClientApplicationType clientApplicationType   = null;
@@ -64,7 +65,8 @@ public class PasswordManagerCtrl
     private String                                       passwordFileLocation    = null;
 
     // -- Define constants for command line arguments ---
-    private static final String                          _HELP                   = "help";
+    private static final String                          HELP                    = "help";
+    private static final String                          _HELP                   = "h";
     private static final String                          CREATE                  = "create";
     private static final String                          _CREATE                 = "c";
     private static final String                          DELETE                  = "delete";
@@ -82,7 +84,7 @@ public class PasswordManagerCtrl
     private static final String                          _PASSWORD_FILE_LOCATION = "p";
     private static final String                          PASSWORD_FILE_LOCATION  = "password_file.location";
 
-    static Option                                        create;
+    private static Option                                create;
 
     /**
      * Setup command line options
@@ -91,7 +93,7 @@ public class PasswordManagerCtrl
     private void setupCommandLine()
     {
         // --- Options on the command line ---
-        Option help = new Option(_HELP, "print this message");
+        Option help = OptionBuilder.withLongOpt(HELP).withDescription("Displays this message").create(_HELP);
         Option file = OptionBuilder.withLongOpt(FILE).withArgName("filename").hasArgs()
                 .withDescription("Location of the " + SecurityConf.SECURITY_PROPERTIES_FILE_NAME + " file").create(_FILE);
 
@@ -118,10 +120,13 @@ public class PasswordManagerCtrl
                 .withDescription("Location of the password file").create(_PASSWORD_FILE_LOCATION);
 
         // --- Add options to the list ---
+        // --- Help
+        this.helpOptions.addOption(help);
+        
+        // --- Program command line options
         this.options.addOptionGroup(optionGroup);
-        this.options.addOption(help);
         this.options.addOption(file);
-
+        this.options.addOption(help);
         this.options.addOption(encryptedPassword);
         this.options.addOption(truststoreLocation);
         this.options.addOption(truststorePassword);
@@ -153,20 +158,30 @@ public class PasswordManagerCtrl
         String securityPropertiesFileLocation = null;
         String username = null;
         String password = null;
+        CommandLine line = null;
 
         try
         {
             CommandLineParser parser = new GnuParser();
-            // parse the command line arguments
-            CommandLine line = parser.parse(pwd.options, argv);
-
-            // --- Handle options ---
+            // --- Parse the command line arguments ---
+            
+            // --- Help
+            line = parser.parse(pwd.helpOptions, argv, true);
             if (line.hasOption(_HELP))
             {
                 DisplayHelpAndExit();
             }
+            
+            // --- Program command line options
+            line = parser.parse(pwd.options, argv);
 
+            // --- Handle options ---
+            
             // --- Optional arguments : Get options ---
+            if (line.hasOption(_HELP))
+            {
+                DisplayHelpAndExit();
+            }
             if (line.hasOption(_TARGET_APPLICATION))                        // Target Application
             {
                 String target = line.getOptionValue(TARGET_APPLICATION);
