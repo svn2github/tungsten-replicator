@@ -288,19 +288,22 @@ public class PasswordManager
     /**
      * When possible, tries to create files needed by the Password Manager.
      * Best effort: not successs guaranted
+     * 
+     * @throws ConfigurationException
      */
-    public void try_createAuthenticationInfoFiles()
+    public void try_createAuthenticationInfoFiles() throws ConfigurationException
     {
         // --- Try to create password_file.location ---
-        File f = new File(this.authenticationInfo.getPasswordFileLocation());
+        File f = null;
         try
         {
+            f = new File(this.authenticationInfo.getPasswordFileLocation()); // Throws a NullPointerException if parameter is null
             if (!f.isFile() || !f.canRead())
             {
                 logger.warn(MessageFormat.format("Creating non existing file: {0}", f.getAbsolutePath()));
-                
+
                 String parentPath = f.getParent();
-                if (parentPath!=null)
+                if (parentPath != null)
                 {
                     File pathToTarget = new File(parentPath);    // Create parent directories
                     if (!pathToTarget.isDirectory())
@@ -312,6 +315,11 @@ public class PasswordManager
         catch (IOException e)
         {
             logger.warn(MessageFormat.format("Could not create file: {0}", f.getAbsolutePath()));
+        }
+        catch (NullPointerException npe)
+        {
+            // This is thrown when this.authenticationInfo.getPasswordFileLocation()==null
+            throw new ConfigurationException("password_file.location is null");
         }
     }
 

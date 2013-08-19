@@ -122,7 +122,7 @@ public class PasswordManagerCtrl
         // --- Add options to the list ---
         // --- Help
         this.helpOptions.addOption(help);
-        
+
         // --- Program command line options
         this.options.addOptionGroup(optionGroup);
         this.options.addOption(file);
@@ -164,19 +164,19 @@ public class PasswordManagerCtrl
         {
             CommandLineParser parser = new GnuParser();
             // --- Parse the command line arguments ---
-            
+
             // --- Help
             line = parser.parse(pwd.helpOptions, argv, true);
             if (line.hasOption(_HELP))
             {
                 DisplayHelpAndExit();
             }
-            
+
             // --- Program command line options
             line = parser.parse(pwd.options, argv);
 
             // --- Handle options ---
-            
+
             // --- Optional arguments : Get options ---
             if (line.hasOption(_HELP))
             {
@@ -248,7 +248,7 @@ public class PasswordManagerCtrl
             catch (ConfigurationException ce)
             {
                 logger.error(MessageFormat
-                        .format("Could not retrieve configuration information: {0}\n Try to specify a security.properties file location, provide options on the command line, or have the cluster.home variable set.",
+                        .format("Could not retrieve configuration information: {0}\nTry to specify a security.properties file location, provide options on the command line, or have the cluster.home variable set.",
                                 ce.getMessage()));
                 System.exit(0);
             }
