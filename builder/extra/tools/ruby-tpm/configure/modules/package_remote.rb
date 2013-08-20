@@ -200,10 +200,12 @@ module RemoteCommand
     end
 
     # Remove the data services we are about to import from the stored config
-    final_props[DATASERVICES].each_key{
-      |ds_alias|
-      @config.setProperty([DATASERVICES, ds_alias], nil)
-    }
+    if final_props.has_key?(DATASERVICES)
+      final_props[DATASERVICES].each_key{
+        |ds_alias|
+        @config.setProperty([DATASERVICES, ds_alias], nil)
+      }
+    end
     clean_cluster_configuration()
 
     # Import the configuration information
@@ -276,14 +278,23 @@ module RemoteCommand
 
       info "Load the current config from #{target_user}@#{target_host}:#{target_home_directory}"
       
+      migrate_old_configuration = false
       begin
-        command = "#{target_home_directory}/tools/tpm query config"    
-        config_output = ssh_result(command, target_host, target_user)
-        parsed_contents = JSON.parse(config_output)
-        unless parsed_contents.instance_of?(Hash)
-          raise "Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+        if ssh_result("#{target_home_directory}/tools/tpm query dataservices", target_host, target_user) == ""
+          migrate_old_configuration = true
+        else
+          command = "#{target_home_directory}/tools/tpm query config"    
+          config_output = ssh_result(command, target_host, target_user)
+          parsed_contents = JSON.parse(config_output)
+          unless parsed_contents.instance_of?(Hash)
+            raise "Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+          end
         end
       rescue CommandError => ce
+        migrate_old_configuration = true
+      end
+      
+      if migrate_old_configuration == true
         parent_dir = File.dirname(target_home_directory)
         # This is an indication that tpm may not have been used for installation
         if ssh_result("if [ -f #{parent_dir}/configs/tungsten.cfg ]; then echo 0; else echo 1; fi", target_host, target_user) == "0"
