@@ -271,7 +271,7 @@ public class SecurityHelper
                 authInfo.checkAuthenticationInfo(); // Checks authentication and encryption parameters: file exists, ...
 
             // --- Set critical properties as System Properties ---
-            SecurityHelper.setSecurityProperties(authInfo, true);
+            SecurityHelper.setSecurityProperties(authInfo, false);
         }
         return authInfo;
     }
