@@ -298,10 +298,6 @@ public final class AuthenticationInfo
 
     public boolean isAuthenticationNeeded()
     {
-        if (this.authUsage == AUTH_USAGE.CLIENT_SIDE
-                && (this.username != null || this.password != null))
-            this.authenticationNeeded = true;
-
         return authenticationNeeded;
     }
 
@@ -312,11 +308,6 @@ public final class AuthenticationInfo
 
     public boolean isEncryptionNeeded()
     {
-        if (this.authUsage == AUTH_USAGE.CLIENT_SIDE
-                && (this.getTruststoreLocation() != null || this
-                        .getTruststorePassword() != null))
-            this.encryptionNeeded = true;
-
         return encryptionNeeded;
     }
 
