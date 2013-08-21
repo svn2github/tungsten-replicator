@@ -69,7 +69,7 @@ public class RouterURL implements Cloneable
 
     // Parsed URL data
     private String              dataServiceName           = "UNDEFINED";
-    private String              dbname                    = "UNDEFINED";
+    private String              dbname                    = "";
     private QualityOfService    qos                       = QualityOfService.RW_STRICT;
     public static double        MAX_APPLIED_LATENCY_UNDEF = -1;
     private double              maxAppliedLatency         = MAX_APPLIED_LATENCY_UNDEF;
@@ -154,7 +154,7 @@ public class RouterURL implements Cloneable
         dbname = nextUrlBaseToken(url);
         if (dbname == null)
         {
-            throw new SQLException("Missing database name in URL: " + url);
+            dbname = "";
         }
 
         // Get properties.

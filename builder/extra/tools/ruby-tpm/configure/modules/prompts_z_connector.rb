@@ -5,7 +5,7 @@ CONN_LISTEN_ADDRESS = "connector_listen_address"
 CONN_LISTEN_PORT = "connector_listen_port"
 CONN_CLIENTLOGIN = "connector_user"
 CONN_CLIENTPASSWORD = "connector_password"
-CONN_CLIENTDEFAULTDB = "connector_default_schema"
+CONN_CLIENTDEFAULTDB = "connector_forced_schema"
 CONN_DB_PROTOCOL = "connector_db_protocol"
 CONN_DB_VERSION = "connector_db_version"
 CONN_DELETE_USER_MAP = "connector_delete_user_map"
@@ -245,11 +245,7 @@ class ConnectorDefaultSchema < ConfigurePrompt
   include ConnectorPrompt
   
   def initialize
-    super(CONN_CLIENTDEFAULTDB, "Default schema for the connector to use", PV_ANY)
-  end
-  
-  def load_default_value
-    @default = @config.getProperty(get_dataservice_key(DATASERVICE_SCHEMA))
+    super(CONN_CLIENTDEFAULTDB, "Default schema for the connector to use", PV_ANY, "none")
   end
 end
 

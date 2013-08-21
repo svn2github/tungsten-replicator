@@ -41,8 +41,7 @@ public class TestRouterUrl extends TestCase
     public void testBadUrls() throws Exception
     {
         String[] badUrls = {"", "jdbc:", "jdbc:whatever//", "jdbc:t-router:",
-                "jdbc:t-router://", "jdbc:t-router://service",
-                "jdbc:t-router://service/", "jdbc:t-router://service/db?qos",
+                "jdbc:t-router://", "jdbc:t-router://service/db?qos",
                 "jdbc:t-router://service/db?qos=RW_STRICT&missingvalue"};
 
         for (String badUrl : badUrls)
