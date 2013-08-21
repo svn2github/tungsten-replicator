@@ -45,7 +45,7 @@ public class SecurityConf
     static public final String SECURITY_JMX_USE_TUNGSTEN_AUTHENTICATION_REALM_ENCRYPTED_PASSWORD     = "security.rmi.tungsten.authenticationRealm.encrypted.password";
     static public final String SECURITY_JMX_USE_ENCRYPTION                                           = "security.rmi.encryption";
     static public final String SECURITY_PASSWORD_FILE_LOCATION                                       = "security.password_file.location";
-    static public final String SECURITY_ACCESS_FILE_LOCATION                                         = "security.access_file.location";
+    static public final String SECURITY_ACCESS_FILE_LOCATION                                         = "security.rmi.jmxremote.access_file.location";
     static public final String SECURITY_KEYSTORE_LOCATION                                            = "security.keystore.location";
     static public final String SECURITY_KEYSTORE_PASSWORD                                            = "security.keystore.password";
     static public final String SECURITY_TRUSTSTORE_LOCATION                                          = "security.truststore.location";
