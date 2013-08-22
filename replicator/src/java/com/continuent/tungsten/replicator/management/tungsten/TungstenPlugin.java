@@ -245,30 +245,9 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
             }
 
             // Find the last consistency check id
-            Table ct = null;
-            id = 1;
-            try
-            {
-                Statement st;
-                st = conn.createStatement();
-                ct = conn.findTable(properties.getString("replicator.schema"),
-                        ConsistencyTable.TABLE_NAME);
-                ResultSet rs = st.executeQuery("SELECT MAX("
-                        + ConsistencyTable.idColumnName + ") FROM "
-                        + ct.getSchema() + "." + ct.getName());
-                if (rs.next())
-                {
-                    id = rs.getInt(1) + 1; // increment id
-                }
-                rs.close();
-                st.close();
-            }
-            catch (Exception e)
-            {
-                logger.error("Failed to query last consistency check ID: "
-                        + e.getMessage());
-                throw e;
-            }
+            Table ct = findConsistencyTable(conn,
+                    properties.getString("replicator.schema"));
+            id = findNextConsistencyId(conn, ct);
 
             for (int i = 0; i < tables.size(); i++)
             {
@@ -294,6 +273,66 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         finally
         {
             conn.close();
+        }
+        return id;
+    }
+    
+    /**
+     * Tries to locate consistency check table. Throws a wrapped exception on
+     * failure.
+     * 
+     * @param conn Database connection.
+     * @param replicatorSchema Schema name of the Replicator service.
+     * @return Consistency check table.
+     */
+    public static Table findConsistencyTable(Database conn,
+            String replicatorSchema) throws Exception
+    {
+        try
+        {
+            return conn
+                    .findTable(replicatorSchema, ConsistencyTable.TABLE_NAME);
+        }
+        catch (Exception e)
+        {
+            logger.error("Failed to find consistency check table: "
+                    + e.getMessage());
+            throw e;
+        }
+    }
+    
+    /**
+     * Finds what ID should be used for the next consistency check.
+     * 
+     * @param conn Database connection.
+     * @param ct Consistency check table.
+     * @return Next consistency check ID.
+     * @throws Exception If SQL query fails.
+     */
+    public static int findNextConsistencyId(Database conn, Table ct)
+            throws Exception
+    {
+        // Find the last consistency check id
+        int id = 1;
+        try
+        {
+            Statement st;
+            st = conn.createStatement();
+            ResultSet rs = st.executeQuery("SELECT MAX("
+                    + ConsistencyTable.idColumnName + ") FROM "
+                    + ct.getSchema() + "." + ct.getName());
+            if (rs.next())
+            {
+                id = rs.getInt(1) + 1; // increment id
+            }
+            rs.close();
+            st.close();
+        }
+        catch (Exception e)
+        {
+            logger.error("Failed to query last consistency check ID: "
+                    + e.getMessage());
+            throw e;
         }
         return id;
     }
