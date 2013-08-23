@@ -337,7 +337,8 @@ public class MySQLDrizzleApplier extends MySQLApplier
                 prepStatement.setString(bindLoc,
                         hexdump((byte[]) value.getValue()));
         }
-        else if (columnSpec.getType() == Types.TIMESTAMP)
+        else if (columnSpec.getType() == Types.TIMESTAMP
+                && !(value.getValue() instanceof Integer) /* Issue 679 */)
         {
             prepStatement.setString(bindLoc,
                     ((Timestamp) value.getValue()).toString());
