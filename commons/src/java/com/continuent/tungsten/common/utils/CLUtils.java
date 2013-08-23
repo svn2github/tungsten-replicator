@@ -25,6 +25,7 @@ package com.continuent.tungsten.common.utils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Serializable;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -367,7 +368,9 @@ public class CLUtils implements Serializable
         builder.append(header);
         String progressInformation = "";
         String additionalInfo = "";
+        String replicator_useSSLConnection = "";        // true if Replicator uses SSL
 
+        // --- Replicator properties ---
         if (replProps != null)
         {
             progressInformation = String.format("progress=%s",
@@ -389,8 +392,17 @@ public class CLUtils implements Serializable
                 additionalInfo = String.format(", %s, THL latency=%5.3f",
                         progressInformation, appliedLatency);
             }
+
+            // Retrieve useSSLConnection value
+            Boolean _replicator_useSSLConnection = replProps
+                    .getBoolean(Replicator.USE_SSL_CONNECTION);
+            if (_replicator_useSSLConnection != null
+                    && _replicator_useSSLConnection)
+                replicator_useSSLConnection = MessageFormat.format("[{0}]",
+                        "SSL");
         }
 
+        // --- DataSource properties ---
         String vipInfo = null;
 
         if (dsProps.getBoolean(DataSource.VIPISBOUND)
@@ -429,6 +441,7 @@ public class CLUtils implements Serializable
             }
         }
 
+        /// --- Build String for status ---
         String connectionStats = "";
         boolean isComposite = dsProps.getBoolean(DataSource.ISCOMPOSITE,
                 "false", false);
@@ -447,9 +460,10 @@ public class CLUtils implements Serializable
                 false);
         alertMessage = (alertMessage.length() > 0 ? String.format(
                 "\nREASON[%s]", alertMessage) : alertMessage);
-        String dsAlert = String.format("STATUS [%s] %s%s", dsProps
+        String dsAlert = String.format("STATUS [%s] %s%s%s", dsProps
                 .getString(DataSource.ALERT_STATUS), dateFormat
                 .format((new Date(dsProps.getLong(DataSource.ALERT_TIME)))),
+                replicator_useSSLConnection,
                 alertMessage);
 
         if (!printDetails)

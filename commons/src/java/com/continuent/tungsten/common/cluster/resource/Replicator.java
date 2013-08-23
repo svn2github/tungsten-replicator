@@ -88,6 +88,9 @@ public class Replicator extends Resource implements Serializable
     /** URI that slaves should use when connecting to this master. */
     public static final String MASTER_LISTEN_URI              = "masterListenUri";
 
+    /** Indicates if SSL connection should be used. */
+    public static final String USE_SSL_CONNECTION             = "useSSLConnection";
+
     /** Name of the cluster to which this replicator belongs. */
     public static final String CLUSTERNAME                    = "clusterName";
 
