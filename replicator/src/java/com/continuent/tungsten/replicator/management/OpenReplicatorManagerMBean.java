@@ -106,7 +106,7 @@ public interface OpenReplicatorManagerMBean
     public String getMasterListenUri();
     
     /**
-     * Returns true if the Replicator is using SSL connections.
+     * Returns true if the Replicator uses SSL connections.
      */
     public Boolean getUseSSLConnection() throws URISyntaxException;
 

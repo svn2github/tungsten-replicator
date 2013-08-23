@@ -1627,7 +1627,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         return properties.getString(ReplicatorConf.MASTER_LISTEN_URI);
     }
 
-    @MethodDesc(description = "Indicates if the replicator should use an SSL connection", usage = "useSSLConnection")
+    @MethodDesc(description = "Indicates if the replicator uses an SSL connection", usage = "useSSLConnection")
     public Boolean getUseSSLConnection() throws URISyntaxException
     {
         Boolean useSSL = false;
