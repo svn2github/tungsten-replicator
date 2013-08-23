@@ -1630,14 +1630,25 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     @MethodDesc(description = "Indicates if the replicator uses an SSL connection", usage = "useSSLConnection")
     public Boolean getUseSSLConnection() throws URISyntaxException
     {
-        Boolean useSSL = false;
-        String _masterConnectUri = this.getMasterConnectUri();
-        URI masterConnectUri = new URI(_masterConnectUri);
-        String scheme = masterConnectUri.getScheme();
+        URI uri = null;
 
-        useSSL = (scheme.equalsIgnoreCase(THL.SSL_URI_SCHEME)) ? true : false;
+        if (ReplicatorConf.ROLE_MASTER.equals(getRole()))
+        {
+            // If we're a master, masterConnectUri might be null,
+            // hence we're using masterListenUri.
+            uri = new URI(this.getMasterListenUri());
+        }
+        else
+        {
+            uri = new URI(this.getMasterConnectUri());
+        }
 
-        return useSSL;
+        String scheme = uri.getScheme();
+
+        if (THL.SSL_URI_SCHEME.equals(scheme))
+            return true;
+        else
+            return false;
     }
 
     @MethodDesc(description = "Returns clients (slaves) of this server", usage = "getClients")
