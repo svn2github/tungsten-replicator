@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.management;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
@@ -111,10 +112,10 @@ import com.continuent.tungsten.replicator.thl.THL;
  */
 public class OpenReplicatorManager extends NotificationBroadcasterSupport
         implements
-            OpenReplicatorManagerMBean,
-            OpenReplicatorContext,
-            StateChangeListener,
-            EventCompletionListener
+        OpenReplicatorManagerMBean,
+        OpenReplicatorContext,
+        StateChangeListener,
+        EventCompletionListener
 {
     public static final int         MAJOR                   = 1;
     public static final int         MINOR                   = 0;
@@ -1626,6 +1627,19 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         return properties.getString(ReplicatorConf.MASTER_LISTEN_URI);
     }
 
+    @MethodDesc(description = "Indicates if the replicator should use an SSL connection", usage = "useSSLConnection")
+    public Boolean getUseSSLConnection() throws URISyntaxException
+    {
+        Boolean useSSL = false;
+        String _masterConnectUri = this.getMasterConnectUri();
+        URI masterConnectUri = new URI(_masterConnectUri);
+        String scheme = masterConnectUri.getScheme();
+
+        useSSL = (scheme.equalsIgnoreCase(THL.SSL_URI_SCHEME)) ? true : false;
+
+        return useSSL;
+    }
+
     @MethodDesc(description = "Returns clients (slaves) of this server", usage = "getClients")
     public List<Map<String, String>> getClients() throws Exception
     {
@@ -1661,7 +1675,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             throw new Exception(
                     "Unable to retrieve clients, because Replicator is not a TungstenPlugin instance");
     }
-    
+
     @MethodDesc(description = "Gets the replicator's current role.", usage = "getRole")
     public String getRole()
     {
@@ -1925,6 +1939,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                     getMasterConnectUri());
             pluginStatus
                     .put(Replicator.MASTER_LISTEN_URI, getMasterListenUri());
+            pluginStatus.put(Replicator.USE_SSL_CONNECTION, this
+                    .getUseSSLConnection().toString());
             pluginStatus.put(Replicator.SOURCEID, getSourceId());
             pluginStatus.put(Replicator.CLUSTERNAME, clusterName);
             pluginStatus.put(Replicator.ROLE, getRole());
@@ -2960,7 +2976,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     {
         return rmiHost;
     }
-    
+
     /**
      * Sets RMI host.
      */
@@ -2968,7 +2984,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     {
         this.rmiHost = rmiHost;
     }
-    
+
     /**
      * Returns the rmiPort value.
      * 

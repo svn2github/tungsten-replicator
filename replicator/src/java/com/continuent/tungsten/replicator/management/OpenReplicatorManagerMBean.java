@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.replicator.management;
 
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
@@ -103,6 +104,11 @@ public interface OpenReplicatorManagerMBean
      * Returns the URI on which this master listens when operating as a slave.
      */
     public String getMasterListenUri();
+    
+    /**
+     * Returns true if the Replicator is using SSL connections.
+     */
+    public Boolean getUseSSLConnection() throws URISyntaxException;
 
     /**
      * Returns the port on which the replicator will listen when it's a master.
