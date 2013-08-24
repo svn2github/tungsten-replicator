@@ -703,11 +703,13 @@ public class ProtobufSerializer implements Serializer
                 else if (value instanceof Timestamp)
                 {
                     time = ((Timestamp) value).getTime();
+                    int millis = ((int) time % 1000);
                     int nanos = ((Timestamp) value).getNanos()
-                            - ((int) (time % 1000L) * 1000000);
-                    if (nanos > 0)
-                        valueBuilder.setIntValue(nanos);
-
+                            - (millis * 1000000);
+                    // Even if nanoseconds part is 0, store it in THL as
+                    // deserialization will check whether it exists or not in
+                    // order to distinguish old events from new events in THL
+                    valueBuilder.setIntValue(nanos);
                 }
                 if (logger.isDebugEnabled())
                 {
