@@ -716,14 +716,22 @@ public abstract class RowsLogEvent extends LogEvent
                  */
                 long i64 = BigEndianConversion.convertNBytesToLong(row, rowPos,
                         5) - 0x8000000000L;
-
+                int secPartsLength = 0;
+                
                 // Let's check for zero date
                 if (i64 == 0)
                 {
                     value.setValue(Integer.valueOf(0));
+                    secPartsLength = getSecondPartsLength(meta);
+                    rowPos += 5;
+                    if (logger.isDebugEnabled())
+                        logger.debug("Got nanos = "
+                                + extractNanoseconds(row, rowPos, meta,
+                                        secPartsLength));
+
                     if (spec != null)
                         spec.setType(java.sql.Types.TIMESTAMP);
-                    return 8;
+                    return 5 + secPartsLength;
                 }
 
                 long currentValue = (i64 >> 22);
@@ -768,7 +776,7 @@ public abstract class RowsLogEvent extends LogEvent
                 if (spec != null)
                     spec.setType(java.sql.Types.DATE);
 
-                int secPartsLength = getSecondPartsLength(meta);
+                secPartsLength = getSecondPartsLength(meta);
                 rowPos += 5;
                 ts.setNanos(extractNanoseconds(row, rowPos, meta,
                         secPartsLength));
