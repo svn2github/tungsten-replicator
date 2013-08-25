@@ -638,6 +638,7 @@ public abstract class RowsLogEvent extends LogEvent
                 if (i32 == 0)
                 {
                     value.setValue(Integer.valueOf(0));
+                    secPartsLength = getSecondPartsLength(meta);
                 }
                 else
                 {
