@@ -684,9 +684,9 @@ public class ProtobufSerializer implements Serializer
 
                     // Need to check whether timestamp is negative to compute
                     // milliseconds
-                    int millis = (time < 0
-                            ? 1000 + (int) (time % 1000)
-                            : (int) (time % 1000));
+                    int millis = (int) (time % 1000);
+                    if (millis < 0)
+                        millis += 1000;
 
                     int nanos = ((Timestamp) value).getNanos()
                             - (millis * 1000000);
@@ -713,12 +713,15 @@ public class ProtobufSerializer implements Serializer
 
                     // Need to check whether timestamp is negative to compute
                     // milliseconds
-                    int millis = (time < 0
-                            ? 1000 + (int) (time % 1000)
-                            : (int) (time % 1000));
+                    int millis = (int) (time % 1000);
+                    if (millis < 0)
+                        millis += 1000;
 
-                    int nanos = ((Timestamp) value).getNanos()
-                            - (millis * 1000000);
+                    int nanos = ts.getNanos() - (millis * 1000000);
+
+                    if (logger.isDebugEnabled())
+                        logger.debug("Serializing TIME2 : " + ts + " - " + time
+                                + " - " + millis + " - " + nanos);
 
                     // Even if nanoseconds part is 0, store it in THL as
                     // deserialization will check whether it exists or not in
@@ -745,9 +748,9 @@ public class ProtobufSerializer implements Serializer
 
                     // Need to check whether timestamp is negative to compute
                     // milliseconds
-                    int millis = (time < 0
-                            ? 1000 + (int) (time % 1000)
-                            : (int) (time % 1000));
+                    int millis = (int) (time % 1000);
+                    if (millis < 0)
+                        millis += 1000;
 
                     int nanos = ((Timestamp) value).getNanos()
                             - (millis * 1000000);
