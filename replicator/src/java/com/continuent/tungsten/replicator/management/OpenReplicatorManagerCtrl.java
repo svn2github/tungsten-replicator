@@ -60,7 +60,6 @@ import com.continuent.tungsten.common.security.AuthenticationInfo;
 import com.continuent.tungsten.common.security.PasswordManager;
 import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
 import com.continuent.tungsten.common.security.SecurityHelper;
-import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 import com.continuent.tungsten.common.utils.ManifestParser;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
@@ -260,8 +259,7 @@ public class OpenReplicatorManagerCtrl
             {
                 this.authenticationInfo = SecurityHelper
                         .loadAuthenticationInformation(
-                                securityPropertiesFileLocation,
-                                AUTH_USAGE.CLIENT_SIDE);
+                                securityPropertiesFileLocation);
                 // Sets the username and password in the authenticationInfo.
                 // This will be used as credentials when connecting
                 // Password is provided "as is" (potentilaly encrypted) and will
