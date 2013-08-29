@@ -35,7 +35,6 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
-import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 
 /**
  * Helper class for security related topics
@@ -169,8 +168,7 @@ public class SecurityHelper
     public static AuthenticationInfo loadAuthenticationInformation()
             throws ConfigurationException
     {
-        return loadAuthenticationInformation(null,
-                AuthenticationInfo.AUTH_USAGE.SERVER_SIDE);
+        return loadAuthenticationInformation(null);
     }
 
     /**
@@ -184,16 +182,14 @@ public class SecurityHelper
      * @throws ConfigurationException
      * @throws ReplicatorException
      */
-    public static AuthenticationInfo loadAuthenticationInformation(String propertiesFileLocation,
-    AuthenticationInfo.AUTH_USAGE authUsage)
+    public static AuthenticationInfo loadAuthenticationInformation(String propertiesFileLocation)
     throws ConfigurationException
     {
-        return loadAuthenticationInformation(propertiesFileLocation, authUsage, true);
+        return loadAuthenticationInformation(propertiesFileLocation, true);
     }
 
     public static AuthenticationInfo loadAuthenticationInformation(
             String propertiesFileLocation,
-            AuthenticationInfo.AUTH_USAGE authUsage,
             boolean doConsistencyChecks
             )
             throws ConfigurationException
@@ -211,7 +207,7 @@ public class SecurityHelper
         }
         
 
-        AuthenticationInfo authInfo = new AuthenticationInfo(authUsage, propertiesFileLocation);
+        AuthenticationInfo authInfo = new AuthenticationInfo(propertiesFileLocation);
 
         // Authorisation and/or encryption
         if (securityProperties!=null)

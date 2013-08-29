@@ -43,7 +43,6 @@ import com.continuent.tungsten.common.utils.CLUtils;
 public final class AuthenticationInfo
 {
     private static final Logger logger                         = Logger.getLogger(AuthenticationInfo.class);
-    private final AUTH_USAGE    authUsage;
     private String              parentPropertiesFileLocation    = null;    // Location of the file from which this was built
 
     private boolean             authenticationNeeded           = false;
@@ -73,26 +72,17 @@ public final class AuthenticationInfo
     public final static String  TRUSTSTORE_PASSWORD            = "-truststorePassword";
     public final static String  SECURITY_CONFIG_FILE_LOCATION  = "-securityProperties";
 
-    // Defines Authentication Information flavor :
-    // Server side :
-    // Client side : Some of the parameters are set automatically
-    public static enum AUTH_USAGE
-    {
-        SERVER_SIDE, CLIENT_SIDE
-    };
-
     /**
      * Creates a new <code>AuthenticationInfo</code> object
      */
-    public AuthenticationInfo(AUTH_USAGE authUsage, String parentPropertiesFileLocation)
+    public AuthenticationInfo(String parentPropertiesFileLocation)
     {
-        this.authUsage = authUsage;
         this.parentPropertiesFileLocation = parentPropertiesFileLocation;
     }
     
-    public AuthenticationInfo(AUTH_USAGE authUsage)
+    public AuthenticationInfo()
     {
-        this(authUsage, null);
+        this(null);
     }
 
     /**

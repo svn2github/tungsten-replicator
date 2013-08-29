@@ -31,7 +31,6 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
-import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 
 /**
  * Class managing passwords in a file. Retrieves, Creates, deletes, updates
@@ -108,8 +107,7 @@ public class PasswordManager
         {
             this.authenticationInfo = SecurityHelper
                     .loadAuthenticationInformation(
-                            securityPropertiesFileLocation,
-                            AUTH_USAGE.CLIENT_SIDE, false);
+                            securityPropertiesFileLocation, false);
         }
         catch (ConfigurationException ce)
         {

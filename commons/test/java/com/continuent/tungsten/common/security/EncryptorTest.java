@@ -27,7 +27,6 @@ import junit.framework.TestCase;
 
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
-import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
 
 /**
  * Implements a simple unit test for AuthenticationInfo
@@ -37,7 +36,7 @@ import com.continuent.tungsten.common.security.AuthenticationInfo.AUTH_USAGE;
  */
 public class EncryptorTest extends TestCase
 {
-    AuthenticationInfo authInfo = new AuthenticationInfo(AUTH_USAGE.SERVER_SIDE);
+    AuthenticationInfo authInfo = new AuthenticationInfo();
     Encryptor encryptor = null;
     
     public EncryptorTest()
