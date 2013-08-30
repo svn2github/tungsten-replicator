@@ -3,31 +3,84 @@ require "resolv"
 require "ifconfig"
 
 class TungstenUtil
+  def initialize()
+    super()
+    
+    @log_results = false
+    @forward_results = false
+    @forward_results_level = Logger::INFO
+  end
+  
   # Disable debug logging of command output
   def log_cmd_results?(v = nil)
     if v != nil
       @log_results = v
     end
     
-    if @log_results == false
+    if @log_results == nil && forward_cmd_results?() == true
+      false
+    elsif @log_results == false
       false
     else
       true
     end
   end
   
+  def forward_cmd_results?(v = nil, level = Logger::INFO)
+    if v != nil
+      @forward_results = v
+      @forward_results_level = level
+    end
+    
+    if @forward_results == true
+      true
+    else
+      false
+    end
+  end
+  
+  def get_forward_log_level
+    @forward_results_level
+  end
+  
   # Run the {command} and return a string of STDOUT
   def cmd_result(command, ignore_fail = false)
-    errors = nil
-    result = nil
+    errors = ""
+    result = ""
+    threads = []
     
     debug("Execute `#{command}`")
     status = Open4::popen4("export LANG=en_US; #{command}") do |pid, stdin, stdout, stderr|
       stdin.close 
       
-      result = stdout.read().strip()
-      errors = stderr.read().strip()
+      threads << Thread.new{
+        while data = stdout.gets()
+          if data.to_s() != ""
+            result+=data
+            
+            if data != "" && forward_cmd_results?()
+              write(data, (parse_log_level(data) || get_forward_log_level()), nil, false)
+            end
+          end
+        end
+      }
+      threads << Thread.new{
+        while edata = stderr.gets()
+          if edata.to_s() != ""
+            errors+=edata
+            
+            if edata != "" && forward_cmd_results?()
+              write(edata, (parse_log_level(edata) || get_forward_log_level()), nil, false)
+            end
+          end
+        end
+      }
+      
+      threads.each{|t| t.join() }
     end
+    
+    result.strip!()
+    errors.strip!()
     
     rc = status.exitstatus
     if errors == ""
@@ -38,6 +91,8 @@ class TungstenUtil
 
     if log_cmd_results?()
       debug("RC: #{rc}, Result: #{result}, #{errors}")
+    elsif forward_cmd_results?()
+      debug("RC: #{rc}, Result length #{result.length}, Errors length #{errors.length}")
     else
       debug("RC: #{rc}, Result length #{result.length}, #{errors}")
     end
@@ -48,21 +103,55 @@ class TungstenUtil
     return result
   end
   
+  def cmd(cmd)
+    begin
+      cmd_result(cmd)
+      return true
+    rescue CommandError
+      return false
+    end
+  end
+  
   # Run the {command} and run {&block} for each line of STDOUT
   def cmd_stdout(command, ignore_fail = false, &block)
-    errors = nil
+    errors = ""
     result = ""
+    threads = []
     
     debug("Execute `#{command}`")
     status = Open4::popen4("export LANG=en_US; #{command}") do |pid, stdin, stdout, stderr|
       stdin.close 
       
-      while data = stdout.gets()
-        result+=data
-        block.call(data)
-      end
-      errors = stderr.read().strip()
+      threads << Thread.new{
+        while data = stdout.gets()
+          if data.to_s() != ""
+            result+=data
+            
+            if data != "" && forward_cmd_results?()
+              write(data, (parse_log_level(data) || get_forward_log_level()), nil, false)
+            end
+
+            block.call(data)
+          end
+        end
+      }
+      threads << Thread.new{
+        while edata = stderr.gets()
+          if edata.to_s() != ""
+            errors+=edata
+            
+            if edata != "" && forward_cmd_results?()
+              write(edata, (parse_log_level(edata) || get_forward_log_level()), nil, false)
+            end
+          end
+        end
+      }
+      
+      threads.each{|t| t.join() }
     end
+    
+    result.strip!()
+    errors.strip!()
     
     rc = status.exitstatus
     if errors == ""
@@ -73,6 +162,8 @@ class TungstenUtil
 
     if log_cmd_results?()
       debug("RC: #{rc}, Result: #{result}, #{errors}")
+    elsif forward_cmd_results?()
+      debug("RC: #{rc}, Result length #{result.length}, Errors length #{errors.length}")
     else
       debug("RC: #{rc}, Result length #{result.length}, #{errors}")
     end
@@ -86,18 +177,43 @@ class TungstenUtil
   # Run the {command} and run {&block} for each line of STDERR
   def cmd_stderr(command, ignore_fail = false, &block)
     errors = ""
-    result = nil
+    result = ""
+    threads = []
     
     debug("Execute `#{command}`")
     status = Open4::popen4("export LANG=en_US; #{command}") do |pid, stdin, stdout, stderr|
       stdin.close 
       
-      while data = stderr.gets()
-        errors+=data
-        block.call(data)
-      end
-      result = stdout.read().strip()
+      threads << Thread.new{
+        while data = stdout.gets()
+          if data.to_s() != ""
+            result+=data
+            
+            if data != "" && forward_cmd_results?()
+              write(data, (parse_log_level(data) || get_forward_log_level()), nil, false)
+            end
+          end
+        end
+      }
+      threads << Thread.new{
+        while edata = stderr.gets()
+          if edata.to_s() != ""
+            errors+=edata
+            
+            if edata != "" && forward_cmd_results?()
+              write(edata, (parse_log_level(edata) || get_forward_log_level()), nil, false)
+            end
+            
+            block.call(edata)
+          end
+        end
+      }
+      
+      threads.each{|t| t.join() }
     end
+    
+    result.strip!()
+    errors.strip!()
     
     rc = status.exitstatus
     if errors == ""
@@ -108,6 +224,8 @@ class TungstenUtil
 
     if log_cmd_results?()
       debug("RC: #{rc}, Result: #{result}, #{errors}")
+    elsif forward_cmd_results?()
+      debug("RC: #{rc}, Result length #{result.length}, Errors length #{errors.length}")
     else
       debug("RC: #{rc}, Result length #{result.length}, #{errors}")
     end
@@ -116,6 +234,36 @@ class TungstenUtil
     end
 
     return
+  end
+
+  # Run a standard check to see if SSH connectivity to the host works
+  def test_ssh(host, user)
+    begin
+      login_result = ssh_result("whoami", host, user)
+      
+      if login_result != user
+        if login_result=~ /#{user}/
+            error "SSH to #{host} as #{user} is returning more than one line."
+            error "Ensure that the .bashrc and .bash_profile files are not printing messages on #{host} with out using a test like this. if [ \"$PS1\" ]; then echo \"Your message here\"; fi"
+            error "If you are using the 'Banner' argument in /etc/ssh/sshd_config, try putting the contents into /etc/motd"
+        else
+          error "Unable to SSH to #{host} as #{user}."
+
+          if is_localhost?(host)
+            error "Try running the command as #{user}"
+          else
+            error "Ensure that the host is running and that you can login as #{user} via SSH using key authentication"
+          end
+        end
+        
+        return false
+      else
+        return true
+      end
+    rescue => e
+      exception(e)
+      return false
+    end
   end
   
   # Run the {command} on {host} as {user}
@@ -158,17 +306,25 @@ class TungstenUtil
       Net::SSH.start(host, ssh_user, get_ssh_options()) {
         |ssh|
         stdout_data = ""
-        stderr_data = ""
 
         ssh.open_channel do |channel|
           channel.exec(". /etc/profile; #{ssh_init_profile_script()} export LANG=en_US; export LC_ALL=\"en_US.UTF-8\"; #{command}") do |ch, success|
             channel.on_data do |ch,data|
               stdout_data+=data
+              
+              if data != "" && forward_cmd_results?()
+                log_level,log_data = split_log_content(data)
+                write(log_data, (log_level || get_forward_log_level()), host)
+              end
             end
 
             channel.on_extended_data do |ch,type,data|
               data = data.chomp
-              log(data) unless data == ""
+              
+              if data != "" && forward_cmd_results?()
+                log_level,log_data = split_log_content(data)
+                write(log_data, (log_level || get_forward_log_level()), host)
+              end
             end
 
             channel.on_request("exit-status") do |ch,data|
@@ -212,6 +368,32 @@ class TungstenUtil
   
   def get_ssh_options
     @ssh_options
+  end
+  
+  def get_ssh_command_options
+    opts = ["-A", "-oStrictHostKeyChecking=no", "-oUserKnownHostsFile=/dev/null"]
+    @ssh_options.each{
+      |k,v|
+      opts << "-o#{k.to_s()}=#{v}"
+    }
+    return opts.join(" ")
+  end
+  
+  def get_tungsten_command_options
+    opts = []
+    
+    case get_log_level()
+    when Logger::INFO then opts << "-i"
+    when Logger::NOTICE then opts << "-n"
+    when Logger::WARN then opts << "-q"
+    when Logger::DEBUG then opts << "-v"
+    end
+    
+    @ssh_options.each{
+      |k,v|
+      opts << "--net-ssh-option=#{k.to_s()}=#{v}"
+    }
+    return opts.join(" ")
   end
   
   def get_ssh_user(user = nil)

@@ -50,7 +50,8 @@ class TungstenInstall
   end
   
   def user
-    setting("user")
+    # Access the array directly to avoid an infinite loop
+    @settings["user"]
   end
   
   def dataservices
@@ -67,7 +68,7 @@ class TungstenInstall
     if is_manager?()
       setting("dataservice_name")
     elsif is_replicator?()
-      local_services = TU.cmd_result("egrep -l \"^replicator.service.type=local\" #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/static*")
+      local_services = TU.cmd_result("egrep -l \"^replicator.service.type=local\" #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/static*").split("\n")
       if local_services.size() == 0
         dataservices().get(0)
       else
@@ -78,8 +79,12 @@ class TungstenInstall
     end
   end
   
+  def replication_services
+    TU.cmd_result("egrep \"^service.name\" #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/static-* | awk -F \"=\" '{print $2}'").split("\n")
+  end
+  
   def tpm
-    "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tools/tpm"
+    "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tools/tpm"
   end
   
   def setting(key, v = nil)
@@ -119,7 +124,7 @@ class TungstenInstall
   end
   
   def cctrl
-    "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-manager/bin/cctrl -expert -port #{setting(MGR_RMI_PORT)}"
+    "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-manager/bin/cctrl -expert -port #{setting(MGR_RMI_PORT)}"
   end
   
   def mgr_api_uri
@@ -155,7 +160,7 @@ class TungstenInstall
   end
   
   def trepctl(service)
-    "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/trepctl -port #{setting(REPL_RMI_PORT)} -service #{service}"
+    "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/trepctl -port #{setting(REPL_RMI_PORT)} -service #{service}"
   end
   
   def trepctl_value(service, key)
@@ -172,7 +177,7 @@ class TungstenInstall
   end
   
   def thl(service)
-    "#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/thl -service #{service}"
+    "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/thl -service #{service}"
   end
   
   def service_path(component)
@@ -224,7 +229,16 @@ class TungstenInstall
   
   def inherit_path
     if setting("preferred_path") != ""
-      ENV['PATH'] = setting("preferred_path") + ":" + ENV['PATH']
+      ENV['PATH'] = setting("preferred_path").to_s() + ":" + ENV['PATH']
+    end
+  end
+  
+  # Build a sudo prefix to run a command as the tungsten system user
+  def tungsten_sudo_prefix
+    if self.user() == nil || ENV['USER'] == self.user()
+      return ""
+    else
+      return "sudo -u #{self.user()} -n -i "
     end
   end
   

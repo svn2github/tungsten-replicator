@@ -1545,6 +1545,11 @@ module ConfigureDeploymentStepMySQL
         file.puts("[client]")
         file.puts("user=#{ads.username}")
         file.puts("password=#{ads.password}")
+        
+        if @config.getProperty(get_service_key(REPL_MYSQL_DATADIR)).to_s() != ""
+          file.puts("[mysqld]")
+          file.puts("datadir=#{@config.getProperty(get_service_key(REPL_MYSQL_DATADIR))}")
+        end
       }
       watch_file(@config.getProperty(get_service_key(REPL_MYSQL_SERVICE_CONF)))
     end

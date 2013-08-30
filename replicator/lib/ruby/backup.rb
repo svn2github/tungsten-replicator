@@ -18,9 +18,11 @@ class TungstenBackupScript
       storage_file = backup()
       end_thl_seqno = TI.trepctl_value(@options[:service], 'maximumStoredSeqNo')
 
-      # Store the path to the backup file in the properties file provided
-      # by the replicator
-      TU.cmd_result("echo \"file=#{storage_file}\" > #{@options[:properties]}")
+      if @options[:properties].to_s() != ""
+        # Store the path to the backup file in the properties file provided
+        # by the replicator
+        TU.cmd_result("echo \"file=#{storage_file}\" > #{@options[:properties]}")
+      end
       
       if @master_backup == true
         # A master backup requires the binlog file and position in order to 
@@ -110,6 +112,8 @@ class TungstenBackupScript
   end
   
   def validate
+    super()
+    
     if TI.trepctl_value(@options[:service], 'role') == "master"
       @master_backup = true
     else
@@ -124,7 +128,7 @@ class TungstenBackupScript
   end
 
   def configure
-    TU.set_log_level(Logger::DEBUG)
+    super()
     
     TU.remaining_arguments.map!{ |arg|
       # The backup agent sends single dashes instead of double dashes

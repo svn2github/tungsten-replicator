@@ -1,6 +1,8 @@
 require "#{File.dirname(__FILE__)}/backup"
 
 class TungstenMySQLdumpScript < TungstenBackupScript
+  include MySQLServiceScript
+  
   def backup
     begin
       id = build_timestamp_id()
@@ -111,27 +113,5 @@ class TungstenMySQLdumpScript < TungstenBackupScript
   
   def build_timestamp_id()
     return "mysqldump_" + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
-  end
-
-  def get_mysql_command
-    "mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:host]} --port=#{@options[:port]}"
-  end
-
-  def get_mysqldump_command
-    "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]} --opt --single-transaction --all-databases --add-drop-database --master-data=2"
-  end
-  
-  def get_mysql_option(opt)
-    begin
-      val = TU.cmd_result("my_print_defaults --config-file=#{@options[:my_cnf]} mysqld | grep -e'^--#{opt.gsub(/[\-\_]/, "[-_]")}'")
-    rescue CommandError => ce
-      if ce.rc == 256
-        return nil
-      else
-        raise ce
-      end
-    end
-
-    return val.split("=")[1]
   end
 end

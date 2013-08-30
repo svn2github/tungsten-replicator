@@ -3,6 +3,8 @@ class TungstenUtil
   attr_accessor :remaining_arguments
   
   def initialize()
+    super()
+    
     @logger_threshold = Logger::NOTICE
     @previous_option_arguments = {}
     @ssh_options = {}
@@ -119,12 +121,24 @@ class TungstenUtil
       content = "#{get_log_level_prefix(level, hostname)}#{content}"
     end
     
+    # Attempt to determine the level for this message based on it's content
+    # If it is forwarded from another Tungsten script it will have a prefix
+    # so we know to use stdout or stderr
+    if level == nil
+      level = parse_log_level(content)
+    end
+    
     log(content)
     
     if enable_log_level?(level)
       if enable_output?()
-        puts content
-        $stdout.flush()
+        if level != nil && level > Logger::NOTICE
+          $stderr.puts(content)
+          $stderr.flush()
+        else
+          $stdout.puts(content)
+          $stdout.flush()
+        end
       end
     end
   end
@@ -170,7 +184,7 @@ class TungstenUtil
     when Logger::ERROR then prefix = "ERROR"
     when Logger::WARN then prefix = "WARN "
     when Logger::DEBUG then prefix = "DEBUG"
-    when Logger::NOTICE then prefix = "NOTE"
+    when Logger::NOTICE then prefix = "NOTE "
     else
       prefix = "INFO "
     end
@@ -182,6 +196,32 @@ class TungstenUtil
     end
   end
   
+  def parse_log_level(line)
+    prefix = line[0,5]
+    
+    case prefix.strip
+    when "ERROR" then Logger::ERROR
+    when "WARN" then Logger::WARN
+    when "DEBUG" then Logger::DEBUG
+    when "NOTE" then Logger::NOTICE
+    when "INFO" then Logger::INFO
+    else
+      nil
+    end
+  end
+  
+  # Split a log line into the log level and actual message
+  # This is used when forwarding log messages from a remote commmand
+  def split_log_content(content)
+    level = parse_log_level(content)
+    if level != nil
+      prefix = get_log_level_prefix(level)
+      content = content[prefix.length, content.length]
+    end
+    
+    return [level, content]
+  end
+  
   def enable_log_level?(level=Logger::INFO)
     if level == nil
       true
@@ -190,6 +230,10 @@ class TungstenUtil
     else
       true
     end
+  end
+  
+  def get_log_level
+    @logger_threshold
   end
   
   def set_log_level(level=Logger::INFO)

@@ -1,6 +1,8 @@
 require "#{File.dirname(__FILE__)}/backup"
 
 class TungstenXtrabackupScript < TungstenBackupScript
+  include MySQLServiceScript
+  
   INCREMENTAL_BASEDIR_FILE = "xtrabackup_incremental_basedir"
   MASTER_BACKUP_POSITION_SQL = "xtrabackup_tungsten_master_backup_position.sql"
   
@@ -56,6 +58,13 @@ class TungstenXtrabackupScript < TungstenBackupScript
           end
         end
       }
+      
+      if File.exist?("#{@options[:directory]}/xtrabackup_binary")
+        # We must add a file to the tar package without extracting the entire
+        # package. This command appends the file directly.
+        TU.cmd_result("cd #{@options[:directory]};tar rf #{tar_file} xtrabackup_binary")
+        File.unlink("#{@options[:directory]}/xtrabackup_binary")
+      end
 
       # Change the directory ownership if run with sudo
       if ENV.has_key?('SUDO_USER')
@@ -93,7 +102,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
 
           execute_backup(most_recent_dir)
         rescue BrokenLineageError => ble
-          TU.error(ble.message)
+          TU.warning(ble.message)
           execute_backup()
         end
       end
@@ -321,7 +330,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
         TU.cmd_result("chown -RL #{@options[:mysqluser]}: #{@options[:mysqliblogdir]}")
       end
 
-      TU.cmd_result("#{@options[:mysql_service_command]} start")
+      start_mysql_server()
       
       if File.exist?("#{@options[:mysqldatadir]}/#{MASTER_BACKUP_POSITION_SQL}")
         TU.cmd_result("cat #{@options[:mysqldatadir]}/#{MASTER_BACKUP_POSITION_SQL} | #{get_mysql_command()}")
@@ -357,16 +366,12 @@ class TungstenXtrabackupScript < TungstenBackupScript
       # See if MySQL will give one and store it in wrapper config file
       @options[:mysqldatadir] = get_mysql_variable("datadir")
       if @options[:mysqldatadir].to_s() != ""
-        extra_defaults_value("datadir=#{@options[:mysqldatadir]}")
+        set_mysql_defaults_value("datadir=#{@options[:mysqldatadir]}")
       end
     end
     
     @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
     @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")
-    @options[:mysqluser] = get_mysql_option("user")
-    if @options[:mysqluser].to_s() == ""
-      @options[:mysqluser] = "mysql"
-    end
     
     @storage_dir = nil
     
@@ -380,14 +385,6 @@ class TungstenXtrabackupScript < TungstenBackupScript
       # Change the directory ownership if run with sudo
       if ENV.has_key?('SUDO_USER')
         TU.cmd_result("chown -R #{ENV['SUDO_USER']}: #{@options[:directory]}")
-      end
-    end
-
-    if @options[:my_cnf] == nil
-      TU.error "Unable to determine location of MySQL my.cnf file"
-    else
-      unless File.exist?(@options[:my_cnf])
-        TU.error "The file #{@options[:my_cnf]} does not exist"
       end
     end
     
@@ -419,28 +416,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
       end
     end
     
-    if @options[:action] == ACTION_RESTORE
-      if @options[:mysql_service_command] == nil
-        service_command=cmd_result("which service")
-        if File.executable?(service_command)
-          if File.executable?("/etc/init.d/mysqld")
-            @options[:mysql_service_command] = "#{service_command} mysqld"
-          elsif File.executable?("/etc/init.d/mysql")
-            @options[:mysql_service_command] = "#{service_command} mysql"
-          else
-            TU.error "Unable to determine the service command to start/stop mysql"
-          end
-        else
-          if File.executable?("/etc/init.d/mysqld")
-            @options[:mysql_service_command] = "/etc/init.d/mysqld"
-          elsif File.executable?("/etc/init.d/mysql")
-            @options[:mysql_service_command] = "/etc/init.d/mysql"
-          else
-            TU.error "Unable to determine the init.d command to start/stop mysql"
-          end
-        end
-      end
-    elsif @options[:action] == ACTION_BACKUP
+    if @options[:action] == ACTION_BACKUP
       if @master_backup == true && @options[:incremental] == "true"
         TU.error("Unable to take an incremental backup of the master. Try running `trepctl -service #{@options[:service]} -backup xtrabackup-full")
       end
@@ -448,55 +424,17 @@ class TungstenXtrabackupScript < TungstenBackupScript
   end
   
   def empty_mysql_directory
-    begin
-      pid_file = get_mysql_variable("pid_file")
-      pid = TU.cmd_result("cat #{pid_file}")
-    rescue CommandError
-      pid = ""
-    end
-    
-    TU.output("Stop the MySQL server")
-    TU.cmd_result("#{@options[:mysql_service_command]} stop")
+    stop_mysql_server()
 
-    begin
-      # Verify that the stop command worked properly
-      # We are expecting an error so we have to catch the exception
-      TU.cmd_result("#{get_mysql_command()} -e \"select 1\" > /dev/null 2>&1")
-      raise "Unable to properly shutdown the MySQL service"
-    rescue CommandError
-    end
-    
-    # We saw issues where MySQL would not close completely. This will
-    # watch the PID and make sure it does not appear
-    unless pid.to_s() == ""
-      begin
-        TU.output("Verify that the MySQL pid has gone away")
-        Timeout.timeout(30) {
-          pid_missing = false
-          
-          while pid_missing == false do
-            begin
-              TU.cmd_result("ps -p #{pid}")
-              sleep 5
-            rescue CommandError
-              pid_missing = true
-            end
-          end
-        }
-      rescue Timeout::Error
-        raise "Unable to verify that MySQL has fully shutdown"
-      end
-    end
-
-    TU.cmd_result("rm -rf #{@options[:mysqldatadir]}/*")
-    TU.cmd_result("rm -rf #{@options[:mysqllogdir]}/#{@options[:mysqllogpattern]}.*")
+    TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqldatadir]} -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
+    TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqllogdir]}/ -name #{@options[:mysqllogpattern]}.*  | xargs #{sudo_prefix()} rm -rf")
 
     if @options[:mysqlibdatadir].to_s() != ""
-      TU.cmd_result("rm -rf #{@options[:mysqlibdatadir]}/*")
+      TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqlibdatadir]} -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
     end
 
     if @options[:mysqliblogdir].to_s() != ""
-      TU.cmd_result("rm -rf #{@options[:mysqliblogdir]}/*")
+      TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqliblogdir]} -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
     end
   end
 
@@ -608,64 +546,6 @@ class TungstenXtrabackupScript < TungstenBackupScript
   
   def build_timestamp_id(prefix)
     return prefix + "_xtrabackup_" + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
-  end
-
-  def get_mysql_command
-    "mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:host]} --port=#{@options[:port]}"
-  end
-
-  def get_xtrabackup_command
-    # Use the configured my.cnf file, or the additional config file 
-    # if we created one
-    if @options[:extra_defaults_file] == nil
-      defaults_file = @options[:my_cnf]
-    else
-      defaults_file = @options[:extra_defaults_file].path()
-    end
-    
-    "innobackupex-1.5.1 --defaults-file=#{defaults_file} --host=#{@options[:host]} --port=#{@options[:port]}"
-  end
-  
-  def get_mysql_option(opt)
-    begin
-      val = TU.cmd_result("my_print_defaults --config-file=#{@options[:my_cnf]} mysqld | grep -e'^--#{opt.gsub(/[\-\_]/, "[-_]")}'")
-    rescue CommandError => ce
-      return nil
-    end
-
-    return val.split("\n")[0].split("=")[1]
-  end
-  
-  def get_mysql_variable(var)
-    response = TU.cmd_result("#{get_mysql_command()} -e \"SHOW VARIABLES LIKE '#{var}'\\\\G\"")
-    
-    response.split("\n").each{ | response_line |
-      parts = response_line.chomp.split(":")
-      if (parts.length != 2)
-        next
-      end
-      parts[0] = parts[0].strip;
-      parts[1] = parts[1].strip;
-      
-      if parts[0] == "Value"
-        return parts[1]
-      end
-    }
-    
-    return nil
-  end
-  
-  # Store additional MySQL configuration values in a temporary file
-  def extra_defaults_value(value)
-    if @options[:extra_defaults_file] == nil
-      @options[:extra_defaults_file] = Tempfile.new("xtracfg")
-      @options[:extra_defaults_file].puts("!include #{@options[:my_cnf]}")
-      @options[:extra_defaults_file].puts("")
-      @options[:extra_defaults_file].puts("[mysqld]")
-    end
-    
-    @options[:extra_defaults_file].puts(value)
-    @options[:extra_defaults_file].flush()
   end
 end
 

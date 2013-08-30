@@ -4,8 +4,19 @@ module TungstenScript
   NAGIOS_CRITICAL=2
   
   def run
-    main()
-    cleanup(0)
+    unless @options[:validate] == true
+      begin
+        main()
+      rescue => e
+        TU.exception(e)
+      end
+    end
+    
+    if TU.is_valid?()
+      cleanup(0)
+    else
+      cleanup(1)
+    end
   end
   
   def initialize
@@ -66,6 +77,11 @@ module TungstenScript
   end
   
   def configure
+    add_option(:validate, {
+      :on => "--validate",
+      :default => false,
+      :help => "Only run the script validation"
+    })
   end
   
   def opt(option_key, value = nil)
@@ -188,7 +204,7 @@ module TungstenScript
   def validate
     if require_installed_directory?()
       if TI == nil
-        TU.error("Unable to run #{$0} without the '--directory' argument pointing to an active Tungsten installation")
+        raise "Unable to run #{$0} without the '--directory' argument pointing to an active Tungsten installation"
       else
         TI.inherit_path()
       end
@@ -271,6 +287,7 @@ module TungstenScript
     end
     
     TU.debug("Finish #{$0} #{ARGV.join(' ')}")
+    TU.debug("RC: #{code}")
     exit(code)
   end
   
@@ -287,5 +304,249 @@ module TungstenScript
   def nagios_critical(msg)
     puts "CRITICAL: #{msg}"
     cleanup(NAGIOS_CRITICAL)
+  end
+  
+  def sudo_prefix
+    if ENV['USER'] == "root"
+      return ""
+    else
+      return "sudo -n "
+    end
+  end
+end
+
+module MySQLServiceScript
+  def configure
+    super()
+    
+    if TI
+      add_option(:service, {
+        :on => "--service String",
+        :help => "Replication service to read information from",
+        :default => TI.default_dataservice()
+      })
+    end
+  end
+  
+  def validate
+    super()
+    
+    if @options[:host] == nil
+      @options[:host] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_host")
+    end
+    if @options[:port] == nil
+      @options[:port] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_port")
+    end
+    
+    if @options[:my_cnf] == nil
+      @options[:my_cnf] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_mysql_service_conf")
+    end
+    if @options[:my_cnf] == nil
+      TU.error "Unable to determine location of MySQL my.cnf file"
+    else
+      unless File.exist?(@options[:my_cnf])
+        TU.error "The file #{@options[:my_cnf]} does not exist"
+      end
+    end
+    
+    if @options[:mysqluser] == nil
+      @options[:mysqluser] = get_mysql_option("user")
+    end
+    if @options[:mysqluser].to_s() == ""
+      @options[:mysqluser] = "mysql"
+    end
+    
+    if @options[:mysql_service_command] == nil
+      service_command=TU.cmd_result("which service")
+      if TU.cmd("#{sudo_prefix()}test -x #{service_command}")
+        if TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysqld")
+          @options[:mysql_service_command] = "#{service_command} mysqld"
+        elsif TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysql")
+          @options[:mysql_service_command] = "#{service_command} mysql"
+        else
+          TU.error "Unable to determine the service command to start/stop mysql"
+        end
+      else
+        if TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysqld")
+          @options[:mysql_service_command] = "/etc/init.d/mysqld"
+        elsif TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysql")
+          @options[:mysql_service_command] = "/etc/init.d/mysql"
+        else
+          TU.error "Unable to determine the service command to start/stop mysql"
+        end
+      end
+    end
+  end
+  
+  def get_mysql_command
+    "mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:host]} --port=#{@options[:port]}"
+  end
+  
+  def get_mysqldump_command
+    "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]} --opt --single-transaction --all-databases --add-drop-database --master-data=2"
+  end
+  
+  def get_xtrabackup_command
+    # Use the configured my.cnf file, or the additional config file 
+    # if we created one
+    if @options[:extra_mysql_defaults_file] == nil
+      defaults_file = @options[:my_cnf]
+    else
+      defaults_file = @options[:extra_mysql_defaults_file].path()
+    end
+    
+    "innobackupex-1.5.1 --defaults-file=#{defaults_file} --host=#{@options[:host]} --port=#{@options[:port]}"
+  end
+  
+  def get_mysql_result(command, timeout = 30)
+    begin      
+      Timeout.timeout(timeout.to_i()) {
+        return TU.cmd_result("#{get_mysql_command()} -e \"#{command}\"")
+      }
+    rescue Timeout::Error
+    rescue => e
+    end
+    
+    return nil
+  end
+  
+  def get_mysql_value(command, column = nil)
+    response = get_mysql_result(command + "\\\\G")
+    if response == nil
+      return nil
+    end
+    
+    response.split("\n").each{ | response_line |
+      parts = response_line.chomp.split(":")
+      if (parts.length != 2)
+        next
+      end
+      parts[0] = parts[0].strip;
+      parts[1] = parts[1].strip;
+      
+      if parts[0] == column || column == nil
+        return parts[1]
+      end
+    }
+    
+    return nil
+  end
+  
+  # Read the configured value for a mysql variable
+  def get_mysql_option(opt)
+    begin
+      val = TU.cmd_result("my_print_defaults --config-file=#{@options[:my_cnf]} mysqld | grep -e'^--#{opt.gsub(/[\-\_]/, "[-_]")}'")
+    rescue CommandError => ce
+      return nil
+    end
+
+    return val.split("\n")[0].split("=")[1]
+  end
+  
+  # Read the current value for a mysql variable
+  def get_mysql_variable(var)
+    response = TU.cmd_result("#{get_mysql_command()} -e \"SHOW VARIABLES LIKE '#{var}'\\\\G\"")
+    
+    response.split("\n").each{ | response_line |
+      parts = response_line.chomp.split(":")
+      if (parts.length != 2)
+        next
+      end
+      parts[0] = parts[0].strip;
+      parts[1] = parts[1].strip;
+      
+      if parts[0] == "Value"
+        return parts[1]
+      end
+    }
+    
+    return nil
+  end
+  
+  # Store additional MySQL configuration values in a temporary file
+  def set_mysql_defaults_value(value)
+    if @options[:extra_mysql_defaults_file] == nil
+      @options[:extra_mysql_defaults_file] = Tempfile.new("xtracfg")
+      @options[:extra_mysql_defaults_file].puts("!include #{@options[:my_cnf]}")
+      @options[:extra_mysql_defaults_file].puts("")
+      @options[:extra_mysql_defaults_file].puts("[mysqld]")
+    end
+    
+    @options[:extra_mysql_defaults_file].puts(value)
+    @options[:extra_mysql_defaults_file].flush()
+  end
+  
+  def start_mysql_server
+    TU.notice("Start the MySQL service")
+    begin
+      TU.cmd_result("#{sudo_prefix()}#{@options[:mysql_service_command]} start")
+    rescue CommandError
+    end
+    
+    # Wait 30 seconds for the MySQL service to be responsive
+    begin
+      Timeout.timeout(30) {
+        while true
+          begin
+            if get_mysql_result("SELECT 1") != nil
+              break
+            end
+            
+            # Pause for a second before running again
+            sleep 1
+          rescue
+          end
+        end
+      }
+    rescue Timeout::Error
+      raise "The MySQL server has taken too long to start"
+    end
+  end
+  
+  # Make sure that the mysql server is stopped by stopping it and checking
+  # the process has disappeared
+  def stop_mysql_server
+    TU.notice("Stop the MySQL service")
+    begin
+      pid_file = get_mysql_variable("pid_file")
+      pid = TU.cmd_result("#{sudo_prefix()}cat #{pid_file}")
+    rescue CommandError
+      pid = ""
+    end
+    
+    begin
+      TU.cmd_result("#{sudo_prefix()}#{@options[:mysql_service_command]} stop")
+    rescue CommandError
+    end
+    
+    begin
+      # Verify that the stop command worked properly
+      # We are expecting an error so we have to catch the exception
+      TU.cmd_result("#{get_mysql_command()} -e \"select 1\" > /dev/null 2>&1")
+      raise "Unable to properly shutdown the MySQL service"
+    rescue CommandError
+    end
+    
+    # We saw issues where MySQL would not close completely. This will
+    # watch the PID and make sure it does not appear
+    unless pid.to_s() == ""
+      begin
+        TU.debug("Verify that the MySQL pid has gone away")
+        Timeout.timeout(30) {
+          pid_missing = false
+          
+          while pid_missing == false do
+            begin
+              TU.cmd_result("#{sudo_prefix()}ps -p #{pid}")
+              sleep 5
+            rescue CommandError
+              pid_missing = true
+            end
+          end
+        }
+      rescue Timeout::Error
+        raise "Unable to verify that MySQL has fully shutdown"
+      end
+    end
   end
 end
