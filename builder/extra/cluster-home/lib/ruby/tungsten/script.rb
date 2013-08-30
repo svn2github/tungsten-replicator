@@ -328,6 +328,10 @@ module MySQLServiceScript
     end
   end
   
+  def require_mysql_service?
+    false
+  end
+  
   def validate
     super()
     
@@ -349,30 +353,32 @@ module MySQLServiceScript
       end
     end
     
-    if @options[:mysqluser] == nil
-      @options[:mysqluser] = get_mysql_option("user")
-    end
-    if @options[:mysqluser].to_s() == ""
-      @options[:mysqluser] = "mysql"
-    end
+    if require_mysql_service?()
+      if @options[:mysqluser] == nil
+        @options[:mysqluser] = get_mysql_option("user")
+      end
+      if @options[:mysqluser].to_s() == ""
+        @options[:mysqluser] = "mysql"
+      end
     
-    if @options[:mysql_service_command] == nil
-      service_command=TU.cmd_result("which service")
-      if TU.cmd("#{sudo_prefix()}test -x #{service_command}")
-        if TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysqld")
-          @options[:mysql_service_command] = "#{service_command} mysqld"
-        elsif TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysql")
-          @options[:mysql_service_command] = "#{service_command} mysql"
+      if @options[:mysql_service_command] == nil
+        service_command=TU.cmd_result("which service")
+        if TU.cmd("#{sudo_prefix()}test -x #{service_command}")
+          if TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysqld")
+            @options[:mysql_service_command] = "#{service_command} mysqld"
+          elsif TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysql")
+            @options[:mysql_service_command] = "#{service_command} mysql"
+          else
+            TU.error "Unable to determine the service command to start/stop mysql"
+          end
         else
-          TU.error "Unable to determine the service command to start/stop mysql"
-        end
-      else
-        if TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysqld")
-          @options[:mysql_service_command] = "/etc/init.d/mysqld"
-        elsif TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysql")
-          @options[:mysql_service_command] = "/etc/init.d/mysql"
-        else
-          TU.error "Unable to determine the service command to start/stop mysql"
+          if TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysqld")
+            @options[:mysql_service_command] = "/etc/init.d/mysqld"
+          elsif TU.cmd("#{sudo_prefix()}test -x /etc/init.d/mysql")
+            @options[:mysql_service_command] = "/etc/init.d/mysql"
+          else
+            TU.error "Unable to determine the service command to start/stop mysql"
+          end
         end
       end
     end

@@ -324,4 +324,12 @@ class ProvisionTungstenSlave
   def build_timestamp_id(prefix)
     return prefix + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
   end
+  
+  def require_mysql_service?
+    if @options[:mysqldump] == false
+      true
+    else
+      false
+    end
+  end
 end

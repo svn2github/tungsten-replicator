@@ -547,6 +547,10 @@ class TungstenXtrabackupScript < TungstenBackupScript
   def build_timestamp_id(prefix)
     return prefix + "_xtrabackup_" + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
   end
+  
+  def require_mysql_service?
+    true
+  end
 end
 
 class BrokenLineageError < StandardError
