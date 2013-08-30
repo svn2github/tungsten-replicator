@@ -286,12 +286,6 @@ class ProvisionTungstenSlave
       :default => false,
       :help => "Use the MySQL data directory for staging and preparation"
     })
-    
-    add_option(:start_slave, {
-      :on => "--start-slave",
-      :default => false,
-      :help => "Put the replicator back online"
-    })
   end
   
   def empty_mysql_directory
