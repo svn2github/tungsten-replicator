@@ -128,13 +128,17 @@ class TungstenUtil
       level = parse_log_level(content)
     end
     
+    if level == Logger::ERROR
+      @num_errors = @num_errors + 1
+    end
+    
     log(content)
     
     if enable_log_level?(level)
       if enable_output?()
         if level != nil && level > Logger::NOTICE
-          $stderr.puts(content)
-          $stderr.flush()
+          $stdout.puts(content)
+          $stdout.flush()
         else
           $stdout.puts(content)
           $stdout.flush()
@@ -163,7 +167,6 @@ class TungstenUtil
   end
   
   def error(message, hostname = nil)
-    @num_errors = @num_errors + 1
     write(message, Logger::ERROR, hostname)
   end
   

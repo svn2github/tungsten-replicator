@@ -1113,11 +1113,11 @@ module ClusterCommandModule
       else
         config_obj.setProperty([SYSTEM, CONFIG_TARGET_BASENAME], config_obj.getProperty(CONFIG_TARGET_BASENAME))
         config_obj.setProperty([CONFIG_TARGET_BASENAME], config_obj.getProperty(CONFIG_TARGET_BASENAME))
-        
-        config_obj.setProperty(STAGING_HOST, Configurator.instance.hostname())
-        config_obj.setProperty(STAGING_USER, Configurator.instance.whoami())
-        config_obj.setProperty(STAGING_DIRECTORY, Configurator.instance.get_base_path())
       end
+      
+      config_obj.setProperty(STAGING_HOST, Configurator.instance.hostname())
+      config_obj.setProperty(STAGING_USER, Configurator.instance.whoami())
+      config_obj.setProperty(STAGING_DIRECTORY, Configurator.instance.get_base_path())
     end
 
     [

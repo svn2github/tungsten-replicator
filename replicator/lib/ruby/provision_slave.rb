@@ -193,6 +193,10 @@ class ProvisionTungstenSlave
         else
           # Test for specific commands
         end
+      else
+        if ENV['USER'] != @options[:mysqluser] && ENV['USER'] != "root"
+          TU.error("The current user is not the #{@options[:mysqluser]} system user or root. You must run the script as #{@options[:mysqluser]} or enable sudo by running `tpm update --enable-sudo-access=true`.")
+        end
       end
     
       # Read data locations from the my.cnf file

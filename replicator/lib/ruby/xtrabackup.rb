@@ -416,6 +416,10 @@ class TungstenXtrabackupScript < TungstenBackupScript
       end
     end
     
+    if ENV['USER'] != @options[:mysqluser] && ENV['USER'] != "root"
+      TU.error("The current user is not the #{@options[:mysqluser]} system user or root. You must run Tungsten as #{@options[:mysqluser]} or enable sudo by running `tpm update --enable-sudo-access=true`.")
+    end
+    
     if @options[:action] == ACTION_BACKUP
       if @master_backup == true && @options[:incremental] == "true"
         TU.error("Unable to take an incremental backup of the master. Try running `trepctl -service #{@options[:service]} -backup xtrabackup-full")
