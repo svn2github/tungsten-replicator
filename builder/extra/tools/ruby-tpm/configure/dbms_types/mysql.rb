@@ -1417,17 +1417,18 @@ class XtrabackupSettingsCheck < ConfigureValidationCheck
       return
     end
     
-    if @config.getProperty(get_host_key(ROOT_PREFIX)) != "true"
-      error("You must enable sudo  to use xtrabackup")
-      help("Add --root-command-prefix=true to your command")
+    my_print_defaults = which('my_print_defaults')
+    unless my_print_defaults
+      error "Unable to find my_print_defaults in the current path to check configuration"
+      return
     end
     
-    info("Check for datadir")
-    
     conf_file = @config.getProperty(get_applier_key(REPL_MYSQL_CONF))
+    
+    info("Check for datadir")
     if File.exists?(conf_file) && File.readable?(conf_file)
       begin
-        conf_file_results = cmd_result("grep ^datadir #{conf_file}").split("=")
+        conf_file_results = cmd_result("#{my_print_defaults} --config-file=#{conf_file} mysqld | grep '^--datadir'").split("=")[-1].strip()
       rescue
         error("The MySQL config file '#{conf_file}' does not include a value for datadir")
         help("Check the file to ensure a value is given and that it is not commented out")
@@ -1452,6 +1453,17 @@ class XtrabackupSettingsCheck < ConfigureValidationCheck
     unless binary_count.to_i > 0
       error("#{@config.getProperty(get_applier_key(REPL_MASTER_LOGDIR))} does not contain any files starting with #{@config.getProperty(get_applier_key(REPL_MASTER_LOGPATTERN))}")
       help("Try providing a value for --datasource-log-directory or --datasource-log-pattern")
+    end
+    
+    begin
+      mysqluser = cmd_result("#{my_print_defaults} --config-file=#{conf_file} mysqld | grep '^--user'").split("=")[-1].strip()
+      if mysqluser != @config.getProperty(get_host_key(USERID))
+        if @config.getProperty(get_host_key(ROOT_PREFIX)) != "true"
+          error("You must enable sudo  to use xtrabackup")
+          help("Add --root-command-prefix=true to your command")
+        end
+      end
+    rescue CommandError
     end
   end
   
