@@ -103,7 +103,7 @@ class TungstenBackupScript
   def store_master_position(thl_record, storage_file)
     service_schema = TI.trepctl_property(@options[:service], "replicator.schema")
     sql = ["-- Reset the Tungsten service schema with the proper position",
-      "UPDATE #{service_schema}.trep_commit_seqno SET seqno=#{thl_record['seqno']},epoch_number=#{thl_record['epoch']},eventid='#{thl_record['eventId']}',source_id='#{thl_record['sourceId']}';"]
+      "SET SESSION SQL_LOG_BIN=0;DELETE FROM #{service_schema}.trep_commit_seqno; INSERT INTO #{service_schema}.trep_commit_seqno (task_id, seqno, fragno, last_frag, epoch_number, eventid, source_id, update_timestamp, extract_timestamp) VALUES (0, #{thl_record['seqno']}, #{thl_record['frag']}, #{thl_record['lastFrag'] == true ? 1 : 0}, #{thl_record['epoch']}, '#{thl_record['eventId']}', '#{thl_record['sourceId']}', NOW(), NOW());"]
     store_master_position_sql(sql, storage_file)
   end
   

@@ -217,7 +217,10 @@ module TungstenScript
   
   def display_help
     unless description() == nil
-      TU.output(TU.wrapped_lines(description()))
+      description().split("<br>").each{
+        |section|
+        TU.output(TU.wrapped_lines(section))
+      }
       TU.output("")
     end
     
@@ -335,11 +338,11 @@ module MySQLServiceScript
   def validate
     super()
     
-    if @options[:host] == nil
-      @options[:host] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_host")
+    if @options[:mysqlhost] == nil
+      @options[:mysqlhost] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_host")
     end
-    if @options[:port] == nil
-      @options[:port] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_port")
+    if @options[:mysqlport] == nil
+      @options[:mysqlport] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_port")
     end
     
     if @options[:my_cnf] == nil
@@ -392,11 +395,11 @@ module MySQLServiceScript
   end
   
   def get_mysql_command
-    "mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:host]} --port=#{@options[:port]}"
+    "mysql --defaults-file=#{@options[:my_cnf]} -h#{@options[:mysqlhost]} --port=#{@options[:mysqlport]}"
   end
   
   def get_mysqldump_command
-    "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{@options[:host]} --port=#{@options[:port]} --opt --single-transaction --all-databases --add-drop-database --master-data=2"
+    "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{@options[:mysqlhost]} --port=#{@options[:mysqlport]} --opt --single-transaction --all-databases --add-drop-database --master-data=2"
   end
   
   def get_xtrabackup_command
@@ -408,7 +411,7 @@ module MySQLServiceScript
       defaults_file = @options[:extra_mysql_defaults_file].path()
     end
     
-    "innobackupex-1.5.1 --defaults-file=#{defaults_file} --host=#{@options[:host]} --port=#{@options[:port]}"
+    "innobackupex-1.5.1 --defaults-file=#{defaults_file} --host=#{@options[:mysqlhost]} --port=#{@options[:mysqlport]}"
   end
   
   def get_mysql_result(command, timeout = 30)
