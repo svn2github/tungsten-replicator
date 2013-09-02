@@ -430,15 +430,15 @@ class TungstenXtrabackupScript < TungstenBackupScript
   def empty_mysql_directory
     stop_mysql_server()
 
-    TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqldatadir]} -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
+    TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqldatadir]}/ -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
     TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqllogdir]}/ -name #{@options[:mysqllogpattern]}.*  | xargs #{sudo_prefix()} rm -rf")
 
     if @options[:mysqlibdatadir].to_s() != ""
-      TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqlibdatadir]} -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
+      TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqlibdatadir]}/ -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
     end
 
     if @options[:mysqliblogdir].to_s() != ""
-      TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqliblogdir]} -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
+      TU.cmd_result("#{sudo_prefix()}find #{@options[:mysqliblogdir]}/ -mindepth 1 | xargs #{sudo_prefix()} rm -rf")
     end
   end
 
