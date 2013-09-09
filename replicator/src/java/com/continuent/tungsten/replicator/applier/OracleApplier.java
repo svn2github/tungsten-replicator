@@ -82,8 +82,7 @@ public class OracleApplier extends JdbcApplier
             url = JdbcURL.generate(DBMS.ORACLE, host, port, service);
         }
         else
-            logger
-                    .info("Property url already set; ignoring host, port, and service properties");
+            logger.info("Property url already set; ignoring host, port, and service properties");
 
         super.configure(context);
     }
@@ -182,7 +181,10 @@ public class OracleApplier extends JdbcApplier
                     // DELETE, UPDATE).
                     prepStatement.setBytes(bindLoc,
                             blob.getBytes(1, (int) blob.length()));
-                    logger.warn("BLOB support in Oracle is only for INSERT currently; key lookup during DELETE/UPDATE will result in an error");
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("BLOB support in Oracle is only for INSERT currently; key lookup during DELETE/UPDATE will result in an error");
+                    }
                 }
                 else
                 {
@@ -205,7 +207,7 @@ public class OracleApplier extends JdbcApplier
             throw e;
         }
     }
-    
+
     @Override
     protected Column addColumn(ResultSet rs, String columnName)
             throws SQLException
