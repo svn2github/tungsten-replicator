@@ -123,7 +123,7 @@ public class JdbcApplier implements RawApplier
      * because some statements may be very large. TODO: make this configurable
      * via replicator.properties
      */
-    protected int                     maxSQLLogLength            = 3000;
+    protected int                     maxSQLLogLength            = 5000;
 
     private TableMetadataCache        tableMetadataCache;
 
@@ -1085,7 +1085,7 @@ public class JdbcApplier implements RawApplier
                     .getKeyValues();
             ArrayList<ArrayList<OneRowChange.ColumnVal>> columnValues = oneRowChange
                     .getColumnValues();
-            String log = "Failing statement : " + stmt.toString()
+            String log = "Failing statement: " + stmt.toString()
                     + "\nArguments:";
             log += logFailedRowChangeValues(keys, columns, keyValues,
                     columnValues, row);
