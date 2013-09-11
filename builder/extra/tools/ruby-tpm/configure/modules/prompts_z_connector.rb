@@ -5,7 +5,7 @@ CONN_LISTEN_ADDRESS = "connector_listen_address"
 CONN_LISTEN_PORT = "connector_listen_port"
 CONN_CLIENTLOGIN = "connector_user"
 CONN_CLIENTPASSWORD = "connector_password"
-CONN_CLIENTDEFAULTDB = "connector_forced_schema"
+CONN_CLIENTDEFAULTDB = "connector_default_schema"
 CONN_DB_PROTOCOL = "connector_db_protocol"
 CONN_DB_VERSION = "connector_db_version"
 CONN_DELETE_USER_MAP = "connector_delete_user_map"
@@ -28,6 +28,7 @@ ROUTER_DELAY_BEFORE_OFFLINE = "connector_delay_before_offline"
 CONN_JAVA_MEM_SIZE = "conn_java_mem_size"
 CONN_JAVA_ENABLE_CONCURRENT_GC = "conn_java_enable_concurrent_gc"
 CONN_RR_INCLUDE_MASTER = "conn_round_robin_include_master"
+ENABLE_CONNECTOR_SSL = "enable_connector_ssl"
 
 class Connectors < GroupConfigurePrompt
   def initialize
@@ -246,6 +247,7 @@ class ConnectorDefaultSchema < ConfigurePrompt
   
   def initialize
     super(CONN_CLIENTDEFAULTDB, "Default schema for the connector to use", PV_ANY, "none")
+    add_command_line_alias("connector-forced-schema")
   end
 end
 
@@ -591,5 +593,38 @@ class ConnectorRoundRobinIncludeMaster < ConfigurePrompt
   def initialize
     super(CONN_RR_INCLUDE_MASTER, "Should the Connector include the master in round-robin load balancing",
       PV_BOOLEAN, "false")
+  end
+end
+
+class ConnectorDriverOptions < ConfigurePrompt
+  include ConnectorPrompt
+  include HiddenValueModule
+  
+  def initialize
+    super(CONN_DRIVEROPTIONS, "JDBC options for connector JDBC connections to the database", PV_ANY)
+  end
+  
+  def load_default_value
+    opts = []
+    
+    if @config.getProperty(get_member_key(ENABLE_CONNECTOR_SSL)) == "true"
+      opts << "useSSL=true"
+      opts << "requireSSL=true"
+    end
+    
+    if opts.size() == 0
+      @default = ""
+    else
+      @default = "?#{opts.join('&')}"
+    end
+  end
+end
+
+class ConnectorEnableSSL < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(ENABLE_CONNECTOR_SSL, "Enable SSL encryption of connector traffic to the database", PV_BOOLEAN, "false")
+    add_command_line_alias("connector-ssl")
   end
 end
