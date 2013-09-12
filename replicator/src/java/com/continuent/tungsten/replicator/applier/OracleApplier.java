@@ -155,7 +155,14 @@ public class OracleApplier extends JdbcApplier
                         clob);
             }
             else if (type == Types.DATE
-                    && !(value.getValue() instanceof java.sql.Date))
+                    && (value.getValue() instanceof java.sql.Timestamp))
+            { // Issue 704 - unsuccessful DATETIME to DATE conversion
+                Timestamp ts = (Timestamp) value.getValue();
+                ((OraclePreparedStatement) prepStatement)
+                        .setObject(bindLoc, ts);
+            }
+            else if (type == Types.DATE
+                    && (value.getValue() instanceof java.lang.Long))
             { // TENT-311 - no conversion is needed if the underlying value is
               // Date.
                 Timestamp ts = new Timestamp((Long) (value.getValue()));
