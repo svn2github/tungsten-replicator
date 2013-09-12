@@ -44,6 +44,7 @@ import jline.NullCompletor;
 import jline.SimpleCompletor;
 
 import com.continuent.tungsten.common.cluster.resource.DataSource;
+import com.continuent.tungsten.common.cluster.resource.DataSourceRole;
 import com.continuent.tungsten.common.cluster.resource.Replicator;
 import com.continuent.tungsten.common.cluster.resource.ResourceState;
 import com.continuent.tungsten.common.cluster.resource.notification.ReplicatorNotification;
@@ -228,6 +229,11 @@ public class CLUtils implements Serializable
     }
 
     /**
+     * @param dsProps
+     * @param header
+     * @param wasModified
+     * @param printDetails
+     * @param includeStatistics
      * @return a formatted string representing a datasource
      */
     public static String formatDsMap(Map<String, TungstenProperties> dsMap,
@@ -284,6 +290,17 @@ public class CLUtils implements Serializable
 
     /**
      * Format manager status
+     * 
+     * @param dsProps
+     * @param replProps
+     * @param dbProps
+     * @param routerUsage
+     * @param managerIsOnline
+     * @param header
+     * @param wasModified
+     * @param printDetails
+     * @param includeStatistics
+     * @return
      */
     public static String formatStatus(TungstenProperties dsProps,
             TungstenProperties replProps, TungstenProperties dbProps,
@@ -369,6 +386,48 @@ public class CLUtils implements Serializable
         String progressInformation = "";
         String additionalInfo = "";
         String replicator_useSSLConnection = "";        // true if Replicator uses SSL
+
+        /*
+         * Witness have only a header, so take care of them here and return.
+         */
+        if (dsProps.getString(DataSource.ROLE).equals(
+                DataSourceRole.witness.toString()))
+        {
+            String dsHeader = String.format("%s(%s:%s)",
+                    dsProps.getString(DataSource.NAME),
+                    dsProps.getString(DataSource.ROLE),
+                    managerIsOnline ? "ONLINE" : "OFFLINE");
+
+            int indentToUse = dsProps.getString(DataSource.NAME).length() + 1;
+            indentToUse = 4;
+            builder.append(
+                    ResultFormatter.makeSeparator(
+                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
+                    NEWLINE);
+            builder.append(ResultFormatter.makeRow((new String[]{dsHeader}),
+                    ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
+
+            builder.append(
+                    ResultFormatter.makeSeparator(
+                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
+                    NEWLINE);
+
+            builder.append(ResultFormatter.makeRow(
+                    new String[]{indent
+                            + String.format("MANAGER(state=%s)",
+                                    managerIsOnline ? "ONLINE" : "STOPPED")},
+                    ResultFormatter.DEFAULT_WIDTH, 0, false, true));
+            
+            builder.append(
+                    ResultFormatter.makeSeparator(
+                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
+                    NEWLINE);
+            
+            builder.append(NEWLINE);
+
+            return builder.toString();
+
+        }
 
         // --- Replicator properties ---
         if (replProps != null)
@@ -1003,6 +1062,32 @@ public class CLUtils implements Serializable
             builder.append(String.format("%s\n", obj.toString()));
         }
 
+        return builder.toString();
+    }
+    
+    /**
+     * This method will format any iterable class into a comma-separated list.
+     * 
+     * @param iterable An iterable value.
+     * @return formatted string
+     */
+    public static String iterableToCommaSeparatedList(Iterable<?> iterable)
+    {
+        StringBuilder builder = new StringBuilder();
+        boolean first = true;
+
+        for (Object obj : iterable)
+        {
+            if (first)
+            {
+                builder.append(String.format("%s", obj.toString()));
+                first = false;
+            }
+            else
+            {
+                builder.append(String.format(", %s", obj.toString()));
+            }
+        }
         return builder.toString();
     }
 
