@@ -501,6 +501,16 @@ class ReplicationServiceParallelizationType < ConfigurePrompt
       PropertyValidator.new("disk|memory|none", 
         "Value must be disk, memory, or none"), "none")
   end
+  
+  def validate_value(value)
+    if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SLAVE)) == "true" && value != "none"
+      error("Parallelization type must be set to 'none' for heterogenous replication")
+    end
+    
+    if is_valid?()
+      super(value)
+    end
+  end
 end
 
 class ReplicationServiceParallelizationStoreClass < ConfigurePrompt
@@ -1304,6 +1314,46 @@ class ReplicationServiceRelayLogStorageDirectory < ConfigurePrompt
   
   def get_directory(svc_name)
     @config.getProperty(get_host_key(REPL_RELAY_LOG_DIR)) + "/" + svc_name
+  end
+end
+
+class ReplicationHeterogenousService < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(ENABLE_HETEROGENOUS_SERVICE, "Enable heterogenous operation", PV_BOOLEAN, "false")
+  end
+end
+
+class ReplicationHeterogenousMaster < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(ENABLE_HETEROGENOUS_MASTER, "Enable heterogenous operation for the master", PV_BOOLEAN, "false")
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SERVICE)) == "true"
+      @default = "true"
+    else
+      super()
+    end
+  end
+end
+
+class ReplicationHeterogenousSlave < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(ENABLE_HETEROGENOUS_SLAVE, "Enable heterogenous operation for the slave", PV_BOOLEAN, "false")
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SERVICE)) == "true"
+      @default = "true"
+    else
+      super()
+    end
   end
 end
 

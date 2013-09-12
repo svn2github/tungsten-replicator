@@ -35,7 +35,13 @@ class ConfigureDatabasePlatform
 	end
 	
 	def get_extractor_filters()
-	  []
+    filters = []
+	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_MASTER]) == "true"
+	    filters << "colnames"
+	    filters << "pkey"
+	  end
+	  
+	  return filters
 	end
 	
 	def get_thl_filters()
@@ -43,7 +49,12 @@ class ConfigureDatabasePlatform
 	end
 	
 	def get_applier_filters()
-	  ["pkey"]
+	  filters = []
+	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_SLAVE]) == "false"
+	    filters << "pkey"
+	  end
+	  
+	  return filters
 	end
 	
 	def get_backup_agents()

@@ -525,6 +525,30 @@ class JavaFileEncoding < ConfigurePrompt
   def required?
     false
   end
+  
+  def get_default_value
+    has_heterogenous_service = false
+    @config.getPropertyOr([REPL_SERVICES], {}).keys().each{
+      |rs_alias|
+      if rs_alias == DEFAULTS
+        next
+      end
+      
+      if @config.getProperty([REPL_SERVICES, rs_alias, ENABLE_HETEROGENOUS_MASTER]) == "true"
+        has_heterogenous_service = true
+      end
+      
+      if @config.getProperty([REPL_SERVICES, rs_alias, ENABLE_HETEROGENOUS_SLAVE]) == "true"
+        has_heterogenous_service = true
+      end
+    }
+    
+    if has_heterogenous_service == true
+      @default = "UTF8"
+    else
+      super()
+    end
+  end
 end
 
 class JavaUserTimezone < ConfigurePrompt

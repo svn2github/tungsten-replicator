@@ -379,9 +379,13 @@ end
 
 class MySQLConfigurePrompt < ConfigurePrompt
   def load_default_value
-    begin
-      @default = get_mysql_default_value()
-    rescue => e
+    if get_datasource().is_a?(MySQLDatabasePlatform)
+      begin
+        @default = get_mysql_default_value()
+      rescue => e
+        super()
+      end
+    else
       super()
     end
   end
@@ -623,9 +627,11 @@ class MySQLEnableEnumToString < ConfigurePrompt
   def load_default_value
     if get_extractor_datasource().class != get_applier_datasource().class
       @default = "true"
+    elsif @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER)) == "true"
+      @default = "true"
+    else
+      super()
     end
-    
-    super()
   end
 end
 
@@ -637,12 +643,14 @@ class MySQLEnableSetToString < ConfigurePrompt
       PV_BOOLEAN, "false")
   end
   
-  def get_default_value
+  def load_default_value
     if get_extractor_datasource().class != get_applier_datasource().class
-      return "true"
+      @default = "true"
+    elsif @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER)) == "true"
+      @default = "true"
+    else
+      super()
     end
-    
-    super()
   end
 end
 
@@ -676,9 +684,11 @@ class MySQLUseBytesForStrings < ConfigurePrompt
   def load_default_value
     if get_extractor_datasource().class != get_applier_datasource().class
       @default = "false"
+    elsif @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER)) == "true"
+      @default = "false"
+    else
+      super()
     end
-    
-    super()
   end
 end
 
@@ -954,27 +964,33 @@ class MySQLPermissionsCheck < ConfigureValidationCheck
       info("All privileges configured correctly")
     end
     
-    #Check the system user can connect remotely to all the other instances
-    #The managers need to do this TUC-1146
-    @config.getPropertyOr('dataservice_hosts', '').split(",").each do |remoteHost|
-      login_output = get_applier_datasource.run_remote("select 'ALIVE' as 'Return Value'",remoteHost)
-      if login_output =~ /ALIVE/
-        info("Able to logon remotely to #{remoteHost} MySQL Instance")
-      else
-        if remoteHost == @config.getProperty(HOST)
-          error("Unable to connect to the MySQL server on #{remoteHost}")
+    if get_topology().is_a?(ClusterTopology)
+      show_help = false
+      
+      #Check the system user can connect remotely to all the other instances
+      #The managers need to do this TUC-1146
+      @config.getPropertyOr('dataservice_hosts', '').split(",").each do |remoteHost|
+        login_output = get_applier_datasource.run_remote("select 'ALIVE' as 'Return Value'",remoteHost)
+        if login_output =~ /ALIVE/
+          info("Able to logon remotely to #{remoteHost} MySQL Instance")
         else
-          if Configurator.instance.check_addresses_is_pingable(remoteHost)
+          if remoteHost == @config.getProperty(HOST)
             error("Unable to connect to the MySQL server on #{remoteHost}")
+            show_help = true
           else
-            warning("Unable to connect to the MySQL server on #{remoteHost}")
+            if Configurator.instance.check_addresses_is_pingable(remoteHost)
+              error("Unable to connect to the MySQL server on #{remoteHost}")
+            else
+              warning("Unable to connect to the MySQL server on #{remoteHost}")
+            end
+            show_help = true
           end
         end
       end
-    end
     
-    unless is_valid?()
-      help("The management process needs to be able to connect to remote database servers to verify status")
+      unless is_valid?()
+        help("The management process needs to be able to connect to remote database servers to verify status")
+      end
     end
   end
 end
