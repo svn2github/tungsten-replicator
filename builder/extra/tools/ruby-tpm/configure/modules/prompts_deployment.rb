@@ -680,19 +680,15 @@ class HostEnableManager < ConfigurePrompt
     if get_member() == DEFAULTS
       @default = false.to_s
     else
-      @config.getPropertyOr([REPL_SERVICES], {}).each_key{
+      @config.getPropertyOr([MANAGERS], {}).each_key{
         |rs_alias|
         
         if rs_alias == DEFAULTS
           next
         end
         
-        if @config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_HOST]) == get_member()
-          topology = Topology.build(@config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE]), @config)
-          
-          if topology.use_management?()
-            @default = true.to_s
-          end
+        if @config.getProperty([MANAGERS, rs_alias, DEPLOYMENT_HOST]) == get_member()
+          @default = true.to_s
         end
       }
     end

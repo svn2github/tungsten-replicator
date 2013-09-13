@@ -46,6 +46,7 @@ MGR_JAVA_ENABLE_CONCURRENT_GC = "mgr_java_enable_concurrent_gc"
 MGR_API = "mgr_api"
 MGR_API_PORT = "mgr_api_port"
 MGR_API_ADDRESS = "mgr_api_address"
+MGR_IS_WITNESS = "mgr_is_witness"
 
 class Managers < GroupConfigurePrompt
   def initialize
@@ -719,5 +720,26 @@ class ManagerAPIAddress < ConfigurePrompt
   
   def initialize
     super(MGR_API_ADDRESS, "Address for the Manager API", PV_ANY, "127.0.0.1")
+  end
+end
+
+class ManagerIsWitness < ConfigurePrompt
+  include ManagerPrompt
+  include HiddenValueModule
+  
+  def initialize
+    super(MGR_IS_WITNESS, "Manager is an active witness", PV_BOOLEAN, "false")
+  end
+  
+  def get_default_value
+    if @config.getProperty(get_dataservice_key(ENABLE_ACTIVE_WITNESSES)) == "true"
+      if @config.getPropertyOr(get_dataservice_key(DATASERVICE_WITNESSES), "").split(",").include?(@config.getProperty(get_host_key(HOST)))
+        @default = "true"
+      else
+        @default = false
+      end
+    else
+      @default = "false"
+    end
   end
 end

@@ -10,6 +10,7 @@ DATASERVICE_RELAY_ENABLED = "dataservice_relay_enabled"
 DATASERVICE_RELAY_SOURCE = "dataservice_relay_source"
 DATASERVICE_CONNECTORS = "dataservice_connectors"
 DATASERVICE_WITNESSES = "dataservice_witnesses"
+ENABLE_ACTIVE_WITNESSES = "enable_active_witnesses"
 DATASERVICE_THL_PORT = "dataservice_thl_port"
 DATASERVICE_VIP_ENABLED = "dataservice_vip_enabled"
 DATASERVICE_VIP_IPADDRESS = "dataservice_vip_ipaddress"
@@ -410,17 +411,46 @@ class ClusterWitnesses < ConfigurePrompt
   end
   
   def validate_value(value)
-    @config.getProperty(get_member_key(DATASERVICE_MEMBERS)).to_s().split(",").each {
-      |member|
-      
-      if value == member
-        error("The witness host '#{value}' is a member of the #{@config.getProperty(get_member_key(DATASERVICENAME))} dataservice.  You should specify a witness that is not one of the dataservice members.")
+    active_witnesses = @config.getProperty(get_member_key(ENABLE_ACTIVE_WITNESSES))
+
+    value.to_s().split(",").each{
+      |witness|
+      found_member = @config.getProperty(get_member_key(DATASERVICE_MEMBERS)).to_s().split(",").include?(witness)
+      if active_witnesses == "true"
+        if found_member == false
+          error("The witness host '#{witness}' is not a member of the #{@config.getProperty(get_member_key(DATASERVICENAME))} dataservice. You should specify a witness that is one of the dataservice members or add the witness to --members.")
+        end
+      else
+        if found_member == true
+          error("The witness host '#{witness}' is a member of the #{@config.getProperty(get_member_key(DATASERVICENAME))} dataservice. You should specify a witness that is not one of the dataservice members or specify --active-witnesses=true.")
+        end
       end
     }
   end
   
   def required?
     false
+  end
+  
+  def get_template_value(transform_values_method)
+    if @config.getProperty(get_member_key(ENABLE_ACTIVE_WITNESSES)) == "true"
+      return ""
+    else
+      super(transform_values_method)
+    end
+  end
+end
+
+class ClusterActiveWitnesses < ConfigurePrompt
+  include ClusterPrompt
+  
+  def initialize
+    super(ENABLE_ACTIVE_WITNESSES, "Enable active witness hosts", PV_BOOLEAN, "false")
+    add_command_line_alias("active-witnesses")
+  end
+  
+  def get_command_line_argument_value
+    "true"
   end
 end
 

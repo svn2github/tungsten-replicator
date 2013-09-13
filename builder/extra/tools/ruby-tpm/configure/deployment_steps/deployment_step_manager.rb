@@ -57,21 +57,23 @@ module ConfigureDeploymentStepManager
     transformer.output
     watch_file(transformer.get_filename())
     
-    transformer = Transformer.new(
-		  "#{get_deployment_basedir()}/tungsten-manager/samples/conf/checker.tungstenreplicator.properties.tpl",
-			"#{get_deployment_basedir()}/tungsten-manager/conf/checker.tungstenreplicator.properties", "#")
-    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-	  transformer.transform_values(method(:transform_values))
-	  transformer.output
-    watch_file(transformer.get_filename())
+    unless @config.getProperty(MGR_IS_WITNESS) == "true"
+      transformer = Transformer.new(
+  		  "#{get_deployment_basedir()}/tungsten-manager/samples/conf/checker.tungstenreplicator.properties.tpl",
+  			"#{get_deployment_basedir()}/tungsten-manager/conf/checker.tungstenreplicator.properties", "#")
+      transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
+  	  transformer.transform_values(method(:transform_values))
+  	  transformer.output
+      watch_file(transformer.get_filename())
 	  
-	  transformer = Transformer.new(
-		  "#{get_deployment_basedir()}/tungsten-manager/samples/conf/checker.instrumentation.properties.tpl",
-			"#{get_deployment_basedir()}/tungsten-manager/conf/checker.instrumentation.properties", "#")
-    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-	  transformer.transform_values(method(:transform_values))
-    transformer.output
-    watch_file(transformer.get_filename())
+  	  transformer = Transformer.new(
+  		  "#{get_deployment_basedir()}/tungsten-manager/samples/conf/checker.instrumentation.properties.tpl",
+  			"#{get_deployment_basedir()}/tungsten-manager/conf/checker.instrumentation.properties", "#")
+      transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
+  	  transformer.transform_values(method(:transform_values))
+      transformer.output
+      watch_file(transformer.get_filename())
+    end
     
     if @config.getProperty(MANAGER_ENABLE_INSTRUMENTATION) == "true"
       FileUtils.cp("#{get_deployment_basedir()}/tungsten-manager/rules-ext/Instrumentation.drl", "#{get_deployment_basedir()}/tungsten-manager/rules/")

@@ -516,11 +516,16 @@ module ClusterCommandModule
             next
           end
         
+          enable_replicator_service = true
           if topology.use_management?()
             @config.override([MANAGERS, hs_alias], @manager_options.getProperty([MANAGERS, DEFAULTS]))
             @config.override([MANAGERS, hs_alias], @manager_options.getProperty([MANAGERS, COMMAND]))
+            
+            if @config.getProperty([MANAGERS, hs_alias, MGR_IS_WITNESS]) == "true"
+              enable_replicator_service = false
+            end
           end
-          if topology.use_replicator?()
+          if enable_replicator_service == true && topology.use_replicator?()
             @config.override([REPL_SERVICES, hs_alias], @replication_options.getProperty([REPL_SERVICES, DEFAULTS]))
             @config.override([REPL_SERVICES, hs_alias], @replication_options.getProperty([REPL_SERVICES, COMMAND]))
           end
@@ -758,11 +763,16 @@ module ClusterCommandModule
           next
         end
         
+        enable_replicator_service = true
         if topology.use_management?()
           @config.setProperty([MANAGERS, hs_alias, DEPLOYMENT_HOST], h_alias)
           @config.setProperty([MANAGERS, hs_alias, DEPLOYMENT_DATASERVICE], ds_alias)
+          
+          if @config.getProperty([MANAGERS, hs_alias, MGR_IS_WITNESS]) == "true"
+            enable_replicator_service = false
+          end
         end
-        if topology.use_replicator?()
+        if enable_replicator_service == true && topology.use_replicator?()
           @config.setProperty([REPL_SERVICES, hs_alias, DEPLOYMENT_HOST], h_alias)
           @config.setProperty([REPL_SERVICES, hs_alias, DEPLOYMENT_DATASERVICE], ds_alias)
         end
@@ -805,6 +815,21 @@ module ClusterCommandModule
           @config.setProperty([group_name, m_alias], nil)
         end
       }
+    }
+    
+    # Remove REPL_SERVICES entries for active witness hosts
+    @config.getPropertyOr(REPL_SERVICES, {}).keys().each{
+      |m_alias|
+      if m_alias == DEFAULTS
+        next
+      end
+      
+      h_alias = @config.getProperty([CONNECTORS, m_alias, DEPLOYMENT_HOST])
+      hostname = @config.getProperty([HOSTS, h_alias, HOST])
+      
+      if @config.getProperty([MANAGERS, m_alias, MGR_IS_WITNESS]) == "true"
+        @config.setProperty([REPL_SERVICES, m_alias], nil)
+      end
     }
     
     # Remove CONNECTORS entries that do not appear in a data service
