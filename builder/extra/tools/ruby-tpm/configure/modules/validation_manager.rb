@@ -190,7 +190,7 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
         help("Specify a valid hostname or ip address for the witness host ")
       end
       
-      witness_octets = witness.split(".")
+      witness_octets = witness_ips[0].split(".")
       same_network = true
       
       4.times{
