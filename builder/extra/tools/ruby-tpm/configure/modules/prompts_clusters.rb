@@ -4,6 +4,7 @@ DATASERVICE_REPLICATION_OPTIONS = "dataservice_replication_options"
 DATASERVICE_CONNECTOR_OPTIONS = "dataservice_connector_options"
 DATASERVICE_MANAGER_OPTIONS = "dataservice_manager_options"
 DATASERVICE_MEMBERS = "dataservice_hosts"
+DATASERVICE_REPLICATION_MEMBERS = "dataservice_replication_members"
 DATASERVICE_MASTER_MEMBER = "dataservice_master_host"
 DATASERVICE_SLAVES = "dataservice_slaves"
 DATASERVICE_RELAY_ENABLED = "dataservice_relay_enabled"
@@ -296,6 +297,25 @@ class ClusterMembers < ConfigurePrompt
         end
       }
     end
+  end
+end
+
+class ClusterReplicationHosts < ConfigurePrompt
+  include ClusterPrompt
+  include HiddenValueModule
+  
+  def initialize
+    super(DATASERVICE_REPLICATION_MEMBERS, "Hostnames for the dataservice replication members", PV_ANY)
+  end
+  
+  def load_default_value
+    members = @config.getProperty(get_member_key(DATASERVICE_MEMBERS)).to_s().split(",")
+    
+    if @config.getProperty(get_member_key(ENABLE_ACTIVE_WITNESSES)) == "true"
+      members = members - @config.getProperty(get_member_key(DATASERVICE_WITNESSES)).to_s().split(",")
+    end
+    
+    @default = members.uniq().join(",")
   end
 end
 
