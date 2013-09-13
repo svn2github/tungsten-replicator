@@ -49,6 +49,18 @@ class ReplicatorSetTrepCommitSeqno
       if @options[:sql] == true
         TU.output(sql)
       else
+        cnt = get_mysql_value("SELECT COUNT(*) AS 'cnt' FROM #{service_schema}.trep_commit_seqno", 'cnt')
+        if cnt == nil
+          TU.warning "Unable to check the '#{service_schema}.trep_commit_seqno' table. This may be an indication of problems with the database."
+        end
+        if cnt.to_i() > 1
+          if @options[:force] == true
+            TU.warning("The '#{service_schema}.trep_commit_seqno' table contains more than 1 row. All rows will be replaced.")
+          else
+            raise "Unable to update '#{service_schema}.trep_commit_seqno' because it currrently has more than one row. Add '--force' to bypass this warning."
+          end
+        end
+        
         tungsten_schema_sql_file = "#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tools/ruby-tpm/configure/sql/tungsten_schema.sql"
 
         sqlfile = Tempfile.new("set_trep_commit_seqno")
@@ -127,15 +139,17 @@ $> set_trep_commit_seqno.sh --seqno=35 --epoch=23")
   def validate
     super()
     
-    # All replication must be OFFLINE
-    if TI.is_replicator?()
-      if TI.is_running?("replicator")
-        if TI.trepctl_value(@options[:service], "state") =~ /ONLINE/
-          TU.error("The replication service '#{@options[:service]}' must be OFFLINE to provision this server")
+    unless @options[:sql] == true
+      # All replication must be OFFLINE
+      if TI.is_replicator?()
+        if TI.is_running?("replicator")
+          if TI.trepctl_value(@options[:service], "state") =~ /ONLINE/
+            TU.error("The replication service '#{@options[:service]}' must be OFFLINE to provision this server")
+          end
         end
+      else
+        TU.error("This server is not configured for replication")
       end
-    else
-      TU.error("This server is not configured for replication")
     end
     
     if @options[:seqno] == nil

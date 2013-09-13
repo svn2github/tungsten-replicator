@@ -82,6 +82,12 @@ module TungstenScript
       :default => false,
       :help => "Only run the script validation"
     })
+    
+    add_option(:force, {
+      :on => "--force",
+      :default => false,
+      :help => "Continue operation even if script validation fails"
+    })
   end
   
   def opt(option_key, value = nil)
