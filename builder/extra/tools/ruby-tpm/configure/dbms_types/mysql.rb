@@ -1481,10 +1481,21 @@ class XtrabackupSettingsCheck < ConfigureValidationCheck
       end
     rescue CommandError
     end
+    
+    begin
+      innodb_version = get_applier_datasource.get_value("show variables like 'innodb_version'", "Value")
+      if innodb_version.to_s() == ""
+        wc = cmd_result("xtrabackup -v 2>&1 | egrep \"^xtrabackup version 2.1.[0-9]+\" | wc -l")
+        if wc.to_i() > 0
+          error("Percona Xtrabackup 2.1 will not work without the InnoDB plugin. You should downgrade to Percona Xtrabackup 2.0.x or upgrade your MySQL installation.")
+        end
+      end
+    rescue CommandError
+    end
   end
   
   def enabled?
-    super() && ["xtrabackup", "xtrabackup-incremental"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD)))
+    super() && ["xtrabackup", "xtrabackup-incremental", "xtrabackup-full"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD)))
   end
 end
 
