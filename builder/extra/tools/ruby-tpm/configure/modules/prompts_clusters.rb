@@ -343,9 +343,19 @@ class ClusterMasterHost < ConfigurePrompt
   
   def validate_value(value)
     value_parts = value.to_s.split(',')
+    topology = get_topology()
     
-    if value_parts.length > 1 && get_topology().allow_multiple_masters?() != true
+    if value_parts.length > 1 && topology.allow_multiple_masters?() != true
       error("Unable to deploy the #{@config.getProperty(get_member_key(DATASERVICENAME))} dataservice with multiple masters")
+    end
+    
+    if topology.is_a?(ClusterTopology)
+      value_parts.each{
+        |master|
+        unless @config.getPropertyOr(get_member_key(DATASERVICE_REPLICATION_MEMBERS), "").split(",").include?(master)
+          error("Unable to deploy the #{@config.getProperty(get_member_key(DATASERVICENAME))} dataservice because the master '#{master}' is not a member.")
+        end
+      }
     end
   end
   
