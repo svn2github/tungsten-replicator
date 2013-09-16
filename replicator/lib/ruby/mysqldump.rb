@@ -84,19 +84,14 @@ class TungstenMySQLdumpScript < TungstenBackupScript
       storage_file = TU.cmd_result(". #{@options[:properties]}; echo $file")
       TU.output("Restore from #{storage_file}")
 
-      if File.extname(storage_file) == ".gz"
-        begin
-          TU.cmd_result("echo \"SET @OLD_SLOW_QUERY_LOG=@@SLOW_QUERY_LOG;SET GLOBAL SLOW_QUERY_LOG=0;SET GLOBAL SLOW_QUERY_LOG=@OLD_SLOW_QUERY_LOG;\" | #{get_mysql_command()}")
+      begin
+        TU.cmd_result("echo \"SET @OLD_SLOW_QUERY_LOG=@@SLOW_QUERY_LOG;SET GLOBAL SLOW_QUERY_LOG=0;SET GLOBAL SLOW_QUERY_LOG=@OLD_SLOW_QUERY_LOG;\" | #{get_mysql_command()}")
         rescue => ignored
-          TU.debug("Ignoring error caused by workaround: #{ignored}")
-        end
+        TU.debug("Ignoring error caused by workaround: #{ignored}")
+      end
+      if File.extname(storage_file) == ".gz"
         TU.cmd_result("gunzip -c #{storage_file} | #{get_mysql_command()}")
       else
-        begin
-          TU.cmd_result("echo \"SET @OLD_SLOW_QUERY_LOG=@@SLOW_QUERY_LOG;SET GLOBAL SLOW_QUERY_LOG=0;SET GLOBAL SLOW_QUERY_LOG=@OLD_SLOW_QUERY_LOG;\" | #{get_mysql_command()}")
-        rescue => ignored
-          TU.debug("Ignoring error caused by workaround: #{ignored}")
-        end
         TU.cmd_result("cat #{storage_file} | #{get_mysql_command()}")
       end
     rescue => e
