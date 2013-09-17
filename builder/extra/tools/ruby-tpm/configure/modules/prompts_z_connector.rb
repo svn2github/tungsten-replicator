@@ -29,6 +29,12 @@ CONN_JAVA_MEM_SIZE = "conn_java_mem_size"
 CONN_JAVA_ENABLE_CONCURRENT_GC = "conn_java_enable_concurrent_gc"
 CONN_RR_INCLUDE_MASTER = "conn_round_robin_include_master"
 ENABLE_CONNECTOR_SSL = "enable_connector_ssl"
+JAVA_CONNECTOR_KEYSTORE_PASSWORD = "java_connector_keystore_password"
+JAVA_CONNECTOR_TRUSTSTORE_PASSWORD = "java_connector_truststore_password"
+JAVA_CONNECTOR_TRUSTSTORE_PATH = "java_connector_truststore_path"
+GLOBAL_JAVA_CONNECTOR_TRUSTSTORE_PATH = "global_java_connector_truststore_path"
+JAVA_CONNECTOR_KEYSTORE_PATH = "java_connector_keystore_path"
+GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH = "global_java_connector_keystore_path"
 
 class Connectors < GroupConfigurePrompt
   def initialize
@@ -85,6 +91,10 @@ module ConnectorPrompt
   
   def get_dataservice_key(key)
     return [DATASERVICES, get_dataservice(), key]
+  end
+  
+  def get_host_key(key)
+    [HOSTS, @config.getProperty(get_member_key(DEPLOYMENT_HOST)), key]
   end
   
   def get_hash_prompt_key
@@ -626,5 +636,111 @@ class ConnectorEnableSSL < ConfigurePrompt
   def initialize
     super(ENABLE_CONNECTOR_SSL, "Enable SSL encryption of connector traffic to the database", PV_BOOLEAN, "false")
     add_command_line_alias("connector-ssl")
+  end
+end
+
+class ConnectorJavaKeystorePassword < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(JAVA_CONNECTOR_KEYSTORE_PASSWORD, "The password for unlocking the tungsten_connector_keystore.jks file in the security directory", PV_ANY)
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_host_key(JAVA_KEYSTORE_PASSWORD))
+  end
+end
+
+class ConnectorJavaTruststorePassword < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(JAVA_CONNECTOR_TRUSTSTORE_PASSWORD, "The password for unlocking the tungsten_connector_truststore.jks file in the security directory", PV_ANY)
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_host_key(JAVA_TRUSTSTORE_PASSWORD))
+  end
+end
+
+class ConnectorJavaKeystorePath < ConfigurePrompt
+  include ConnectorPrompt
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(JAVA_CONNECTOR_KEYSTORE_PATH, "Local path to the Java Connector Keystore file.", PV_FILENAME)
+  end
+  
+  def get_template_value(transform_values_method)
+    @config.getProperty(get_host_key(SECURITY_DIRECTORY)) + "/tungsten_connector_keystore.jks"
+  end
+  
+  def required?
+    false
+  end
+  
+  def validate_value(value)
+    super(value)
+    if is_valid?() && value != ""
+      unless File.exists?(value)
+        error("The file #{value} does not exist")
+      end
+    end
+    
+    is_valid?()
+  end
+  
+  DeploymentFiles.register(JAVA_CONNECTOR_KEYSTORE_PATH, GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH, CONNECTORS)
+end
+
+class GlobalConnectorJavaKeystorePath < ConfigurePrompt
+  include ConnectorPrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH, "Staging path to the Java Connector Keystore file", 
+      PV_FILENAME)
+  end
+end
+
+class ConnectorJavaTruststorePath < ConfigurePrompt
+  include ConnectorPrompt
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(JAVA_CONNECTOR_TRUSTSTORE_PATH, "Local path to the Java Connector Truststore file.", PV_FILENAME)
+  end
+  
+  def get_template_value(transform_values_method)
+    @config.getProperty(get_host_key(SECURITY_DIRECTORY)) + "/tungsten_connector_truststore.ts"
+  end
+  
+  def required?
+    false
+  end
+  
+  def validate_value(value)
+    super(value)
+    if is_valid?() && value != ""
+      unless File.exists?(value)
+        error("The file #{value} does not exist")
+      end
+    end
+    
+    is_valid?()
+  end
+  
+  DeploymentFiles.register(JAVA_CONNECTOR_TRUSTSTORE_PATH, GLOBAL_JAVA_CONNECTOR_TRUSTSTORE_PATH, CONNECTORS)
+end
+
+class GlobalConnectorJavaTruststorePath < ConfigurePrompt
+  include ConnectorPrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(GLOBAL_JAVA_CONNECTOR_TRUSTSTORE_PATH, "Staging path to the Java Connector Truststore file", 
+      PV_FILENAME)
   end
 end

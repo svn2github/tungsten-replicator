@@ -800,9 +800,9 @@ module PortForReplicators
   end
 end
 module DeploymentFiles
-  def self.register(local, global)
+  def self.register(local, global, group = HOSTS)
     @prompts ||= []
-    @prompts << {:local => local, :global => global}
+    @prompts << {:local => local, :global => global, :group => group}
   end
 
   def self.prompts

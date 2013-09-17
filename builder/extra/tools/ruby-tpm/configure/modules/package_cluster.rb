@@ -1298,10 +1298,17 @@ module ClusterCommandModule
       
       DeploymentFiles.prompts.each{
         |p|
-        if config_obj.getProperty([HOSTS, host_alias, p[:local]]) != nil
-          config_obj.setProperty([HOSTS, host_alias, p[:global]], config_obj.getProperty([HOSTS, host_alias, p[:local]]))
-          config_obj.setProperty([HOSTS, host_alias, p[:local]], "#{config_obj.getProperty([HOSTS, host_alias, TEMP_DIRECTORY])}/#{config_obj.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(config_obj.getProperty([HOSTS, host_alias, p[:local]]))}")
-        end
+        config_obj.getPropertyOr(p[:group], {}).keys().each{
+          |g_alias|
+          if g_alias == DEFAULTS
+            next
+          end
+          
+          if config_obj.getProperty([p[:group], g_alias, p[:local]]) != nil
+            config_obj.setProperty([p[:group], g_alias, p[:global]], config_obj.getProperty([p[:group], g_alias, p[:local]]))
+            config_obj.setProperty([p[:group], g_alias, p[:local]], "#{config_obj.getProperty(TEMP_DIRECTORY)}/#{config_obj.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(config_obj.getProperty([p[:group], g_alias, p[:local]]))}")
+          end
+        }
       }
     end
     
