@@ -122,6 +122,31 @@ class TungstenInstall
     }
     return_values
   end
+
+  def setting_key(first, second, third = nil)
+    if first == CONNECTORS
+      "#{first}.#{TU.to_identifier(hostname())}.#{second}"
+    elsif first == DATASERVICES
+      if third == nil
+        raise "Unable to create setting key for #{first}.#{second}"
+      end
+      "#{first}.#{TU.to_identifier(second)}.#{third}"
+    elsif first == HOSTS
+      "#{first}.#{TU.to_identifier(hostname())}.#{second}"
+    elsif first == MANAGERS
+      if third == nil
+        raise "Unable to create setting key for #{first}.#{second}"
+      end
+      "#{first}.#{TU.to_identifier(second)}_#{TU.to_identifier(hostname())}.#{third}"
+    elsif first == REPL_SERVICES
+      if third == nil
+        raise "Unable to create setting key for #{first}.#{second}"
+      end
+      "#{first}.#{TU.to_identifier(second)}_#{TU.to_identifier(hostname())}.#{third}"
+    else
+      "#{first}.#{TU.to_identifier(hostname())}.#{second}"
+    end
+  end
   
   def cctrl
     "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-manager/bin/cctrl -expert -port #{setting(MGR_RMI_PORT)}"

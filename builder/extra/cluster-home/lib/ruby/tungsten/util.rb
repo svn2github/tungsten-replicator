@@ -455,4 +455,14 @@ class TungstenUtil
       cmd_result("mkdir -p #{dirname}")
     end
   end
+  
+  def pluralize(array, singular, plural = nil)
+    if plural == nil
+      singular
+    elsif array.size() > 1
+      plural
+    else
+      singular
+    end
+  end
 end

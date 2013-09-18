@@ -4,6 +4,6 @@
 #
 
 require "#{File.dirname(__FILE__)}/../../cluster-home/lib/ruby/tungsten"
-require "#{File.dirname(__FILE__)}/../lib/ruby/set_trep_commit_seqno"
+require "#{File.dirname(__FILE__)}/../lib/ruby/tungsten_set_position"
 
-ReplicatorSetTrepCommitSeqno.new().run()
+TungstenReplicatorSetPosition.new().run()

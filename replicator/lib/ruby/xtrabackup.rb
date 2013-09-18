@@ -552,7 +552,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
     return prefix + "_xtrabackup_" + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
   end
   
-  def require_mysql_service?
+  def require_local_mysql_service?
     true
   end
 end

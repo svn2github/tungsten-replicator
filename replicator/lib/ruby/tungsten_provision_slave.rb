@@ -2,9 +2,10 @@
 # - mysqldump
 # - Create a TungstenBackupScript subclass for sending output to remote systems
 
-class ProvisionTungstenSlave
+class TungstenReplicatorProvisionSlave
   include TungstenScript
   include MySQLServiceScript
+  include OfflineServicesScript
   
   MASTER_BACKUP_POSITION_SQL = "xtrabackup_tungsten_master_backup_position.sql"
   
@@ -13,23 +14,6 @@ class ProvisionTungstenSlave
       provision_with_xtrabackup()
     else
       provision_with_mysqldump()
-    end
-    
-    # Emptying the THL and relay logs makes sure that we are starting with 
-    # a fresh directory as if `datasource <hostname> restore` was run.
-    if @options[:clear_logs] == true
-      TU.notice("Empty THL and relay logs")
-      TI.replication_services().each{
-        |service|
-        dir = TI.setting("repl_services.#{service}.repl_thl_directory")
-        if File.exists?(dir)
-          TU.cmd_result("rm -rf #{dir}/*")
-        end
-        dir = TI.setting("repl_services.#{service}.repl_relay_directory")
-        if File.exists?(dir)
-          TU.cmd_result("rm -rf #{dir}/*")
-        end
-      }
     end
   end
   
@@ -48,7 +32,7 @@ class ProvisionTungstenSlave
       # If we are restoring directly to the data directory then MySQL
       # must be shutdown and the data directory emptied
       id = build_timestamp_id("provision_xtrabackup_")
-      if @options[:restore_to_datadir] == true
+      if @options[:direct] == true
         TU.notice("Stop MySQL and empty all data directories")
         empty_mysql_directory()
 
@@ -63,7 +47,7 @@ class ProvisionTungstenSlave
       # into the staging_dir directory
       TU.notice("Create a backup of #{@options[:source]} in #{staging_dir}")
       TU.forward_cmd_results?(true)
-      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-directory=#{staging_dir}", 
+      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-directory=#{staging_dir} --service=#{@options[:service]}", 
         @options[:source], TI.user())
       TU.forward_cmd_results?(false)
     
@@ -76,7 +60,7 @@ class ProvisionTungstenSlave
       # If we didn't take the backup directly into the data directory,
       # then we need to stop MySQL, empty the data directory and move the
       # files into the proper location
-      unless @options[:restore_to_datadir] == true
+      unless @options[:direct] == true
         TU.notice("Stop MySQL and empty all data directories")
         # Shutdown MySQL and empty the data directory in preparation for the 
         # restored data
@@ -116,19 +100,19 @@ class ProvisionTungstenSlave
       
       TU.notice("Backup and restore complete")
 
-      if @options[:restore_to_datadir] == false && staging_dir != "" && File.exists?(staging_dir)
+      if @options[:direct] == false && staging_dir != "" && File.exists?(staging_dir)
         TU.debug("Cleanup #{staging_dir}")
         TU.cmd_result("rm -r #{staging_dir}")
       end
     rescue => e
-      if @options[:restore_to_datadir] == false && staging_dir != "" && File.exists?(staging_dir)
+      if @options[:direct] == false && staging_dir != "" && File.exists?(staging_dir)
         TU.debug("Remove #{staging_dir} due to the error")
         TU.cmd_result("rm -r #{staging_dir}")
       end
       
       # If the backup/restore failed, the MySQL data directory ownership may
       # be left in a broken state
-      if @options[:restore_to_datadir] == true
+      if @options[:direct] == true
         TU.cmd_result("#{sudo_prefix()}chown -R #{@options[:mysqluser]}: #{staging_dir}")
       end
 
@@ -147,7 +131,7 @@ class ProvisionTungstenSlave
       # into the staging_dir directory
       TU.notice("Create a mysqldump backup of #{@options[:source]} in #{staging_dir}")
       TU.forward_cmd_results?(true)
-      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-file=#{staging_dir}/provision.sql.gz", 
+      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-file=#{staging_dir}/provision.sql.gz --service=#{@options[:service]}", 
         @options[:source], TI.user())
       TU.forward_cmd_results?(false)
       
@@ -172,17 +156,7 @@ class ProvisionTungstenSlave
     super()
     
     # All replication must be OFFLINE
-    if TI.is_replicator?()
-      if TI.is_running?("replicator")
-        TI.replication_services().each{
-          |service|
-          if TI.trepctl_value(service, "state") =~ /ONLINE/
-            TU.error("All replication services must be OFFLINE to provision this server")
-            break
-          end
-        }
-      end
-    else
+    unless TI.is_replicator?()
       TU.error("This server is not configured for replication")
     end
     
@@ -236,7 +210,7 @@ class ProvisionTungstenSlave
       # If the InnoDB files are stored somewhere other than datadir we are
       # not able to put them all in the correct position at this time
       # This only matters if we are restoring directly to the data directory
-      if @options[:restore_to_datadir] == true
+      if @options[:direct] == true
         if @options[:mysqlibdatadir].to_s() != "" || @options[:mysqliblogdir].to_s() != ""
           TU.error("Unable to restore to #{@options[:mysqldatadir]} because #{@options[:my_cnf]} includes a definition for 'innodb_data_home_dir' or 'innodb_log_group_home_dir'")
         end
@@ -252,10 +226,10 @@ class ProvisionTungstenSlave
         begin
           TU.forward_cmd_results?(true)
           if @options[:mysqldump] == false
-            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --validate", 
+            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
               @options[:source], TI.user())
           else
-            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --validate", 
+            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
               @options[:source], TI.user())
           end
           TU.forward_cmd_results?(false)
@@ -268,12 +242,6 @@ class ProvisionTungstenSlave
   def configure
     super()
     
-    add_option(:clear_logs, {
-      :on => "--clear-logs",
-      :default => false,
-      :help => "Delete all THL and relay logs"
-    })
-    
     add_option(:mysqldump, {
       :on => "--mysqldump",
       :default => false,
@@ -285,10 +253,11 @@ class ProvisionTungstenSlave
       :help => "Server to use as a source for the backup"
     })
     
-    add_option(:restore_to_datadir, {
-      :on => "--restore-to-datadir",
+    add_option(:direct, {
+      :on => "--direct",
       :default => false,
-      :help => "Use the MySQL data directory for staging and preparation"
+      :help => "Use the MySQL data directory for staging and preparation",
+      :aliases => ["--restore-to-datadir"]
     })
   end
   
@@ -329,7 +298,7 @@ class ProvisionTungstenSlave
     return prefix + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
   end
   
-  def require_mysql_service?
+  def require_local_mysql_service?
     if @options[:mysqldump] == false
       true
     else

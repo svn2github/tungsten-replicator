@@ -1,25 +1,26 @@
 
-class ReplicatorSetTrepCommitSeqno
+class TungstenReplicatorSetPosition
   include TungstenScript
   include MySQLServiceScript
+  include OfflineSingleServiceScript
   
   def main
     begin
-      service_schema = TI.setting("repl_services.#{@options[:service]}.repl_svc_schema")
+      service_schema = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_svc_schema"))
       
-      if @options[:host] != nil
+      if @options[:source] != nil
         begin
-          TU.info("Load seqno #{@options[:seqno]} from #{@options[:host]}")
+          TU.info("Load seqno #{@options[:seqno]} from #{@options[:source]}")
           cmd = "#{TI.thl(@options[:service])} list -seqno #{@options[:seqno]} -headers -json"
-          thl_record_content = TU.ssh_result(cmd, @options[:host], TI.user())
+          thl_record_content = TU.ssh_result(cmd, @options[:source], TI.user())
         rescue CommandError => ce
           TU.debug(ce)
-          raise "There was an error running the thl command on #{@options[:host]}"
+          raise "There was an error running the thl command on #{@options[:source]}"
         end
       
         thl_records = JSON.parse(thl_record_content)
         unless thl_records.instance_of?(Array) && thl_records.size() == 1
-          raise "Unable to read the THL record for seqno #{@options[:seqno]} from #{@options[:host]}"
+          raise "Unable to read the THL record for seqno #{@options[:seqno]} from #{@options[:source]}"
         end
       
         thl_record = thl_records[0]
@@ -71,20 +72,6 @@ class ReplicatorSetTrepCommitSeqno
         TU.notice("Update the #{service_schema}.trep_commit_seqno table")
         TU.cmd_result("cat #{sqlfile.path()}")
         TU.cmd_result("cat #{sqlfile.path()} | #{get_mysql_command()}")
-        
-        # Emptying the THL and relay logs makes sure that we are starting with 
-        # a fresh directory as if `datasource <hostname> restore` was run.
-        if @options[:clear_logs] == true
-          TU.notice("Empty THL and relay logs for replication service '#{@options[:service]}'")
-          dir = TI.setting("repl_services.#{@options[:service]}.repl_thl_directory")
-          if File.exists?(dir)
-            TU.cmd_result("rm -rf #{dir}/*")
-          end
-          dir = TI.setting("repl_services.#{@options[:service]}.repl_relay_directory")
-          if File.exists?(dir)
-            TU.cmd_result("rm -rf #{dir}/*")
-          end
-        end
       end
     rescue => e
       raise e
@@ -95,15 +82,9 @@ class ReplicatorSetTrepCommitSeqno
     super()
     description("Update the trep_commit_seqno table with metadata for the given sequence number.<br>
 Examples:<br>
-$> set_trep_commit_seqno.sh --host=db1 --seqno=35<br>
-$> set_trep_commit_seqno.sh --seqno=35 --epoch=23")
+$> tungsten_set_position.sh --host=db1 --seqno=35<br>
+$> tungsten_set_position.sh --seqno=35 --epoch=23")
 
-    add_option(:clear_logs, {
-      :on => "--clear-logs",
-      :default => false,
-      :help => "Delete all THL and relay logs for the service"
-    })
-    
     add_option(:epoch, {
       :on => "--epoch String",
       :help => "The epoch number to use for updating the trep_commit_seqno table"
@@ -114,8 +95,8 @@ $> set_trep_commit_seqno.sh --seqno=35 --epoch=23")
       :help => "The event id to use for updating the trep_commit_seqno table"
     })
     
-    add_option(:host, {
-      :on => "--host String",
+    add_option(:source, {
+      :on => "--source String",
       :help => "Determine metadata for the --seqno statement from this host"
     })
     
@@ -139,19 +120,6 @@ $> set_trep_commit_seqno.sh --seqno=35 --epoch=23")
   def validate
     super()
     
-    unless @options[:sql] == true
-      # All replication must be OFFLINE
-      if TI.is_replicator?()
-        if TI.is_running?("replicator")
-          if TI.trepctl_value(@options[:service], "state") =~ /ONLINE/
-            TU.error("The replication service '#{@options[:service]}' must be OFFLINE to provision this server")
-          end
-        end
-      else
-        TU.error("This server is not configured for replication")
-      end
-    end
-    
     if @options[:seqno] == nil
       TU.error("The --seqno argument is required")
     end
@@ -160,12 +128,28 @@ $> set_trep_commit_seqno.sh --seqno=35 --epoch=23")
       TU.error("Unable to clear logs when the --sql argument is given")
     end
     
-    if @options[:host] == nil && @options[:epoch] == nil
+    if @options[:source] == nil && @options[:epoch] == nil
       TU.error("You must provide the --host or --epoch argument")
     end
     
-    if @options[:host] != nil && @options[:epoch] != nil
+    if @options[:source] != nil && @options[:epoch] != nil
       TU.error("You may not provide the --host or --epoch arguments together")
+    end
+  end
+  
+  def require_offline_services?
+    if @options[:sql] == true
+      false
+    else
+      super()
+    end
+  end
+  
+  def allow_service_state_change?
+    if @options[:sql] == true
+      false
+    else
+      super()
     end
   end
 end

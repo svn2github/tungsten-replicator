@@ -6,6 +6,7 @@ module TungstenScript
   def run
     unless @options[:validate] == true
       begin
+        prepare()
         main()
       rescue => e
         TU.exception(e)
@@ -70,6 +71,9 @@ module TungstenScript
       TU.exception(e)
       cleanup(1)
     end
+  end
+  
+  def prepare
   end
   
   def command
@@ -167,6 +171,13 @@ module TungstenScript
       |option_key,definition|
       
       args = definition[:on]
+      if definition[:aliases] != nil && definition[:aliases].is_a?(Array)
+        definition[:aliases].each{
+          |arg_alias|
+          args << arg_alias
+        }
+      end
+      
       opts.on(*args) {
         |val|
                 
@@ -190,7 +201,12 @@ module TungstenScript
   end
   
   def parse_integer_option(val)
-    val.to_i()
+    v = val.to_i()
+    unless v.to_s() == val
+      raise MessageError.new("Unable to parse '#{val}' as an integer")
+    end
+    
+    return v
   end
   
   def parse_float_option(val)
@@ -203,7 +219,7 @@ module TungstenScript
     elsif val == "false"
       false
     else
-      raise MessageError.new("Unable to parse value '#{val}'")
+      raise MessageError.new("Unable to parse value '#{val}' as a boolean")
     end
   end
   
@@ -324,35 +340,231 @@ module TungstenScript
   end
 end
 
-module MySQLServiceScript
+# Require the script to specify a default replication service. If there is a 
+# single replication service, that will be used as the default. If there are
+# multiple, the user must specify --service.
+module SingleServiceScript
   def configure
     super()
     
     if TI
+      if TI.replication_services.size() > 1
+        default_service = nil
+      else
+        default_service = TI.default_dataservice()
+      end
+      
       add_option(:service, {
         :on => "--service String",
         :help => "Replication service to read information from",
-        :default => TI.default_dataservice()
+        :default => default_service
       })
     end
   end
   
-  def require_mysql_service?
+  def validate
+    super()
+  
+    if @options[:service] == nil
+      TU.error("You must specify a dataservice for this command with the --service argument")
+    end
+  end
+end
+
+# Require all replication services to be OFFLINE before proceeding with the 
+# main() method. The user can add --offline to have this done for them, and
+# --online to bring them back ONLINE when the script finishes cleanly.
+module OfflineServicesScript
+  def configure
+    super()
+    
+    add_option(:clear_logs, {
+      :on => "--clear-logs",
+      :default => false,
+      :help => "Delete all THL and relay logs for the service"
+    })
+    
+    add_option(:offline, {
+      :on => "--offline",
+      :help => "Put required replication services offline before processing",
+      :default => false
+    })
+    
+    add_option(:offline_timeout, {
+      :on => "--offline-timeout Integer",
+      :help => "Put required replication services offline before processing",
+      :parse => method(:parse_integer_option),
+      :default => 60
+    })
+    
+    add_option(:online, {
+      :on => "--online",
+      :help => "Put required replication services online after successful processing",
+      :default => false
+    })
+  end
+  
+  def validate
+    super()
+    
+    # Some scripts may disable the OFFLINE requirement depending on other 
+    # arguments. These methods give them hooks to make that decision dynamic.
+    if allow_service_state_change?() && require_offline_services?()
+      # Check the state of each replication service
+      get_offline_services_list().each{
+        |ds|
+        if TI.trepctl_value(ds, "state") =~ /ONLINE/
+          TU.error("The replication service '#{ds}' must be OFFLINE to run this command. You can add the --offline argument to do this automatically.")
+        end
+      }
+    end
+    
+    unless @options[:offline_timeout] > 0
+      TU.error("The --offline-timeout must be a number greater than zero")
+    end
+  end
+  
+  def prepare
+    super()
+    
+    if TU.is_valid?()
+      begin
+        if allow_service_state_change?() == true && @options[:offline] == true
+          ds_list = get_offline_services_list()
+          
+          # Put each replication service OFFLINE in parallel waiting for the
+          # command to complete
+          TU.notice("Put #{ds_list.join(",")} replication #{TU.pluralize(ds_list, "service", "services")} offline")
+          
+          threads = []
+          begin
+            Timeout::timeout(@options[:offline_timeout]) {
+              ds_list.each{
+                |ds|
+                threads << Thread.new{
+                  TU.cmd_result("#{TI.trepctl(ds)} offline")
+                }
+              }
+              threads.each{|t| t.join() }
+            }
+          rescue Timeout::Error
+            raise("The replication #{TU.pluralize(ds_list, "service", "services")} #{TU.pluralize(ds_list, "is", "are")} taking too long to go offline. Check the status for more information or use the --offline-timeout argument.")
+          end
+        end
+      rescue => e
+        TU.exception(e)
+      end
+    end
+  end
+  
+  def cleanup(code = 0)
+    if code == 0
+      begin
+        if allow_service_state_change?() == true && @options[:online] == true
+          ds_list = get_offline_services_list()
+          
+          # Put each replication service ONLINE in parallel waiting for the
+          # command to complete
+          TU.notice("Put #{ds_list.join(",")} replication #{TU.pluralize(ds_list, "service", "services")} online")
+          
+          # Emptying the THL and relay logs makes sure that we are starting with 
+          # a fresh directory as if `datasource <hostname> restore` was run.
+          if @options[:clear_logs] == true
+            TU.notice("The THL and relay logs will be cleared before each replication service is brought online")
+          end
+          
+          threads = []
+          begin
+            Timeout::timeout(@options[:offline_timeout]) {
+              ds_list.each{
+                |ds|
+                threads << Thread.new{
+                  if @options[:clear_logs] == true
+                    dir = TI.setting(TI.setting_key(REPL_SERVICES, ds, "repl_thl_directory"))
+                    if File.exists?(dir)
+                      TU.cmd_result("rm -rf #{dir}/*")
+                    end
+                    dir = TI.setting(TI.setting_key(REPL_SERVICES, ds, "repl_relay_directory"))
+                    if File.exists?(dir)
+                      TU.cmd_result("rm -rf #{dir}/*")
+                    end
+                  end
+                  
+                  TU.cmd_result("#{TI.trepctl(ds)} online")
+                }
+              }
+              threads.each{|t| t.join() }
+            }
+          rescue Timeout::Error
+            TU.error("The replication #{TU.pluralize(ds_list, "service", "services")} #{TU.pluralize(ds_list, "is", "are")} taking too long to come online. Check the status for more information.")
+          end
+        end
+      rescue => e
+        TU.exception(e)
+        code = 1
+      end
+    end
+    
+    super(code)
+  end
+  
+  # All replication services must be OFFLINE
+  def get_offline_services_list
+    TI.replication_services()
+  end
+  
+  def require_offline_services?
+    if @options[:offline] == true
+      false
+    else
+      true
+    end
+  end
+  
+  def allow_service_state_change?
+    if TI.is_replicator?() && TI.is_running?("replicator")
+      true
+    else
+      false
+    end
+  end
+end
+
+# Only require a single replication service to be OFFLINE
+module OfflineSingleServiceScript
+  include SingleServiceScript
+  include OfflineServicesScript
+  
+  def get_offline_services_list
+    [@options[:service]]
+  end
+end
+
+# Group all MySQL validation and methods into a single module
+module MySQLServiceScript
+  include SingleServiceScript
+  
+  # Allow scripts to turn off MySQL validation of the local server
+  def require_local_mysql_service?
     false
   end
   
   def validate
     super()
     
+    if @options[:service].to_s() == ""
+      return
+    end
+    
     if @options[:mysqlhost] == nil
-      @options[:mysqlhost] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_host")
+      @options[:mysqlhost] = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_datasource_host"))
     end
     if @options[:mysqlport] == nil
-      @options[:mysqlport] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_port")
+      @options[:mysqlport] = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_datasource_port"))
     end
     
     if @options[:my_cnf] == nil
-      @options[:my_cnf] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_mysql_service_conf")
+      @options[:my_cnf] = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_datasource_mysql_service_conf"))
     end
     if @options[:my_cnf] == nil
       TU.error "Unable to determine location of MySQL my.cnf file"
@@ -362,7 +574,7 @@ module MySQLServiceScript
       end
     end
     
-    if require_mysql_service?()
+    if require_local_mysql_service?()
       if @options[:mysqluser] == nil
         @options[:mysqluser] = get_mysql_option("user")
       end
@@ -371,7 +583,7 @@ module MySQLServiceScript
       end
     
       if @options[:mysql_service_command] == nil
-        @options[:mysql_service_command] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_boot_script")
+        @options[:mysql_service_command] = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_datasource_boot_script"))
       end
       if @options[:mysql_service_command] == nil
         begin
