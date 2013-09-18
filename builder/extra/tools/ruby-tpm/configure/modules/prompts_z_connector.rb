@@ -93,6 +93,10 @@ module ConnectorPrompt
     return [DATASERVICES, get_dataservice(), key]
   end
   
+  def get_host_alias
+    @config.getProperty(get_member_key(DEPLOYMENT_HOST))
+  end
+  
   def get_host_key(key)
     [HOSTS, @config.getProperty(get_member_key(DEPLOYMENT_HOST)), key]
   end

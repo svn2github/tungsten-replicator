@@ -80,6 +80,10 @@ module ManagerPrompt
     true
   end
   
+  def get_host_alias
+    @config.getProperty(get_member_key(DEPLOYMENT_HOST))
+  end
+  
   def get_host_key(key)
     [HOSTS, @config.getProperty(get_member_key(DEPLOYMENT_HOST)), key]
   end
@@ -733,7 +737,7 @@ class ManagerIsWitness < ConfigurePrompt
   
   def get_default_value
     if @config.getProperty(get_dataservice_key(ENABLE_ACTIVE_WITNESSES)) == "true"
-      if @config.getPropertyOr(get_dataservice_key(DATASERVICE_WITNESSES), "").split(",").include?(@config.getProperty(get_host_key(HOST)))
+      if @config.getPropertyOr(get_dataservice_key(DATASERVICE_WITNESSES)).include_alias?(get_host_alias())
         @default = "true"
       else
         @default = false

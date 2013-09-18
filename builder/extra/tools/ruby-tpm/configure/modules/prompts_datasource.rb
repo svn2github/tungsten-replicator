@@ -367,7 +367,7 @@ class DirectDatasourceDBPort < ConfigurePrompt
   end
 
   def load_default_value
-    @default = get_datasource().get_default_port()
+    @default = @config.getProperty(get_member_key(REPL_DBPORT))
   end
 
   PortForConnectors.register(REPL_SERVICES, EXTRACTOR_REPL_DBPORT)

@@ -74,6 +74,13 @@ class String
       self[index]
     end
   end
+  
+  def include_alias?(a)
+    self.split(",").map{
+      |entry|
+      to_identifier(entry)
+    }.include?(a)
+  end
 end
 
 class Logger

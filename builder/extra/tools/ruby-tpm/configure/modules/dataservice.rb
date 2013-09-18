@@ -43,8 +43,12 @@ module ReplicationServicePrompt
     get_member_key(key)
   end
   
+  def get_host_alias
+    @config.getProperty(get_member_key(DEPLOYMENT_HOST))
+  end
+  
   def get_host_key(key)
-    [HOSTS, @config.getProperty(get_member_key(DEPLOYMENT_HOST)), key]
+    [HOSTS, get_host_alias(), key]
   end
   
   def get_dataservice_key(key)
@@ -271,7 +275,7 @@ class ReplicationServiceRole < ConfigurePrompt
   
   def load_default_value
     topology = Topology.build(get_dataservice_alias(), @config)
-    @default = topology.get_role(@config.getProperty(get_host_key(HOST)))
+    @default = topology.get_role(get_host_alias())
   end
 end
 
@@ -382,7 +386,7 @@ class ReplicationServiceTHLMasterURI < ConfigurePrompt
   
   def get_template_value(transform_values_method)
     topology = Topology.build(get_dataservice_alias(), @config)
-    return topology.get_master_thl_uri(@config.getProperty(get_host_key(HOST)))
+    return topology.get_master_thl_uri(get_host_alias())
   end
 end
 

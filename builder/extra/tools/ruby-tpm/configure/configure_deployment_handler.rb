@@ -262,7 +262,7 @@ class ConfigureDeploymentHandler
   end
   
   def get_message_hostname
-    @config.getProperty(HOST)
+    @config.getProperty(DEPLOYMENT_HOST)
   end
   
   def get_message_host_key

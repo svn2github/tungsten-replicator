@@ -277,6 +277,10 @@ class HostPrompt < ConfigurePrompt
   def allow_group_default
     false
   end
+  
+  def enabled_for_command_line?()
+    true
+  end
 end
 
 class UserIDPrompt < ConfigurePrompt
@@ -1368,8 +1372,7 @@ class HostDataServiceName < ConfigurePrompt
         next
       end
       
-      ds_members = @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS], "").split(',')
-      if ds_members.include?(@config.getProperty(get_member_key(HOST)))
+      if @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS]).include_alias?(get_member())
         if Topology.build(ds_alias, @config).use_management?()
           @default = @config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
         end

@@ -466,7 +466,7 @@ module ClusterCommandModule
           next
         end
       
-        @config.setProperty([HOSTS, h_alias, HOST], host)
+        @config.setDefault([HOSTS, h_alias, HOST], host)
       }
       
       if include_all_hosts?() || (dataservice_hosts+connector_hosts).uniq().size() == 0
@@ -811,7 +811,7 @@ module ClusterCommandModule
         hostname = @config.getProperty([HOSTS, h_alias, HOST])
         ds_alias = @config.getProperty([group_name, m_alias, DEPLOYMENT_DATASERVICE])
         
-        unless @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS], "").split(",").include?(hostname)
+        unless @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS]).include_alias?(h_alias)
           @config.setProperty([group_name, m_alias], nil)
         end
       }
@@ -844,7 +844,7 @@ module ClusterCommandModule
       
       ds_list = @config.getPropertyOr([CONNECTORS, m_alias, DEPLOYMENT_DATASERVICE], []).delete_if{
         |ds_alias|
-        (@config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS], "").split(",").include?(hostname) != true)
+        (@config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS]).include_alias?(h_alias) != true)
       }
       
       if ds_list.size > 0

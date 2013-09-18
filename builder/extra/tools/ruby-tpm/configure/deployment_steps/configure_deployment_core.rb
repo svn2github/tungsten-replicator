@@ -254,6 +254,10 @@ module ConfigureDeploymentCore
     end
   end
   
+  def get_host_alias
+    @config.getProperty(DEPLOYMENT_HOST)
+  end
+  
   def get_host_key(key)
     [HOSTS, @config.getProperty(DEPLOYMENT_HOST), key]
   end

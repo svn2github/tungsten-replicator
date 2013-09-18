@@ -22,22 +22,22 @@ module Topology
     false
   end
   
-  def get_master_thl_uri(hostname)
-    rs_alias = @ds_alias + "_" + to_identifier(hostname)
+  def get_master_thl_uri(h_alias)
+    rs_alias = @ds_alias + "_" + h_alias
     hosts = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_MASTERHOST]).to_s().split(",")
     port = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_MASTERPORT])
     
     return _splice_hosts_port(hosts, port, @config.getProperty([REPL_SERVICES, rs_alias, REPL_THL_PROTOCOL]))
   end
   
-  def get_role(hostname)
-    if hostname == nil || @ds_alias == nil
+  def get_role(h_alias)
+    if h_alias == nil || @ds_alias == nil
       rs_alias = DEFAULTS
     else
-      rs_alias = @ds_alias + "_" + to_identifier(hostname)
+      rs_alias = @ds_alias + "_" + h_alias
     end
     
-    if @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_MASTER_MEMBER]) == hostname
+    if @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_MASTER_MEMBER]) == h_alias
       relay_source = @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_RELAY_SOURCE])
       
       if relay_source.to_s == ""
@@ -68,17 +68,18 @@ module Topology
   end
   
   def add_built_service(service, ds_props, rs_props)
-    unless ds_props[DATASERVICE_MEMBERS].split(",").include?(@config.getProperty(HOST))
+    host = @config.getProperty(DEPLOYMENT_HOST)
+    unless ds_props[DATASERVICE_MEMBERS].split(",").include?(host)
       return
     end
     
-    host = @config.getProperty(DEPLOYMENT_HOST)
     service = to_identifier(service)
     ds_props[DATASERVICENAME] = service
     rs_alias = "#{service}_#{host}"
     
     @config.include([DATASERVICES, service], ds_props)
     @config.include([REPL_SERVICES, rs_alias], rs_props)
+    @config.include([REPL_SERVICES, rs_alias], @config.getPropertyOr([REPL_SERVICES, "#{@ds_alias}_#{host}"], {}))
     @config.setProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE], service)
     @config.setProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_HOST], host)
     @config.include([DATASERVICE_HOST_OPTIONS, service], @config.getPropertyOr([DATASERVICE_HOST_OPTIONS, @ds_alias], {}))
@@ -86,7 +87,7 @@ module Topology
   end
   
   def remove_service(service)
-    host = @config.getProperty(HOST)
+    host = @config.getProperty(DEPLOYMENT_HOST)
     
     @config.setProperty([REPL_SERVICES, to_identifier("#{service}_#{host}")], nil)
     @config.setProperty([DATASERVICES, service], nil)

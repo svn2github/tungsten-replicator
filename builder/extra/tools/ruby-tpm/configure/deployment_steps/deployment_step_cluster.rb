@@ -443,8 +443,8 @@ host=#{ds_alias}"
         next
       end
       unless (
-          @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS], "").split(',').include?(@config.getProperty(get_host_key(HOST))) ||
-          @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS], "").split(',').include?(@config.getProperty(get_host_key(HOST)))
+          @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS]).include_alias?(get_host_alias()) ||
+          @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS]).include_alias?(get_host_alias())
         )
         next
       end
