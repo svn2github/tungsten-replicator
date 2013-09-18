@@ -186,6 +186,11 @@ class Configurator
     stop_alive_thread()
     
     if @log
+      begin
+        @log.chmod(0666)
+      rescue
+      end
+      
       @log.close
       @log = nil
     end
