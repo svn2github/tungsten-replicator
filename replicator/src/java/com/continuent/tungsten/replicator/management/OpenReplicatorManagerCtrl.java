@@ -61,7 +61,10 @@ import com.continuent.tungsten.common.security.PasswordManager;
 import com.continuent.tungsten.common.security.PasswordManager.ClientApplicationType;
 import com.continuent.tungsten.common.security.SecurityHelper;
 import com.continuent.tungsten.common.utils.ManifestParser;
+import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.PropertiesManager;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
+import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.shard.ShardManager;
 import com.continuent.tungsten.replicator.shard.ShardManagerMBean;
@@ -102,10 +105,23 @@ public class OpenReplicatorManagerCtrl
     // Authentication and Encryption information
     private AuthenticationInfo             authenticationInfo             = null;
     private String                         securityPropertiesFileLocation = null;
+    private TungstenProperties             serviceProps;
 
     OpenReplicatorManagerCtrl(String[] argv)
     {
         argvIterator = new ArgvIterator(argv);
+
+        // Find and load the service.properties file.
+        File confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
+        File propsFile = new File(confDir, "services.properties");
+        try
+        {
+            serviceProps = PropertiesManager.loadProperties(propsFile);
+        }
+        catch (ReplicatorException e)
+        {
+            logger.warn("Unable to load 'services.properties' file", e);
+        }
     }
 
     private void printHelp()
@@ -192,8 +208,13 @@ public class OpenReplicatorManagerCtrl
     {
         // Set defaults for properties.
         rmiHost = ReplicatorConf.RMI_DEFAULT_HOST;
+
+        // Get the rmiPort from service.properties file
+        rmiPort = serviceProps.getInt(ReplicatorConf.RMI_PORT,
+                ReplicatorConf.RMI_DEFAULT_PORT, false);
+        // Check whether rmi port value was overridden as a system property
         rmiPort = new Integer(System.getProperty(ReplicatorConf.RMI_PORT,
-                ReplicatorConf.RMI_DEFAULT_PORT)).intValue();
+                String.valueOf(rmiPort))).intValue();
         service = null;
         String command = null;
 
@@ -208,6 +229,8 @@ public class OpenReplicatorManagerCtrl
                 if ("-host".equals(curArg))
                     rmiHost = argvIterator.next();
                 else if ("-port".equals(curArg))
+                    // If an -port option was given, this overrides other
+                    // settings
                     rmiPort = Integer.parseInt(argvIterator.next());
                 else if ("-verbose".equals(curArg))
                     verbose = true;
@@ -258,8 +281,7 @@ public class OpenReplicatorManagerCtrl
             try
             {
                 this.authenticationInfo = SecurityHelper
-                        .loadAuthenticationInformation(
-                                securityPropertiesFileLocation);
+                        .loadAuthenticationInformation(securityPropertiesFileLocation);
                 // Sets the username and password in the authenticationInfo.
                 // This will be used as credentials when connecting
                 // Password is provided "as is" (potentilaly encrypted) and will
@@ -687,7 +709,6 @@ public class OpenReplicatorManagerCtrl
             println("[");
         else
             println("Processing clients command...");
-            
 
         OpenReplicatorManagerMBean mbean = getOpenReplicator();
         List<Map<String, String>> clients = mbean.getClients();
