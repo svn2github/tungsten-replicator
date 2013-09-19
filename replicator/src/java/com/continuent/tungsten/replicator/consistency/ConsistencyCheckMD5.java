@@ -45,6 +45,7 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
 
     private static Logger       logger           = Logger.getLogger(ConsistencyCheckMD5.class);
 
+    private boolean             usePKForLimit    = false;
     private int                 rowFrom          = ConsistencyTable.ROW_UNSET;
     private int                 rowLimit         = ConsistencyTable.ROW_UNSET;
 
@@ -64,6 +65,21 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         this.rowLimit = rowLimit;
         this.checkColumnNames = checkColumnNames;
         this.checkColumnTypes = checkColumnTypes;
+    }
+
+    /**
+     * Creates a new <code>ConsistencyCheckMD5</code> object
+     */
+    public ConsistencyCheckMD5(int id, Table table, int rowFrom, int rowLimit,
+            boolean checkColumnNames, boolean checkColumnTypes,
+            boolean usePKForLimit)
+    {
+        super(id, table, ConsistencyCheck.Method.MD5PK);
+        this.rowFrom = rowFrom;
+        this.rowLimit = rowLimit;
+        this.checkColumnNames = checkColumnNames;
+        this.checkColumnTypes = checkColumnTypes;
+        this.usePKForLimit = true;
     }
 
     /**
@@ -235,10 +251,50 @@ public class ConsistencyCheckMD5 extends ConsistencyCheckAbstract
         sb.append(tableName);
         if (rowFrom >= 0)
         {
-            sb.append(" LIMIT ");
-            sb.append(rowFrom);
-            sb.append(',');
-            sb.append(rowLimit);
+            if (usePKForLimit)
+            {
+                if (keyColumns != null)
+                {
+                    if (table.getPrimaryKey().getColumns().size() == 1)
+                    {
+                        sb.append(" WHERE ");
+                        sb.append(keyColumns);
+                        sb.append(" >= ");
+                        sb.append(rowFrom);
+                        sb.append(" AND ");
+                        sb.append(keyColumns);
+                        sb.append(" < ");
+                        // Addition below is to make the meaning of rowLimit
+                        // consistent with the SQL LIMIT variant:
+                        sb.append(rowFrom + rowLimit);
+                    }
+                    else
+                    {
+                        throw new ConsistencyException(
+                                "Row limiting with the use of PK is supported only on tables with a single PK, which is not the case in "
+                                        + schemaName
+                                        + "."
+                                        + tableName
+                                        + " ("
+                                        + table.getPrimaryKey().getColumns()
+                                                .size() + "): " + keyColumns,
+                                null);
+                    }
+                }
+                else
+                {
+                    throw new ConsistencyException(
+                            "Use of PK for row limiting selected, but no PK available in "
+                                    + schemaName + "." + tableName, null);
+                }
+            }
+            else
+            {
+                sb.append(" LIMIT ");
+                sb.append(rowFrom);
+                sb.append(',');
+                sb.append(rowLimit);
+            }
         }
         sb.append(" LOCK IN SHARE MODE) AS tungsten_consistency_check_tmp");
         sb.append(" ORDER BY ");

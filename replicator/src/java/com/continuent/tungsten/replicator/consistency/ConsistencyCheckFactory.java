@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -41,6 +41,11 @@ public class ConsistencyCheckFactory
         {
             return new ConsistencyCheckMD5(id, table, rowOffset, rowLimit,
                     checkColumnNames, checkColumnTypes);
+        }
+        else if (method.compareToIgnoreCase(ConsistencyCheck.Method.MD5PK) == 0)
+        {
+            return new ConsistencyCheckMD5(id, table, rowOffset, rowLimit,
+                    checkColumnNames, checkColumnTypes, true);
         }
         else
         {
