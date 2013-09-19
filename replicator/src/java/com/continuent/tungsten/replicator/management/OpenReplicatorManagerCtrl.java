@@ -166,7 +166,9 @@ public class OpenReplicatorManagerCtrl
         println("                               - Set Replicator to ONLINE with start and stop points");
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
-        println("  reset [-y]                   - Deletes the replicator service");
+        println("  reset {-all | -thl | -relay | -db} [-y]");
+        println("                               - Deletes the replicator service (-all or empty), thl directory,");
+        println("                                 relay logs directory or tungsten database for the service");
         println("  restore [-uri u] [-limit s]  - Restore database");
         println("  setrole -role r [-uri u]     - Set replicator role");
         println("  start                        - Start start replication service");
@@ -778,16 +780,65 @@ public class OpenReplicatorManagerCtrl
     // Reset (delete) a service.
     private void doResetService() throws Exception
     {
+        TungstenProperties options = new TungstenProperties();
+        boolean yes = false;
+
         if (service == null)
             throw new Exception(
                     "You must specify a service name using -service");
 
-        boolean yes = confirm(String
-                .format("Do you really want to delete replication service %s completely?",
-                        service));
+        if (!argvIterator.hasNext())
+            yes = confirm(String
+                    .format("Do you really want to delete replication service %s completely?",
+                            service));
+        else
+            while (argvIterator.hasNext())
+            {
+                String curOption = argvIterator.next();
+                if ("-all".equalsIgnoreCase(curOption))
+                {
+                    yes = confirm(String
+                            .format("Do you really want to delete replication service %s completely?",
+                                    service));
+                    options.put("option", curOption);
+                    // For now, take only first option into account
+                    break;
+                }
+                else if ("-thl".equalsIgnoreCase(curOption))
+                {
+                    yes = confirm(String
+                            .format("Do you really want to delete THL for replication service %s completely?",
+                                    service));
+                    options.put("option", curOption);
+                    // For now, take only first option into account
+                    break;
+                }
+                else if ("-relay".equalsIgnoreCase(curOption))
+                {
+                    yes = confirm(String
+                            .format("Do you really want to delete relay logs for replication service %s completely?",
+                                    service));
+                    options.put("option", curOption);
+                    // For now, take only first option into account
+                    break;
+                }
+                else if ("-db".equalsIgnoreCase(curOption))
+                {
+                    yes = confirm(String
+                            .format("Do you really want to delete database for replication service %s completely?",
+                                    service));
+                    options.put("option", curOption);
+                    // For now, take only first option into account
+                    break;
+                }
+                else
+                    fatal("Unrecognized option for reset command : "
+                            + curOption, null);
+            }
+
         if (yes)
         {
-            serviceManagerMBean.resetService(service);
+            serviceManagerMBean.resetService(service, options.map());
         }
     }
 

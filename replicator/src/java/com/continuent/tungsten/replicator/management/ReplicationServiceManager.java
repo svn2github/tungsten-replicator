@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): Linas Virbalas
+ * Contributor(s): Linas Virbalas, Stephane Giron
  */
 
 package com.continuent.tungsten.replicator.management;
@@ -108,7 +108,11 @@ public class ReplicationServiceManager
         try
         {
             logger.info("Loading security information");
-            AuthenticationInfo authenticationInfo = SecurityHelper.loadAuthenticationInformation();     // Load security information and set critical properties as system properties
+            AuthenticationInfo authenticationInfo = SecurityHelper
+                    .loadAuthenticationInformation(); // Load security
+                                                      // information and set
+                                                      // critical properties as
+                                                      // system properties
             jmxProperties = authenticationInfo.getAsTungstenProperties();
         }
         catch (ConfigurationException ce)
@@ -364,9 +368,21 @@ public class ReplicationServiceManager
             @ParamDesc(name = "name", description = "service name") String name)
             throws Exception
     {
-        loadServiceConfigurations();
+        return resetService(name, null);
+    }
 
-        Map<String, String> progress = new LinkedHashMap<String, String>();
+    /**
+     * Resets a replication service. {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.management.ReplicationServiceManagerMBean#resetService(java.lang.String)
+     */
+    @MethodDesc(description = "Reset individual replication service", usage = "resetService name")
+    public Map<String, String> resetService(
+            @ParamDesc(name = "name", description = "service name") String name,
+            @ParamDesc(name = "controlParams", description = "0 or more control parameters expressed as name-value pairs") Map<String, String> controlParams)
+            throws Exception
+    {
+        loadServiceConfigurations();
 
         // Make sure we have heard of this replicator.
         if (!serviceConfigurations.keySet().contains(name))
@@ -384,10 +400,54 @@ public class ReplicationServiceManager
         }
 
         // Get service information.
-        logger.info("Resetting replication service: name=" + name);
         TungstenProperties serviceProps = serviceConfigurations.get(name);
         TungstenProperties.substituteSystemValues(serviceProps.getProperties());
 
+        Map<String, String> progress = new LinkedHashMap<String, String>();
+
+        String option = null;
+        if (controlParams != null)
+            option = controlParams.get("option");
+
+        if (option == null || option.equalsIgnoreCase("-all"))
+        {
+            logger.info("Resetting replication service: name=" + name);
+
+            resetDatabase(serviceProps, progress);
+
+            resetTHL(serviceProps, progress);
+
+            resetRelay(serviceProps, progress);
+        }
+        else if (option.equalsIgnoreCase("-thl"))
+        {
+            logger.info("Resetting THL for service " + name);
+            resetTHL(serviceProps, progress);
+
+        }
+        else if (option.equalsIgnoreCase("-relay"))
+        {
+            logger.info("Resetting relay logs for service " + name);
+            resetRelay(serviceProps, progress);
+        }
+        else if (option.equalsIgnoreCase("-db"))
+        {
+            logger.info("Resetting database for service " + name);
+            resetDatabase(serviceProps, progress);
+        }
+        else
+        {
+            logger.info("Unimplemented reset option : " + option);
+        }
+
+        logger.info("\n" + CLUtils.formatMap("progress", progress, "", false)
+                + "\n");
+        return progress;
+    }
+
+    private void resetDatabase(TungstenProperties serviceProps,
+            Map<String, String> progress)
+    {
         // Remove schema.
         String schemaName = serviceProps.getString("replicator.schema");
         String userName = serviceProps.getString("replicator.global.db.user");
@@ -415,21 +475,15 @@ public class ReplicationServiceManager
             if (db != null)
                 db.close();
         }
+    }
 
-        // Remove THL files.
-        String logDirName = serviceProps
-                .getString("replicator.store.thl.log_dir");
-        File logDir = new File(logDirName);
-
-        if (!removeDirectory(logDir, progress))
-        {
-            logger.error(String.format("Could not remove the log directory %s",
-                    logDirName));
-        }
-
+    private void resetRelay(TungstenProperties serviceProps,
+            Map<String, String> progress)
+    {
         // Remove relay logs, if present.
         String relayLogDirName = serviceProps
                 .getString("replicator.extractor.dbms.relayLogDir");
+
         if (relayLogDirName != null)
         {
             File relayLogDir = new File(relayLogDirName);
@@ -438,13 +492,25 @@ public class ReplicationServiceManager
             {
                 logger.error(String.format(
                         "Could not remove the relay log directory %s",
-                        logDirName));
+                        relayLogDirName));
             }
         }
+    }
 
-        logger.info("\n" + CLUtils.formatMap("progress", progress, "", false)
-                + "\n");
-        return progress;
+    private void resetTHL(TungstenProperties serviceProps,
+            Map<String, String> progress)
+    {
+        // Remove THL files.
+        String logDirName = serviceProps
+                .getString("replicator.store.thl.log_dir");
+
+        File logDir = new File(logDirName);
+
+        if (!removeDirectory(logDir, progress))
+        {
+            logger.error(String.format("Could not remove the log directory %s",
+                    logDirName));
+        }
     }
 
     /**
@@ -647,7 +713,6 @@ public class ReplicationServiceManager
                     serviceName), e);
         }
     }
-
 
     // Utility routine to start a replication service.
     private void stopReplicationService(String name) throws Exception
