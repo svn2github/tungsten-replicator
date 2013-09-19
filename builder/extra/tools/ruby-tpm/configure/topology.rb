@@ -37,7 +37,7 @@ module Topology
       rs_alias = @ds_alias + "_" + h_alias
     end
     
-    if @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_MASTER_MEMBER]) == h_alias
+    if @config.getPropertyOr([DATASERVICES, @ds_alias, DATASERVICE_MASTER_MEMBER]).include_alias?(h_alias)
       relay_source = @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_RELAY_SOURCE])
       
       if relay_source.to_s == ""
