@@ -313,7 +313,7 @@ module TungstenScript
     
     TU.debug("Finish #{$0} #{ARGV.join(' ')}")
     TU.debug("RC: #{code}")
-    exit(code)
+    TU.exit(code)
   end
   
   def nagios_ok(msg)

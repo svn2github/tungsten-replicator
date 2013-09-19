@@ -10,6 +10,8 @@ class TungstenUtil
     @ssh_options = {}
     @display_help = false
     @num_errors = 0
+    @json_interface = false
+    @json_message_cache = []
     
     # Create a temporary file to hold log contents
     @log = Tempfile.new("tlog")
@@ -37,6 +39,7 @@ class TungstenUtil
       opts.on("-n", "--notice")               {@logger_threshold = Logger::NOTICE}
       opts.on("-q", "--quiet")          {@logger_threshold = Logger::WARN}
       opts.on("-v", "--verbose")        {@logger_threshold = Logger::DEBUG}
+      opts.on("--json")                 { @json_interface = true }
       opts.on("-h", "--help")           { @display_help = true }
       opts.on("--net-ssh-option String")  {|val|
                                           val_parts = val.split("=")
@@ -57,6 +60,17 @@ class TungstenUtil
       @remaining_arguments = []
     end
   end
+  
+  def exit(code = 0)
+    if @json_interface == true
+      puts JSON.pretty_generate({
+        "rc" => code,
+        "messages" => @json_message_cache
+      })
+    end
+    
+    Kernel.exit(code)
+  end
     
   def display_help?
     (@display_help == true)
@@ -70,6 +84,7 @@ class TungstenUtil
     output_usage_line("--notice, -n")
     output_usage_line("--verbose, -v")
     output_usage_line("--help, -h", "Display this message")
+    output_usage_line("--json", "Provide return code and logging messages as a JSON object after the script finishes")
     output_usage_line("--net-ssh-option=key=value", "Set the Net::SSH option for remote system calls", nil, nil, "Valid options can be found at http://net-ssh.github.com/ssh/v2/api/classes/Net/SSH.html#M000002")
   end
   
@@ -87,6 +102,7 @@ class TungstenUtil
   
   def force_output(content)
     log(content)
+    
     puts(content)
     $stdout.flush()
   end
@@ -135,13 +151,17 @@ class TungstenUtil
     log(content)
     
     if enable_log_level?(level)
-      if enable_output?()
-        if level != nil && level > Logger::NOTICE
-          $stdout.puts(content)
-          $stdout.flush()
-        else
-          $stdout.puts(content)
-          $stdout.flush()
+      if @json_interface == true
+        @json_message_cache << content
+      else
+        if enable_output?()
+          if level != nil && level > Logger::NOTICE
+            $stdout.puts(content)
+            $stdout.flush()
+          else
+            $stdout.puts(content)
+            $stdout.flush()
+          end
         end
       end
     end
