@@ -69,7 +69,7 @@ module Topology
   
   def add_built_service(service, ds_props, rs_props)
     host = @config.getProperty(DEPLOYMENT_HOST)
-    unless ds_props[DATASERVICE_MEMBERS].split(",").include?(host)
+    unless ds_props[DATASERVICE_MEMBERS].to_s().include_alias?(host)
       return
     end
     
