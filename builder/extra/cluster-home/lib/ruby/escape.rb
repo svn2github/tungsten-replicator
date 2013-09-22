@@ -29,6 +29,7 @@
 # * HTML
 # * shell command
 # * MIME parameter
+# encoding: ascii
 module Escape
   module_function
 
@@ -453,7 +454,7 @@ module Escape
   # Escape.http_quoted_string assumes that newlines are represented as
   # "\n" or "\r\n".
   def http_quoted_string(str)
-    if /\A(?:[\0-\x09\x0b\x0c\x0e-\xff]|\r?\n[ \t])*\z/ !~ str
+    if Regexp.new("\A(?:[\0-\x09\x0b\x0c\x0e-\xff]|\r?\n[ \t])*\z") !~ str
       raise ArgumentError, "CR or LF not part of folding white space exists: #{str.inspect}"
     end
     s = '"' + str.gsub(/["\\]/, '\\\\\&') + '"'
