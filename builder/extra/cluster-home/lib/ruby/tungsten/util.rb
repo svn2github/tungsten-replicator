@@ -88,6 +88,19 @@ class TungstenUtil
     output_usage_line("--net-ssh-option=key=value", "Set the Net::SSH option for remote system calls", nil, nil, "Valid options can be found at http://net-ssh.github.com/ssh/v2/api/classes/Net/SSH.html#M000002")
   end
   
+  def get_autocomplete_arguments
+    [
+      '--directory',
+      '--quiet', '-q',
+      '--info', '-i',
+      '--notice', '-n',
+      '--verbose', '-v',
+      '--help', '-h',
+      '--json',
+      '--net-ssh-option='
+    ]
+  end
+  
   def get_base_path
     File.expand_path("#{File.dirname(__FILE__)}/../../../..")
   end

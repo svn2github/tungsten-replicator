@@ -9,6 +9,7 @@ class DiagnosticCommand
     super(config)
     @skip_prompts = true
     @force = true
+    @path = nil
   end
   
   def allow_command_line_cluster_options?
@@ -44,6 +45,7 @@ class DiagnosticCommand
     
     opts=OptionParser.new
     opts.on("--to String") {|v| @address = v }
+    opts.on("--path String") {|v| @path = v }
     remainder = Configurator.instance.run_option_parser(opts, arguments)
     
     unless @address == nil
@@ -111,6 +113,15 @@ EOF
       cmd_result("cat #{report_tempfile.path()} | #{sendmail_prefix} #{@sendmail_path} -f#{@address} #{@address}")
 
       notice("Diagnostic package sent to #{@address}")
+    end
+    
+    unless @path == nil
+      begin
+        FileUtils.cp(get_diagnostic_file(), @path)
+      rescue => e
+        exception(e)
+        error("There was a problem copying the diagnostic file to #{@path}")
+      end
     end
   end
   

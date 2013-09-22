@@ -64,6 +64,9 @@ class RemoteCommandError < CommandError
   end
 end
 
+class IgnoreError < StandardError
+end
+
 # Disable guessing by the OptionParser
 class OptionParser
   def stack

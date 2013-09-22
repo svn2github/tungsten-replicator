@@ -49,9 +49,14 @@ module TungstenScript
         display_help()
         cleanup(0)
       end
-    
+      
       parse_options()
     
+      if @options[:autocomplete] == true
+        display_autocomplete()
+        cleanup(0)
+      end
+      
       unless TU.is_valid?()
         cleanup(1)
       end
@@ -91,6 +96,12 @@ module TungstenScript
       :on => "--force",
       :default => false,
       :help => "Continue operation even if script validation fails"
+    })
+    
+    add_option(:autocomplete, {
+      :on => "--autocomplete",
+      :default => false,
+      :hidden => true
     })
   end
   
@@ -269,6 +280,10 @@ module TungstenScript
     @option_definitions.each{
       |option_key,definition|
       
+      if definition[:hidden] == true
+        next
+      end
+      
       if definition[:help].is_a?(Array)
         help = definition[:help].shift()
         additional_help = definition[:help]
@@ -280,6 +295,38 @@ module TungstenScript
       TU.output_usage_line(definition[:on].join(","),
         help, definition[:default], nil, additional_help.join("\n"))
     }
+  end
+  
+  def display_autocomplete
+    values = TU.get_autocomplete_arguments()
+    if @command_definitions.size() > 0
+      @command_definitions.each{
+        |command_key,definition|
+        values << command_key.to_s()
+      }
+    end
+    
+    @option_definitions.each{
+      |option_key,definition|
+      
+      if definition[:hidden] == true
+        next
+      end
+      
+      values = values + definition[:on]
+    }
+    
+    values.map!{
+      |v|
+      parts = v.split(" ")
+      if parts.size() == 2
+        "#{parts[0]}="
+      else
+        v
+      end
+    }
+    
+    puts values.join(" ")
   end
   
   def require_installed_directory?(v = nil)
@@ -303,12 +350,16 @@ module TungstenScript
   end
   
   def cleanup(code = 0)
-    if TU.display_help?() != true && script_log_path() != nil
-      File.open(script_log_path(), "w") {
-        |f|
-        TU.log().rewind()
-        f.puts(TU.log().read())
-      }
+    begin
+      if @options[:autocomplete] != true && TU.display_help?() != true && script_log_path() != nil
+        TU.mkdir_if_absent(File.dirname(script_log_path()))
+        File.open(script_log_path(), "w") {
+          |f|
+          TU.log().rewind()
+          f.puts(TU.log().read())
+        }
+      end
+    rescue
     end
     
     TU.debug("Finish #{$0} #{ARGV.join(' ')}")
@@ -522,6 +573,10 @@ module OfflineServicesScript
   end
   
   def allow_service_state_change?
+    if TI == nil
+      return false
+    end
+
     if TI.is_replicator?() && TI.is_running?("replicator")
       true
     else

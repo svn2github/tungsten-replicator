@@ -97,7 +97,7 @@ module ClusterDiagnosticPackage
         end
       end
       
-      df_output=ssh_result("df -hP| grep -v Filesystem", config.getProperty(HOST), config.getProperty(USERID))
+      df_output=ssh_result("df -hP| grep -v Filesystem", config.getProperty(HOST), config.getProperty(USERID)).split("\n")
       df_output.each {|partition|
         partition_a=partition.split(" ")
         if partition_a[4] == '100%'

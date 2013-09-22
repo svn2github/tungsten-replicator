@@ -142,7 +142,7 @@ $> tungsten_read_master_events.sh --low=10 --high=20")
     add_option(:source, {
       :on => "--source String",
       :help => "Determine metadata for the --after, --low, --high statements from this host",
-      :default => TI.hostname()
+      :default => (TI == nil ? nil : TI.hostname())
     })
   end
   

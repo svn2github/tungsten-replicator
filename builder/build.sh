@@ -456,6 +456,11 @@ echo    "}" >> $manifestJSON
 echo "### Removing old protobuf libraries"
 mv $reldir_replicator/lib/protobuf-java-2.2.0.jar $reldir_replicator/lib/protobuf-java-2.2.0.jar.old
 
+##########################################################################
+# Create the bash auto-completion file 
+##########################################################################
+$reldir/tools/tpm write-completion
+
 cat $manifest
 
 echo "### Cleaning up left over files"

@@ -91,6 +91,10 @@ set_tungsten_env() {
     fi
   }
   complete -F _thl thl
+  
+  if [ -f "${CONTINUENT_ROOT}/tungsten/tools/.tpm.complete" ]; then
+    . "${CONTINUENT_ROOT}/tungsten/tools/.tpm.complete"
+  fi
 	
 	return 0
 }

@@ -73,6 +73,41 @@ tpm_#{cmd.tr('-', '_')}=\"#{klass_options.join(' ')}\"
 }
 complete -o nospace -F _tpm tpm
 EOF
+
+      scripts = [
+        "cluster-home/bin/tungsten_monitor",
+        "cluster-home/bin/tungsten_health_check",
+        "cluster-home/bin/check_tungsten_backups",
+        "cluster-home/bin/cluster_backup",
+        "tungsten-replicator/scripts/tungsten_provision_slave.sh",
+        "tungsten-replicator/scripts/tungsten_read_master_events.sh",
+        "tungsten-replicator/scripts/tungsten_set_position.sh",
+        "tungsten-replicator/scripts/xtrabackup_to_slave.sh",
+        "tungsten-replicator/scripts/mysqldump_to_slave.sh"
+        ]
+      scripts.each{
+        |path|
+        basename = File.basename(path)
+        id = "_" + to_identifier(basename)
+        script_args = cmd_result("#{Configurator.instance.get_base_path()}/#{path} --autocomplete")
+        file.print("\n")
+        file.print("#{id}()\n")
+        file.printf <<EOF
+{
+  local cur prev opts
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+EOF
+        file.printf("script_options=\"#{script_args}\"")
+        file.printf <<EOF
+
+  COMPREPLY=( $(compgen -W "${script_options}" -- ${cur}) )
+  return 0
+}
+EOF
+        file.printf("complete -o nospace -F #{id} #{basename}\n")
+      }
     end
   end
   
