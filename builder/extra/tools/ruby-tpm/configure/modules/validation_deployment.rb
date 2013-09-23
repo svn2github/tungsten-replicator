@@ -1343,6 +1343,12 @@ class EncryptionKeystoreCheck < ConfigureValidationCheck
   end
   
   def validate
+    begin
+      keytool_path = which("keytool")
+    rescue CommandError
+      keytool_path = nil
+    end
+    
     keystore_path = @config.getProperty(JAVA_KEYSTORE_PATH)
     if keystore_path.to_s() == ""
       if File.exist?(@config.getTemplateValue(JAVA_KEYSTORE_PATH))
@@ -1352,7 +1358,7 @@ class EncryptionKeystoreCheck < ConfigureValidationCheck
       end
     end
     
-    if keystore_path.to_s() != ""
+    if keystore_path.to_s() != "" && keytool_path != nil
       begin
         cmd_result("keytool -list -keystore #{keystore_path} -storepass #{@config.getProperty(JAVA_KEYSTORE_PASSWORD)}")
       rescue CommandError => ce
@@ -1369,7 +1375,7 @@ class EncryptionKeystoreCheck < ConfigureValidationCheck
       end
     end
     
-    if truststore_path.to_s() != ""
+    if truststore_path.to_s() != "" && keytool_path != nil
       begin
         cmd_result("keytool -list -keystore #{truststore_path} -storepass #{@config.getProperty(JAVA_TRUSTSTORE_PASSWORD)}")
       rescue CommandError => ce
