@@ -3,6 +3,7 @@ HOST_ENABLE_CONNECTOR = "host_enable_connector"
 CONN_LISTEN_INTERFACE = "connector_listen_interface"
 CONN_LISTEN_ADDRESS = "connector_listen_address"
 CONN_LISTEN_PORT = "connector_listen_port"
+CONN_RO_LISTEN_PORT = "connector_readonly_listen_port"
 CONN_CLIENTLOGIN = "connector_user"
 CONN_CLIENTPASSWORD = "connector_password"
 CONN_CLIENTDEFAULTDB = "connector_default_schema"
@@ -35,6 +36,8 @@ JAVA_CONNECTOR_TRUSTSTORE_PATH = "java_connector_truststore_path"
 GLOBAL_JAVA_CONNECTOR_TRUSTSTORE_PATH = "global_java_connector_truststore_path"
 JAVA_CONNECTOR_KEYSTORE_PATH = "java_connector_keystore_path"
 GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH = "global_java_connector_keystore_path"
+ENABLE_CONNECTOR_RO = "enable_connector_readonly"
+ENABLE_CONNECTOR_BRIDGE_MODE = "enable_connector_bridge_mode"
 
 class Connectors < GroupConfigurePrompt
   def initialize
@@ -253,7 +256,30 @@ class ConnectorListenPort < ConfigurePrompt
     override_command_line_argument("application-port")
   end
   
+  def get_template_value(transform_values_method)
+    if @config.getTemplateValue(get_member_key(ENABLE_CONNECTOR_RO)) == "true"
+      @config.getPropertyOr(get_member_key(CONN_RO_LISTEN_PORT), get_value())
+    else
+      get_value()
+    end
+  end
+  
   PortForUsers.register(CONNECTORS, CONN_LISTEN_PORT)
+end
+
+class ConnectorReadOnlyListenPort < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(CONN_RO_LISTEN_PORT, "Port for the connector to listen for read-only connections on", PV_INTEGER)
+    override_command_line_argument("application-readonly-port")
+  end
+  
+  def required?
+    false
+  end
+  
+  PortForUsers.register(CONNECTORS, CONN_RO_LISTEN_PORT)
 end
 
 class ConnectorDefaultSchema < ConfigurePrompt
@@ -632,6 +658,19 @@ class ConnectorDriverOptions < ConfigurePrompt
       @default = "?#{opts.join('&')}"
     end
   end
+  
+  def get_template_value(transform_values_method)
+    v = get_value()
+    if @config.getTemplateValue(get_member_key(ENABLE_CONNECTOR_RO)) == "true"
+      if v == ""
+        return "?qos=RO_RELAXED"
+      else
+        return "#{v}&qos=RO_RELAXED"
+      end
+    else
+      return v
+    end
+  end
 end
 
 class ConnectorEnableSSL < ConfigurePrompt
@@ -746,5 +785,43 @@ class GlobalConnectorJavaTruststorePath < ConfigurePrompt
   def initialize
     super(GLOBAL_JAVA_CONNECTOR_TRUSTSTORE_PATH, "Staging path to the Java Connector Truststore file", 
       PV_FILENAME)
+  end
+end
+
+class ConnectorEnableReadOnly < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(ENABLE_CONNECTOR_RO, "Enable the Tungsten Connector read-only mode", PV_BOOLEAN, "false")
+    override_command_line_argument("connector-readonly")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "true" || ConfigureDeploymentStepConnector.connector_ro_mode?() == true
+      "true"
+    else
+      "false"
+    end
+  end
+end
+
+class ConnectorEnableBridgeMode < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(ENABLE_CONNECTOR_BRIDGE_MODE, "Enable the Tungsten Connector bridge mode", PV_BOOLEAN, "false")
+    override_command_line_argument("connector-bridge-mode")
+  end
+  
+  def get_template_value(transform_values_method)
+    if get_value() == "true"
+      if @config.getTemplateValue(get_member_key(ENABLE_CONNECTOR_RO)) == "true"
+        "RO_RELAXED"
+      else
+        "RW_STRICT"
+      end
+    else
+      "OFF"
+    end
   end
 end

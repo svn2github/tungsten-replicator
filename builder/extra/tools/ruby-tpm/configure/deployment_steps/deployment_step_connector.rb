@@ -18,9 +18,20 @@ module ConfigureDeploymentStepConnector
 			"#{get_deployment_basedir()}/tungsten-connector/conf/connector.properties", "#")
 	  transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
     transformer.transform_values(method(:transform_values))
-    
     transformer.output
     watch_file(transformer.get_filename())
+    
+    if @config.getPropertyOr(CONN_RO_LISTEN_PORT) != "" && @config.getProperty(ENABLE_CONNECTOR_RO) != "true"
+      ConfigureDeploymentStepConnector.connector_ro_mode?(true)
+      transformer = Transformer.new(
+  		  "#{get_deployment_basedir()}/tungsten-connector/samples/conf/connector.properties.tpl",
+  			"#{get_deployment_basedir()}/tungsten-connector/conf/connector.ro.properties", "#")
+  	  transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
+      transformer.transform_values(method(:transform_values))
+      transformer.output
+      watch_file(transformer.get_filename())
+      ConfigureDeploymentStepConnector.connector_ro_mode?(false)
+    end
     
     write_connector_wrapper_conf()
     write_user_map()
@@ -49,7 +60,7 @@ module ConfigureDeploymentStepConnector
     if File.exists?(user_map) && @config.getProperty(CONN_DELETE_USER_MAP) == "false"
       info("NOTE: File user.map already exists and delete option is false")
       info("File not regenerated: #{user_map}")
-    else
+    elsif @config.getProperty(ENABLE_CONNECTOR_BRIDGE_MODE) == "false"
       transformer = Transformer.new(
         "#{get_deployment_basedir()}/tungsten-connector/samples/conf/user.map.tpl", 
         user_map, "# ")
@@ -114,4 +125,14 @@ module ConfigureDeploymentStepConnector
     transformer.output
     watch_file(transformer.get_filename())
   end
+	
+	# Force the connector.ro.properties file to be written using
+	# read-only option settings
+	def self.connector_ro_mode?(v = nil)
+	  if v != nil
+	    @connector_ro_mode = v
+	  end
+	
+	  @connector_ro_mode || nil
+	end
 end

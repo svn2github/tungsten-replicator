@@ -1683,7 +1683,11 @@ class MySQLConnectorPermissionsCheck < ConfigureValidationCheck
         end
       end
     end
-   end
+  end
+
+  def enabled?
+    super() && @config.getProperty(ENABLE_CONNECTOR_BRIDGE_MODE) != "true"
+  end
 end
 
 class MySQLPasswordSettingCheck < ConfigureValidationCheck

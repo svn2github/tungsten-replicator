@@ -126,11 +126,14 @@ class ConnectorUserCheck < ConfigureValidationCheck
     conuser = @config.getProperty('connector_user')
     repluser = @config.getProperty('repl_datasource_user')
    
-      if conuser == repluser
-        error("Connector User must be different from Datasource User")
-        help("The Connector user and the Datasource user must be different users - Ensure the --connector-user parameter is specified")
-      end
-    
+    if conuser == repluser
+      error("Connector User must be different from Datasource User")
+      help("The Connector user and the Datasource user must be different users - Ensure the --application-user parameter is specified")
+    end
+  end
+  
+  def enabled?
+    super() && @config.getProperty(ENABLE_CONNECTOR_BRIDGE_MODE) != "true"
   end
 end
 
