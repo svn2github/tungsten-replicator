@@ -38,6 +38,7 @@ JAVA_CONNECTOR_KEYSTORE_PATH = "java_connector_keystore_path"
 GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH = "global_java_connector_keystore_path"
 ENABLE_CONNECTOR_RO = "enable_connector_readonly"
 ENABLE_CONNECTOR_BRIDGE_MODE = "enable_connector_bridge_mode"
+CONN_RO_PROPERTIES_EXISTS = "connector_ro_properties_exists"
 
 class Connectors < GroupConfigurePrompt
   def initialize
@@ -277,7 +278,7 @@ class ConnectorReadOnlyListenPort < ConfigurePrompt
   
   def required?
     false
-  end
+  end 
   
   PortForUsers.register(CONNECTORS, CONN_RO_LISTEN_PORT)
 end
@@ -822,6 +823,24 @@ class ConnectorEnableBridgeMode < ConfigurePrompt
       end
     else
       "OFF"
+    end
+  end
+end
+
+class ConnectorReadOnlyPropertiesExists < ConfigurePrompt
+  include ConnectorPrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(CONN_RO_PROPERTIES_EXISTS, "Enable the second Tungsten Connector listeners", PV_BOOLEAN, "false")
+  end
+  
+  def get_template_value(transform_values_method)
+    if File.exist?("#{@config.getProperty(PREPARE_DIRECTORY)}/tungsten-connector/conf/connector.ro.properties") == true
+      "true"
+    else
+      ""
     end
   end
 end
