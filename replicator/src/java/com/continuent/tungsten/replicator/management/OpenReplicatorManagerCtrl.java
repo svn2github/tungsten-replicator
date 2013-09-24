@@ -126,7 +126,7 @@ public class OpenReplicatorManagerCtrl
 
     private void printHelp()
     {
-        println("Replicator Manager Control Utility");
+        println("Tungsten Replicator Manager Control Utility");
         println("Syntax:  trepctl [global-options] command [command-options]");
         println("Global Options:");
         println("  -host name                   - Host name of replicator [default: localhost]");

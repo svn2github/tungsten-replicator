@@ -1199,7 +1199,7 @@ public class THLManagerCtrl
 
     protected static void printHelp()
     {
-        println("Replicator THL Manager");
+        println("Tungsten Replicator THL Manager");
         println("Syntax: thl [global-options] command [command-options]");
         println("Global options:");
         println("  -conf path    - Path to a static-<svc>.properties file");
