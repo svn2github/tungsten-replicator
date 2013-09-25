@@ -3,19 +3,60 @@
  * Copyright (C) 2007-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
+ * Filter removes specified columns from the THL row change events. Columns are defined in JSON file.
+ *
+ * Example of how to define one in static-<service>.properties:
+ *
  * replicator.filter.dropColumn=com.continuent.tungsten.replicator.filter.JavaScriptFilter
- * replicator.filter.dropColumn.script=../samples/extensions/javascript/dropColumn.js
- * replicator.filter.dropColumn.columns=#column1#column2#
+ * replicator.filter.dropColumn.script=${replicator.home.dir}/samples/extensions/javascript/dropcolumn.js
+ * replicator.filter.dropColumn.definitionsFile=~/dropcolumn.json
+ *
+ * See samples/extensions/javascript/dropcolumn.json for definition file example.
  *
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
+ * @author <a href="mailto:linas.virbalas@continuent.com">Linas Virbalas</a>
  */
+
+any = new java.lang.String("*");
+
+/**
+ * Reads text file into string.
+ */
+function readFile(path)
+{
+  var file = new java.io.BufferedReader(new java.io.FileReader(new java.io.File(path)));
+
+  var sb = new java.lang.StringBuffer();
+  while((line = file.readLine()) != null)
+  {
+    sb.append(line);
+    sb.append(java.lang.System.getProperty("line.separator"));
+  }
+
+  return sb.toString();
+}
 
 /**
  * Called once when JavaScriptFilter corresponding to this script is prepared.
  */
 function prepare()
 {
-  colsToDrop = filterProperties.getString("columns").toUpperCase();
+  definitionsFile = filterProperties.getString("definitionsFile");
+  logger.info("dropcolumn.js using: " + definitionsFile);
+  var json = readFile(definitionsFile);
+  definitions = eval("(" + json + ")");
+  
+  logger.info("Columns to drop:");
+  for (var i in definitions)
+  {
+    var drop = definitions[i];
+    logger.info("In " + drop["schema"] + "." + drop["table"] + ": ");
+    var cols = drop["columns"];
+    for (var c in cols)
+    {
+      logger.info("  " + cols[c]);
+    }
+  }
 }
 
 function filter(event)
@@ -26,7 +67,7 @@ function filter(event)
     for (i = 0; i < data.size(); i++)
     {
       d = data.get(i);
-       if (d != null && d instanceof com.continuent.tungsten.replicator.dbms.RowChangeData)
+      if (d != null && d instanceof com.continuent.tungsten.replicator.dbms.RowChangeData)
       {
         filterRowChangeData(d);
       }
@@ -34,23 +75,52 @@ function filter(event)
   }
 }
 
+/**
+ * Checks whether particular column should be dropped.
+ */
+function isDrop(schema, table, col)
+{
+  for (var def in definitions)
+  {
+    var drop = definitions[def];
+    if(any.compareTo(drop["schema"]) == 0 || schema.compareTo(drop["schema"]) == 0)
+    {
+      if(any.compareTo(drop["table"]) == 0 || table.compareTo(drop["table"]) == 0)
+      {
+        var cols = drop["columns"];
+        for (var cl in cols)
+        {
+          if(col.compareTo(cols[cl]) == 0)
+          {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
 function filterRowChangeData(d)
 {
   rowChanges = d.getRowChanges();
-  for(j = 0; j < rowChanges.size(); j++)
+  for(var j = 0; j < rowChanges.size(); j++)
   {
     oneRowChange = rowChanges.get(j);
-    columns = oneRowChange.getColumnSpec();
-    var columnValues = oneRowChange.getColumnValues();
+    var schema = oneRowChange.getSchemaName();
+    var table = oneRowChange.getTableName();
+    var columns = oneRowChange.getColumnSpec();
 
-    specToDrop = new Array();
-    for (r = 0; r < columnValues.size(); r++)
+    // Drop column values.    
+    var columnValues = oneRowChange.getColumnValues();
+    var specToDrop = new Array();
+    for (var r = 0; r < columnValues.size(); r++)
     {
       for (c = columns.size() - 1 ; c >= 0 ; c--)
       {
         columnSpec = columns.get(c);
-        colName = columnSpec.getName().toUpperCase();
-        if (colsToDrop.indexOf("#"+colName+"#")>=0)
+        colName = columnSpec.getName();
+        if (isDrop(schema,table,colName))
         {
           columnValues.get(r).remove(c);
           if (specToDrop.indexOf(c) < 0)
@@ -58,25 +128,25 @@ function filterRowChangeData(d)
         }
       }
     }
-    if(specToDrop.length > 0)
+    if (specToDrop.length > 0)
     {
-      for ( i = 0 ; i < specToDrop.length ; i++)
+      for (var i = 0 ; i < specToDrop.length ; i++)
       {
         columns.remove(specToDrop[i]);
       }
     }
     
+    // Drop key values.
     var keyValues = oneRowChange.getKeyValues();
-    keys = oneRowChange.getKeySpec();
-    specToDrop = new Array();
-
-    for (r = 0; r < keyValues.size(); r++)
+    var keys = oneRowChange.getKeySpec();
+    var specToDrop = new Array();
+    for (var r = 0; r < keyValues.size(); r++)
     {
       for (c = keys.size() - 1 ; c >= 0; c--)
       {
         keySpec = keys.get(c);
-        colName = keySpec.getName().toUpperCase();
-        if (colsToDrop.indexOf("#"+colName+"#")>=0)
+        colName = keySpec.getName();
+        if (isDrop(schema,table,colName))
         {
           keyValues.get(r).remove(c);
           if (specToDrop.indexOf(c) < 0)
@@ -84,9 +154,9 @@ function filterRowChangeData(d)
         }
       }
     }
-    if(specToDrop.length > 0)
+    if (specToDrop.length > 0)
     {
-      for ( i = 0 ; i < specToDrop.length ; i++)
+      for (var i = 0 ; i < specToDrop.length ; i++)
       {
         keys.remove(specToDrop[i]);
       }
