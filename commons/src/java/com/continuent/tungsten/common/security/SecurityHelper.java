@@ -143,7 +143,7 @@ public class SecurityHelper
         catch (FileNotFoundException e)
         {
             logger.error("Unable to find properties file: "
-                    + authenticationInfo.getPasswordFileLocation());
+                    + authenticationInfo.getPasswordFileLocation(), e);
             logger.debug("Properties search failure", e);
             throw new ServerRuntimeException("Unable to find password file: "
                     + e.getMessage());
@@ -151,7 +151,7 @@ public class SecurityHelper
         catch (IOException e)
         {
             logger.error("Unable to read properties file: "
-                    + authenticationInfo.getPasswordFileLocation());
+                    + authenticationInfo.getPasswordFileLocation(), e);
             logger.debug("Properties read failure", e);
             throw new ServerRuntimeException("Unable to read password file: "
                     + e.getMessage());
