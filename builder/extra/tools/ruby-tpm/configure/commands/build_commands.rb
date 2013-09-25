@@ -34,7 +34,7 @@ class ReverseEngineerCommand
           prompt = ph.find_prompt_by_name(k)
           if prompt
             begin
-              add_to(prompt.build_command_line_argument(v), default_arguments)
+              add_to(prompt.build_command_line_argument(DEFAULTS, v), default_arguments)
             rescue IgnoreError
             end
           else
@@ -68,9 +68,9 @@ class ReverseEngineerCommand
         if prompt
           begin
             unless is_composite
-              add_to(prompt.build_command_line_argument(v), dataservice_arguments[ds_alias])
+              add_to(prompt.build_command_line_argument(ds_alias, v), dataservice_arguments[ds_alias])
             else
-              add_to(prompt.build_command_line_argument(v), composite_dataservice_arguments[ds_alias])
+              add_to(prompt.build_command_line_argument(ds_alias, v), composite_dataservice_arguments[ds_alias])
             end
           rescue IgnoreError
           end
@@ -94,9 +94,9 @@ class ReverseEngineerCommand
           if prompt
             begin
               unless is_composite
-                add_to(prompt.build_command_line_argument(v), dataservice_arguments[ds_alias])
+                add_to(prompt.build_command_line_argument(ds_alias, v), dataservice_arguments[ds_alias])
               else
-                add_to(prompt.build_command_line_argument(v), composite_dataservice_arguments[ds_alias])
+                add_to(prompt.build_command_line_argument(ds_alias, v), composite_dataservice_arguments[ds_alias])
               end
             rescue IgnoreError
             end
@@ -121,7 +121,7 @@ class ReverseEngineerCommand
         prompt = ph.find_prompt_by_name(k)
         if prompt
           begin
-            add_to(prompt.build_command_line_argument(v), default_arguments)
+            add_to(prompt.build_command_line_argument(DEFAULTS, v), default_arguments)
           rescue IgnoreError
           end
         else
@@ -139,7 +139,7 @@ class ReverseEngineerCommand
           prompt = ph.find_prompt_by_name(k)
           if prompt
             begin
-              add_to(prompt.build_command_line_argument(v), default_arguments)
+              add_to(prompt.build_command_line_argument(DEFAULTS, v), default_arguments)
             rescue IgnoreError
             end
           else
@@ -167,7 +167,7 @@ class ReverseEngineerCommand
         prompt = ph.find_prompt_by_name(k)
         if prompt
           begin
-            add_to(prompt.build_command_line_argument(v), host_arguments[h_alias])
+            add_to(prompt.build_command_line_argument(h_alias, v), host_arguments[h_alias])
           rescue IgnoreError
           end
         else
@@ -204,7 +204,7 @@ class ReverseEngineerCommand
             prompt = ph.find_prompt_by_name(k)
             if prompt
               begin
-                arg = prompt.build_command_line_argument(v)
+                arg = prompt.build_command_line_argument(p_alias, v)
                 ds_alias.each{
                   |d|
                   unless host_service_arguments[h_alias].has_key?(d)
@@ -254,8 +254,8 @@ class ReverseEngineerCommand
     host_arguments.each{
       |h_alias,args|
       if args.length > 0
-        commands << "# Options for #{cfg.getProperty([HOSTS, h_alias, HOST])}"
-        commands << "tools/tpm configure --hosts=#{cfg.getProperty([HOSTS, h_alias, HOST])} \\"
+        commands << "# Options for #{command_host_alias(cfg, h_alias)}"
+        commands << "tools/tpm configure --hosts=#{command_host_alias(cfg, h_alias)} \\"
         commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
       end
     }
@@ -265,14 +265,22 @@ class ReverseEngineerCommand
       ds.each{
         |ds_alias,args|
         if args.length > 0
-          commands << "# Options for #{cfg.getProperty([HOSTS, h_alias, HOST])}"
-          commands << "tools/tpm configure #{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])} \\\n--hosts=#{cfg.getProperty([HOSTS, h_alias, HOST])} \\"
+          commands << "# Options for #{command_host_alias(cfg, h_alias)}"
+          commands << "tools/tpm configure #{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])} \\\n--hosts=#{command_host_alias(cfg, h_alias)} \\"
           commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
         end
       }
     }
     
     commands
+  end
+  
+  def command_host_alias(cfg, h_alias)
+    if to_identifier(cfg.getProperty([HOSTS, h_alias, HOST])) == h_alias
+      cfg.getProperty([HOSTS, h_alias, HOST])
+    else
+      h_alias
+    end
   end
   
   def add_to(args, container)

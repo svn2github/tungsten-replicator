@@ -426,8 +426,12 @@ class ConfigurePrompt
     end
   end
   
-  def build_command_line_argument(v)
-    if enabled_for_command_line?()
+  def build_command_line_argument?(member, v)
+    enabled_for_command_line?()
+  end
+  
+  def build_command_line_argument(member, v)
+    if build_command_line_argument?(member, v)
       return ["--#{get_command_line_argument()}=#{v}"]
     else
       debug("The argument for #{@name} is not accepted on the command line")

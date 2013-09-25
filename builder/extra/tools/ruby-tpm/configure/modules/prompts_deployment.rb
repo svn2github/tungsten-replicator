@@ -278,8 +278,16 @@ class HostPrompt < ConfigurePrompt
     false
   end
   
-  def enabled_for_command_line?()
+  def enabled_for_command_line?
     true
+  end
+  
+  def build_command_line_argument?(member, v)
+    if to_identifier(v) == member
+      false
+    else
+      true
+    end
   end
 end
 
@@ -1171,7 +1179,7 @@ class HostGlobalProperties < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(values)
+  def build_command_line_argument(member, values)
     args = []
     
     if values.is_a?(Array)
@@ -1242,7 +1250,7 @@ class HostSkippedChecks < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(values)
+  def build_command_line_argument(member, values)
     args = []
     
     if values.is_a?(Array)
@@ -1313,7 +1321,7 @@ class HostSkippedWarnings < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(values)
+  def build_command_line_argument(member, values)
     args = []
     
     if values.is_a?(Array)
