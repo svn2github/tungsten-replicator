@@ -44,11 +44,13 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Service
 {
-    private static final Logger log           = Logger.getLogger(Service.class);
+    private static final Logger   log                 = Logger.getLogger(Service.class);
 
     // ########## Common properties for all services ##########
-    protected String            name          = null;
-    private Service             parentService = null;
+    protected String              name                = null;
+    /** URIs to various operations for this resource */
+    protected TdfResourceLocation tdfResourceLocation = null;
+    private Service               parentService       = null;
 
     public Service()
     {
@@ -72,8 +74,6 @@ public class Service
     }
 
     // ---------------- Getters and Setters -----------------------------------
-
-    // @formatter:off
     /**
      * Sets the name of the Service.
      * 
@@ -101,7 +101,15 @@ public class Service
         this.parentService = parentService;
     }
 
-    // @formatter:on
+    public TdfResourceLocation getTdfResourceLocation()
+    {
+        return tdfResourceLocation;
+    }
+
+    public void setTdfResourceLocation(TdfResourceLocation tdfResourceLocation)
+    {
+        this.tdfResourceLocation = tdfResourceLocation;
+    }
 
     // ########################################################################
 
