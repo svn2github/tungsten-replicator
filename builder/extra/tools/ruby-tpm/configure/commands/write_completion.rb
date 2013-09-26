@@ -89,10 +89,12 @@ EOF
         |path|
         basename = File.basename(path)
         id = "_" + to_identifier(basename)
-        script_args = cmd_result("#{Configurator.instance.get_base_path()}/#{path} --autocomplete")
-        file.print("\n")
-        file.print("#{id}()\n")
-        file.printf <<EOF
+        
+        if File.exist?("#{Configurator.instance.get_base_path()}/#{path}")
+          script_args = cmd_result("#{Configurator.instance.get_base_path()}/#{path} --autocomplete")
+          file.print("\n")
+          file.print("#{id}()\n")
+          file.printf <<EOF
 {
   local cur prev opts
   COMPREPLY=()
@@ -106,7 +108,8 @@ EOF
   return 0
 }
 EOF
-        file.printf("complete -o nospace -F #{id} #{basename}\n")
+          file.printf("complete -o nospace -F #{id} #{basename}\n")
+        end
       }
     end
   end
