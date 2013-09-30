@@ -44,6 +44,12 @@ module TungstenScript
     
     begin
       configure()
+      @option_definitions.each{
+        |option_key,definition|
+        if definition.has_key?(:default)
+          opt(option_key, definition[:default])
+        end
+      }
     
       if TU.display_help?()
         display_help()
@@ -159,14 +165,18 @@ module TungstenScript
         definition[:parse] = parse
       end
 
-      if definition.has_key?(:default)
-        opt(option_key, definition[:default])
-      end
-
       @option_definitions[option_key] = definition
     rescue => e
       TU.exception(e)
     end
+  end
+  
+  def set_option_default(option_key, default = nil)
+    unless @option_definitions.has_key?(option_key)
+      raise "Unable to set option default for #{:option_key.to_s()} because the option is not defined."
+    end
+    
+    @option_definitions[option_key][:default] = default
   end
   
   def parse_options
@@ -527,57 +537,9 @@ module OfflineServicesScript
     if code == 0
       begin
         if allow_service_state_change?() == true && @options[:online] == true
-          ds_list = get_offline_services_list()
-          
-          # Put each replication service ONLINE in parallel waiting for the
-          # command to complete
-          TU.notice("Put #{ds_list.join(",")} replication #{TU.pluralize(ds_list, "service", "services")} online")
-          
-          # Emptying the THL and relay logs makes sure that we are starting with 
-          # a fresh directory as if `datasource <hostname> restore` was run.
-          if @options[:clear_logs] == true
-            TU.notice("The THL and relay logs will be cleared before each replication service is brought online")
-          end
-          
-          threads = []
-          begin
-            Timeout::timeout(@options[:offline_timeout]) {
-              ds_list.each{
-                |ds|
-                threads << Thread.new{
-                  if @options[:clear_logs] == true
-                    dir = TI.setting(TI.setting_key(REPL_SERVICES, ds, "repl_thl_directory"))
-                    if File.exists?(dir)
-                      TU.cmd_result("rm -rf #{dir}/*")
-                    end
-                    dir = TI.setting(TI.setting_key(REPL_SERVICES, ds, "repl_relay_directory"))
-                    if File.exists?(dir)
-                      TU.cmd_result("rm -rf #{dir}/*")
-                    end
-                  end
-                  
-                  if TI.is_manager?()
-                    begin
-                      status = TI.status(ds)
-                      unless status.is_replication?() == true
-                        get_manager_api.call("#{ds}/#{TI.hostname()}", 'recover')
-                      else
-                        TU.cmd_result("#{TI.trepctl(ds)} online")
-                      end
-                    rescue => e
-                      TU.exception(e)
-                      raise("Unable to put replication services online")
-                    end
-                  else
-                    TU.cmd_result("#{TI.trepctl(ds)} online")
-                  end
-                }
-              }
-              threads.each{|t| t.join() }
-            }
-          rescue Timeout::Error
-            TU.error("The replication #{TU.pluralize(ds_list, "service", "services")} #{TU.pluralize(ds_list, "is", "are")} taking too long to come online. Check the status for more information.")
-          end
+          cleanup_services(true, @options[:clear_logs])
+        elsif @options[:clear_logs] == true
+          cleanup_services(false, @options[:clear_logs])
         end
       rescue => e
         TU.exception(e)
@@ -586,6 +548,65 @@ module OfflineServicesScript
     end
     
     super(code)
+  end
+  
+  def cleanup_services(online = false, clear_logs = false)
+    ds_list = get_offline_services_list()
+
+    # Put each replication service ONLINE in parallel waiting for the
+    # command to complete
+    if online == true
+      TU.notice("Put the #{ds_list.join(",")} replication #{TU.pluralize(ds_list, "service", "services")} online")
+    end
+    
+    # Emptying the THL and relay logs makes sure that we are starting with 
+    # a fresh directory as if `datasource <hostname> restore` was run.
+    if clear_logs == true
+      TU.notice("Clear THL and relay logs for the #{ds_list.join(",")} replication #{TU.pluralize(ds_list, "service", "services")}")
+    end
+    
+    threads = []
+    begin
+      Timeout::timeout(@options[:offline_timeout]) {
+        ds_list.each{
+          |ds|
+          threads << Thread.new{
+            if clear_logs == true
+              dir = TI.setting(TI.setting_key(REPL_SERVICES, ds, "repl_thl_directory"))
+              if File.exists?(dir)
+                TU.cmd_result("rm -rf #{dir}/*")
+              end
+              dir = TI.setting(TI.setting_key(REPL_SERVICES, ds, "repl_relay_directory"))
+              if File.exists?(dir)
+                TU.cmd_result("rm -rf #{dir}/*")
+              end
+            end
+            
+            if online == true
+              if TI.is_manager?()
+                begin
+                  status = TI.status(ds)
+                  unless status.is_replication?() == true
+                    get_manager_api.call("#{ds}/#{TI.hostname()}", 'recover')
+                  else
+                    TU.cmd_result("#{TI.trepctl(ds)} online")
+                  end
+                rescue => e
+                  TU.exception(e)
+                  raise("Unable to put replication services online")
+                end
+              else
+                TU.cmd_result("#{TI.trepctl(ds)} online")
+              end
+            end
+          }
+        }
+
+        threads.each{|t| t.join() }
+      }
+    rescue Timeout::Error
+      TU.error("The replication #{TU.pluralize(ds_list, "service", "services")} #{TU.pluralize(ds_list, "is", "are")} taking too long to cleanup. Check the replicator status for more information.")
+    end
   end
   
   # All replication services must be OFFLINE

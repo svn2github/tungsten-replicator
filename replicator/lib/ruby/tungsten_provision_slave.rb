@@ -47,7 +47,7 @@ class TungstenReplicatorProvisionSlave
       # into the staging_dir directory
       TU.notice("Create a backup of #{@options[:source]} in #{staging_dir}")
       TU.forward_cmd_results?(true)
-      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-directory=#{staging_dir} --service=#{@options[:service]}", 
+      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-directory=#{staging_dir} --service=#{@options[:service]}", 
         @options[:source], TI.user())
       TU.forward_cmd_results?(false)
     
@@ -131,7 +131,7 @@ class TungstenReplicatorProvisionSlave
       # into the staging_dir directory
       TU.notice("Create a mysqldump backup of #{@options[:source]} in #{staging_dir}")
       TU.forward_cmd_results?(true)
-      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-file=#{staging_dir}/provision.sql.gz --service=#{@options[:service]}", 
+      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-file=#{staging_dir}/provision.sql.gz --service=#{@options[:service]}", 
         @options[:source], TI.user())
       TU.forward_cmd_results?(false)
       
@@ -139,7 +139,7 @@ class TungstenReplicatorProvisionSlave
       TU.cmd_result("gunzip -c #{staging_dir}/provision.sql.gz | #{get_mysql_command()}")
     
       if staging_dir != "" && File.exists?(staging_dir)
-        TU.debug("Remove #{staging_dir} due to the error")
+        TU.debug("Remove #{staging_dir}")
         TU.cmd_result("rm -r #{staging_dir}")
       end
     rescue => e
@@ -226,10 +226,10 @@ class TungstenReplicatorProvisionSlave
         begin
           TU.forward_cmd_results?(true)
           if @options[:mysqldump] == false
-            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
+            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
               @options[:source], TI.user())
           else
-            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave.sh #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
+            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
               @options[:source], TI.user())
           end
           TU.forward_cmd_results?(false)
@@ -259,6 +259,9 @@ class TungstenReplicatorProvisionSlave
       :help => "Use the MySQL data directory for staging and preparation",
       :aliases => ["--restore-to-datadir"]
     })
+    
+    # We want the THL and relay logs to be reset with the new data
+    set_option_default(:clear_logs, true)
   end
   
   def empty_mysql_directory

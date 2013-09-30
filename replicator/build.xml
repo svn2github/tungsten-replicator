@@ -272,12 +272,9 @@
         <mkdir dir="${dist.dir}/var"/>
     	
 		<mkdir dir="${dist.dir}/scripts"/>
-        <copy todir="${dist.dir}/scripts">
-            <fileset dir="${scripts.dir}">
-            	<include name="*/**"/>
-            </fileset>
-        </copy>
-        <chmod dir="${dist.dir}/scripts" perm="ugoa+rx" includes="**/*.sh"/>
+		<exec executable="rsync">
+		    <arg line="-Ca ${scripts.dir}/ ${dist.dir}/scripts/"/>
+		</exec>
     </target>
 
     <target name="refresh-services" description="--> refresh JWS scripts and libraries">

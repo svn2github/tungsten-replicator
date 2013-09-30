@@ -79,11 +79,11 @@ EOF
         "cluster-home/bin/tungsten_health_check",
         "cluster-home/bin/check_tungsten_backups",
         "cluster-home/bin/cluster_backup",
-        "tungsten-replicator/scripts/tungsten_provision_slave.sh",
-        "tungsten-replicator/scripts/tungsten_read_master_events.sh",
-        "tungsten-replicator/scripts/tungsten_set_position.sh",
-        "tungsten-replicator/scripts/xtrabackup_to_slave.sh",
-        "tungsten-replicator/scripts/mysqldump_to_slave.sh"
+        "tungsten-replicator/scripts/tungsten_provision_slave",
+        "tungsten-replicator/scripts/tungsten_read_master_events",
+        "tungsten-replicator/scripts/tungsten_set_position",
+        "tungsten-replicator/scripts/xtrabackup_to_slave",
+        "tungsten-replicator/scripts/mysqldump_to_slave"
         ]
       scripts.each{
         |path|
