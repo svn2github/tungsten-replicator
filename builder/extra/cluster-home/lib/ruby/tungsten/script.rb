@@ -534,7 +534,7 @@ module OfflineServicesScript
   end
   
   def cleanup(code = 0)
-    if code == 0
+    if TI != nil && code == 0
       begin
         if allow_service_state_change?() == true && @options[:online] == true
           cleanup_services(true, @options[:clear_logs])
