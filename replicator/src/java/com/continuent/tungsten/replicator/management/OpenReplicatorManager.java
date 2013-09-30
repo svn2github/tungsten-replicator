@@ -112,10 +112,10 @@ import com.continuent.tungsten.replicator.thl.THL;
  */
 public class OpenReplicatorManager extends NotificationBroadcasterSupport
         implements
-        OpenReplicatorManagerMBean,
-        OpenReplicatorContext,
-        StateChangeListener,
-        EventCompletionListener
+            OpenReplicatorManagerMBean,
+            OpenReplicatorContext,
+            StateChangeListener,
+            EventCompletionListener
 {
     public static final int         MAJOR                   = 1;
     public static final int         MINOR                   = 0;
@@ -1947,6 +1947,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             pluginStatus.put(Replicator.SOURCEID, getSourceId());
             pluginStatus.put(Replicator.CLUSTERNAME, clusterName);
             pluginStatus.put(Replicator.ROLE, getRole());
+            pluginStatus.put(Replicator.HOST, getSourceId());
+
             pluginStatus.put(Replicator.DATASERVER_HOST, properties
                     .getString(ReplicatorConf.RESOURCE_DATASERVER_HOST));
             pluginStatus.put(Replicator.UPTIME_SECONDS,
