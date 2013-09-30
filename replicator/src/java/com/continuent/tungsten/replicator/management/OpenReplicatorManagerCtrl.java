@@ -165,6 +165,7 @@ public class OpenReplicatorManagerCtrl
         println("         [-no-checksum]");
         println("                               - Set Replicator to ONLINE with start and stop points");
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
+        println("             [-values]         - Print only the values in plain text");
         println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
         println("  reset {-all | -thl | -relay | -db} [-y]");
         println("                               - Deletes the replicator service (-all or empty), thl directory,");
@@ -678,19 +679,25 @@ public class OpenReplicatorManagerCtrl
         OpenReplicatorManagerMBean mbean = getOpenReplicator();
 
         String containing = null;
+        boolean valuesOnly = false;
         String curArg = null;
         while (argvIterator.hasNext())
         {
             curArg = argvIterator.next();
             if ("-filter".equals(curArg))
                 containing = argvIterator.next();
+            else if ("-values".equals(curArg))
+                valuesOnly = true;
             else
             {
                 fatal("Unrecognized option: " + curArg, null);
             }
         }
 
-        printPropertiesJSON(mbean.properties(containing));
+        if (valuesOnly)
+            printPropertiesValues(mbean.properties(containing));
+        else
+            printPropertiesJSON(mbean.properties(containing));
     }
 
     /**
@@ -1633,6 +1640,24 @@ public class OpenReplicatorManagerCtrl
         print("}");
         if (propIdx < 0)
             println("");
+    }
+    
+    /**
+     * Prints property values only. Useful for feeding into another process
+     * parameters.
+     */
+    private static void printPropertiesValues(Map<String, String> props)
+    {
+        Object[] keys = props.keySet().toArray();
+        for (int i = 0; i < keys.length; i++)
+        {
+            String key = (String) keys[i];
+            String value = props.get(key);
+            if (value != null)
+                println(value);
+            else
+                println("");
+        }
     }
 
     // Print a message to stdout.
