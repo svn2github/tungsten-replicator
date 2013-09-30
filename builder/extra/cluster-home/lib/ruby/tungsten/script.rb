@@ -493,7 +493,22 @@ module OfflineServicesScript
               ds_list.each{
                 |ds|
                 threads << Thread.new{
-                  TU.cmd_result("#{TI.trepctl(ds)} offline")
+                  if TI.is_manager?()
+                    begin
+                      status = TI.status(ds)
+                      unless status.is_replication?() == true
+                        get_manager_api.call("#{ds}/#{TI.hostname()}", 'shun')
+                        TU.cmd_result("#{TI.trepctl(ds)} offline")
+                      else
+                        TU.cmd_result("#{TI.trepctl(ds)} offline")
+                      end
+                    rescue => e
+                      TU.exception(e)
+                      raise("Unable to put replication services offline")
+                    end
+                  else
+                    TU.cmd_result("#{TI.trepctl(ds)} offline")
+                  end
                 }
               }
               threads.each{|t| t.join() }
@@ -541,7 +556,21 @@ module OfflineServicesScript
                     end
                   end
                   
-                  TU.cmd_result("#{TI.trepctl(ds)} online")
+                  if TI.is_manager?()
+                    begin
+                      status = TI.status(ds)
+                      unless status.is_replication?() == true
+                        get_manager_api.call("#{ds}/#{TI.hostname()}", 'recover')
+                      else
+                        TU.cmd_result("#{TI.trepctl(ds)} online")
+                      end
+                    rescue => e
+                      TU.exception(e)
+                      raise("Unable to put replication services online")
+                    end
+                  else
+                    TU.cmd_result("#{TI.trepctl(ds)} online")
+                  end
                 }
               }
               threads.each{|t| t.join() }
@@ -582,6 +611,14 @@ module OfflineServicesScript
     else
       false
     end
+  end
+  
+  def get_manager_api
+    if @api == nil && TI != nil
+      @api = TungstenAPI::TungstenDataserviceManager.new(TI.mgr_api_uri())
+    end
+    
+    @api
   end
 end
 

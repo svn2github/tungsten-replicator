@@ -182,11 +182,18 @@ class APICall
     # Used internally by the calls to get and post to determine if the response was successful
     #
     def evaluate_response (api_server, response)
-
         if response.body
             hash_from_json = JSON.parse(response.body)
         end
-
+        
+        unless hash_from_json
+          raise "Unable to parse API response from #{api_server}"
+        end
+        
+        if TU.log_cmd_results?()
+          TU.debug("Result: #{JSON.pretty_generate(hash_from_json)}")
+        end
+        
         if hash_from_json && hash_from_json["returnMessage"] && hash_from_json["returnCode"] && hash_from_json["returnCode"] != '200'
             return_object = {
                 "httpStatus"    => hash_from_json["returnCode"],
@@ -218,6 +225,7 @@ class APICall
     def get(api_server, service)
         api_uri = URI(self.make_uri(api_server,service))
         puts  "GET #{api_uri}" if ENV["SHOW_INTERNALS"]
+        TU.debug("GET #{api_uri}")
         response = Net::HTTP.get_response(api_uri)
         return evaluate_response(api_server,response)
     end
@@ -228,6 +236,7 @@ class APICall
     def post(api_server, service, post_params = {})
         api_uri = URI(self.make_uri(api_server,service))
         puts  "POST #{api_uri}" if ENV["SHOW_INTERNALS"]
+        TU.debug("POST #{api_uri}")
         response = Net::HTTP.post_form(api_uri, post_params)
         return evaluate_response(api_server,response)
     end
@@ -458,7 +467,7 @@ class TungstenDataserviceManager
     def call_default (service, name, api_server=nil )
         api_server ||= @api_server
         api = @api_calls[name].to_hash
-        if api[:type.to_s] == :get
+        if api.type == :get
             return call(service,name,:get, api_server)
         else
             return call(service,name,:post, api_server)
@@ -468,12 +477,16 @@ class TungstenDataserviceManager
     #
     # Calls a named service with explicit mode (:get or :post)
     #
-    def call (service, name , type, api_server=nil)
+    def call (service, name , type=nil, api_server=nil)
         api_server ||= @api_server
         api = @api_calls[name]
         unless api
             raise SyntaxError, "api call #{name} not found"
         end
+        if type == nil
+          type = api.type
+        end
+        
         if type == :get
             return api.get(@api_server,service)
         else
