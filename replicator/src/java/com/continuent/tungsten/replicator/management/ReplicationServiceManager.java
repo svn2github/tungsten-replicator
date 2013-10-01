@@ -392,11 +392,12 @@ public class ReplicationServiceManager
 
         // If the replicator is started, we cannot delete it.
         OpenReplicatorManagerMBean orm = replicators.get(name);
-        if (orm != null)
+        if (orm != null && !orm.getState().startsWith("OFFLINE"))
         {
-            throw new Exception(
-                    "Must stop replication service before trying to reset: "
-                            + name);
+            throw new Exception("Replication service " + name
+                    + " must be stopped or offline before resetting.\n"
+                    + "(Use 'trepctl -service " + name
+                    + " stop' or 'trepctl -service " + name + " offline' first)");
         }
 
         // Get service information.
