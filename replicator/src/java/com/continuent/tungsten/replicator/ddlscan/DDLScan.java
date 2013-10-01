@@ -38,6 +38,7 @@ import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.log.Log4JLogChute;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
@@ -102,9 +103,9 @@ public class DDLScan
         reservedWordsOracle = oracle.getReservedWords();
 
         // Do we need additional paths for loader?
-        String addPath = "";
+        String userPath = "";
         if (additionalPath != null)
-            addPath = "," + additionalPath;
+            userPath = "," + additionalPath;
 
         // Configure and initialize Velocity engine. Using ourselves as a
         // logger.
@@ -113,8 +114,9 @@ public class DDLScan
                 "org.apache.velocity.runtime.log.Log4JLogChute");
         velocity.setProperty(Log4JLogChute.RUNTIME_LOG_LOG4J_LOGGER,
                 DDLScan.class.toString());
-        velocity.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH,
-                ".,../samples/extensions/velocity" + addPath);
+        velocity.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH, ".,"
+                + ReplicatorRuntimeConf.locateReplicatorHomeDir()
+                + "/samples/extensions/velocity" + userPath);
         velocity.init();
     }
 
