@@ -42,13 +42,13 @@ $col.getTypeDescription().replaceFirst("DECIMAL","NUMBER").replaceFirst(" UNSIGN
 #if ( $col.getLength() <= 4000 )
 #set ( $newLength = $col.getLength() * 2 )
 #if ( $newLength > 4000 ) #set ( $newLength = 4000 ) #end
-VARCHAR2($newLength CHAR) /* $col.getTypeDescription() */ ##
+VARCHAR2($newLength CHAR) /* $col.getTypeDescription() */##
 #{else}CLOB /* WARN: too long ($col.getLength()) for Oracle VARCHAR2, using CLOB instead */##
 #end
 #elseif ( $col.getTypeDescription().startsWith("CHAR") )
 $col.getTypeDescription()##
 #elseif ( $col.getTypeDescription().contains("TEXT") )## TINYTEXT, TEXT, MEDIUMTEXT, LONGTEXT
-CLOB##
+CLOB /* $col.getTypeDescription() */##
 #elseif ( $col.getTypeDescription().contains("BLOB") )## BLOB, MEDIUMBLOB, LONGBLOB
 BLOB##
 #elseif ( $col.getTypeDescription().startsWith("FLOAT") )
