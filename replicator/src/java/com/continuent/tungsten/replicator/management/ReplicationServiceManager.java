@@ -395,9 +395,8 @@ public class ReplicationServiceManager
         if (orm != null && !orm.getState().startsWith("OFFLINE"))
         {
             throw new Exception("Replication service " + name
-                    + " must be stopped or offline before resetting.\n"
-                    + "(Use 'trepctl -service " + name
-                    + " stop' or 'trepctl -service " + name + " offline' first)");
+                    + " must be offline before resetting.\n"
+                    + "(Use 'trepctl -service " + name + " offline' first)");
         }
 
         // Get service information.
