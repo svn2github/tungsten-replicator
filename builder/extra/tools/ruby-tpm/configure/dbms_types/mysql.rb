@@ -363,7 +363,15 @@ class MySQLDriver < ConfigurePrompt
     pv = PropertyValidator.new("^mysql|drizzle|mariadb$", 
       "Value must be mysql, drizzle or mariadb")
       
-    super(MYSQL_DRIVER, "MySQL Driver Vendor", pv, "mysql")
+    super(MYSQL_DRIVER, "MySQL Driver Vendor", pv)
+  end
+  
+  def load_default_value
+    if Configurator.instance.is_enterprise?() == true
+      @default = "mysql"
+    else
+      @default = "drizzle"
+    end
   end
   
   def get_template_value(transform_values_method)
