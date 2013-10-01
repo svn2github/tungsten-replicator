@@ -91,8 +91,8 @@ public class DDLScan
      * 
      * @throws ReplicatorException
      */
-    public void prepare() throws ReplicatorException, InterruptedException,
-            SQLException
+    public void prepare(String additionalPath) throws ReplicatorException,
+            InterruptedException, SQLException
     {
         db = DatabaseFactory.createDatabase(url, user, pass);
         db.connect();
@@ -100,6 +100,11 @@ public class DDLScan
         // Prepare reserved words lists.
         OracleDatabase oracle = new OracleDatabase();
         reservedWordsOracle = oracle.getReservedWords();
+
+        // Do we need additional paths for loader?
+        String addPath = "";
+        if (additionalPath != null)
+            addPath = "," + additionalPath;
 
         // Configure and initialize Velocity engine. Using ourselves as a
         // logger.
@@ -109,7 +114,7 @@ public class DDLScan
         velocity.setProperty(Log4JLogChute.RUNTIME_LOG_LOG4J_LOGGER,
                 DDLScan.class.toString());
         velocity.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH,
-                ".,../samples/extensions/velocity");
+                ".,../samples/extensions/velocity" + addPath);
         velocity.init();
     }
 
@@ -228,6 +233,7 @@ public class DDLScan
         context.put("enum", EnumToStringFilter.class);
         context.put("date", new java.util.Date()); // Current time.
         context.put("reservedWordsOracle", reservedWordsOracle);
+        context.put("velocity", velocity);
 
         // Iterate through all available tables in the database.
         for (Table table : tables)

@@ -76,6 +76,7 @@ public class DDLScanCtrl
     private String                renameDefinitions = null;
 
     private String                templateFile      = null;
+    private String                additionalPath    = null;
     Hashtable<String, String>     templateOptions   = null;
     private String                outFile           = null;
 
@@ -90,7 +91,8 @@ public class DDLScanCtrl
      */
     public DDLScanCtrl(String url, String user, String pass, String db,
             String tables, String templateFile, String outFile,
-            String renameDefinitions, Hashtable<String, String> templateOptions)
+            String renameDefinitions,
+            Hashtable<String, String> templateOptions, String additionalPath)
             throws Exception
     {
         // JDBC connection string.
@@ -104,6 +106,7 @@ public class DDLScanCtrl
 
         // Template, options and output file.
         this.templateFile = templateFile;
+        this.additionalPath = additionalPath;
         this.templateOptions = templateOptions;
         this.outFile = outFile;
 
@@ -131,7 +134,7 @@ public class DDLScanCtrl
         try
         {
             scanner = new DDLScan(url, db, user, pass);
-            scanner.prepare();
+            scanner.prepare(additionalPath);
         }
         catch (SQLException e)
         {
@@ -250,6 +253,7 @@ public class DDLScanCtrl
             String service = null;
             
             String templateFile = null;
+            String additionalPath = null;
             String user = null;
             String pass = null;
             String url = null;
@@ -306,6 +310,11 @@ public class DDLScanCtrl
                 {
                     if (argvIterator.hasNext())
                         templateFile = argvIterator.next();
+                }
+                else if ("-path".equals(curArg))
+                {
+                    if (argvIterator.hasNext())
+                        additionalPath = argvIterator.next();
                 }
                 else if ("-out".equals(curArg))
                 {
@@ -425,7 +434,7 @@ public class DDLScanCtrl
             // Construct DDLScanCtrl from JDBC URL credentials.
             DDLScanCtrl ddlScanManager = new DDLScanCtrl(url, user, pass, db,
                     tables, templateFile, outFile, renameDefinitions,
-                    templateOptions);
+                    templateOptions, additionalPath);
 
             if (tables == null && outFile != null)
                 println("Tables not specified - extracting everything!");
@@ -486,6 +495,7 @@ public class DDLScanCtrl
         println("  -db db         - Database to use (will substitute "
                 + DBNAME_VAR + " in the URL, if needed)");
         println("  -template file - Specify template file to render");
+        println("  -path path     - Add additional search path for loading Velocity templates");
         println(" [-opt opt val]  - Option(s) to pass to template, try: -opt help me");
         println(" [-out file]     - Render to file (print to stdout if not specified)");
         println("  -help          - Print this help display");
