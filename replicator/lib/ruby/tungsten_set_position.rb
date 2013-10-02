@@ -82,7 +82,7 @@ class TungstenReplicatorSetPosition
     super()
     description("Update the trep_commit_seqno table with metadata for the given sequence number.<br>
 Examples:<br>
-$> tungsten_set_position.sh --host=db1 --seqno=35<br>
+$> tungsten_set_position.sh --source=db1 --seqno=35<br>
 $> tungsten_set_position.sh --seqno=35 --epoch=23")
 
     add_option(:epoch, {
@@ -129,11 +129,11 @@ $> tungsten_set_position.sh --seqno=35 --epoch=23")
     end
     
     if @options[:source] == nil && @options[:epoch] == nil
-      TU.error("You must provide the --host or --epoch argument")
+      TU.error("You must provide the --source or --epoch argument")
     end
     
     if @options[:source] != nil && @options[:epoch] != nil
-      TU.error("You may not provide the --host or --epoch arguments together")
+      TU.error("You may not provide the --source or --epoch arguments together")
     end
   end
   

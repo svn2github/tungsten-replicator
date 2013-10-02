@@ -262,6 +262,8 @@ class TungstenReplicatorProvisionSlave
     
     # We want the THL and relay logs to be reset with the new data
     set_option_default(:clear_logs, true)
+    set_option_default(:offline, true)
+    set_option_default(:online, true)
   end
   
   def empty_mysql_directory

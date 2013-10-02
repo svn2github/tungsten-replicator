@@ -4,13 +4,11 @@ module TungstenScript
   NAGIOS_CRITICAL=2
   
   def run
-    unless @options[:validate] == true
-      begin
-        prepare()
-        main()
-      rescue => e
-        TU.exception(e)
-      end
+    begin
+      prepare()
+      main()
+    rescue => e
+      TU.exception(e)
     end
     
     if TU.is_valid?()
@@ -21,6 +19,10 @@ module TungstenScript
   end
   
   def initialize
+    # A tracking variable that will be set to true when the object is fully
+    # initizlied
+    @initialized = false
+    
     # Does this script required to run against an installed Tungsten directory
     @require_installed_directory = true
     
@@ -78,10 +80,16 @@ module TungstenScript
       unless TU.is_valid?()
         cleanup(1)
       end
+      
+      if @options[:validate] == true
+        cleanup(0)
+      end
     rescue => e
       TU.exception(e)
       cleanup(1)
     end
+    
+    @initialized = true
   end
   
   def prepare
@@ -359,9 +367,13 @@ module TungstenScript
     nil
   end
   
+  def initialized?
+    @initialized
+  end
+  
   def cleanup(code = 0)
     begin
-      if @options[:autocomplete] != true && TU.display_help?() != true && script_log_path() != nil
+      if initialized?() && script_log_path() != nil
         TU.mkdir_if_absent(File.dirname(script_log_path()))
         File.open(script_log_path(), "w") {
           |f|
@@ -534,7 +546,7 @@ module OfflineServicesScript
   end
   
   def cleanup(code = 0)
-    if TI != nil && code == 0
+    if initialized?() == true && TI != nil && code == 0
       begin
         if allow_service_state_change?() == true && @options[:online] == true
           cleanup_services(true, @options[:clear_logs])

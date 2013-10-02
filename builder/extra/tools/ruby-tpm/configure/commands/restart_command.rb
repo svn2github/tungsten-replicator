@@ -28,6 +28,10 @@ class RestartCommand
     ]
   end
   
+  def self.display_command
+    false
+  end
+  
   def self.get_command_name
     'restart'
   end
