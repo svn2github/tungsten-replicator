@@ -458,9 +458,6 @@ echo    "}" >> $manifestJSON
 #echo "### Copying in extra sample scripts"
 #cp -r $extra_ent_replicator/samples $reldir_replicator
 
-echo "### Removing old protobuf libraries"
-mv $reldir_replicator/lib/protobuf-java-2.2.0.jar $reldir_replicator/lib/protobuf-java-2.2.0.jar.old
-
 ##########################################################################
 # Create the bash auto-completion file 
 ##########################################################################
