@@ -348,8 +348,18 @@ public class OracleDatabase extends AbstractDatabase
 
     public void useDefaultSchema(String schema) throws SQLException
     {
-        execute(getUseSchemaQuery(schema));
-        this.defaultSchema = schema;
+        try
+        {
+            execute(getUseSchemaQuery(schema));
+            this.defaultSchema = schema;
+        }
+        catch (SQLException e)
+        {
+            // If we get exception at this time, Oracle error message is
+            // obscure, hence we're providing additional information.
+            logger.error("Setting current Oracle user failed: " + schema);
+            throw e;
+        }
     }
 
     public String getUseSchemaQuery(String schema)
