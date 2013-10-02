@@ -157,6 +157,8 @@ extra_replicator=${source_community_extra}/replicator
 extra_cluster_home=${source_community_extra}/cluster-home
 extra_tools=${source_community_extra}/tools
 
+jars_commons=${source_commons}/build/jars
+
 ##########################################################################
 # Handle platform differences.  This script works on MacOSX & Linux.
 ##########################################################################
@@ -310,6 +312,9 @@ cp -r $extra_cluster_home/bin $cluster_home
 echo "# Copying in Ruby configuration libraries"
 cp -r $extra_cluster_home/lib $cluster_home
 cp -r $extra_cluster_home/samples $cluster_home
+
+echo "# Copying in oss-commons libraries"
+cp -r $jars_commons/* $cluster_home/lib
 
 echo "### Creating tools"
 tools_dir=$reldir/tools

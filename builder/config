@@ -22,10 +22,10 @@ VERSION_REVISION=0
 VERSION=$VERSION_MAJOR.$VERSION_MINOR.$VERSION_REVISION
 
 # Set to 1 to use existing code (found in $BUILD_DIR)
-SKIP_CHECKOUT=0
+SKIP_CHECKOUT=1
 
 # Set to 1 to skip the build.
-SKIP_BUILD=0
+SKIP_BUILD=1
 
 # Set to 1 to skip source generation.
 SKIP_SOURCE=1

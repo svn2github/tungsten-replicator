@@ -20,6 +20,9 @@ CLUSTER_HOME=$PASWORD_MGR_HOME/../cluster-home
 CP=$CP:$PASWORD_MGR_HOME/conf
 CP=$CP:$PASWORD_MGR_HOME/../tungsten-replicator/lib/*		# Add all jars
 
+CP=$CP:/Users/launer/src/tungsten/oss-commons/build/java/classes/
+CP=$CP:/Users/launer/src/tungsten/oss-commons/lib/*
+
 # Find Java.
 if [ -z "$JAVA_HOME" ]; then
   JAVA=`which java`
