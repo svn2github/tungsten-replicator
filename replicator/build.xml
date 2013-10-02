@@ -239,14 +239,6 @@
             <fileset dir="${jars.dir}"/>
         </copy>
         <copy todir="${dist.dir}/lib">
-            <fileset dir="${project.common}/lib">
-            	<include name="*.jar"/>
-            </fileset>
-        </copy>
-        <copy todir="${dist.dir}/lib">
-            <fileset dir="${common.build.dir}/jars"/>
-        </copy>
-        <copy todir="${dist.dir}/lib">
              <fileset dir="lib/">
              	<include name="*.jar" unless="library.compile.files"/>
              	<include name="${library.compile.files}" if="library.compile.files"/>

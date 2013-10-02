@@ -31,6 +31,8 @@ done
 
 # Add configuration directory to class path. 
 CP=$CP:$RPHOME/conf
+# Add cluster-home/lib to class path
+CP=$CP:$CLUSTER_HOME/lib/*
 
 # Find Java.
 if [ -z "$JAVA_HOME" ]; then
