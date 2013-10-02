@@ -158,6 +158,7 @@ extra_cluster_home=${source_community_extra}/cluster-home
 extra_tools=${source_community_extra}/tools
 
 jars_commons=${source_commons}/build/jars
+lib_commons=${source_commons}/lib
 
 ##########################################################################
 # Handle platform differences.  This script works on MacOSX & Linux.
@@ -315,6 +316,7 @@ cp -r $extra_cluster_home/samples $cluster_home
 
 echo "# Copying in oss-commons libraries"
 cp -r $jars_commons/* $cluster_home/lib
+cp -r $lib_commons/* $cluster_home/lib
 
 echo "### Creating tools"
 tools_dir=$reldir/tools
