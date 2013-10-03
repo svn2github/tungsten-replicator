@@ -1173,7 +1173,7 @@ class ReplicationServiceExtractorFilters < ConfigurePrompt
   end
   
   def get_template_value(transform_values_method)
-    (get_value().to_s().split(",") + get_extractor_datasource().get_extractor_filters()).join(",")
+    (get_extractor_datasource().get_extractor_filters() + get_value().to_s().split(",")).join(",")
   end
   
   def required?
