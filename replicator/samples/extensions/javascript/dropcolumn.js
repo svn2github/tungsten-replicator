@@ -90,6 +90,13 @@ function isDrop(schema, table, col)
         var cols = drop["columns"];
         for (var cl in cols)
         {
+          if(col == null)
+          {
+            throw new com.continuent.tungsten.replicator.ReplicatorException(
+              "dropcolumn.js: column name in " + schema + "." + table +
+              " is undefined - is colnames filter enabled and is it before the dropcolumn filter?"
+              );
+          }
           if(col.compareTo(cols[cl]) == 0)
           {
             return true;
