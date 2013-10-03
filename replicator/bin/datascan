@@ -19,6 +19,7 @@ DATA_CTRL_LOG4J=log4j-thl.properties
 # Find home. 
 RPBIN=`dirname $0`
 RPHOME=`cd $RPBIN/..; pwd`
+CLUSTER_HOME=$RPHOME/../cluster-home
 
 # Add jars from all directories to class path.
 for jar in $RPHOME/lib/*.jar $RPHOME/lib/lib-ext/*.jar $CLUSTER_HOME/lib/*.jar; do 

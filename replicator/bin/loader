@@ -16,6 +16,7 @@ LOADER_CTRL=com.continuent.tungsten.replicator.loader.LoaderCtrl
 # Find home. 
 RPBIN=`dirname $0`
 RPHOME=`cd $RPBIN/..; pwd`
+CLUSTER_HOME=$RPHOME/../cluster-home
 
 # Add jars from all directories to class path.
 for jar in $RPHOME/lib/*.jar $RPHOME/lib-ext/*.jar; do 
@@ -28,6 +29,8 @@ done
 
 # Add configuration directory to class path. 
 CP=$CP:$RPHOME/conf
+# Add cluster-home/lib to class path
+CP=$CP:$CLUSTER_HOME/lib/*
 
 # Find Java.
 if [ -z "$JAVA_HOME" ]; then
