@@ -1607,6 +1607,58 @@ class GlobalHostJavaPasswordStorePath < ConfigurePrompt
   end
 end
 
+class HostBuildSecurityFiles < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  include HiddenValueModule
+  
+  def initialize
+    super(BUILD_SECURITY_FILES, "Build the necessary Java security files", PV_BOOLEAN, "false")
+  end
+end
+
+class HostSSLCA < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  include HiddenValueModule
+  
+  def initialize
+    super(SSL_CA, "Local path to the SSL certificate authority", PV_FILENAME)
+  end
+  
+  def required?
+    false
+  end
+end
+
+class HostSSLCert < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  include HiddenValueModule
+  
+  def initialize
+    super(SSL_CERT, "Local path to the SSL certificate", PV_FILENAME)
+  end
+  
+  def required?
+    false
+  end
+end
+
+class HostSSLKey < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoStoredServerConfigValue
+  include HiddenValueModule
+  
+  def initialize
+    super(SSL_KEY, "Local path to the SSL certificate key", PV_FILENAME)
+  end
+  
+  def required?
+    false
+  end
+end
+
 class HostPortsForUsers < ConfigurePrompt
   include ClusterHostPrompt
   include ConstantValueModule

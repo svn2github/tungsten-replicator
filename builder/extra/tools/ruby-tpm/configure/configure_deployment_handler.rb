@@ -56,14 +56,102 @@ class ConfigureDeploymentHandler
           end
         end
         
+        if @config.getProperty(BUILD_SECURITY_FILES) == "true"
+          jmx = Tempfile.new("sec")
+          jmx.puts("#{@config.getProperty(RMI_USER)}        readwrite \\
+  create javax.management.monitor.*,javax.management.timer.* \\
+  unregister")
+          jmx.close()
+          
+          password_store = Tempfile.new("sec")
+          password_store.close()
+          File.unlink(password_store.path())
+          
+          ca_pem = Tempfile.new("sec")
+          ca_pem.close()
+          pem = Tempfile.new("sec")
+          pem.close()
+          p12 = Tempfile.new("sec")
+          p12.close()
+          cer = Tempfile.new("sec")
+          cer.close()
+          jks = Tempfile.new("sec")
+          jks.close()
+          File.unlink(jks.path())
+          ts = Tempfile.new("sec")
+          ts.close()
+          File.unlink(ts.path())
+          conn_jks = Tempfile.new("sec")
+          conn_jks.close()
+          File.unlink(conn_jks.path())
+          conn_ts = Tempfile.new("sec")
+          conn_ts.close()
+          File.unlink(conn_ts.path())
+          
+          ssl_ca = File.open(@config.getProperty(SSL_CA))
+          ssl_ca.close()
+          ssl_key = File.open(@config.getProperty(SSL_KEY))
+          ssl_key.close()
+          ssl_cert = File.open(@config.getProperty(SSL_CERT))
+          ssl_cert.close()
+          
+          jks_pass = @config.getProperty(JAVA_KEYSTORE_PASSWORD)
+          ts_pass = @config.getProperty(JAVA_TRUSTSTORE_PASSWORD)
+          conn_jks_pass = @config.getProperty(JAVA_CONNECTOR_KEYSTORE_PASSWORD)
+          conn_ts_pass = @config.getProperty(JAVA_CONNECTOR_TRUSTSTORE_PASSWORD)
+
+          cmd_result("openssl x509 -in #{ssl_ca.path()} -out #{ca_pem.path()} -outform PEM")
+          cmd_result("openssl x509 -in #{ssl_cert.path()} -out #{pem.path()} -outform PEM")
+          cmd_result("openssl pkcs12 -export -inkey #{ssl_key.path()} -in #{pem.path()} -CAfile #{ca_pem.path()} -out #{p12.path()} -passout pass:temp")
+
+          # Build tungsten_keystore.jks
+          cmd_result("keytool -importkeystore -srckeystore #{p12.path()} -srcstoretype PKCS12 -destkeystore #{jks.path()} -srcstorepass temp -deststorepass #{jks_pass} -noprompt")
+          #cmd_result("keytool -import -alias mysqlServerCACert -file #{ssl_ca.path()} -keystore #{jks.path()} -deststorepass #{jks_pass} -noprompt")
+          #cmd_result("keytool -export -file #{cer.path()} -keystore #{jks.path()} -storepass #{jks_pass} -noprompt")
+          
+          # Build tungsten_truststore.ts
+          cmd_result("keytool -import -alias mysqlServerCACert -file #{ca_pem.path()} -keystore #{ts.path()} -deststorepass #{ts_pass} -noprompt")
+          
+          # Build tungsten_connector_keystore.jks
+          cmd_result("keytool -importkeystore -srckeystore #{p12.path()} -srcstoretype PKCS12 -destkeystore #{conn_jks.path()} -srcstorepass temp -deststorepass #{conn_jks_pass} -noprompt")
+          cmd_result("keytool -import -alias mysqlServerCACert -file #{ca_pem.path()} -keystore #{conn_jks.path()} -deststorepass #{conn_jks_pass} -noprompt")
+          
+          # Build tungsten_connector_truststore.ts
+          #cmd_result("keytool -import -trustcacerts -file #{cer.path()} -keystore #{conn_ts.path()} -deststorepass #{conn_ts_pass} -noprompt")
+          cmd_result("keytool -import -alias mysqlServerCACert -file #{ca_pem.path()} -keystore #{conn_ts.path()} -deststorepass #{conn_ts_pass} -noprompt")
+          
+          cmd_result("#{Configurator.instance.get_base_path()}/cluster-home/bin/tpasswd -c #{@config.getProperty(RMI_USER)} #{jks_pass} -p #{password_store.path()} -e -ts #{ts.path()} -tsp #{ts_pass}")
+          cmd_result("#{Configurator.instance.get_base_path()}/cluster-home/bin/tpasswd -c #{@config.getProperty(RMI_USER)} #{jks_pass} -p #{password_store.path()} -e -ts #{ts.path()} -tsp #{ts_pass} -target rmi_jmx")
+          
+          config.include([HOSTS, config.getProperty([DEPLOYMENT_HOST])], {
+            JAVA_JMXREMOTE_ACCESS_PATH => "#{config.getProperty(TEMP_DIRECTORY)}/#{config.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(jmx.path())}",
+            GLOBAL_JAVA_JMXREMOTE_ACCESS_PATH => jmx.path(),
+            JAVA_PASSWORDSTORE_PATH => "#{config.getProperty(TEMP_DIRECTORY)}/#{config.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(password_store.path())}",
+            GLOBAL_JAVA_PASSWORDSTORE_PATH => password_store.path(),
+            JAVA_TRUSTSTORE_PATH => "#{config.getProperty(TEMP_DIRECTORY)}/#{config.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(jks.path())}",
+            GLOBAL_JAVA_TRUSTSTORE_PATH => jks.path(),
+            JAVA_KEYSTORE_PATH => "#{config.getProperty(TEMP_DIRECTORY)}/#{config.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(jks.path())}",
+            GLOBAL_JAVA_KEYSTORE_PATH => jks.path()
+          })
+          
+          if config.getProperty([CONNECTORS, config.getProperty([DEPLOYMENT_HOST])]) != nil
+            config.include([CONNECTORS, config.getProperty([DEPLOYMENT_HOST])], {
+              JAVA_CONNECTOR_TRUSTSTORE_PATH => "#{config.getProperty(TEMP_DIRECTORY)}/#{config.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(conn_ts.path())}",
+              GLOBAL_JAVA_CONNECTOR_TRUSTSTORE_PATH => conn_ts.path(),
+              JAVA_CONNECTOR_KEYSTORE_PATH => "#{config.getProperty(TEMP_DIRECTORY)}/#{config.getProperty(CONFIG_TARGET_BASENAME)}/#{File.basename(conn_jks.path())}",
+              GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH => conn_jks.path()
+            })
+          end
+        end
+        
         DeploymentFiles.prompts.each{
           |p|
-          if @config.getProperty(p[:global]) != nil
-            if File.file?(@config.getProperty(p[:global]))
-              debug("Transfer #{File.basename(@config.getProperty(p[:global]))} to #{@config.getProperty(HOST)}")
-              scp_result(@config.getProperty(p[:global]), @config.getProperty(p[:local]), @config.getProperty(HOST), @config.getProperty(USERID))
+          if config.getProperty(p[:global]) != nil
+            if File.file?(config.getProperty(p[:global]))
+              debug("Transfer #{File.basename(config.getProperty(p[:global]))} to #{config.getProperty(HOST)}")
+              scp_result(config.getProperty(p[:global]), config.getProperty(p[:local]), config.getProperty(HOST), config.getProperty(USERID))
             elsif Configurator.instance.is_locked?() == false
-              error("Unable to transfer #{File.basename(@config.getProperty(p[:global]))} because it does not exist or is not a complete file name")
+              error("Unable to transfer #{File.basename(config.getProperty(p[:global]))} because it does not exist or is not a complete file name")
               return
             end
           end

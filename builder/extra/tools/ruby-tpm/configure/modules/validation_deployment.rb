@@ -1336,55 +1336,12 @@ end
 
 class EncryptionKeystoreCheck < ConfigureValidationCheck
   include ClusterHostCheck
-  include ReplicatorEnabledCheck
   
   def set_vars
     @title = "Test that all files for RMI encryption are created properly"
   end
   
   def validate
-    begin
-      keytool_path = which("keytool")
-    rescue CommandError
-      keytool_path = nil
-    end
-    
-    keystore_path = @config.getProperty(JAVA_KEYSTORE_PATH)
-    if keystore_path.to_s() == ""
-      if File.exist?(@config.getTemplateValue(JAVA_KEYSTORE_PATH))
-        keystore_path = @config.getTemplateValue(JAVA_KEYSTORE_PATH)
-      else
-        error("Unable to find #{@config.getTemplateValue(JAVA_KEYSTORE_PATH)} for use with SSL encryption. You must create the file or provide a path to it with --java-keystore-path.")
-      end
-    end
-    
-    if keystore_path.to_s() != "" && keytool_path != nil
-      begin
-        cmd_result("keytool -list -keystore #{keystore_path} -storepass #{@config.getProperty(JAVA_KEYSTORE_PASSWORD)}")
-      rescue CommandError => ce
-        error("There was an issue validating the SSL keystore: #{ce.result}. Check the values of --java-keystore-path and --java-keystore-password. If you did not provide --java-keystore-path, check the file at #{@config.getTemplateValue(JAVA_KEYSTORE_PATH)}")
-      end
-    end
-    
-    truststore_path = @config.getProperty(JAVA_TRUSTSTORE_PATH)
-    if truststore_path.to_s() == ""
-      if File.exist?(@config.getTemplateValue(JAVA_TRUSTSTORE_PATH))
-        truststore_path = @config.getTemplateValue(JAVA_TRUSTSTORE_PATH)
-      else
-        error("Unable to find #{@config.getTemplateValue(JAVA_TRUSTSTORE_PATH)} for use with SSL encryption. You must create the file or provide a path to it with --java-truststore-path.")
-      end
-    end
-    
-    if truststore_path.to_s() != "" && keytool_path != nil
-      begin
-        cmd_result("keytool -list -keystore #{truststore_path} -storepass #{@config.getProperty(JAVA_TRUSTSTORE_PASSWORD)}")
-      rescue CommandError => ce
-        error("There was an issue validating the SSL truststore: #{ce.result}. Check the values of --java-truststore-path and --java-truststore-password. If you did not provide --java-truststore-path, check the file at #{@config.getTemplateValue(JAVA_TRUSTSTORE_PATH)}")
-      end
-    end
-  end
-  
-  def enabled?
     ssl_enabled = false
     if @config.getProperty(ENABLE_RMI_SSL) == "true"
       ssl_enabled = true
@@ -1399,6 +1356,92 @@ class EncryptionKeystoreCheck < ConfigureValidationCheck
       end
     }
     
-    super() && ssl_enabled
+    if @config.getProperty(ENABLE_CONNECTOR_SSL) == "true"
+      connector_ssl_enabled = true
+    else
+      connector_ssl_enabled = false
+    end
+    
+    if ssl_enabled == false && connector_ssl_enabled == false
+      return
+    end
+    
+    begin
+      keytool_path = which("keytool")
+    rescue CommandError
+      keytool_path = nil
+    end
+    
+    if ssl_enabled == true
+      keystore_path = @config.getProperty(JAVA_KEYSTORE_PATH)
+      if keystore_path.to_s() == ""
+        if File.exist?(@config.getTemplateValue(JAVA_KEYSTORE_PATH))
+          keystore_path = @config.getTemplateValue(JAVA_KEYSTORE_PATH)
+        else
+          error("Unable to find #{@config.getTemplateValue(JAVA_KEYSTORE_PATH)} for use with SSL encryption. You must create the file or provide a path to it with --java-keystore-path.")
+        end
+      end
+    
+      if keystore_path.to_s() != "" && keytool_path != nil
+        begin
+          cmd_result("keytool -list -keystore #{keystore_path} -storepass #{@config.getProperty(JAVA_KEYSTORE_PASSWORD)}")
+        rescue CommandError => ce
+          error("There was an issue validating the SSL keystore: #{ce.result}. Check the values of --java-keystore-path and --java-keystore-password. If you did not provide --java-keystore-path, check the file at #{@config.getTemplateValue(JAVA_KEYSTORE_PATH)}")
+        end
+      end
+    
+      truststore_path = @config.getProperty(JAVA_TRUSTSTORE_PATH)
+      if truststore_path.to_s() == ""
+        if File.exist?(@config.getTemplateValue(JAVA_TRUSTSTORE_PATH))
+          truststore_path = @config.getTemplateValue(JAVA_TRUSTSTORE_PATH)
+        else
+          error("Unable to find #{@config.getTemplateValue(JAVA_TRUSTSTORE_PATH)} for use with SSL encryption. You must create the file or provide a path to it with --java-truststore-path.")
+        end
+      end
+    
+      if truststore_path.to_s() != "" && keytool_path != nil
+        begin
+          cmd_result("keytool -list -keystore #{truststore_path} -storepass #{@config.getProperty(JAVA_TRUSTSTORE_PASSWORD)}")
+        rescue CommandError => ce
+          error("There was an issue validating the SSL truststore: #{ce.result}. Check the values of --java-truststore-path and --java-truststore-password. If you did not provide --java-truststore-path, check the file at #{@config.getTemplateValue(JAVA_TRUSTSTORE_PATH)}")
+        end
+      end
+    end
+    
+    if connector_ssl_enabled == true
+      keystore_path = @config.getProperty(JAVA_CONNECTOR_KEYSTORE_PATH)
+      if keystore_path.to_s() == ""
+        if File.exist?(@config.getTemplateValue(JAVA_CONNECTOR_KEYSTORE_PATH))
+          keystore_path = @config.getTemplateValue(JAVA_CONNECTOR_KEYSTORE_PATH)
+        else
+          error("Unable to find #{@config.getTemplateValue(JAVA_CONNECTOR_KEYSTORE_PATH)} for use with Connector SSL encryption. You must create the file or provide a path to it with --java-connector-keystore-path.")
+        end
+      end
+    
+      if keystore_path.to_s() != "" && keytool_path != nil
+        begin
+          cmd_result("keytool -list -keystore #{keystore_path} -storepass #{@config.getProperty(JAVA_CONNECTOR_KEYSTORE_PASSWORD)}")
+        rescue CommandError => ce
+          error("There was an issue validating the SSL keystore: #{ce.result}. Check the values of --java-connector-keystore-path and --java-connector-keystore-password. If you did not provide --java-connector-keystore-path, check the file at #{@config.getTemplateValue(JAVA_CONNECTOR_KEYSTORE_PATH)}")
+        end
+      end
+    
+      truststore_path = @config.getProperty(JAVA_CONNECTOR_TRUSTSTORE_PATH)
+      if truststore_path.to_s() == ""
+        if File.exist?(@config.getTemplateValue(JAVA_CONNECTOR_TRUSTSTORE_PATH))
+          truststore_path = @config.getTemplateValue(JAVA_CONNECTOR_TRUSTSTORE_PATH)
+        else
+          error("Unable to find #{@config.getTemplateValue(JAVA_CONNECTOR_TRUSTSTORE_PATH)} for use with SSL encryption. You must create the file or provide a path to it with --java-connector-truststore-path.")
+        end
+      end
+    
+      if truststore_path.to_s() != "" && keytool_path != nil
+        begin
+          cmd_result("keytool -list -keystore #{truststore_path} -storepass #{@config.getProperty(JAVA_CONNECTOR_TRUSTSTORE_PASSWORD)}")
+        rescue CommandError => ce
+          error("There was an issue validating the SSL truststore: #{ce.result}. Check the values of --java-truststore-path and --java-connector-truststore-password. If you did not provide --java-connector-truststore-path, check the file at #{@config.getTemplateValue(JAVA_CONNECTOR_TRUSTSTORE_PATH)}")
+        end
+      end
+    end
   end
 end
