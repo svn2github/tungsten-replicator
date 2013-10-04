@@ -37,7 +37,6 @@ MGR_GROUP_COMMUNICATION_INITIAL_HOSTS = "mgr_group_communication_initial_hosts"
 MGR_GROUP_COMMUNICATION_CONFIG = "mgr_group_communication_config"
 MGR_RMI_PORT = "mgr_rmi_port"
 MGR_RMI_REMOTE_PORT = "mgr_rmi_remote_port"
-MGR_FILE_SERVER_PORT = "mgr_file_server_port"
 MGR_MONITOR_INTERVAL = "mgr_monitor_interval"
 MGR_WAIT_FOR_MEMBERS = "mgr_wait_for_members"
 MANAGER_ENABLE_INSTRUMENTATION = "manager_enable_instrumentation"
@@ -596,15 +595,6 @@ class ManagerRMIRemotePort < ConfigurePrompt
   
   def initialize
     super(MGR_RMI_REMOTE_PORT, "Port to use for calling the remote manager RMI server", PV_ANY_INTEGER, "12000")
-  end
-end
-
-class ManagerFileServerPort < ConfigurePrompt
-  include ManagerPrompt
-  include AdvancedPromptModule
-  
-  def initialize
-    super(MGR_FILE_SERVER_PORT, "Port to use for the manager file server", PV_INTEGER, "9998")
   end
 end
 
