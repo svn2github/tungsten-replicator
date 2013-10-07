@@ -827,6 +827,7 @@ class CurrentTopologyCheck < ConfigureValidationCheck
 
     unless parsed_topology[CCTRL::DATASOURCES].has_key?(@config.getProperty(HOST))
       warning("This host is not listed in the current topology")
+      return
     end
     
     if parsed_topology[CCTRL::DATASOURCES][@config.getProperty(HOST)]["role"] != configured_role

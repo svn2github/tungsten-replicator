@@ -1,5 +1,5 @@
 module ClusterDiagnosticPackage
-  LOG_SIZE = 2*1024*1024
+  LOG_SIZE = 10*1024*1024
   
   def get_diagnostic_file
     @zip_file

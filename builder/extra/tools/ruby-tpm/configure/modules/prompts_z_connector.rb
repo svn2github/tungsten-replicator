@@ -39,6 +39,7 @@ GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH = "global_java_connector_keystore_path"
 ENABLE_CONNECTOR_RO = "enable_connector_readonly"
 ENABLE_CONNECTOR_BRIDGE_MODE = "enable_connector_bridge_mode"
 CONN_RO_PROPERTIES_EXISTS = "connector_ro_properties_exists"
+CONN_MAX_SLAVE_LATENCY = "connector_max_slave_latency"
 
 class Connectors < GroupConfigurePrompt
   def initialize
@@ -648,10 +649,15 @@ class ConnectorDriverOptions < ConfigurePrompt
   def load_default_value
     opts = []
     
-    if @config.getProperty(get_member_key(ENABLE_CONNECTOR_SSL)) == "true"
-      opts << "useSSL=true"
-      opts << "requireSSL=true"
-    end
+    # Each prompt that has registered via ConnectorDriverOptions.register
+    # will be called and can add options to the array
+    self.class.prompts().each{
+      |name|
+      p = @config.getPromptHandler().find_prompt(get_member_key(name))
+      if p
+        p.add_jdbc_driver_options(opts)
+      end
+    }
     
     if opts.size() == 0
       @default = ""
@@ -672,6 +678,15 @@ class ConnectorDriverOptions < ConfigurePrompt
       return v
     end
   end
+  
+  def self.register(klass)
+    @driver_prompts ||= []
+    @driver_prompts << klass
+  end
+  
+  def self.prompts
+    @driver_prompts || []
+  end
 end
 
 class ConnectorEnableSSL < ConfigurePrompt
@@ -681,6 +696,15 @@ class ConnectorEnableSSL < ConfigurePrompt
     super(ENABLE_CONNECTOR_SSL, "Enable SSL encryption of connector traffic to the database", PV_BOOLEAN, "false")
     add_command_line_alias("connector-ssl")
   end
+  
+  def add_jdbc_driver_options(opts)
+    if get_value() == "true"
+      opts << "useSSL=true"
+      opts << "requireSSL=true"
+    end
+  end
+  
+  ConnectorDriverOptions.register(ENABLE_CONNECTOR_SSL)
 end
 
 class ConnectorJavaKeystorePassword < ConfigurePrompt
@@ -843,4 +867,25 @@ class ConnectorReadOnlyPropertiesExists < ConfigurePrompt
       ""
     end
   end
+end
+
+class ConnectorMaxSlaveLatency < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(CONN_MAX_SLAVE_LATENCY, "The maximum applied latency for slave connections", PV_INTEGER)
+    add_command_line_alias("connector-max-applied-latency")
+  end
+  
+  def required?
+    false
+  end
+  
+  def add_jdbc_driver_options(opts)
+    if get_value() != nil
+      opts << "maxAppliedLatency=#{get_value}"
+    end
+  end
+  
+  ConnectorDriverOptions.register(CONN_MAX_SLAVE_LATENCY)
 end
