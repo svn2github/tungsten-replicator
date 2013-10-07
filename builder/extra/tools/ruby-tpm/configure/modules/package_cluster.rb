@@ -263,8 +263,17 @@ module ClusterCommandModule
           
           values.each{
             |value|
-            argument = "--" + value.key.gsub(/_/, "-")
-            external_arguments[section.key] << "#{argument}=#{value.value}"
+            argument = value.key.gsub(/_/, "-")
+            unless argument[0,2] == "--"
+              argument = "--" + argument
+            end
+            
+            v_string = value.value.to_s()
+            if v_string[-2,2].to_s() == " \\"
+              v_string = v_string[0, (v_string.length()-2)]
+              Configurator.instance.warning("Extra ' \\' characters were found at the end of #{value.key}=#{value.value}. They have been automatically removed. You may wrap the value with double-quotes in order to keep the extra characters.")
+            end
+            external_arguments[section.key] << "#{argument}=#{v_string}"
           }
         }
       }
