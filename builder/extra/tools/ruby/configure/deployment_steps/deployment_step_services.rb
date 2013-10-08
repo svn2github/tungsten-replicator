@@ -94,7 +94,7 @@ module ConfigureDeploymentStepServices
     out.puts "# Start all services using local service scripts"
     out.puts "THOME=`dirname $0`/../.."
     out.puts "cd $THOME"
-    @services.each { |svc| out.puts get_svc_command(svc + " start") }
+    @services.sort.reverse.each { |svc| out.puts get_svc_command(svc + " start") }
     out.puts "# AUTO-CONFIGURED: #{DateTime.now}"
     out.chmod(0755)
     out.close
@@ -109,7 +109,7 @@ module ConfigureDeploymentStepServices
     out.puts "# Stop all services using local service scripts"
     out.puts "THOME=`dirname $0`/../.."
     out.puts "cd $THOME"
-    @services.reverse_each { |svc| out.puts get_svc_command(svc + " stop") }
+    @services.sort.each { |svc| out.puts get_svc_command(svc + " stop") }
     out.puts "# AUTO-CONFIGURED: #{DateTime.now}"
     out.chmod(0755)
     out.close
