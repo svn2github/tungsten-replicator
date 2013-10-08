@@ -700,7 +700,6 @@ class ConnectorEnableSSL < ConfigurePrompt
   def add_jdbc_driver_options(opts)
     if get_value() == "true"
       opts << "useSSL=true"
-      opts << "requireSSL=true"
     end
   end
   
