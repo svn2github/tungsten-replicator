@@ -43,7 +43,15 @@ import com.continuent.tungsten.common.utils.CLUtils;
 public final class AuthenticationInfo
 {
     private static final Logger logger                         = Logger.getLogger(AuthenticationInfo.class);
-    private String              parentPropertiesFileLocation    = null;    // Location of the file from which this was built
+    private String              parentPropertiesFileLocation   = null;                                      // Location
+                                                                                                             // of
+                                                                                                             // the
+                                                                                                             // file
+                                                                                                             // from
+                                                                                                             // which
+                                                                                                             // this
+                                                                                                             // was
+                                                                                                             // built
 
     private boolean             authenticationNeeded           = false;
     private boolean             encryptionNeeded               = false;
@@ -79,7 +87,7 @@ public final class AuthenticationInfo
     {
         this.parentPropertiesFileLocation = parentPropertiesFileLocation;
     }
-    
+
     public AuthenticationInfo()
     {
         this(null);
@@ -87,10 +95,12 @@ public final class AuthenticationInfo
 
     /**
      * Check Authentication information consistency
-     * @throws  ConfigurationException 
+     * 
+     * @throws ConfigurationException
      */
-    public void checkAuthenticationInfo() throws ServerRuntimeException, ConfigurationException
-    {   
+    public void checkAuthenticationInfo() throws ServerRuntimeException,
+            ConfigurationException
+    {
         // --- Check security.properties location ---
         if (this.parentPropertiesFileLocation != null)
         {
@@ -105,7 +115,8 @@ public final class AuthenticationInfo
             if (!f.isFile() || !f.canRead())
             {
                 String msg = MessageFormat.format(
-                        "Cannot find or read {0} file: {1}", SECURITY_CONFIG_FILE_LOCATION,
+                        "Cannot find or read {0} file: {1}",
+                        SECURITY_CONFIG_FILE_LOCATION,
                         this.parentPropertiesFileLocation);
                 CLUtils.println(msg, CLLogLevel.detailed);
                 throw new ServerRuntimeException(msg, new AssertionError(
@@ -133,7 +144,7 @@ public final class AuthenticationInfo
                         "File must exist"));
             }
         }
-        
+
         // --- Check Truststore location ---
         if (this.isEncryptionNeeded() && this.truststoreLocation != null)
         {
@@ -159,13 +170,13 @@ public final class AuthenticationInfo
         {
             throw new ConfigurationException("truststore.location");
         }
-        
+
         // --- Check password for Truststore ---
         if (this.isEncryptionNeeded() && this.truststorePassword == null)
         {
             throw new ConfigurationException("truststore.password");
         }
-        
+
         // --- Check password file location ---
         if (this.isAuthenticationNeeded() && this.passwordFileLocation != null)
         {
@@ -181,14 +192,15 @@ public final class AuthenticationInfo
             {
                 String msg = MessageFormat.format(
                         "Cannot find or read {0} file: {1}",
-                        SecurityConf.SECURITY_PASSWORD_FILE_LOCATION, this.passwordFileLocation);
+                        SecurityConf.SECURITY_PASSWORD_FILE_LOCATION,
+                        this.passwordFileLocation);
                 CLUtils.println(msg, CLLogLevel.detailed);
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
             }
         }
-        
-     // --- Check access file location ---
+
+        // --- Check access file location ---
         if (this.isAuthenticationNeeded() && this.accessFileLocation != null)
         {
             File f = new File(this.accessFileLocation);
@@ -203,7 +215,8 @@ public final class AuthenticationInfo
             {
                 String msg = MessageFormat.format(
                         "Cannot find or read {0} file: {1}",
-                        SecurityConf.SECURITY_ACCESS_FILE_LOCATION, this.accessFileLocation);
+                        SecurityConf.SECURITY_ACCESS_FILE_LOCATION,
+                        this.accessFileLocation);
                 CLUtils.println(msg, CLLogLevel.detailed);
                 throw new ServerRuntimeException(msg, new AssertionError(
                         "File must exist"));
@@ -224,25 +237,25 @@ public final class AuthenticationInfo
         return jmxProperties;
     }
 
-//    /**
-//     * Retrieve (encrypted) password from file
-//     * 
-//     * @throws ConfigurationException
-//     */
-//    public void retrievePasswordFromFile() throws ConfigurationException
-//    {
-//        TungstenProperties passwordProps = SecurityHelper
-//                .loadPasswordsFromAuthenticationInfo(this);
-//        String username = this.getUsername();
-//        String goodPassword = passwordProps.get(username);
-//        this.password = goodPassword;
-//
-//        if (goodPassword == null)
-//            throw new ConfigurationException(
-//                    MessageFormat
-//                            .format("Cannot find password for username= {0} \n PasswordFile={1}",
-//                                    username, this.getPasswordFileLocation()));
-//    }
+    // /**
+    // * Retrieve (encrypted) password from file
+    // *
+    // * @throws ConfigurationException
+    // */
+    // public void retrievePasswordFromFile() throws ConfigurationException
+    // {
+    // TungstenProperties passwordProps = SecurityHelper
+    // .loadPasswordsFromAuthenticationInfo(this);
+    // String username = this.getUsername();
+    // String goodPassword = passwordProps.get(username);
+    // this.password = goodPassword;
+    //
+    // if (goodPassword == null)
+    // throw new ConfigurationException(
+    // MessageFormat
+    // .format("Cannot find password for username= {0} \n PasswordFile={1}",
+    // username, this.getPasswordFileLocation()));
+    // }
 
     /**
      * Returns the decrypted password
@@ -252,6 +265,9 @@ public final class AuthenticationInfo
      */
     public String getDecryptedPassword() throws ConfigurationException
     {
+        if (this.password == null)
+            return null;
+
         String clearTextPassword = this.password;
         // --- Try to decrypt the password ---
         if (this.useEncryptedPasswords)
@@ -305,10 +321,10 @@ public final class AuthenticationInfo
     {
         this.encryptionNeeded = encryptionNeeded;
     }
-    
+
     public String getKeystoreLocation()
     {
-        
+
         return keystoreLocation;
     }
 
@@ -408,45 +424,55 @@ public final class AuthenticationInfo
         return parentPropertiesFileLocation;
     }
 
-    public void setParentPropertiesFileLocation(String parentPropertiesFileLocation)
+    public void setParentPropertiesFileLocation(
+            String parentPropertiesFileLocation)
     {
         this.parentPropertiesFileLocation = parentPropertiesFileLocation;
     }
-    
-    
+
     /**
      * Try to find a file absolute path from a series of default location
      * 
      * @param fileToFind the file for which to look for an absolute path
-     * @return the file with absolute path if found. returns the same unchanged object otherwise
+     * @return the file with absolute path if found. returns the same unchanged
+     *         object otherwise
      */
     private File findAbsolutePath(File fileToFind)
     {
         File foundFile = fileToFind;
-        
+
         try
         {
             String clusterHome = ClusterConfiguration.getClusterHome();
-            
-            if (fileToFind.getPath() == fileToFind.getName())                   // No absolute or relative path was given
+
+            if (fileToFind.getPath() == fileToFind.getName())                   // No absolute or
+                                                              // relative path
+                                                              // was given
             {
                 // --- Try to find find in: cluster-home/conf
-                File candidateFile = new File(clusterHome + File.separator + "conf" + File.separator + fileToFind.getName());
+                File candidateFile = new File(clusterHome + File.separator
+                        + "conf" + File.separator + fileToFind.getName());
                 if (candidateFile.isFile())
                 {
                     foundFile = candidateFile;
-                    logger.debug(MessageFormat.format("File was specified with name only, and found in default location: {0}",foundFile.getAbsoluteFile()));
+                    logger.debug(MessageFormat
+                            .format("File was specified with name only, and found in default location: {0}",
+                                    foundFile.getAbsoluteFile()));
                 }
                 else
-                    throw new ConfigurationException(MessageFormat.format("File does not exist: {0}", candidateFile.getAbsolutePath()));
+                    throw new ConfigurationException(MessageFormat.format(
+                            "File does not exist: {0}",
+                            candidateFile.getAbsolutePath()));
             }
         }
         catch (ConfigurationException e)
         {
-            logger.debug(MessageFormat.format("Cannot find absolute path for file: {0} \n{1}", fileToFind.getName(), e.getMessage()));
+            logger.debug(MessageFormat.format(
+                    "Cannot find absolute path for file: {0} \n{1}",
+                    fileToFind.getName(), e.getMessage()));
             return fileToFind;
         }
-        
+
         return foundFile;
     }
 
