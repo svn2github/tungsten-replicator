@@ -333,6 +333,10 @@ then
 	rsync -Ca $extra_tools/ruby-tpm $tools_dir
 fi
 
+echo "### Deleting duplicate librairies in Bristlecone ###"
+echo "# tungsten-common"
+rm -vf $reldir/bristlecone/lib/tungsten-common*.jar
+
 ##########################################################################
 # Create manifest file.
 ##########################################################################
