@@ -56,15 +56,28 @@ public class CLUtils implements Serializable
     /**
      * 
      */
-    private static final long   serialVersionUID = 1L;
-    private static final String COMMAND_COMMIT   = "commit";
-    private static final String COMMAND_QUIT     = "quit";
-    private static final String COMMAND_ROLLBACK = "rollback";
-    private static final String COMMAND_LIST     = "ls";
+    private static final long     serialVersionUID = 1L;
+    private static final String   COMMAND_COMMIT   = "commit";
+    private static final String   COMMAND_QUIT     = "quit";
+    private static final String   COMMAND_ROLLBACK = "rollback";
+    private static final String   COMMAND_LIST     = "ls";
 
-    private static final String NEWLINE          = "\n";
+    private static final String   NEWLINE          = "\n";
 
-    private static CLLogLevel   logLevel         = CLLogLevel.normal;
+    private static Vector<String> captureBuffer    = new Vector<String>();
+
+    private static CLLogLevel     logLevel         = CLLogLevel.normal;
+
+    public static void clearCapture()
+    {
+        captureBuffer.clear();
+    }
+
+    public static void getCapture(Vector<String> transferBuffer)
+    {
+        transferBuffer.addAll(captureBuffer);
+        clearCapture();
+    }
 
     public static CLLogLevel getLogLevel()
     {
@@ -246,8 +259,8 @@ public class CLUtils implements Serializable
         {
             builder.append(
                     formatStatus(dsProps, null, null, null, true, header,
-                            wasModified, printDetails, includeStatistics, false))
-                    .append(NEWLINE);
+                            wasModified, printDetails, includeStatistics,
+                            false, false)).append(NEWLINE);
         }
 
         return builder.toString();
@@ -267,7 +280,7 @@ public class CLUtils implements Serializable
             boolean includeStatistics)
     {
         return formatStatus(dsProps, null, null, null, true, header,
-                wasModified, printDetails, includeStatistics, true);
+                wasModified, printDetails, includeStatistics, true, false);
     }
 
     /**
@@ -285,7 +298,7 @@ public class CLUtils implements Serializable
             boolean printDetails, boolean includeStatistics)
     {
         return formatStatus(dsProps, replProps, null, null, true, header,
-                wasModified, printDetails, includeStatistics, false);
+                wasModified, printDetails, includeStatistics, false, false);
     }
 
     /**
@@ -300,17 +313,18 @@ public class CLUtils implements Serializable
      * @param wasModified
      * @param printDetails
      * @param includeStatistics
+     * @param isRawFormat TODO
      * @return
      */
     public static String formatStatus(TungstenProperties dsProps,
             TungstenProperties replProps, TungstenProperties dbProps,
             TungstenProperties routerUsage, boolean managerIsOnline,
             String header, boolean wasModified, boolean printDetails,
-            boolean includeStatistics)
+            boolean includeStatistics, boolean isRawFormat)
     {
         return formatStatus(dsProps, replProps, dbProps, routerUsage,
                 managerIsOnline, header, wasModified, printDetails,
-                includeStatistics, true);
+                includeStatistics, true, isRawFormat);
     }
 
     public static String formatRouterStatus(TungstenProperties dsProps,
@@ -347,17 +361,18 @@ public class CLUtils implements Serializable
      * @param printDetails - print details
      * @param includeStatistics - whether or not to include statistics
      * @param includeComponents TODO
+     * @param isRawFormat TODO
      * @return a formatted string representing a datasource/replicator status
      */
     public static String formatStatus(TungstenProperties dsProps,
             TungstenProperties replProps, TungstenProperties dbProps,
             boolean managerIsOnline, String header, boolean wasModified,
             boolean printDetails, boolean includeStatistics,
-            boolean includeComponents)
+            boolean includeComponents, boolean isRawFormat)
     {
         return formatStatus(dsProps, replProps, dbProps, null, managerIsOnline,
                 header, wasModified, printDetails, includeStatistics,
-                includeComponents);
+                includeComponents, isRawFormat);
     }
 
     /**
@@ -372,57 +387,71 @@ public class CLUtils implements Serializable
      * @param printDetails - print details
      * @param includeStatistics - whether or not to include statistics
      * @param includeComponents TODO
+     * @param isRawFormat TODO
      * @return a formatted string representing a datasource/replicator status
      */
     public static String formatStatus(TungstenProperties dsProps,
             TungstenProperties replProps, TungstenProperties dbProps,
             TungstenProperties routerUsage, boolean managerIsOnline,
             String header, boolean wasModified, boolean printDetails,
-            boolean includeStatistics, boolean includeComponents)
+            boolean includeStatistics, boolean includeComponents,
+            boolean isRawFormat)
     {
         String indent = "  ";
         StringBuilder builder = new StringBuilder();
         builder.append(header);
         String progressInformation = "";
         String additionalInfo = "";
-        String replicator_useSSLConnection = "";        // true if Replicator uses SSL
+        String replicator_useSSLConnection = ""; // true if Replicator uses SSL
 
+        int indentToUse = dsProps.getString(DataSource.NAME).length() + 1;
         /*
          * Witness have only a header, so take care of them here and return.
          */
         if (dsProps.getString(DataSource.ROLE).equals(
                 DataSourceRole.witness.toString()))
         {
-            String dsHeader = String.format("%s(%s:%s)",
-                    dsProps.getString(DataSource.NAME),
-                    dsProps.getString(DataSource.ROLE),
-                    managerIsOnline ? "ONLINE" : "OFFLINE");
+            String dsHeader = String.format("%s(%s:%s)", dsProps
+                    .getString(DataSource.NAME), dsProps
+                    .getString(DataSource.ROLE), managerIsOnline
+                    ? "ONLINE"
+                    : "OFFLINE");
 
-            int indentToUse = dsProps.getString(DataSource.NAME).length() + 1;
-            indentToUse = 4;
-            builder.append(
-                    ResultFormatter.makeSeparator(
-                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
-                    NEWLINE);
-            builder.append(ResultFormatter.makeRow((new String[]{dsHeader}),
-                    ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
+            if (!isRawFormat)
+            {
+                builder.append(
+                        ResultFormatter.makeSeparator(
+                                ResultFormatter.DEFAULT_WIDTH, 1, true))
+                        .append(NEWLINE);
+                builder.append(ResultFormatter.makeRow(
+                        (new String[]{dsHeader}),
+                        ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
 
-            builder.append(
-                    ResultFormatter.makeSeparator(
-                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
-                    NEWLINE);
+                builder.append(
+                        ResultFormatter.makeSeparator(
+                                ResultFormatter.DEFAULT_WIDTH, 1, true))
+                        .append(NEWLINE);
 
-            builder.append(ResultFormatter.makeRow(
-                    new String[]{indent
-                            + String.format("MANAGER(state=%s)",
-                                    managerIsOnline ? "ONLINE" : "STOPPED")},
-                    ResultFormatter.DEFAULT_WIDTH, 0, false, true));
-            
-            builder.append(
-                    ResultFormatter.makeSeparator(
-                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
-                    NEWLINE);
-            
+                builder.append(ResultFormatter.makeRow(
+                        new String[]{indent
+                                + String.format("MANAGER(state=%s)",
+                                        managerIsOnline ? "ONLINE" : "STOPPED")},
+                        ResultFormatter.DEFAULT_WIDTH, 0, false, true));
+
+                builder.append(
+                        ResultFormatter.makeSeparator(
+                                ResultFormatter.DEFAULT_WIDTH, 1, true))
+                        .append(NEWLINE);
+            }
+            else
+            {
+                builder.append(dsHeader
+                        + "\n"
+                        + String.format("MANAGER(state=%s)", managerIsOnline
+                                ? "ONLINE"
+                                : "STOPPED"));
+            }
+
             builder.append(NEWLINE);
 
             return builder.toString();
@@ -500,14 +529,16 @@ public class CLUtils implements Serializable
             }
         }
 
-        /// --- Build String for status ---
+        // / --- Build String for status ---
         String connectionStats = "";
         boolean isComposite = dsProps.getBoolean(DataSource.ISCOMPOSITE,
                 "false", false);
 
-        String fullState = String.format("%s%s", dsProps
-                .getString(DataSource.STATE), (dsProps
-                .getInt(DataSource.PRECEDENCE) == -1 ? ":ARCHIVE " : ""));
+        String fullState = String
+                .format("%s%s", dsProps.getString(DataSource.STATE),
+                        (dsProps.getInt(DataSource.PRECEDENCE) == -1
+                                ? ":ARCHIVE "
+                                : ""));
 
         String dsHeader = String.format("%s%s(%s:%s%s%s) %s", dsProps
                 .getString("name"), modifiedSign(wasModified), String.format(
@@ -522,32 +553,44 @@ public class CLUtils implements Serializable
         String dsAlert = String.format("STATUS [%s] %s%s%s", dsProps
                 .getString(DataSource.ALERT_STATUS), dateFormat
                 .format((new Date(dsProps.getLong(DataSource.ALERT_TIME)))),
-                replicator_useSSLConnection,
-                alertMessage);
+                replicator_useSSLConnection, alertMessage);
 
         if (!printDetails)
         {
-            int indentToUse = dsProps.getString(DataSource.NAME).length() + 1;
-            indentToUse = 4;
-            builder.append(
-                    ResultFormatter.makeSeparator(
-                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
-                    NEWLINE);
-            builder.append(ResultFormatter.makeRow((new String[]{dsHeader}),
-                    ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
-
-            if (vipInfo != null)
+            if (!isRawFormat)
             {
-                builder.append(ResultFormatter.makeRow((new String[]{vipInfo}),
+                builder.append(
+                        ResultFormatter.makeSeparator(
+                                ResultFormatter.DEFAULT_WIDTH, 1, true))
+                        .append(NEWLINE);
+                builder.append(ResultFormatter.makeRow(
+                        (new String[]{dsHeader}),
                         ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
-            }
 
-            builder.append(ResultFormatter.makeRow((new String[]{dsAlert}),
-                    ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
-            builder.append(
-                    ResultFormatter.makeSeparator(
-                            ResultFormatter.DEFAULT_WIDTH, 1, true)).append(
-                    NEWLINE);
+                if (vipInfo != null)
+                {
+                    builder.append(ResultFormatter.makeRow(
+                            (new String[]{vipInfo}),
+                            ResultFormatter.DEFAULT_WIDTH, indentToUse, true,
+                            true));
+                }
+
+                builder.append(ResultFormatter.makeRow((new String[]{dsAlert}),
+                        ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
+                builder.append(
+                        ResultFormatter.makeSeparator(
+                                ResultFormatter.DEFAULT_WIDTH, 1, true))
+                        .append(NEWLINE);
+            }
+            else
+            {
+                builder.append(dsHeader).append(NEWLINE);
+                if (vipInfo != null)
+                {
+                    builder.append(vipInfo).append(NEWLINE);
+                }
+                builder.append(dsAlert).append(NEWLINE);
+            }
 
             if (!includeComponents)
             {
@@ -556,46 +599,70 @@ public class CLUtils implements Serializable
 
             if (!isComposite)
             {
-                builder.append(ResultFormatter.makeRow(
-                        new String[]{indent
-                                + String.format("MANAGER(state=%s)",
-                                        managerIsOnline ? "ONLINE" : "STOPPED")},
-                        ResultFormatter.DEFAULT_WIDTH, 0, false, true));
+                String managerStatus = String.format("MANAGER(state=%s)",
+                        managerIsOnline ? "ONLINE" : "STOPPED");
 
-                builder.append(ResultFormatter
-                        .makeRow(
-                                new String[]{indent
-                                        + formatReplicatorProps(replProps,
-                                                managerIsOnline, header,
-                                                printDetails)},
-                                ResultFormatter.DEFAULT_WIDTH, 0, false, true));
+                String replicatorStatus = formatReplicatorProps(replProps,
+                        managerIsOnline, header, printDetails);
 
                 String dbState = (dbProps != null
                         ? dbProps.getString("state")
                         : "UNKNOWN");
-                String dbHeader = String.format("%sDATASERVER(state=%s)\n",
-                        indent, dbState);
-                builder.append(ResultFormatter.makeRow(
-                        (new String[]{dbHeader}),
-                        ResultFormatter.DEFAULT_WIDTH, indentToUse, true, true));
+
+                String dbHeader = String.format("DATASERVER(state=%s)\n",
+                        dbState);
+
+                String usage = null;
+
                 if (routerUsage != null)
                 {
-                    String usage = String
+                    usage = String
                             .format("CONNECTIONS(created=%s, active=%s)",
                                     routerUsage
                                             .getString(DataSource.CONNECTIONS_CREATED_COUNT),
                                     routerUsage
                                             .getString(DataSource.ACTIVE_CONNECTION_COUNT));
-                    builder.append(ResultFormatter.makeRow((new String[]{indent
-                            + usage}), ResultFormatter.DEFAULT_WIDTH,
-                            indentToUse, true, true));
-
                 }
 
-                builder.append(
-                        ResultFormatter.makeSeparator(
-                                ResultFormatter.DEFAULT_WIDTH, 1, true))
-                        .append(NEWLINE);
+                if (!isRawFormat)
+                {
+
+                    builder.append(ResultFormatter.makeRow(new String[]{indent
+                            + managerStatus}, ResultFormatter.DEFAULT_WIDTH, 0,
+                            false, true));
+
+                    builder.append(ResultFormatter.makeRow(new String[]{indent
+                            + replicatorStatus}, ResultFormatter.DEFAULT_WIDTH,
+                            0, false, true));
+
+                    builder.append(ResultFormatter.makeRow((new String[]{indent
+                            + dbHeader}), ResultFormatter.DEFAULT_WIDTH,
+                            indentToUse, true, true));
+                    if (routerUsage != null)
+                    {
+                        builder.append(ResultFormatter.makeRow(
+                                (new String[]{indent + usage}),
+                                ResultFormatter.DEFAULT_WIDTH, indentToUse,
+                                true, true));
+
+                    }
+
+                    builder.append(
+                            ResultFormatter.makeSeparator(
+                                    ResultFormatter.DEFAULT_WIDTH, 1, true))
+                            .append(NEWLINE);
+                }
+                else
+                {
+                    builder.append(managerStatus).append(NEWLINE);
+                    builder.append(replicatorStatus).append(NEWLINE);
+                    builder.append(dbHeader).append(NEWLINE);
+                    if (usage != null)
+                    {
+                        builder.append(usage).append(NEWLINE);
+                    }
+
+                }
             }
 
             builder.append(NEWLINE);
@@ -626,7 +693,7 @@ public class CLUtils implements Serializable
             if (dbProps != null)
             {
                 String dbHeader = String.format("%s:DATASERVER(state=%s)",
-                        dsProps.getString("name"), dbProps.getString("state"));
+                        dbProps.getString("state"));
 
                 builder.append(formatMap(dbHeader, dbProps.map(), "", "  ",
                         false));
@@ -926,7 +993,7 @@ public class CLUtils implements Serializable
             String header, boolean printDetails)
     {
         println(formatStatus(dsProperties, null, null, null, true, header,
-                false, printDetails, printDetails, false));
+                false, printDetails, printDetails, false, false));
     }
 
     public static String printArgs(String args[])
@@ -1064,7 +1131,7 @@ public class CLUtils implements Serializable
 
         return builder.toString();
     }
-    
+
     /**
      * This method will format any iterable class into a comma-separated list.
      * 

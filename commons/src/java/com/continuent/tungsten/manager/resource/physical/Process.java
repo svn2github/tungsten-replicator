@@ -39,6 +39,7 @@ public class Process extends Resource
     private static final long     serialVersionUID = 1L;
     private String                service          = null;
     private int                   port             = 0;
+    private String                clusterName      = null;
     private String                member           = null;
 
     private JMXConnector          connection       = null;
@@ -159,7 +160,28 @@ public class Process extends Resource
 
     public String toString()
     {
-        return String.format("%s@%s(%d)", getName(), getMember(), getEpoch());
+        return String.format("/%s/%s/%s(%d)", getClusterName(), getMember(),
+                getName(), getEpoch());
+    }
+
+    /**
+     * Returns the clusterName value.
+     * 
+     * @return Returns the clusterName.
+     */
+    public String getClusterName()
+    {
+        return clusterName;
+    }
+
+    /**
+     * Sets the clusterName value.
+     * 
+     * @param clusterName The clusterName to set.
+     */
+    public void setClusterName(String clusterName)
+    {
+        this.clusterName = clusterName;
     }
 
 }

@@ -2072,6 +2072,7 @@ public class Directory extends ResourceTree
             ResourceNode processNode = create(sessionID, path, true);
             Process process = (Process) processNode.getResource();
             process.setMember(memberName);
+            process.setClusterName(clusterName);
             process.setPort(port);
             return processNode;
         }
