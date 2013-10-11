@@ -499,7 +499,8 @@ class TungstenXtrabackupScript < TungstenBackupScript
       # There should not be an incremntal basedir reference in a full backup,
       # this backup must not be valid.
       if File.exists?(basedir_path)
-        raise BrokenLineageError.new "Unexpected #{INCREMENTAL_BASEDIR_FILE} found in full backup directory '#{restore_directory}. Verify that the backup is complete and remove the file before proceeding with the restore.'"
+        TU.warning("Unexpected #{INCREMENTAL_BASEDIR_FILE} found in full backup directory '#{restore_directory}.")
+        TU.cmd_result("rm -r #{basedir_path.to_s}")
       end
       lineage << restore_directory
     elsif backup_type == "incremental"
