@@ -387,7 +387,7 @@ public class CLUtils implements Serializable
      * @param printDetails - print details
      * @param includeStatistics - whether or not to include statistics
      * @param includeComponents TODO
-     * @param isRawFormat TODO
+     * @param isRawFormat If true, eliminates 'pretty' formatting.
      * @return a formatted string representing a datasource/replicator status
      */
     public static String formatStatus(TungstenProperties dsProps,
