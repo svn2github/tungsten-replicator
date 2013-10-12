@@ -11,19 +11,19 @@ class TungstenXtrabackupScript < TungstenBackupScript
     
     add_option(:tar, {
       :on => "--tar",
-      :default => false,
+      :default => "false",
       :help => "Create the backup as a TAR file"
     })
     
     add_option(:restore_to_datadir, {
       :on => "--restore-to-datadir",
-      :default => false,
+      :default => "false",
       :help => "Use the MySQL data directory for staging and preparation"
     })
     
     add_option(:incremental, {
       :on => "--incremental",
-      :default => false,
+      :default => "false",
       :help => "Create the backup as an incremental snapshot since last backup"
     })
   end
