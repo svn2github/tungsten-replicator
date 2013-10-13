@@ -692,8 +692,8 @@ public class CLUtils implements Serializable
 
             if (dbProps != null)
             {
-                String dbHeader = String.format("DATASERVER(state=%s)",
-                        dbProps.getString("state"));
+                String dbHeader = String.format("%s:DATASERVER(state=%s)",
+                        dsProps.get("host"), dbProps.getString("state"));
 
                 builder.append(formatMap(dbHeader, dbProps.map(), "", "  ",
                         false));
