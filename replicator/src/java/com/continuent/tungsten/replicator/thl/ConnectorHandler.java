@@ -98,10 +98,10 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                     + " options="
                     + new TungstenProperties(handshakeResponse.getOptions())
                             .toString());
-            
+
             setRmiHost(handshakeResponse.getOption(ProtocolParams.RMI_HOST));
             setRmiPort(handshakeResponse.getOption(ProtocolParams.RMI_PORT));
-            
+
             if (heartbeatMillis <= 0)
                 throw new THLException(
                         "Client heartbeat requests must be greater than zero: "
@@ -396,6 +396,14 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
                     catch (LogTimeoutException e)
                     {
                         sendHeartbeat(protocol);
+                        continue;
+                    }
+
+                    if (event == null)
+                    {
+                        // connection.next can return null if the event was not
+                        // yet fully flushed on disk, for example, by the writer
+                        // thread. Just try to read it again.
                         continue;
                     }
 
