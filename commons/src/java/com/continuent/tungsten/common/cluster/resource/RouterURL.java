@@ -258,6 +258,7 @@ public class RouterURL implements Cloneable
             }
             else if (propsSessionId.equals(SESSIONID_DATABASE))
             {
+                autoSession = true;
                 if (dbname != null)
                 {
                     sessionId = dbname;
@@ -271,6 +272,7 @@ public class RouterURL implements Cloneable
             }
             else if (propsSessionId.equals(SESSIONID_USER))
             {
+                autoSession = true;
                 String user = getProperty(KEY_USER);
                 if (user != null)
                 {
@@ -381,6 +383,16 @@ public class RouterURL implements Cloneable
     public void setMaxAppliedLatency(double maxAppliedLatencyPrm)
     {
         maxAppliedLatency = maxAppliedLatencyPrm;
+    }
+
+    /**
+     * Upon catalog change, it can be required to change the session ID
+     * 
+     * @param newSessionId
+     */
+    public void setSessionId(String newSessionId)
+    {
+        sessionId = newSessionId;
     }
 
     public String getSessionId()
