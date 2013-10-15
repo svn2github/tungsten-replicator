@@ -140,6 +140,8 @@ public class JdbcApplier implements RawApplier
 
     private boolean                   getColumnInformationFromDB = true;
 
+    private boolean                   failOnLocalEvents          = true;
+
     // Setters.
 
     /**
@@ -186,11 +188,21 @@ public class JdbcApplier implements RawApplier
 
     public void setGetColumnMetadataFromDB(String getMetadataFromDB)
     {
-        getColumnInformationFromDB = getMetadataFromDB.toLowerCase().compareTo(
-                "false") != 0;
+        getColumnInformationFromDB = getMetadataFromDB.equalsIgnoreCase("true");
         if (!getColumnInformationFromDB)
             logger.info("Using event column metadata. Not fetching information from underlying database.");
 
+    }
+
+    /**
+     * Should the replicator fail (and stop) when an event is local (the source
+     * of the event is the same as the local source) ?
+     * 
+     * @param failOnLocalEvents The failOnLocalEvents to set.
+     */
+    public void setFailOnLocalEvents(String failOnLocalEvents)
+    {
+        this.failOnLocalEvents = failOnLocalEvents.equalsIgnoreCase("true");
     }
 
     /**
@@ -1246,6 +1258,12 @@ public class JdbcApplier implements RawApplier
             boolean doRollback) throws ReplicatorException,
             ConsistencyException
     {
+
+        if (failOnLocalEvents
+                && header.getSourceId().equals(runtime.getSourceId()))
+            throw new ReplicatorException("Trying to apply local event (seqno "
+                    + header.getSeqno() + ")");
+
         boolean transactionCommitted = false;
         boolean consistencyCheckFailure = false;
         boolean heartbeatFailure = false;
@@ -1307,7 +1325,7 @@ public class JdbcApplier implements RawApplier
             else if (header instanceof ReplDBMSFilteredEvent)
             {
                 // This is a range of filtered events
-                // Update the position and commit if desired. 
+                // Update the position and commit if desired.
                 ((ReplDBMSFilteredEvent) header).updateCommitSeqno();
                 updateCommitSeqno(header, appliedLatency);
                 if (doCommit)
