@@ -144,7 +144,7 @@ public class OpenReplicatorManagerCtrl
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
         println("  services [-json] [-full]     - List replication services");
-        println("  shutdown [-y]                - Shut down replication services cleanly and exit");
+        println("  shutdown [-y]                - (Deprecated) shut down replication services cleanly and exit");
         println("  kill [-y]                    - Exit immediately without shutting down services");
         println("Service-Specific Commands (Require -service option)");
         println("  backup [-backup agent] [-storage agent] [-limit s]");
@@ -166,7 +166,7 @@ public class OpenReplicatorManagerCtrl
         println("                               - Set Replicator to ONLINE with start and stop points");
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("             [-values]         - Print only the values in plain text");
-        println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
+        println("  purge [-y] [-limit s]        - (Deprecated) purge non-Tungsten logins on DBMS, waiting up to s seconds");
         println("  reset {-all | -thl | -relay | -db} [-y]");
         println("                               - Deletes the replicator service (-all or empty), thl directory,");
         println("                                 relay logs directory or tungsten database for the service");
@@ -852,8 +852,9 @@ public class OpenReplicatorManagerCtrl
     // Shuts down the replicator nicely.
     private void doShutdown() throws Exception
     {
-        boolean yes = confirm("Do you really want to shutdown the replicator?");
-        if (yes)
+        boolean yes = confirm("This command is DEPRECATED and will be removed! Use `replicator stop` instead."
+                + "\r\nDo you really want to shutdown the replicator?");
+   if (yes)
         {
             expectLostConnection = true;
             this.serviceManagerMBean.stop();
@@ -1293,6 +1294,8 @@ public class OpenReplicatorManagerCtrl
     // Handle a purge operation, which kills non-Tungsten DBMS sessions.
     private void doPurge() throws Exception
     {
+        println("This command is DEPRECATED and will be removed! See `reset` instead.");
+        
         // Check for options.
         boolean yes = false;
         long seconds = 0;
