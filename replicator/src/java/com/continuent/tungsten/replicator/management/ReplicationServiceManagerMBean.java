@@ -59,7 +59,7 @@ public interface ReplicationServiceManagerMBean
      * @return True if replicator service exists and was started
      * @throws Exception Thrown if service start-up fails
      */
-    public boolean startService(String name) throws Exception;
+    public boolean loadService(String name) throws Exception;
 
     /**
      * Stops a replication service.
@@ -68,7 +68,7 @@ public interface ReplicationServiceManagerMBean
      * @return True if replicator service exists and was stopped
      * @throws Exception Thrown if service stop fails
      */
-    public boolean stopService(String name) throws Exception;
+    public boolean unloadService(String name) throws Exception;
 
     /**
      * Resets a replication service.

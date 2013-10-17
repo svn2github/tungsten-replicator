@@ -172,10 +172,10 @@ public class OpenReplicatorManagerCtrl
         println("                                 relay logs directory or tungsten database for the service");
         println("  restore [-uri u] [-limit s]  - Restore database");
         println("  setrole -role r [-uri u]     - Set replicator role");
-        println("  start                        - Start start replication service");
+        println("  load                         - Load and start replication service");
         println("  status [-name {channel-assignments|services|shards|stages|stores|tasks|watches}] [-json]");
         println("                               - Print replicator status information");
-        println("  stop [-y]                    - Stop replication service");
+        println("  unload [-y]                  - Stop and unload replication service");
         println("  wait -state st [-limit s]    - Wait up to s seconds for replicator state st");
         println("  wait -applied x [-limit s]   - Wait up to s seconds for seqno x to be applied");
         println("Shard Commands:");
@@ -342,9 +342,9 @@ public class OpenReplicatorManagerCtrl
             else if (command.equals(Commands.SERVICES))
                 doServices();
             else if (command.equals(Commands.START))
-                doStartService();
+                doLoadService();
             else if (command.equals(Commands.STOP))
-                doStopService();
+                doUnloadService();
             else if (command.equals(Commands.RESET))
                 doResetService();
             else if (command.equals(Commands.SHUTDOWN))
@@ -753,12 +753,12 @@ public class OpenReplicatorManagerCtrl
     }
 
     // Start a service.
-    private void doStartService() throws Exception
+    private void doLoadService() throws Exception
     {
         if (service == null)
             throw new Exception(
                     "You must specify a service name using -service");
-        boolean ok = serviceManagerMBean.startService(service);
+        boolean ok = serviceManagerMBean.loadService(service);
         if (ok)
             println("Service started successfully: name=" + service);
         else
@@ -766,7 +766,7 @@ public class OpenReplicatorManagerCtrl
     }
 
     // Stop a service.
-    private void doStopService() throws Exception
+    private void doUnloadService() throws Exception
     {
         // Make sure we have a service name.
         if (service == null)
@@ -776,7 +776,7 @@ public class OpenReplicatorManagerCtrl
                 "Do you really want to stop replication service %s?", service));
         if (yes)
         {
-            boolean ok = serviceManagerMBean.stopService(service);
+            boolean ok = serviceManagerMBean.unloadService(service);
             if (ok)
                 println("Service stopped successfully: name=" + service);
             else
@@ -2036,8 +2036,8 @@ public class OpenReplicatorManagerCtrl
     {
         // Replicator-wide commands.
         public static final String SERVICES         = "services";
-        public static final String START            = "start";
-        public static final String STOP             = "stop";
+        public static final String START            = "load";
+        public static final String STOP             = "unload";
         public static final String SHUTDOWN         = "shutdown";
         public static final String KILL             = "kill";
 

@@ -310,7 +310,7 @@ public class ReplicationServiceManager
      * @see com.continuent.tungsten.replicator.management.ReplicationServiceManagerMBean#startService(java.lang.String)
      */
     @MethodDesc(description = "Start individual replication service", usage = "startService name")
-    public boolean startService(
+    public boolean loadService(
             @ParamDesc(name = "name", description = "service name") String name)
             throws Exception
     {
@@ -337,7 +337,7 @@ public class ReplicationServiceManager
      * @see com.continuent.tungsten.replicator.management.ReplicationServiceManagerMBean#stopService(java.lang.String)
      */
     @MethodDesc(description = "Stop individual replication service", usage = "stopService name")
-    public boolean stopService(
+    public boolean unloadService(
             @ParamDesc(name = "name", description = "service name") String name)
             throws Exception
     {
