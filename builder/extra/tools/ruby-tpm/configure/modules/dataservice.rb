@@ -1220,11 +1220,14 @@ class ReplicationServiceSchema < ConfigurePrompt
   include ConstantValueModule
   
   def initialize
-    super(REPL_SVC_SCHEMA, "Replication service schema", PV_IDENTIFIER)
+    super(REPL_SVC_SCHEMA, "Replication service schema")
   end
   
   def load_default_value
-    @default = @config.getProperty(get_dataservice_key(DATASERVICE_SCHEMA))
+    @default = get_applier_datasource().get_replication_schema()
+    if @default == nil
+      @default = @config.getProperty(get_dataservice_key(DATASERVICE_SCHEMA))
+    end
   end
   
   def required?

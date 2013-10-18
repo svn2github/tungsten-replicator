@@ -173,7 +173,7 @@ class ConfigureDatabasePlatform
   end
   
   def get_replication_schema
-    "tungsten_${service.name}"
+    nil
   end
   
   def get_default_table_engine
