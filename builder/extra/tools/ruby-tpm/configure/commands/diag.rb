@@ -31,7 +31,14 @@ class DiagnosticCommand
   end
   
   def get_bash_completion_arguments
-    super() + ["--to"]
+    super() + ["--to", "--path"]
+  end
+  
+  def output_command_usage
+    super()
+  
+    output_usage_line("--path", "Write the diagnostic package as a ZIP file in this path")
+    output_usage_line("--to", "Send the diagnostic package as an attachment to this email address.")
   end
   
   def parsed_options?(arguments)

@@ -1632,6 +1632,10 @@ module ConfigureDeploymentStepMySQL
   end
   
   def deploy_mysql_connectorj_package
+    if Configurator.instance.is_enterprise?() != true
+      return
+    end
+    
     connector_path = "#{@config.getProperty(HOME_DIRECTORY)}/share/mysql-connector-java.jar"
     connector = @config.getProperty(REPL_MYSQL_CONNECTOR_PATH)
     

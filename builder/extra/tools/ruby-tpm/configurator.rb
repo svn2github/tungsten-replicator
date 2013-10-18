@@ -1091,7 +1091,8 @@ class Configurator
               version = version + "-#{parsed['hudson']['buildNumber']}"
             end
             @release_details = {
-              "version" => version
+              "version" => version,
+              "product" => parsed['product']
             }
             
             release_info = cmd_result("grep RELEASE #{get_manifest_file_path()}")

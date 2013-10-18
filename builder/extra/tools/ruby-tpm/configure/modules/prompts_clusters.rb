@@ -26,6 +26,7 @@ DATASERVICE_ENABLE_INSTRUMENTATION = "dataservice_enable_instrumentation"
 DATASERVICE_MASTER_SERVICES = "dataservice_master_services"
 DATASERVICE_HUB_MEMBER = "dataservice_hub_host"
 DATASERVICE_HUB_SERVICE = "dataservice_hub_service"
+TARGET_DATASERVICE = "target_dataservice"
 
 class Clusters < GroupConfigurePrompt
   def initialize
@@ -228,6 +229,54 @@ class ClusterTopologyPrompt < ConfigurePrompt
   end
 end
 
+class TargetDataservice < ConfigurePrompt
+  include ClusterPrompt
+  include NewDirectoryUpdate
+  
+  def initialize
+    super(TARGET_DATASERVICE, "Dataservice to use to determine the value of --master, --slaves, --members, --connectors and --witnesses", PV_IDENTIFIER)
+    add_command_line_alias("slave-dataservice")
+  end
+  
+  def allow_group_default
+    false
+  end
+  
+  def accept?(raw_value)
+    v = super(raw_value)
+    unless v == nil
+      v = to_identifier(v)
+    end
+    
+    return v
+  end
+  
+  def validate_value(value)
+    if value.to_s() == ""
+      return
+    end
+    
+    if @config.getProperty([DATASERVICES, value]) == nil
+      error "Unable to find the target dataservice '#{value}'"
+    end
+  end
+  
+  def required?
+    false
+  end
+  
+  module TargetDataserviceDefaultValue
+    def load_default_value
+      td = @config.getProperty(get_member_key(TARGET_DATASERVICE))
+      if td != nil
+        @default = @config.getProperty([@parent_group.name, td, @name])
+      else
+        super()
+      end
+    end
+  end
+end
+
 class ClusterMembers < ConfigurePrompt
   include ClusterPrompt
   include NoReplicatorRestart
@@ -236,6 +285,7 @@ class ClusterMembers < ConfigurePrompt
   def initialize
     super(DATASERVICE_MEMBERS, "Hostnames for the dataservice members", PV_ANY)
     override_command_line_argument("members")
+    self.extend(TargetDataservice::TargetDataserviceDefaultValue)
   end
   
   def allow_group_default
@@ -306,6 +356,7 @@ class ClusterReplicationHosts < ConfigurePrompt
   
   def initialize
     super(DATASERVICE_REPLICATION_MEMBERS, "Hostnames for the dataservice replication members", PV_ANY)
+    self.extend(TargetDataservice::TargetDataserviceDefaultValue)
   end
   
   def load_default_value
@@ -329,6 +380,7 @@ class ClusterMasterHost < ConfigurePrompt
     super(DATASERVICE_MASTER_MEMBER, "What is the master host for this dataservice?", 
       PV_ANY)
     self.extend(NotTungstenUpdatePrompt)
+    self.extend(TargetDataservice::TargetDataserviceDefaultValue)
     override_command_line_argument("master")
     add_command_line_alias("masters")
   end
@@ -382,6 +434,7 @@ class ClusterSlaves < ConfigurePrompt
     super(DATASERVICE_SLAVES, "What are the slaves for this dataservice?", 
       PV_ANY)
     self.extend(NotTungstenUpdatePrompt)
+    self.extend(TargetDataservice::TargetDataserviceDefaultValue)
     override_command_line_argument("slaves")
   end
   
@@ -403,6 +456,7 @@ class ClusterConnectors < ConfigurePrompt
   
   def initialize
     super(DATASERVICE_CONNECTORS, "Hostnames for the dataservice connectors", PV_ANY, "")
+    self.extend(TargetDataservice::TargetDataserviceDefaultValue)
     override_command_line_argument("connectors")
   end
   
@@ -417,10 +471,6 @@ class ClusterConnectors < ConfigurePrompt
       if value.to_s() == ""
         warning("You have not specified any connectors for the #{@config.getProperty(get_member_key(DATASERVICENAME))} data service")
       end
-    else
-      if value.to_s() != ""
-        error("The topology for #{@config.getProperty(get_member_key(DATASERVICENAME))} does not support connectors")
-      end
     end
   end
 end
@@ -433,6 +483,7 @@ class ClusterWitnesses < ConfigurePrompt
   
   def initialize
     super(DATASERVICE_WITNESSES, "Witness hosts for the dataservice", PV_ANY)
+    self.extend(TargetDataservice::TargetDataserviceDefaultValue)
     override_command_line_argument("witnesses")
   end
   
@@ -476,6 +527,7 @@ class ClusterActiveWitnesses < ConfigurePrompt
   
   def initialize
     super(ENABLE_ACTIVE_WITNESSES, "Enable active witness hosts", PV_BOOLEAN, "false")
+    self.extend(TargetDataservice::TargetDataserviceDefaultValue)
     add_command_line_alias("active-witnesses")
   end
   
@@ -512,6 +564,7 @@ class ClusterRelaySource < ConfigurePrompt
   def initialize
     super(DATASERVICE_RELAY_SOURCE, "Dataservice name to use as a relay source", PV_MULTIIDENTIFIER)
     override_command_line_argument("relay-source")
+    add_command_line_alias("master-dataservice")
   end
   
   def allow_group_default

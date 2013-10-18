@@ -710,7 +710,7 @@ module CommercialPrompt
     if Configurator.instance.is_enterprise?()
       super()
     else
-      false
+      super()
     end
   end
   
@@ -718,7 +718,7 @@ module CommercialPrompt
     if Configurator.instance.is_enterprise?()
       super()
     else
-      false
+      super()
     end
   end
 end

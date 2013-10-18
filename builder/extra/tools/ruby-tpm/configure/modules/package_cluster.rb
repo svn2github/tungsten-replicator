@@ -221,10 +221,12 @@ module ClusterCommandModule
   
   def load_external_configuration
     @config.reset()
-    args = get_external_option_arguments()
+    external_options = get_external_option_arguments()
     
-    args.each{
-      |section, arguments|
+    external_options.each{
+      |section_options|
+      section = section_options[:key]
+      arguments = section_options[:arguments]
       reset_cluster_options()
       
       if section == DEFAULTS
@@ -238,7 +240,7 @@ module ClusterCommandModule
   end
   
   def get_external_option_arguments
-    external_arguments = {}
+    external_arguments = []
     
     if @config_ini_path != nil
       debug("Load external configuration from #{@config_ini_path}")
@@ -249,10 +251,16 @@ module ClusterCommandModule
         if section.key == "defaults"
           section.key = DEFAULTS
         end
-        unless external_arguments.has_key?(section.key)
-          external_arguments[section.key] = []
+        if section.key == "defaults.replicator"
+          if Configurator.instance.is_enterprise?() == false
+            section.key = DEFAULTS
+          else
+            debug("Bypassing the defaults.replicator section because this is not a Tungsten Replicator build")
+            next
+          end
         end
         
+        args = []
         section.each{
           |line|
           unless line.is_a?(Array)
@@ -273,8 +281,13 @@ module ClusterCommandModule
               v_string = v_string[0, (v_string.length()-2)]
               Configurator.instance.warning("Extra ' \\' characters were found at the end of #{value.key}=#{value.value}. They have been automatically removed. You may wrap the value with double-quotes in order to keep the extra characters.")
             end
-            external_arguments[section.key] << "#{argument}=#{v_string}"
+            args << "#{argument}=#{v_string}"
           }
+        }
+        
+        external_arguments << {
+          :key => section.key,
+          :arguments => args
         }
       }
     end
@@ -1176,19 +1189,28 @@ module ClusterCommandModule
       
       config_obj.getPropertyOr(path, {}).delete_if{
         |g_alias, g_props|
-
-        (g_alias != DEFAULTS && g_props[DEPLOYMENT_HOST] != config_obj.getNestedProperty([DEPLOYMENT_HOST]))
-      }
-      
-      config_obj.getPropertyOr(path, {}).keys().each{
-        |p_alias|
-        if p_alias == DEFAULTS
-          next
+        drop = true
+        
+        if g_alias == DEFAULTS
+          drop = false
         end
         
-        ds_list = ds_list + Array(config_obj.getProperty(path + [p_alias, DEPLOYMENT_DATASERVICE]))
+        if g_props[DEPLOYMENT_HOST] == config_obj.getNestedProperty([DEPLOYMENT_HOST])
+          Array(config_obj.getProperty(path + [g_alias, DEPLOYMENT_DATASERVICE])).each{
+            |ds_alias|
+            topology = Topology.build(ds_alias, config_obj)
+          
+            if topology.enabled?()
+              drop = false
+              ds_list << ds_alias
+            end
+          }
+        end
+        
+        drop
       }
     }
+    ds_list.uniq!()
     
     # Are any of the data services for this host to be deployed?
     found_included_dataservice = false
@@ -1232,6 +1254,10 @@ module ClusterCommandModule
       config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_RELAY_SOURCE], "").split(",").each{
         |rds_alias|
         ds_list << rds_alias
+      }
+      config_obj.getPropertyOr([DATASERVICES, ds_alias, TARGET_DATASERVICE], "").split(",").each{
+        |tds_alias|
+        ds_list << tds_alias
       }
       config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MASTER_SERVICES], "").split(",").each{
         |mds_alias|

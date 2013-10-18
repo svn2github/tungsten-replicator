@@ -232,8 +232,16 @@ class HomeDirectoryCheck < ConfigureValidationCheck
     if ENV['CONTINUENT_ROOT'] != nil
       unless ENV['CONTINUENT_ROOT'].to_s() == @config.getProperty(HOME_DIRECTORY).to_s()
         unless File.identical?(ENV['CONTINUENT_ROOT'].to_s(), @config.getProperty(HOME_DIRECTORY).to_s())
-           error("The setting for home-directory (#{@config.getProperty(HOME_DIRECTORY)}) is different to the Environment Variable CONTINUENT_ROOT (#{ENV['CONTINUENT_ROOT']})")
-           help("Remove the environment variable CONTINUENT_ROOT to continue")
+          root_tpm = "#{ENV['CONTINUENT_ROOT'].to_s()}/tungsten/tools/tpm"
+          if File.exist?(root_tpm)
+            root_manifest = JSON.parse(cmd_result("#{root_tpm} query manifest"))
+            if root_manifest["product"] != Configurator.instance.get_release_details()["product"]
+              return
+            end
+          end
+          
+          error("The setting for home-directory (#{@config.getProperty(HOME_DIRECTORY)}) is different to the Environment Variable CONTINUENT_ROOT (#{ENV['CONTINUENT_ROOT']})")
+          help("Remove the environment variable CONTINUENT_ROOT to continue")
         end
       end
     end

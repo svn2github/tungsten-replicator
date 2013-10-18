@@ -22,6 +22,26 @@ module Topology
     false
   end
   
+  def enabled?
+    if use_management?()
+      # Managed topologies are only enabled if this isn't a 
+      # clustering build
+      if Configurator.instance.is_enterprise?()
+        true
+      else
+        false
+      end
+    else
+      # Non-Management topologies are only enabled if this isn't a 
+      # clustering build
+      if Configurator.instance.is_enterprise?()
+        false
+      else
+        true
+      end
+    end
+  end
+  
   def get_master_thl_uri(h_alias)
     rs_alias = @ds_alias + "_" + h_alias
     hosts = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_MASTERHOST]).to_s().split(",")
