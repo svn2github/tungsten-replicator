@@ -159,7 +159,7 @@ module DeleteReplicationServiceDeploymentStep
         end
         
         if svc_is_running?(get_svc_command("#{get_deployment_basedir()}/tungsten-replicator/bin/replicator"))
-          cmd_result("echo yes | #{get_deployment_basedir()}/tungsten-replicator/bin/trepctl -port #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_RMI_PORT])} -service #{@config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])} stop")
+          cmd_result("echo yes | #{get_deployment_basedir()}/tungsten-replicator/bin/trepctl -port #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_RMI_PORT])} -service #{@config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])} unload")
         end
         
         if File.exist?(@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_CONFIG_FILE]))

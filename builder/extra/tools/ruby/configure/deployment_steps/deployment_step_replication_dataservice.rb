@@ -34,7 +34,7 @@ module ConfigureDeploymentStepReplicationDataservice
         rescue CommandError => ce
           # The status command fails if the service is not running
           info("Start the replication service")
-          cmd_result("#{get_trepctl_cmd()} -service #{@config.getProperty(get_service_key(DEPLOYMENT_SERVICE))} start")
+          cmd_result("#{get_trepctl_cmd()} -service #{@config.getProperty(get_service_key(DEPLOYMENT_SERVICE))} load")
           
           if @config.getProperty(REPL_SVC_REPORT) == "true"
             output("Getting services list")

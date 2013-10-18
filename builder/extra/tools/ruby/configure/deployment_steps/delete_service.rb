@@ -9,7 +9,7 @@ module DeploymentStepDeleteService
   def delete_replication_dataservice
     service_key = @config.getProperty(DEPLOYMENT_SERVICE)
     
-    cmd_result("echo yes | #{get_deployment_basedir()}/tungsten-replicator/bin/trepctl -port #{@config.getProperty(REPL_RMI_PORT)} -service #{@config.getProperty([REPL_SERVICES, service_key, DEPLOYMENT_SERVICE])} stop")
+    cmd_result("echo yes | #{get_deployment_basedir()}/tungsten-replicator/bin/trepctl -port #{@config.getProperty(REPL_RMI_PORT)} -service #{@config.getProperty([REPL_SERVICES, service_key, DEPLOYMENT_SERVICE])} unload")
     cmd_result("echo yes | #{get_deployment_basedir()}/tungsten-replicator/bin/trepctl -port #{@config.getProperty(REPL_RMI_PORT)} -service #{@config.getProperty([REPL_SERVICES, service_key, DEPLOYMENT_SERVICE])} reset")
     
     cmd_result("rm -rf #{@config.getProperty([REPL_SERVICES, service_key, REPL_LOG_DIR])}")
