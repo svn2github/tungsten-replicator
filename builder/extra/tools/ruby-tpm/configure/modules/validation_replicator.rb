@@ -340,6 +340,14 @@ class ParallelReplicationCountCheck < ConfigureValidationCheck
       error("You are trying to configure this host with a custom replication channels setting.  That is not currently supported.  Please update the host configuration with --channels=#{ds_channels}")
     end
   end
+  
+  def enabled?
+    if get_topology().is_a?(ClusterTopology)
+      super()
+    else
+      false
+    end
+  end
 end
 
 class DatasourceBootScriptCheck < ConfigureValidationCheck

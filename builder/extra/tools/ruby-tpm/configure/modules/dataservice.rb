@@ -505,16 +505,6 @@ class ReplicationServiceParallelizationType < ConfigurePrompt
       PropertyValidator.new("disk|memory|none", 
         "Value must be disk, memory, or none"), "none")
   end
-  
-  def validate_value(value)
-    if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SLAVE)) == "true" && value != "none"
-      error("Parallelization type must be set to 'none' for heterogenous replication")
-    end
-    
-    if is_valid?()
-      super(value)
-    end
-  end
 end
 
 class ReplicationServiceParallelizationStoreClass < ConfigurePrompt
