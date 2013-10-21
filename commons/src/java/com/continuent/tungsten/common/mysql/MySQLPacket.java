@@ -137,7 +137,7 @@ public class MySQLPacket
         }
         catch (IOException e)
         {
-            logger.error("I/O error while reading from client socket", e);
+            logger.error("I/O error while reading from client socket");
         }
 
         return null;
