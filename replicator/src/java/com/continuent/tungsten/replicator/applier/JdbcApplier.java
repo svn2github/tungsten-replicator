@@ -184,13 +184,9 @@ public class JdbcApplier implements RawApplier
         this.ignoreSessionVars = ignoreSessionVars;
     }
 
-    public void setGetColumnMetadataFromDB(String getMetadataFromDB)
+    public void setGetColumnMetadataFromDB(boolean getColumnInformationFromDB)
     {
-        getColumnInformationFromDB = getMetadataFromDB.toLowerCase().compareTo(
-                "false") != 0;
-        if (!getColumnInformationFromDB)
-            logger.info("Using event column metadata. Not fetching information from underlying database.");
-
+        this.getColumnInformationFromDB = getColumnInformationFromDB;
     }
 
     /**
