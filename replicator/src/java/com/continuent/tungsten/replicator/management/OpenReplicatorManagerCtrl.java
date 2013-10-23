@@ -166,7 +166,7 @@ public class OpenReplicatorManagerCtrl
         println("                               - Set Replicator to ONLINE with start and stop points");
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("             [-values]         - Print only the values in plain text");
-        println("  purge [-y] [-limit s]        - (Deprecated) purge non-Tungsten logins on DBMS, waiting up to s seconds");
+        println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
         println("  reset {-all | -thl | -relay | -db} [-y]");
         println("                               - Deletes the replicator service (-all or empty), thl directory,");
         println("                                 relay logs directory or tungsten database for the service");
@@ -1294,8 +1294,6 @@ public class OpenReplicatorManagerCtrl
     // Handle a purge operation, which kills non-Tungsten DBMS sessions.
     private void doPurge() throws Exception
     {
-        println("This command is DEPRECATED and will be removed! See `reset` instead.");
-        
         // Check for options.
         boolean yes = false;
         long seconds = 0;
