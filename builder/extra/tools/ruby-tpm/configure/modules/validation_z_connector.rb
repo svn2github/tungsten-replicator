@@ -173,8 +173,8 @@ class RouterDelayBeforeOfflineCheck < ConfigureValidationCheck
   end
 
   def validate
-    if @config.getProperty('connector_delay_before_offline').to_i <= 0 or   @config.getProperty('connector_delay_before_offline').to_i > 60
-      error("connector_delay_before_offline must start greater than 0 and less than 300000  - current value is #{@config.getProperty('connector_delay_before_offline').to_i}")
+    if @config.getProperty('connector_delay_before_offline').to_i <= 0 or @config.getProperty('connector_delay_before_offline').to_i > 60
+      error("connector_delay_before_offline must start greater than 0 and less than 60  - current value is #{@config.getProperty('connector_delay_before_offline').to_i}")
     end
   end
 end

@@ -800,6 +800,21 @@ class HostDefaultDataserviceName < ConfigurePrompt
       end
     }
     
+    @config.getNestedPropertyOr([MANAGERS], {}).each_key{
+      |m_alias|
+      if m_alias == DEFAULTS
+        next
+      end
+      
+      if @config.getNestedProperty([MANAGERS, m_alias, DEPLOYMENT_HOST]) == get_member()
+        ds_alias = @config.getNestedProperty([MANAGERS, m_alias, DEPLOYMENT_DATASERVICE])
+        if ds_alias != ""
+          @default = ds_alias
+          return
+        end
+      end
+    }
+    
     @config.getNestedPropertyOr([CONNECTORS], {}).each_key{
       |h_alias|
       if h_alias == DEFAULTS
