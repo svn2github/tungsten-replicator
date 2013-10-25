@@ -352,6 +352,8 @@ class RubyVersionCheck < ConfigureValidationCheck
       warning "Ruby version may not work; try Ruby 1.8.5-1.8.7 or 1.9.3"
     elsif ruby_version =~ /^1\.9/
       debug "Ruby version (#{ruby_version}) OK"
+    elsif ruby_version =~ /^2\.0/
+      debug "Ruby version (#{ruby_version}) OK"
     else
       error "Unrecognizable Ruby version: #{ruby_version}"
     end
