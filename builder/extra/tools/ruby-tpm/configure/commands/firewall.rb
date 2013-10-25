@@ -62,9 +62,13 @@ class FirewallCommand
         end
         puts "To " + cfg.getProperty(HOST)
         Configurator.instance.write_divider(nil)
-        output_usage_line("From application servers", cfg.getProperty(PORTS_FOR_USERS).sort().join(', '))
-        output_usage_line("From connector servers", cfg.getProperty(PORTS_FOR_CONNECTORS).sort().join(', '))
-        output_usage_line("From database servers", (cfg.getProperty(PORTS_FOR_MANAGERS)+cfg.getProperty(PORTS_FOR_REPLICATORS)).sort().join(', '))
+        if Configurator.instance.is_enterprise?()
+          output_usage_line("From application servers", cfg.getProperty(PORTS_FOR_USERS).sort().join(', '))
+          output_usage_line("From connector servers", cfg.getProperty(PORTS_FOR_CONNECTORS).sort().join(', '))
+          output_usage_line("From database servers", (cfg.getProperty(PORTS_FOR_MANAGERS)+cfg.getProperty(PORTS_FOR_REPLICATORS)).sort().join(', '))
+        else
+          output_usage_line("From database servers", (cfg.getProperty(PORTS_FOR_REPLICATORS)).sort().join(', '))
+        end
       
         first_host=false
       }

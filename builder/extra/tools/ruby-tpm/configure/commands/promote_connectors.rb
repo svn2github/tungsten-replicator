@@ -34,6 +34,14 @@ class PromoteConnectorsCommand
   def self.get_command_description
     "Stop the currently running connector and start the connector in the active installation.  This command should follow 'tpm promote --no-connectors' or 'tpm upgrade --no-connectors'"
   end
+  
+  def self.display_command
+    if Configurator.instance.is_enterprise?()
+      true
+    else
+      false
+    end
+  end
 end
 
 class CurrentConnectorCheck < ConfigureValidationCheck
