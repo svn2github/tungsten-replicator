@@ -16,6 +16,34 @@ class ReverseEngineerCommand
     output commands.join("\n")
   end
   
+  def parsed_options?(arguments)
+    arguments = super(arguments)
+
+    if display_help?() && !display_preview?()
+      return arguments
+    end
+    
+    @public_arguments = false
+  
+    # Define extra option to load event.  
+    opts=OptionParser.new
+    opts.on("--public") { @public_arguments = true }
+    remainder = Configurator.instance.run_option_parser(opts, arguments)
+
+    # Return remaining options. 
+    remainder
+  end
+  
+  def get_bash_completion_arguments
+    super() + ["--public"]
+  end
+  
+  def output_command_usage
+    super()
+  
+    output_usage_line("--public", "Hide passwords in the command output")
+  end
+  
   def build_commands(cfg)
     ph = ConfigurePromptHandler.new(cfg)
     
@@ -34,7 +62,7 @@ class ReverseEngineerCommand
           prompt = ph.find_prompt_by_name(k)
           if prompt
             begin
-              add_to(prompt.build_command_line_argument(DEFAULTS, v), default_arguments)
+              add_to(prompt.build_command_line_argument(DEFAULTS, v, @public_arguments), default_arguments)
             rescue IgnoreError
             end
           else
@@ -68,9 +96,9 @@ class ReverseEngineerCommand
         if prompt
           begin
             unless is_composite
-              add_to(prompt.build_command_line_argument(ds_alias, v), dataservice_arguments[ds_alias])
+              add_to(prompt.build_command_line_argument(ds_alias, v, @public_arguments), dataservice_arguments[ds_alias])
             else
-              add_to(prompt.build_command_line_argument(ds_alias, v), composite_dataservice_arguments[ds_alias])
+              add_to(prompt.build_command_line_argument(ds_alias, v, @public_arguments), composite_dataservice_arguments[ds_alias])
             end
           rescue IgnoreError
           end
@@ -94,9 +122,9 @@ class ReverseEngineerCommand
           if prompt
             begin
               unless is_composite
-                add_to(prompt.build_command_line_argument(ds_alias, v), dataservice_arguments[ds_alias])
+                add_to(prompt.build_command_line_argument(ds_alias, v, @public_arguments), dataservice_arguments[ds_alias])
               else
-                add_to(prompt.build_command_line_argument(ds_alias, v), composite_dataservice_arguments[ds_alias])
+                add_to(prompt.build_command_line_argument(ds_alias, v, @public_arguments), composite_dataservice_arguments[ds_alias])
               end
             rescue IgnoreError
             end
@@ -121,7 +149,7 @@ class ReverseEngineerCommand
         prompt = ph.find_prompt_by_name(k)
         if prompt
           begin
-            add_to(prompt.build_command_line_argument(DEFAULTS, v), default_arguments)
+            add_to(prompt.build_command_line_argument(DEFAULTS, v, @public_arguments), default_arguments)
           rescue IgnoreError
           end
         else
@@ -139,7 +167,7 @@ class ReverseEngineerCommand
           prompt = ph.find_prompt_by_name(k)
           if prompt
             begin
-              add_to(prompt.build_command_line_argument(DEFAULTS, v), default_arguments)
+              add_to(prompt.build_command_line_argument(DEFAULTS, v, @public_arguments), default_arguments)
             rescue IgnoreError
             end
           else
@@ -167,7 +195,7 @@ class ReverseEngineerCommand
         prompt = ph.find_prompt_by_name(k)
         if prompt
           begin
-            add_to(prompt.build_command_line_argument(h_alias, v), host_arguments[h_alias])
+            add_to(prompt.build_command_line_argument(h_alias, v, @public_arguments), host_arguments[h_alias])
           rescue IgnoreError
           end
         else
@@ -204,7 +232,7 @@ class ReverseEngineerCommand
             prompt = ph.find_prompt_by_name(k)
             if prompt
               begin
-                arg = prompt.build_command_line_argument(p_alias, v)
+                arg = prompt.build_command_line_argument(p_alias, v, @public_arguments)
                 ds_alias.each{
                   |d|
                   unless host_service_arguments[h_alias].has_key?(d)

@@ -649,6 +649,7 @@ end
 class ReplicationAPIPassword < ConfigurePrompt
   include ClusterHostPrompt
   include AdvancedPromptModule
+  include PrivateArgumentModule
 
   def initialize
     super(REPL_API_PASSWORD, "HTTP basic auth password for the replication API", PV_ANY, "secret")
@@ -1194,7 +1195,7 @@ class HostGlobalProperties < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(member, values)
+  def build_command_line_argument(member, values, public_argument = false)
     args = []
     
     if values.is_a?(Array)
@@ -1265,7 +1266,7 @@ class HostSkippedChecks < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(member, values)
+  def build_command_line_argument(member, values, public_argument = false)
     args = []
     
     if values.is_a?(Array)
@@ -1336,7 +1337,7 @@ class HostSkippedWarnings < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(member, values)
+  def build_command_line_argument(member, values, public_argument = false)
     args = []
     
     if values.is_a?(Array)
@@ -1444,6 +1445,7 @@ end
 
 class HostJavaKeystorePassword < ConfigurePrompt
   include ClusterHostPrompt
+  include PrivateArgumentModule
   
   def initialize
     super(JAVA_KEYSTORE_PASSWORD, "The password for unlocking the tungsten_keystore.jks file in the security directory", PV_ANY, "tungsten")
@@ -1452,6 +1454,7 @@ end
 
 class HostJavaTruststorePassword < ConfigurePrompt
   include ClusterHostPrompt
+  include PrivateArgumentModule
   
   def initialize
     super(JAVA_TRUSTSTORE_PASSWORD, "The password for unlocking the tungsten_truststore.jks file in the security directory", PV_ANY, "tungsten")

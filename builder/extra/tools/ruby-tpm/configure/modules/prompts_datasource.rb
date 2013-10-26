@@ -162,6 +162,7 @@ end
 class DatasourceDBPassword < ConfigurePrompt
   include DatasourcePrompt
   include ManagerRestart
+  include PrivateArgumentModule
   
   def initialize
     super(REPL_DBPASSWORD, "Database password", 
@@ -390,6 +391,7 @@ end
 
 class DirectDatasourceDBPassword < ConfigurePrompt
   include DatasourcePrompt
+  include PrivateArgumentModule
 
   def initialize
     super(EXTRACTOR_REPL_DBPASSWORD, "Database password", 

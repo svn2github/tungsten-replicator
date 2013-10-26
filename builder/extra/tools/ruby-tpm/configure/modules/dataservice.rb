@@ -1415,7 +1415,7 @@ class ReplicationServiceGlobalProperties < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(member, values)
+  def build_command_line_argument(member, values, public_argument = false)
     args = []
     
     if values.is_a?(Array)

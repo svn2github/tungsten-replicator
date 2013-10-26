@@ -192,6 +192,7 @@ end
 
 class ConnectorPassword < ConfigurePrompt
   include ConnectorPrompt
+  include PrivateArgumentModule
   
   def initialize
     super(CONN_CLIENTPASSWORD, "Database password for the connector", PV_ANY)
@@ -708,6 +709,7 @@ end
 
 class ConnectorJavaKeystorePassword < ConfigurePrompt
   include ConnectorPrompt
+  include PrivateArgumentModule
   
   def initialize
     super(JAVA_CONNECTOR_KEYSTORE_PASSWORD, "The password for unlocking the tungsten_connector_keystore.jks file in the security directory", PV_ANY)
@@ -720,6 +722,7 @@ end
 
 class ConnectorJavaTruststorePassword < ConfigurePrompt
   include ConnectorPrompt
+  include PrivateArgumentModule
   
   def initialize
     super(JAVA_CONNECTOR_TRUSTSTORE_PASSWORD, "The password for unlocking the tungsten_connector_truststore.jks file in the security directory", PV_ANY)

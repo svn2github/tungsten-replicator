@@ -430,7 +430,7 @@ class ConfigurePrompt
     enabled_for_command_line?()
   end
   
-  def build_command_line_argument(member, v)
+  def build_command_line_argument(member, v, public_argument = false)
     if build_command_line_argument?(member, v)
       return ["--#{get_command_line_argument()}=#{v}"]
     else
@@ -741,6 +741,16 @@ module NoStoredServerConfigValue
       @config.setProperty(get_name(), nil)
       @config.setProperty([SYSTEM] + get_name().split('.'), nil)
     end
+  end
+end
+
+module PrivateArgumentModule
+  def build_command_line_argument(member, v, public_argument = false)
+    if public_argument == true
+      v = Array.new(v.length).fill("@").join("")
+    end
+    
+    super(member, v, public_argument)
   end
 end
 

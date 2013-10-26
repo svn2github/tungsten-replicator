@@ -415,7 +415,7 @@ class ClusterMasterHost < ConfigurePrompt
     super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true")
   end
   
-  def build_command_line_argument(member, v)
+  def build_command_line_argument(member, v, public_argument = false)
     if v.to_s().split(",").size() > 1
       ["--masters=#{v}"]
     else
@@ -908,7 +908,7 @@ class DataserviceGlobalProperties < ConfigurePrompt
     false
   end
   
-  def build_command_line_argument(member, values)
+  def build_command_line_argument(member, values, public_argument = false)
     args = []
     
     if values.is_a?(Array)
