@@ -1800,7 +1800,7 @@ class MySQLDumpCheck < ConfigureValidationCheck
      
     if "#{runningVersion[0]}.#{runningVersion[1]}" !=  "#{dumpVersion[0]}.#{dumpVersion[1]}"
       error("The version of Mysqldump in the path does not match the running version of MySQL")
-      help("The instance is running #{runningVersion[0]}.#{runningVersion[1]} but the version of mysqldump in the path is #{dumpVersion[0]}.#{dumpVersion[1]} ")
+      help("The instance is running #{runningVersion[0]}.#{runningVersion[1]} but the version of mysqldump in the path is #{dumpVersion[0]}.#{dumpVersion[1]}. Add the --preferred-path option to use the proper mysqldump command.")
     end
   end
   def enabled?
