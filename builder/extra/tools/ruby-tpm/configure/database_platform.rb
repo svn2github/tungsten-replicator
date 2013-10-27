@@ -37,7 +37,9 @@ class ConfigureDatabasePlatform
 	def get_extractor_filters()
     filters = []
 	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_MASTER]) == "true"
-	    filters << "colnames"
+	    unless extractor_provides_colnames?()
+	      filters << "colnames"
+	    end
 	    filters << "pkey"
 	  end
 	  
@@ -182,6 +184,10 @@ class ConfigureDatabasePlatform
   
   def get_allowed_table_engines
     ["innodb"]
+  end
+  
+  def extractor_provides_colnames?
+    false
   end
   
   def self.build(prefix, config)
