@@ -813,7 +813,7 @@ class CurrentTopologyCheck < ConfigureValidationCheck
   def validate
     current_release_directory = @config.getProperty(CURRENT_RELEASE_DIRECTORY)
     configured_role = nil
-    dynamic_properties = @config.getProperty(REPL_SVC_DYNAMIC_CONFIG)
+    dynamic_properties = "#{current_release_directory}/tungsten-replicator/conf/#{File.basename(@config.getProperty(REPL_SVC_DYNAMIC_CONFIG))}"
     if File.exists?(dynamic_properties)
       begin
         configured_role = cmd_result("grep replicator.role #{dynamic_properties} | awk -F= '{print $2}'")
@@ -835,8 +835,9 @@ class CurrentTopologyCheck < ConfigureValidationCheck
       return
     end
 
-    unless parsed_topology[CCTRL::DATASOURCES].has_key?(@config.getProperty(HOST))
-      warning("This host is not listed in the current topology")
+    unless parsed_topology != nil && 
+        parsed_topology.has_key?(CCTRL::DATASOURCES) && 
+        parsed_topology[CCTRL::DATASOURCES].has_key?(@config.getProperty(HOST))
       return
     end
     
