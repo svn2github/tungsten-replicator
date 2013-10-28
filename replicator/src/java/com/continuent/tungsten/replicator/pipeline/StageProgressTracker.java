@@ -330,7 +330,8 @@ public class StageProgressTracker
             timeInMs = extractedTstamp.getTime();
 
         long latencyInMs = 1000 * replEvent.getAppliedLatency();
-        committedSeqno.report(taskId, replEvent.getSeqno(),timeInMs, timeInMs + latencyInMs, replEvent);
+        committedSeqno.report(taskId, replEvent.getSeqno(), timeInMs, timeInMs
+                + latencyInMs, replEvent);
         taskInfo[taskId].setLastCommittedEvent(replEvent);
     }
 

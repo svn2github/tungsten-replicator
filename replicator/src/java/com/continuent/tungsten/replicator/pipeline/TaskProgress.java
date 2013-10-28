@@ -34,24 +34,31 @@ public class TaskProgress
 {
     private final String   stageName;
     private final int      taskId;
-    private ReplDBMSHeader lastProcessedEvent  = null;
-    private ReplDBMSHeader lastCommittedEvent  = null;
-    private boolean        cancelled           = false;
-    private long           eventCount          = 0;
-    private long           blockCount          = 0;
-    private long           applyLatencyMillis  = 0;
+    private ReplDBMSHeader lastProcessedEvent       = null;
+    private ReplDBMSHeader lastCommittedEvent       = null;
+    private boolean        cancelled                = false;
+    private long           eventCount               = 0;
+    private long           blockCount               = 0;
+    private long           lastCommittedBlockSize   = -1;
+    private long           lastCommittedBlockMillis = -1;
+    private long           applyLatencyMillis       = 0;
     private long           startMillis;
-    private long           totalExtractMillis  = 0;
-    private long           totalFilterMillis   = 0;
-    private long           totalApplyMillis    = 0;
-    private TaskState      state               = TaskState.other;
+    private long           totalExtractMillis       = 0;
+    private long           totalFilterMillis        = 0;
+    private long           totalApplyMillis         = 0;
+    private TaskState      state                    = TaskState.other;
 
     // Used to mark the beginning of a timing interval.
-    private long           intervalStartMillis = 0;
+    private long           intervalStartMillis      = 0;
 
     // Used to mark the end of the last known interval so we can
     // accurately compute elapsed time.
-    private long           endMillis           = 0;
+    private long           endMillis                = 0;
+
+    // Used to compute the number of events for last block as
+    // well as the length of time before commit.
+    private long           eventCountAtLastCommit   = -1;
+    private long           lastCommitMillis         = -1;
 
     /**
      * Defines a new task progress tracker for the given task ID.
@@ -74,16 +81,20 @@ public class TaskProgress
         this.taskId = other.getTaskId();
         this.applyLatencyMillis = other.getApplyLatencyMillis();
         this.cancelled = other.isCancelled();
-        this.eventCount = other.getEventCount();
         this.blockCount = other.getBlockCount();
+        this.endMillis = other.getEndMillis();
+        this.eventCount = other.getEventCount();
+        this.eventCountAtLastCommit = other.getEventCountAtLastCommit();
         this.lastProcessedEvent = other.getLastProcessedEvent();
         this.lastCommittedEvent = other.getLastCommittedEvent();
+        this.lastCommittedBlockSize = other.getLastCommittedBlockSize();
+        this.lastCommittedBlockMillis = other.getLastCommittedBlockMillis();
+        this.lastCommitMillis = other.getLastCommitMillis();
         this.startMillis = other.getStartMillis();
-        this.endMillis = other.getEndMillis();
+        this.state = other.getState();
         this.totalApplyMillis = other.getTotalApplyMillis();
         this.totalExtractMillis = other.getTotalExtractMillis();
         this.totalFilterMillis = other.getTotalFilterMillis();
-        this.state = other.getState();
     }
 
     /**
@@ -127,6 +138,30 @@ public class TaskProgress
             throw new RuntimeException("BUG: Attempt to commit a null event!");
         this.lastCommittedEvent = lastCommittedEvent;
         this.blockCount++;
+
+        // Store the current block size, which is computed from the event
+        // count at previous commit.
+        lastCommittedBlockSize = getCurrentBlockSize();
+        eventCountAtLastCommit = eventCount;
+
+        // Store the commit interval length, assuming we have a valid beginning
+        // value.
+        if (lastCommitMillis > 1)
+        {
+            lastCommittedBlockMillis = System.currentTimeMillis()
+                    - lastCommitMillis;
+        }
+        lastCommitMillis = System.currentTimeMillis();
+    }
+
+    public long getLastCommittedBlockMillis()
+    {
+        return lastCommittedBlockMillis;
+    }
+
+    public long getLastCommitMillis()
+    {
+        return lastCommitMillis;
     }
 
     public boolean isCancelled()
@@ -149,6 +184,16 @@ public class TaskProgress
         this.eventCount = eventCount;
     }
 
+    public long getEventCountAtLastCommit()
+    {
+        return eventCountAtLastCommit;
+    }
+
+    public void setEventCountAtLastCommit(long eventCountAtLastCommit)
+    {
+        this.eventCountAtLastCommit = eventCountAtLastCommit;
+    }
+
     public void incrementEventCount()
     {
         this.eventCount++;
@@ -159,16 +204,38 @@ public class TaskProgress
         return blockCount;
     }
 
-    public void setBlockCount(long blockCount)
-    {
-        this.blockCount = blockCount;
-    }
-
     public double getAverageBlockSize()
     {
         if (blockCount > 0)
             return (double) getEventCount() / blockCount;
         else
+            return 0.0;
+    }
+
+    public long getCurrentBlockSize()
+    {
+        if (this.eventCountAtLastCommit > -1)
+            return eventCount - eventCountAtLastCommit;
+        else
+            return -1;
+    }
+
+    public long getLastCommittedBlockSize()
+    {
+        return lastCommittedBlockSize;
+    }
+
+    public void setLastCommittedBlockSize(long lastCommittedBlockSize)
+    {
+        this.lastCommittedBlockSize = lastCommittedBlockSize;
+    }
+
+    /** Return time in seconds of last committed block. */
+    public double getLastCommittedBlockTime()
+    {
+        if (this.lastCommittedBlockMillis > 0)
+            return lastCommittedBlockMillis / 1000.0;
+        else 
             return 0.0;
     }
 

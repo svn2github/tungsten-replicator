@@ -524,7 +524,7 @@ public class PipelineTest extends TestCase
 
             // Create config with pipeline with input and output queues.
             TungstenProperties config = helper.createDoubleQueueRuntime(40,
-                    blockSize);
+                    blockSize, 0);
             ReplicatorRuntime runtime = new ReplicatorRuntime(config,
                     new MockOpenReplicatorContext(),
                     ReplicatorMonitor.getInstance());
@@ -559,6 +559,88 @@ public class PipelineTest extends TestCase
             double blockDifference = Math.abs(progress.getAverageBlockSize()
                     - blockSize);
             assertTrue("Average block size", blockDifference < 0.1);
+
+            // Shut it down.
+            pipeline.shutdown(false);
+            pipeline.release(runtime);
+        }
+    }
+
+    /**
+     * Verify that if a block commit interval is defined transactions will not
+     * commit at shorter intervals than specified. We can do this by setting
+     * block commit to a high number (100) but set the interval to be 1 seconds.
+     * We then insert X events per second over 10 seconds. If intervals are
+     * working correctly there should be no more commits than the number of
+     * elapsed seconds.
+     * <p/>
+     * Note: this case assumes that pipeline threads are scheduled fairly! If
+     * you have a tiny VM it might not work as some threads might not get enough
+     * CPU time, which would cause blocks not to commit in a timely fashion.  
+     */
+    public void testBlockCommitIntervals() throws Exception
+    {
+        // Define transaction count and different block sizes to use.
+        int xacts = 50;
+        int millisPerXact = 100;
+        int[] intervals = {200, 1000};
+
+        // Try test for each block size.
+        for (int i = 0; i < intervals.length; i++)
+        {
+            int interval = intervals[i];
+            logger.info("Testing block commit: transactions=" + xacts
+                    + " block interval=" + interval);
+
+            // Create config with pipeline with input and output queues
+            // and start resulting pipeline.
+            TungstenProperties config = helper.createDoubleQueueRuntime(100,
+                    100, interval);
+            ReplicatorRuntime runtime = new ReplicatorRuntime(config,
+                    new MockOpenReplicatorContext(),
+                    ReplicatorMonitor.getInstance());
+            runtime.configure();
+            runtime.prepare();
+            Pipeline pipeline = runtime.getPipeline();
+            pipeline.start(new MockEventDispatcher());
+
+            // Load data into the pipeline with sufficient spacing to
+            // trigger block interval.
+            InMemoryQueueStore input = (InMemoryQueueStore) pipeline
+                    .getStore("q1");
+            long seqno = -1;
+            logger.info("Starting to add events; first seqno=0");
+            for (int xactCount = 0; xactCount < xacts; xactCount++)
+            {
+                // Sleep between each event so that we get block commit
+                // effects to kick in.
+                seqno = xactCount;
+                ReplDBMSEvent event = helper.createEvent(seqno, "db0");
+                input.put(event);
+                Thread.sleep(millisPerXact);
+            }
+            logger.info("Added events; last seqno=" + seqno);
+
+            // Test for successfully applied and extracted sequence numbers.
+            Future<ReplDBMSHeader> future = pipeline
+                    .watchForCommittedSequenceNumber(seqno, false);
+            ReplDBMSHeader matchingEvent = future.get(5, TimeUnit.SECONDS);
+            assertEquals("Applied sequence number matches", xacts - 1,
+                    matchingEvent.getSeqno());
+
+            // Check the number of blocks committed. It must be greater than
+            // or equal to the expected number, which we derive by dividing the
+            // interval into the time over which transactions were added.
+            long minimumBlocks = xacts * millisPerXact / interval;
+            Stage stage = pipeline.getStages().get(0);
+            TaskProgress progress = stage.getProgressTracker().getTaskProgress(
+                    0);
+            long actualBlocks = progress.getBlockCount();
+            String message = String.format(
+                    "actualBlocks (%d) >= minimumBlocks (%d)", actualBlocks,
+                    minimumBlocks);
+            logger.info("Checking commits: " + message);
+            assertTrue(message, actualBlocks >= minimumBlocks);
 
             // Shut it down.
             pipeline.shutdown(false);

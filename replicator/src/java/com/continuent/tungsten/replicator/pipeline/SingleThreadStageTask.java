@@ -75,6 +75,8 @@ public class SingleThreadStageTask implements Runnable
     private long               blockEventCount = 0;
     private TaskProgress       taskProgress;
     private PluginContext      context;
+    private long               lastCommitMillis;
+    private long               blockCommitIntervalMillis;
 
     private volatile boolean   cancelled       = false;
 
@@ -84,6 +86,11 @@ public class SingleThreadStageTask implements Runnable
         this.name = stage.getName() + "-" + taskId;
         this.stage = stage;
         this.blockCommitRowsCount = stage.getBlockCommitRowCount();
+        if (stage.getBlockCommitInterval() == null)
+            this.blockCommitIntervalMillis = 0;
+        else
+            this.blockCommitIntervalMillis = stage.getBlockCommitInterval()
+                    .longValue();
         this.usingBlockCommit = (blockCommitRowsCount > 1);
         this.taskProgress = stage.getProgressTracker().getTaskProgress(taskId);
     }
@@ -220,6 +227,9 @@ public class SingleThreadStageTask implements Runnable
             }
             boolean syncTHLWithExtractor = stage.getPipeline()
                     .syncTHLWithExtractor();
+
+            // Initialize the clock for checking block commit interval.
+            lastCommitMillis = System.currentTimeMillis();
 
             while (!cancelled)
             {
@@ -461,11 +471,18 @@ public class SingleThreadStageTask implements Runnable
                 else if (usingBlockCommit)
                 {
                     blockEventCount++;
-                    if (event.getLastFrag()
-                            && ((blockEventCount >= blockCommitRowsCount) || !extractor
-                                    .hasMoreEvents()))
+                    if (event.getLastFrag())
                     {
-                        doCommit = true;
+                        if ((blockEventCount >= blockCommitRowsCount))
+                        {
+                            // Commit if we are at the end of the block.
+                            doCommit = true;
+                        }
+                        else if (extractorQueueEmpty())
+                        {
+                            // Commit if there is no more work to be done.
+                            doCommit = true;
+                        }
                     }
                 }
                 else
@@ -572,6 +589,44 @@ public class SingleThreadStageTask implements Runnable
     }
 
     /**
+     * Determines whether the extractor queue is currently empty. If the queue
+     * is empty we wait up until the block commit interval using a quick sleep
+     * interval.
+     * 
+     * @throws InterruptedException
+     */
+    private boolean extractorQueueEmpty() throws InterruptedException
+    {
+        if (extractor.hasMoreEvents())
+            return false;
+        else if (blockCommitIntervalMillis <= 0)
+            return true;
+        else
+        {
+            // Compute the next time when we can commit based on commit
+            // interval.
+            long nextCommitMillis = lastCommitMillis
+                    + blockCommitIntervalMillis;
+            long sleepMillis = nextCommitMillis - System.currentTimeMillis();
+
+            // If we are not past the commit time loop around short sleep
+            // followed by checking the extractor. The loop describes the
+            // sleep time so that this exits.
+            while (sleepMillis > 0)
+            {
+                Thread.sleep(1);
+                if (extractor.hasMoreEvents())
+                    return false;
+                sleepMillis = nextCommitMillis - System.currentTimeMillis();
+            }
+
+            // If we get here the queue is really empty and has been for a
+            // while.
+            return true;
+        }
+    }
+
+    /**
      * Roll back following an unexpected failure. This takes care of error
      * logging, rollback, and dispatching error notification to shut down the
      * pipeline.
@@ -649,10 +704,14 @@ public class SingleThreadStageTask implements Runnable
         if (usingBlockCommit)
         {
             blockEventCount++;
-            if ((blockEventCount >= blockCommitRowsCount)
-                    || !extractor.hasMoreEvents())
+            if (blockEventCount >= blockCommitRowsCount)
             {
                 // Commit if we are at the end of the block.
+                doCommit = true;
+            }
+            else if (extractorQueueEmpty())
+            {
+                // Commit if there is no more work to be done.
                 doCommit = true;
             }
             else
@@ -662,7 +721,9 @@ public class SingleThreadStageTask implements Runnable
             }
         }
         else
+        {
             doCommit = true;
+        }
 
         // Finally, update!
         if (logger.isDebugEnabled())
@@ -677,6 +738,7 @@ public class SingleThreadStageTask implements Runnable
         {
             schedule.commit();
             blockEventCount = 0;
+            lastCommitMillis = System.currentTimeMillis();
         }
     }
 
@@ -708,6 +770,7 @@ public class SingleThreadStageTask implements Runnable
             {
                 schedule.commit();
                 blockEventCount = 0;
+                lastCommitMillis = System.currentTimeMillis();
             }
         }
         catch (ApplierException e)
@@ -742,6 +805,7 @@ public class SingleThreadStageTask implements Runnable
         applier.commit();
         schedule.commit();
         blockEventCount = 0;
+        lastCommitMillis = System.currentTimeMillis();
     }
 
     /**

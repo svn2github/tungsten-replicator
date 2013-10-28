@@ -165,7 +165,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         logger.info("Got consistency check request: " + method + ":"
                 + schemaName + "." + tableName + ":" + rowOffset + ","
                 + rowLimit);
-        
+
         int id = -1;
 
         // Ensure we have a runtime. This is null if we are offline.
@@ -276,7 +276,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         }
         return id;
     }
-    
+
     /**
      * Tries to locate consistency check table. Throws a wrapped exception on
      * failure.
@@ -300,7 +300,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
             throw e;
         }
     }
-    
+
     /**
      * Finds what ID should be used for the next consistency check.
      * 
@@ -1060,6 +1060,13 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                         avgBlock = 0.0;
                     props.put("averageBlockSize",
                             String.format("%-10.3f", avgBlock));
+                    props.put("lastCommittedBlockSize",
+                            Long.toString(progress.getLastCommittedBlockSize()));
+                    props.put("currentBlockSize",
+                            Long.toString(progress.getCurrentBlockSize()));
+                    props.put("commits", Long.toString(blockCount));
+                    props.put("lastCommittedBlockTime", Double
+                            .toString(progress.getLastCommittedBlockTime()));
                     props.put("appliedLatency",
                             Double.toString(progress.getApplyLatencySeconds()));
                     props.put("extractTime",
