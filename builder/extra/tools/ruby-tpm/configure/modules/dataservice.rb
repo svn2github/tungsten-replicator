@@ -568,17 +568,18 @@ class ReplicationServiceBufferSize < ConfigurePrompt
   include ReplicationServicePrompt
   
   def initialize
-    super(REPL_BUFFER_SIZE, "Replicator block commit size (min 1, max 100)",
+    super(REPL_BUFFER_SIZE, "Replicator queue size between stages (min 1)", 
       PV_REPL_BUFFER_SIZE, 10)
   end
 end
 
-class ReplicationServiceApplierBufferSize < ConfigurePrompt
+class ReplicationServiceApplierBlockCommitSize < ConfigurePrompt
   include ReplicationServicePrompt
   include AdvancedPromptModule
   
   def initialize
-    super(REPL_SVC_APPLIER_BUFFER_SIZE, "Applier block commit size (min 1)",
+    super(REPL_SVC_APPLIER_BLOCK_COMMIT_SIZE, 
+      "Applier block commit size (min 1)",
       PV_ANY, nil)
   end
   
@@ -588,6 +589,20 @@ class ReplicationServiceApplierBufferSize < ConfigurePrompt
     else
       return "${replicator.global.buffer.size}"
     end
+  end
+end
+
+class ReplicationServiceApplierBlockCommitInterval < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_SVC_APPLIER_BLOCK_COMMIT_INTERVAL, "Minimum interval between commits (Use values like 1s, 2h, 3, etc. or 0 to turn off)",
+      PV_ANY, nil)
+  end
+
+  def get_default_value
+    return "0"
   end
 end
 
