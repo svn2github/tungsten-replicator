@@ -296,6 +296,10 @@ class ClusterMembers < ConfigurePrompt
     members = @config.getProperty(get_member_key(DATASERVICE_MASTER_MEMBER)).to_s().split(",")
     members = members + @config.getProperty(get_member_key(DATASERVICE_HUB_MEMBER)).to_s().split(",")
     members = members + @config.getProperty(get_member_key(DATASERVICE_SLAVES)).to_s().split(",")
+    if @config.getProperty(get_member_key(ENABLE_ACTIVE_WITNESSES)) == "true"
+      members = members + @config.getProperty(get_member_key(DATASERVICE_WITNESSES)).to_s().split(",")
+    end
+    
     @default = members.uniq().join(",")
   end
   

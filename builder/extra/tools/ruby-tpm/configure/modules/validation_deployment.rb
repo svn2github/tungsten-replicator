@@ -1368,7 +1368,7 @@ class EncryptionKeystoreCheck < ConfigureValidationCheck
       end
     }
     
-    if @config.getProperty(ENABLE_CONNECTOR_SSL) == "true"
+    if @config.getProperty(HOST_ENABLE_CONNECTOR) == "true" && @config.getProperty(ENABLE_CONNECTOR_SSL) == "true"
       connector_ssl_enabled = true
     else
       connector_ssl_enabled = false
