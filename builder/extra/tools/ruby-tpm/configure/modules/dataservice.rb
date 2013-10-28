@@ -583,11 +583,11 @@ class ReplicationServiceApplierBlockCommitSize < ConfigurePrompt
       PV_ANY, nil)
   end
   
-  def get_default_value
+  def load_default_value
     if @config.getProperty(get_member_key(BATCH_ENABLED)) == "true"
-      return "10000"
+      @default = "10000"
     else
-      return "${replicator.global.buffer.size}"
+      @default = "${replicator.global.buffer.size}"
     end
   end
 end
@@ -598,11 +598,7 @@ class ReplicationServiceApplierBlockCommitInterval < ConfigurePrompt
 
   def initialize
     super(REPL_SVC_APPLIER_BLOCK_COMMIT_INTERVAL, "Minimum interval between commits (Use values like 1s, 2h, 3, etc. or 0 to turn off)",
-      PV_ANY, nil)
-  end
-
-  def get_default_value
-    return "0"
+      PV_ANY, 0)
   end
 end
 

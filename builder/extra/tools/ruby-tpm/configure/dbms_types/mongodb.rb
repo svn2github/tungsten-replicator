@@ -70,7 +70,7 @@ class MongoDBConfigurePrompt < ConfigurePrompt
         raise ""
     end
 
-  get_mongodb_default_value()
+    get_mongodb_default_value()
     rescue => e
       super()
     end
