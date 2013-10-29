@@ -1159,6 +1159,12 @@ class Configurator
     "#{tungsten_base_path}/tungsten-replicator/bin/thl"
   end
   
+  def get_tpm_path(tungsten_base_path = nil)
+    tungsten_base_path ||= get_base_path()
+    
+    "#{tungsten_base_path}/tools/tpm"
+  end
+  
   def svc_is_running?(cmd)
     begin
       unless File.exists?(cmd)

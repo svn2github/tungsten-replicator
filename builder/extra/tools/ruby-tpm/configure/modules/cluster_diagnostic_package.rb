@@ -35,6 +35,10 @@ module ClusterDiagnosticPackage
       h_alias = config.getProperty(DEPLOYMENT_HOST)
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}")
       
+      out = File.open("#{diag_dir}/#{h_alias}/tpm.txt", "w")
+      out.puts(@promotion_settings.getProperty([h_alias, "tpm_reverse"]))
+      out.close
+      
       if @promotion_settings.getProperty([h_alias, REPLICATOR_ENABLED]) == "true"
         if @promotion_settings.getProperty([h_alias, MANAGER_ENABLED]) == "true"
           out = File.open("#{diag_dir}/#{h_alias}/cctrl.txt", "w")
@@ -152,8 +156,11 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
     cctrl_cmd = c.get_cctrl_path(current_release_directory, @config.getProperty(MGR_RMI_PORT))
     trepctl_cmd = c.get_trepctl_path(current_release_directory, @config.getProperty(REPL_RMI_PORT))
     thl_cmd = c.get_thl_path(current_release_directory)
+    tpm_cmd = c.get_tpm_path(current_release_directory)
     
     begin
+      output_property("tpm_reverse", cmd_result("#{tpm_cmd} reverse --public"))
+      
       ["manager", "replicator", "connector"].each {
         |svc|
         svc_path = c.get_svc_path(svc, c.get_base_path())

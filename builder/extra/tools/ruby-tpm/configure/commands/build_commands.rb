@@ -322,6 +322,10 @@ class ReverseEngineerCommand
     end
   end
   
+  def allow_multiple_tpm_commands?
+    true
+  end
+  
   def self.display_command
     true
   end
