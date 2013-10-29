@@ -67,6 +67,10 @@ public class ReplicationServiceManager
         implements
             ReplicationServiceManagerMBean
 {
+    public static final String                         CONFIG_SERVICES       = "services.properties";
+    public static final String                         CONFIG_FILE_PREFIX    = "static-";
+    public static final String                         CONFIG_FILE_SUFFIX    = ".properties";
+    
     private static Logger                               logger                = Logger.getLogger(ReplicationServiceManager.class);
     private TungstenProperties                          serviceProps          = null;
     private TreeMap<String, OpenReplicatorManagerMBean> replicators           = new TreeMap<String, OpenReplicatorManagerMBean>();
@@ -77,9 +81,6 @@ public class ReplicationServiceManager
 
     private String                                      managerRMIHost        = null;
     private int                                         managerRMIPort        = -1;
-
-    private static final String                         CONFIG_FILE_PREFIX    = "static-";
-    private static final String                         CONFIG_FILE_SUFFIX    = ".properties";
 
     /**
      * Creates a new <code>ReplicatorManager</code> object
@@ -99,7 +100,7 @@ public class ReplicationServiceManager
     {
         // Find and load the service.properties file.
         File confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
-        File propsFile = new File(confDir, "services.properties");
+        File propsFile = new File(confDir, CONFIG_SERVICES);
         serviceProps = PropertiesManager.loadProperties(propsFile);
 
         // Get Authentication and encryption parameters for JMX and set SSL
@@ -736,7 +737,7 @@ public class ReplicationServiceManager
     /**
      * Returns the hostname to be used to bind ports for RMI use.
      */
-    private static String getHostName(TungstenProperties properties)
+    public static String getHostName(TungstenProperties properties)
     {
         String defaultHost = properties.getString(ReplicatorConf.RMI_HOST);
         String hostName = System.getProperty(ReplicatorConf.RMI_HOST,

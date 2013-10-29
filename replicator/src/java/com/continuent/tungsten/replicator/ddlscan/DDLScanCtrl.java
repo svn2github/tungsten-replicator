@@ -39,6 +39,7 @@ import com.continuent.tungsten.common.exec.ArgvIterator;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
+import com.continuent.tungsten.replicator.management.ReplicationServiceManager;
 
 /**
  * This class defines a DDLScanCtrl that implements a utility to access DDLScan
@@ -462,8 +463,9 @@ public class DDLScanCtrl
         {
             public boolean accept(File fdir, String fname)
             {
-                if (fname.startsWith("static-")
-                        && fname.endsWith(".properties"))
+                if (fname
+                        .startsWith(ReplicationServiceManager.CONFIG_FILE_PREFIX)
+                        && fname.endsWith(ReplicationServiceManager.CONFIG_FILE_SUFFIX))
                     return true;
                 else
                     return false;
@@ -472,6 +474,26 @@ public class DDLScanCtrl
         File[] propertyFiles = configDir.listFiles(propFileFilter);
         if (propertyFiles.length == 1)
             return propertyFiles[0].getAbsolutePath();
+        else
+            return null;
+    }
+
+    /**
+     * Parse out service name from static configuration file name.
+     * 
+     * @param configFileName File name like "static-service.properties".
+     * @return Service name.
+     */
+    public static String serviceFromConfigFileName(String configFileName)
+    {
+        String prefx = ReplicationServiceManager.CONFIG_FILE_PREFIX;
+        String suffix = ReplicationServiceManager.CONFIG_FILE_SUFFIX;
+        if (configFileName.contains(prefx) && configFileName.endsWith(suffix))
+        {
+            int iP = configFileName.indexOf(prefx);
+            return configFileName.substring(iP + prefx.length(),
+                    configFileName.length() - suffix.length());
+        }
         else
             return null;
     }

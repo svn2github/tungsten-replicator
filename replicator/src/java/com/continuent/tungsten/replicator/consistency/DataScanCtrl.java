@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.replicator.consistency;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -41,6 +42,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.exec.ArgvIterator;
 import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.PropertiesManager;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.database.Column;
@@ -51,6 +53,7 @@ import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.ddlscan.DDLScanCtrl;
 import com.continuent.tungsten.replicator.management.OpenReplicatorManager;
 import com.continuent.tungsten.replicator.management.OpenReplicatorManagerMBean;
+import com.continuent.tungsten.replicator.management.ReplicationServiceManager;
 import com.continuent.tungsten.replicator.management.tungsten.TungstenPlugin;
 import com.continuent.tungsten.replicator.thl.ProtocolParams;
 
@@ -91,7 +94,7 @@ public class DataScanCtrl
     private int                        checkTimeout     = 30;
 
     // TODO: add automated calculation based on table size?
-    int                                chunkSize        = 8192;
+    int                                chunkSize        = 131072;
     private int                        granularity      = 1;
 
     /** Where to start scanning the table. Used with a single table. */
@@ -191,7 +194,6 @@ public class DataScanCtrl
                 if (argvIterator.hasNext())
                 {
                     service = argvIterator.next();
-                    serviceSchema = "tungsten_" + service;
                 }
             }
             else if ("-db".equals(curArg))
@@ -324,6 +326,33 @@ public class DataScanCtrl
         return x;
     }
 
+    /**
+     * Tries to load services.properties and extract RMI parameters from there.
+     */
+    private void initRMIParameters() throws Exception
+    {
+        if (rmiHostMaster == null || rmiPortMaster == null)
+        {
+            // Find and load the service.properties file.
+            File confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
+            File propsFile = new File(confDir,
+                    ReplicationServiceManager.CONFIG_SERVICES);
+            println(String
+                    .format("Not all RMI parameters provided, using configuration: %s",
+                            propsFile));
+            TungstenProperties serviceProps = PropertiesManager
+                    .loadProperties(propsFile);
+            
+            if (rmiPortMaster == null)
+                rmiPortMaster = serviceProps.getString(ReplicatorConf.RMI_PORT,
+                        ReplicatorConf.RMI_DEFAULT_PORT, false);
+            
+            if (rmiHostMaster == null)
+                rmiHostMaster = ReplicationServiceManager
+                        .getHostName(serviceProps);
+        }
+    }
+
     private void initMasterConnections() throws Exception
     {
         // Try to get connectivity information.
@@ -343,6 +372,12 @@ public class DataScanCtrl
                         fatal("You must specify either a config file or a service name (-conf or -service)",
                                 null);
                     }
+                    else
+                    {
+                        // Config file retrieved, extract service name.
+                        service = DDLScanCtrl
+                                .serviceFromConfigFileName(configFile);
+                    }
                 }
                 else
                 {
@@ -353,11 +388,18 @@ public class DataScanCtrl
                             .getAbsolutePath();
                 }
             }
-
+            
             // Read connection info from configuration file.
             if (configFile != null)
                 println(String.format("Using configuration: %s", configFile));
 
+            // We should have service at this point.
+            if (service != null)
+            {
+                serviceSchema = "tungsten_" + service;
+                println("Service: " + service);
+            }
+            
             TungstenProperties properties = DDLScanCtrl.readConfig(configFile);
             if (properties != null)
             {
@@ -383,10 +425,13 @@ public class DataScanCtrl
 
         if (!checkDirect)
         {
+            initRMIParameters();
             // Connect to the master.
             master = getOpenReplicator(rmiHostMaster, rmiPortMaster, service);
             if (master == null)
-                fatal("Unable to connect to master Replicator", null);
+                fatal(String.format(
+                        "Unable to connect to master Replicator: host=%s port=%s service=%s",
+                        rmiHostMaster, rmiPortMaster, service), null);
         }
 
         // Connection to the master DB user schema.
@@ -509,9 +554,6 @@ public class DataScanCtrl
 
             // TODO: refactor for multiple tables!
 
-            if (service != null)
-                println("Service: " + service);
-            
             println("Database: " + schema);
             println("Table(s): " + tables);
 
@@ -1120,7 +1162,9 @@ public class DataScanCtrl
         println("Conf options:");
         println("  -conf[1|2] path     - Path to a static-<svc>.properties file to read JDBC");
         println("     OR                 connection address and credentials");
-        println("  -service[1|2] name  - Name of a replication service instead of path to config");
+        println("  -service name       - Name of a replication service instead of path to config");
+        println("  -rmiHost masterHost - Hostname of the master Replicator");
+        println("  -rmiPort masterPort - RMI port of the master Replicator");
         println("OR connection options:");
         println("  -user[1|2] user     - JDBC username");
         println("  -pass[1|2] secret   - JDBC password");
@@ -1140,7 +1184,7 @@ public class DataScanCtrl
         println("  [-till row]           Depending on the method chosen argument is PK value or row position");
         println("                        Default: scan the whole table");
         println("  [-chunk rows]       - Starting chunk size. This translates to an acceptable maximum lock size");
-        println("                        Default: 8192");
+        println("                        Default: 131072");
         println("                        Use \"single\" for automatically using chunk size equal to row count");
         println("  [-chunk-pause s]    - How long to pause before the next chunk");
         println("                        Default: 0 - don't pause");
