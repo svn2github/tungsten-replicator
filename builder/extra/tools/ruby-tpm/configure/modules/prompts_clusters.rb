@@ -514,7 +514,11 @@ class ClusterWitnesses < ConfigurePrompt
   end
   
   def required?
-    false
+    if @config.getProperty(get_member_key(ENABLE_ACTIVE_WITNESSES)) == "true"
+      true
+    else
+      false
+    end
   end
   
   def get_template_value(transform_values_method)
