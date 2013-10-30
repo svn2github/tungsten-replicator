@@ -313,7 +313,7 @@ public class ResultFormatter
             }
             else
             {
-                while (elementToUse.length() + valueOffset > maxLength)
+                while (elementToUse.length() + valueOffset >= maxLength)
                 {
                     convertedElements.add(elementToUse.substring(0, maxLength
                             - valueOffset - 1));
