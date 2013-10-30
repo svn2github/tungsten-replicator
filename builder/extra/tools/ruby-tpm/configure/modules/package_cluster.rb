@@ -1513,7 +1513,8 @@ module ClusterConfigurationsModule
               }
             rescue CommandError
             rescue RemoteCommandError
-            rescue MessageError
+            rescue MessageError => me
+              Configurator.instance.warning(me.message)
             rescue Timeout::Error
             end
           }
