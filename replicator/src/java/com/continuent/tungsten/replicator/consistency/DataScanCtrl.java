@@ -82,7 +82,7 @@ public class DataScanCtrl
     private String                     service          = null;
     private String                     serviceSchema    = null;
     private String                     tables           = null;
-    private String                     configFile       = null;
+    private String                     configFileMaster = null;
 
     private boolean                    verbose          = false;
     private boolean                    printValues      = false;
@@ -257,10 +257,10 @@ public class DataScanCtrl
             {
                 printValues = true;
             }
-            else if ("-conf".equals(curArg))
+            else if ("-conf1".equals(curArg))
             {
                 if (argvIterator.hasNext())
-                    configFile = argvIterator.next();
+                    configFileMaster = argvIterator.next();
             }
             else if ("-user".equals(curArg))
             {
@@ -360,23 +360,17 @@ public class DataScanCtrl
                 || jdbcUrlMaster == null)
         {
             // Credentials not provided, retrieve from configuration.
-            if (configFile == null)
+            if (configFileMaster == null)
             {
                 if (service == null)
                 {
                     // Nothing is given. Retrieve configuration file of
                     // default service.
-                    configFile = DDLScanCtrl.lookForConfigFile();
-                    if (configFile == null)
+                    configFileMaster = DDLScanCtrl.lookForConfigFile();
+                    if (configFileMaster == null)
                     {
-                        fatal("You must specify either a config file or a service name (-conf or -service)",
+                        fatal("You must specify either a config file or a service name (-conf1 or -service)",
                                 null);
-                    }
-                    else
-                    {
-                        // Config file retrieved, extract service name.
-                        service = DDLScanCtrl
-                                .serviceFromConfigFileName(configFile);
                     }
                 }
                 else
@@ -384,14 +378,23 @@ public class DataScanCtrl
                     // Retrieve configuration file of a given service.
                     ReplicatorRuntimeConf runtimeConf = ReplicatorRuntimeConf
                             .getConfiguration(service);
-                    configFile = runtimeConf.getReplicatorProperties()
+                    configFileMaster = runtimeConf.getReplicatorProperties()
                             .getAbsolutePath();
                 }
             }
-            
+
             // Read connection info from configuration file.
-            if (configFile != null)
-                println(String.format("Using configuration: %s", configFile));
+            if (configFileMaster != null)
+            {
+                println(String.format("Using configuration: %s",
+                        configFileMaster));
+                if (service == null)
+                {
+                    // Config file retrieved, extract service name.
+                    service = DDLScanCtrl
+                            .serviceFromConfigFileName(configFileMaster);
+                }
+            }
 
             // We should have service at this point.
             if (service != null)
@@ -400,7 +403,7 @@ public class DataScanCtrl
                 println("Service: " + service);
             }
             
-            TungstenProperties properties = DDLScanCtrl.readConfig(configFile);
+            TungstenProperties properties = DDLScanCtrl.readConfig(configFileMaster);
             if (properties != null)
             {
                 // Substitute DBNAME.
@@ -420,7 +423,7 @@ public class DataScanCtrl
             }
             else
                 throw new ReplicatorException(
-                        "Unable to read configuration file " + configFile);
+                        "Unable to read configuration file " + configFileMaster);
         }
 
         if (!checkDirect)
@@ -1163,18 +1166,20 @@ public class DataScanCtrl
         println("  -conf[1|2] path     - Path to a static-<svc>.properties file to read JDBC");
         println("     OR                 connection address and credentials");
         println("  -service name       - Name of a replication service instead of path to config");
-        println("  -rmiHost masterHost - Hostname of the master Replicator");
-        println("  -rmiPort masterPort - RMI port of the master Replicator");
         println("OR connection options:");
         println("  -user[1|2] user     - JDBC username");
         println("  -pass[1|2] secret   - JDBC password");
         println("  -url[1|2] jdbcUrl   - JDBC connection string (use single quotes to escape)");
+        println("RMI options (for replicated check):");
+        println("  -rmiHost masterHost - Hostname of the master Replicator");
+        println("  -rmiPort masterPort - RMI port of the master Replicator");
         println("-db db                - Database to use (will substitute "
                 + DDLScanCtrl.DBNAME_VAR + " in the URL, if needed)");
         println("scan-spec:");
         println("  -check direct|replicated");
         println("    direct            - Check directly on servers. Use when replication is broken or not setup");
         println("    replicated        - Check through replication. Use when replication is healthy");
+        println("                        Default: replicated");
         println("  -method pk|limit");
         println("    pk                - Searches based on table's primary key");
         println("    limit             - Searches by row position (use with a static table and no missing rows)");
@@ -1189,7 +1194,7 @@ public class DataScanCtrl
         println("  [-chunk-pause s]    - How long to pause before the next chunk");
         println("                        Default: 0 - don't pause");
         println("  [-granularity rows] - When to stop? Use to adjust level of detail of algorithms");
-        println("                        Default: 1 - drill down to a single row.");
+        println("                        Default: 1 - drill down to a single row");
         println("  [-parallel threads] - How much to parallelize");
         println("                        Default: 1 - no parallelization");
         println("  [-optimistic-lock]  - Don't lock, but afterwards check for related changes in the THL");
