@@ -32,14 +32,15 @@ import java.util.zip.CRC32;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.BigEndianConversion;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 
 /**
- * Implements methods required to load binlogs. This class among other
- * important tasks handles MySQL to Java character set name mapping. In addition
- * to baked-in character set defaults we look for a mapping file named
+ * Implements methods required to load binlogs. This class among other important
+ * tasks handles MySQL to Java character set name mapping. In addition to
+ * baked-in character set defaults we look for a mapping file named
  * mysql-java-charsets.properties in the configuration directory of the
  * replicator.
  */
@@ -378,7 +379,17 @@ public class MysqlBinlog
         // Try to load a character set map, which is a properties file with
         // alternative MySQL to Java character set mappings.
         charsetMap = new TungstenProperties();
-        File confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
+        File confDir;
+        try
+        {
+            confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
+        }
+        catch (ServerRuntimeException e)
+        {
+            // This can happen if we are running in a unit test.
+            logger.debug("Could not find replicator conf directory; using current working directory instead");
+            confDir = new File(".");
+        }
         File charsetPropFile = new File(confDir, MYSQL_JAVA_CHARSET);
         FileInputStream fis = null;
         if (charsetPropFile.canRead())
