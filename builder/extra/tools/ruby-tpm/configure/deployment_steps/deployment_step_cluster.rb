@@ -171,6 +171,9 @@ module ConfigureDeploymentStepDeployment
       transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
   	  transformer.transform_values(method(:transform_values))
 	  
+      nodeid=1
+      listed_nodes = []
+      
   	  dsid=1
   	  dsids={}
       @config.getPropertyOr(DATASERVICES, []).each_key{
@@ -187,6 +190,25 @@ module ConfigureDeploymentStepDeployment
           
           dsids[ds_name] = "configure $DS_NAME#{dsid}"
           dsid = dsid+1
+          
+          [
+            DATASERVICE_MASTER_MEMBER,
+            DATASERVICE_REPLICATION_MEMBERS,
+            DATASERVICE_CONNECTORS,
+            DATASERVICE_WITNESSES
+          ].each{
+            |key|
+            @config.getProperty([DATASERVICES, ds_alias, key]).to_s().split(",").each{
+              |node|
+              if listed_nodes.include?(node)
+                next
+              end
+
+              transformer << "export NODE#{nodeid}=#{node}"
+              nodeid = nodeid+1
+              listed_nodes << node
+            }
+          }
         end
       }
 	  
@@ -197,11 +219,11 @@ module ConfigureDeploymentStepDeployment
       File.open("#{get_deployment_basedir()}/cookbook/INSTALLED.tmpl", "w") {
         |f|
         f.puts <<EOF
-  ##################################
-  # DO NOT MODIFY THIS FILE
-  ##################################
-  # Loads environment variables to fill in the cookbook
-  # . cookbook/USER_VALUES.sh
+##################################
+# DO NOT MODIFY THIS FILE
+##################################
+# Loads environment variables to fill in the cookbook
+# . cookbook/INSTALLED_USER_VALUES.sh
 
 EOF
         rec = ReverseEngineerCommand.new(@config)
