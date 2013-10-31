@@ -139,6 +139,12 @@ public class TungstenPropertiesTest extends TestCase
         props.setString("interval2", "3m");
         assertEquals("Checking string interval", 180000,
                 props.getInterval("interval2").longValue());
+
+        // TungstenPorperties
+        TungstenProperties embeddedProp = this.makeProperties();
+        props.setTungstenProperties("myEmbeddedProps", embeddedProp);
+        assertEquals("Checking TungstenProperties", embeddedProp,
+                props.getTungstenProperties("myEmbeddedProps"));
     }
 
     /**
@@ -935,24 +941,64 @@ public class TungstenPropertiesTest extends TestCase
         pw.close();
         br.close();
     }
-    
+
     public void testShallowCopy() throws Exception
     {
         TungstenProperties prop1 = new TungstenProperties();
         String value1 = "value1    ";
-        
+
         prop1.put("key1", value1);
-        
-        
+
         TungstenProperties prop2 = new TungstenProperties(prop1.hashMap());
         String value11 = prop2.get("key1");
-        
+
         assertEquals(value1, value11);                  // there's indeed a copy
-        
+
         prop2.trim();
-        assertEquals(value1, prop1.get("key1"));           // value1 in prop1 hasn't changed
-        assertEquals(prop2.get("key1"), value1.trim());    // value in prop2 is the same as value 1 but trimmed
+        assertEquals(value1, prop1.get("key1"));           // value1 in prop1 hasn't
+        // changed
+        assertEquals(prop2.get("key1"), value1.trim());    // value in prop2 is the
+                                                        // same as value 1 but
+                                                        // trimmed
 
     }
-    
+
+    /**
+     * Confirm that we can serialize/deserialize into JSON using Jackson
+     */
+    public void testJson()
+    {
+        TungstenProperties prop = this.makeProperties();
+        TungstenProperties propEmbedded = this.makeProperties();
+
+        prop.setTungstenProperties("myEmbeddedProp", propEmbedded);
+
+        try
+        {
+            String jsonString = null;
+
+            // --- Serialise ---
+            jsonString = prop.toJSON(true);
+            // System.out.println("Serializing TungstenProperties to JSON:\n" +
+            // jsonString);
+
+            // --- Deserialise ---
+            // Sanity check that we can convert the string back to an object
+            TungstenProperties propFromJson = TungstenProperties
+                    .loadFromJSON(jsonString);
+
+            String stringProp = propFromJson.get("string");
+            assertNotNull(stringProp);
+
+            TungstenProperties tungstenProp = propFromJson
+                    .getTungstenProperties("myEmbeddedProp");
+            assertNotNull(tungstenProp);
+        }
+        catch (Exception e)
+        {
+            assertFalse("Problem during JSON serialization/deserialization",
+                    true);
+        }
+    }
+
 }
