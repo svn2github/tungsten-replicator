@@ -17,11 +17,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Seppo Jaakola
- * Contributor(s): Stephane Giron
+ * Contributor(s): Stephane Giron, Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.extractor.mysql;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Hashtable;
@@ -29,13 +31,17 @@ import java.util.zip.CRC32;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.BigEndianConversion;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 
 /**
- * @author <a href="mailto:seppo.jaakola@continuent.com">Seppo Jaakola</a>
- * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
- * @version 1.0
+ * Implements methods required to load binlogs. This class among other
+ * important tasks handles MySQL to Java character set name mapping. In addition
+ * to baked-in character set defaults we look for a mapping file named
+ * mysql-java-charsets.properties in the configuration directory of the
+ * replicator.
  */
 public class MysqlBinlog
 {
@@ -359,11 +365,56 @@ public class MysqlBinlog
     }
 
     // Character set data used in lookups. The array will be sparse.
-    public static CharsetInfo[] charsets = new CharsetInfo[255];
+    public static CharsetInfo[]       charsets           = new CharsetInfo[255];
+
+    // Name of the charset property file to map MySQL values to Java character
+    // sets.
+    private static TungstenProperties charsetMap;
+    private static String             MYSQL_JAVA_CHARSET = "mysql-java-charsets.properties";
 
     // Load character set data statically.
     static
     {
+        // Try to load a character set map, which is a properties file with
+        // alternative MySQL to Java character set mappings.
+        charsetMap = new TungstenProperties();
+        File confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
+        File charsetPropFile = new File(confDir, MYSQL_JAVA_CHARSET);
+        FileInputStream fis = null;
+        if (charsetPropFile.canRead())
+        {
+            logger.info("Loading MySQL character set mapping file: "
+                    + charsetPropFile.getAbsolutePath());
+            try
+            {
+                fis = new FileInputStream(charsetPropFile);
+                charsetMap.load(fis);
+            }
+            catch (IOException e)
+            {
+                logger.warn("Unable to load character set mapping file", e);
+            }
+            finally
+            {
+                if (fis != null)
+                {
+                    try
+                    {
+                        fis.close();
+                    }
+                    catch (IOException e)
+                    {
+                    }
+                }
+            }
+        }
+        else
+        {
+            logger.info("MySQL character mapping file not found found, using default mappings: "
+                    + charsetPropFile.getAbsolutePath());
+        }
+
+        // Now load character set definitions.
         loadCharset(1, "big5", "big5_chinese_ci");
         loadCharset(2, "latin2", "latin2_czech_cs");
         loadCharset(3, "dec8", "dec8_swedish_ci");
@@ -567,7 +618,12 @@ public class MysqlBinlog
             String mysqlCollation)
     {
         String javaCharset = null;
-        if ("armscii8".equals(mysqlCharset))
+
+        // Look up the Java character set for each MySQL charset, starting
+        // with the optional character set map file.
+        if (charsetMap.getString(mysqlCharset) != null)
+            javaCharset = charsetMap.getString(mysqlCharset);
+        else if ("armscii8".equals(mysqlCharset))
             javaCharset = "";
         else if ("ascii".equals(mysqlCharset))
             javaCharset = "US-ASCII";
