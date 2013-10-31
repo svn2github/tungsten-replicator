@@ -296,7 +296,7 @@ class UserIDPrompt < ConfigurePrompt
   
   def initialize
     super(USERID, "System User", 
-      PV_IDENTIFIER, Configurator.instance.whoami())
+      PV_ANY, Configurator.instance.whoami())
     self.extend(NotTungstenUpdatePrompt)
   end
   
