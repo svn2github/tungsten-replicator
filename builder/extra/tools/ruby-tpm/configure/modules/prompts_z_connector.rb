@@ -485,6 +485,14 @@ class ConnectorSmartScale < ConfigurePrompt
   def initialize
     super(CONN_SMARTSCALE, "Enable SmartScale R/W splitting in the connector", PV_BOOLEAN, "false")
   end
+  
+  def get_template_value(transform_values_method)
+    if @config.getTemplateValue(get_member_key(ENABLE_CONNECTOR_RO)) == "true"
+      "false"
+    else
+      super(transform_values_method)
+    end
+  end
 end
 
 class ConnectorSmartScaleSession < ConfigurePrompt

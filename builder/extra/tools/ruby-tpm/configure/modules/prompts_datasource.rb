@@ -365,6 +365,7 @@ class DirectDatasourceDBPort < ConfigurePrompt
 
   def initialize
     super(EXTRACTOR_REPL_DBPORT, "Database server port", PV_INTEGER)
+    override_command_line_argument("direct-replication-port")
   end
 
   def load_default_value
