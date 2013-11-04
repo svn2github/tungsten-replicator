@@ -471,7 +471,9 @@ module ConfigureDeploymentCore
       Dir.glob("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/cluster-home/conf/cluster/*").each{
         |ds_name|
         debug("Remove all files in #{ds_name}")
-        FileUtils.rm_rf(Dir.glob("#{ds_name}/*"))
+        if File.exist?("#{ds_name}/datasource")
+          FileUtils.rm_rf(Dir.glob("#{ds_name}/datasource/*"))
+        end
       }
     end
   end
