@@ -19,6 +19,26 @@ class BlankDatabasePlatform < ConfigureDatabasePlatform
     ""
   end
   
+  def getJdbcUrl()
+    ""
+  end
+  
+  def getJdbcDriver()
+    ""
+  end
+  
+  def getJdbcScheme
+    ""
+  end
+  
+  def getVendor()
+    ""
+  end
+  
+  def getVersion()
+    ""
+  end
+  
   def get_default_start_script
     nil
   end
