@@ -348,7 +348,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def drop_tungsten_schema(schema_name)
-    self.run("drop schema if exists #{schema_name}")
+    self.run("SET SQL_LOG_BIN=0; DROP SCHEMA IF EXISTS #{schema_name};")
   end
 end
 

@@ -247,8 +247,7 @@ class THLStorageCheck < ConfigureValidationCheck
     end
     
     begin
-      thl_schema = "tungsten_"+@config.getProperty(DATASERVICENAME)
-      get_applier_datasource.check_thl_schema(thl_schema)
+      get_applier_datasource.check_thl_schema(@config.getProperty(get_member_key(REPL_SVC_SCHEMA)))
     rescue => e
       error(e.message)
     end
