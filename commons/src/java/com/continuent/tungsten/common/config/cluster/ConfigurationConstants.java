@@ -69,5 +69,6 @@ public class ConfigurationConstants
     public static final int    DELAY_BEFORE_OFFLINE_IN_MAINTENANCE_MODE_IF_NO_MANAGER_DEFAULT = 5 * 60;
     public static final int    GATEWAY_CONNECT_TIMEOUT_MS_DEFAULT                             = 5000;
     public static final int    GATEWAY_CONNECT_TIMEOUT_MS_MAX                                 = 30000;
+    public static final long   READ_COMMAND_RETRY_TIMEOUT_MS_DEFAULT                          = 10000;
 
 }

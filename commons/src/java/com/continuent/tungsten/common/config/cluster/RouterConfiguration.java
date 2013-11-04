@@ -151,6 +151,12 @@ public class RouterConfiguration extends ClusterConfiguration
 
     private int               gatewayLocalBindStartingPort                   = 45847;
 
+    /**
+     * When reading manager commands in maintenance mode, the router will retry
+     * a few times upon failure. This controls when to give up
+     */
+    private long              readCommandRetryTimeoutMs                      = ConfigurationConstants.READ_COMMAND_RETRY_TIMEOUT_MS_DEFAULT;
+
     public RouterConfiguration(String clusterName)
             throws ConfigurationException
     {
@@ -724,5 +730,15 @@ public class RouterConfiguration extends ClusterConfiguration
                             + "ms.");
         }
 
+    }
+
+    public void setReadCommandRetryTimeoutMs(long timeout)
+    {
+        readCommandRetryTimeoutMs = timeout;
+    }
+
+    public long getReadCommandRetryTimeoutMs()
+    {
+        return readCommandRetryTimeoutMs;
     }
 }
