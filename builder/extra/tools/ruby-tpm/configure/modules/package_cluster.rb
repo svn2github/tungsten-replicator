@@ -143,9 +143,6 @@ module ClusterCommandModule
       if prompt.is_a?(MySQLServerID)
         next
       end
-      if prompt.is_a?(DatasourceDBHost)
-        next
-      end
       
       add_prompt(opts, prompt, @replication_options, [REPL_SERVICES])
     }

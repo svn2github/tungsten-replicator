@@ -1131,12 +1131,12 @@ class MySQLApplierPortCheck < ConfigureValidationCheck
   def validate
     port = @config.getProperty(get_applier_key(REPL_DBPORT))
     
+    conf_file = @config.getProperty(get_applier_key(REPL_MYSQL_CONF))
     unless Configurator.instance.is_localhost?(@config.getProperty(get_applier_key(REPL_DBHOST)))
       warning("Unable to check for a configured port in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
       return
     end
     
-    conf_file = @config.getProperty(get_applier_key(REPL_MYSQL_CONF))
     unless File.exists?(conf_file) && File.readable?(conf_file)
       error("The MySQL config file '#{conf_file}' is not readable")
       help("Specify the --datasource-mysql-conf argument with the path to your my.cnf")
@@ -1804,6 +1804,7 @@ class MySQLDumpCheck < ConfigureValidationCheck
     end
   end
   def enabled?
-    super() && ["mysqldump"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD)))
+    super() && ["mysqldump"].include?(@config.getProperty(get_member_key(REPL_BACKUP_METHOD))) &&
+      Configurator.instance.is_localhost?(@config.getProperty(get_applier_key(REPL_DBHOST)))
   end
 end

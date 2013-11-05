@@ -107,7 +107,7 @@ class DatasourceDBHost < ConfigurePrompt
   
   def initialize
     super(REPL_DBHOST, "Database server hostname", PV_HOSTNAME)
-    self.extend(NotTungstenInstallerPrompt)
+    override_command_line_argument("replication-host")
   end
   
   def load_default_value
@@ -115,10 +115,6 @@ class DatasourceDBHost < ConfigurePrompt
   end
   
   def allow_group_default
-    false
-  end
-  
-  def enabled_for_command_line?
     false
   end
 end
