@@ -85,6 +85,14 @@ module ConfigureDeployment
               config_obj.import(result)
               config_obj.setProperty(DEPLOYMENT_COMMAND, self.class.name)
               
+              # This is a local server and we need to make sure the 
+              # PREFERRED_PATH is added
+              path = config_obj.getProperty(PREFERRED_PATH)
+              unless path.to_s() == ""
+                debug("Adding #{path} to $PATH")
+                ENV['PATH'] = path + ":" + ENV['PATH']
+              end
+              
               config_objs << config_obj
             end
           end
