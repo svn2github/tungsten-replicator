@@ -1745,6 +1745,12 @@ class MySQLTriggerCheck < ConfigureValidationCheck
       warning("Triggers exist within this instance this can cause problems with replication")
     end
   end
+  
+  def enabled?
+    has_is = get_applier_datasource.get_value("show schemas like 'information_schema'");
+    
+    super() && (has_is == "information_schema")
+  end
 end
 
 class MySQLMyISAMCheck < ConfigureValidationCheck
@@ -1757,32 +1763,17 @@ class MySQLMyISAMCheck < ConfigureValidationCheck
 
   def validate
     info("Checking for MySQL MyISAM tables")
-    if get_applier_datasource.get_value("select count(*) from information_schema.TABLES where table_schema not in ('mysql','information_schema') and engine='MyISAM'").to_i > 0
+    if get_applier_datasource.get_value("select count(*) from information_schema.TABLES where table_schema not in ('mysql','information_schema','performance_schema') and lcase(engine) in ('myisam','maria', 'aria')").to_i > 0
       warning("MyISAM tables exist within this instance - These tables are not crash safe and may lead to data loss in a failover")
     end
   end
+  
+  def enabled?
+    has_is = get_applier_datasource.get_value("show schemas like 'information_schema'");
+    
+    super() && (has_is == "information_schema")
+  end
 end
-
-#
-# Removed check that prevents installation using MySQL 5.6 servers
-# Starting with Tungsten-Replicator 2.1.1-101, MySQL 5.6 is fully supported
-#
-#class MySQLCheckSumCheck < ConfigureValidationCheck
-#  include ReplicationServiceValidationCheck
-#  include MySQLApplierCheck
-#  
-#  def set_vars
-#    @title = "MySQL 5.6 binlog Checksum Check"
-#  end
-#  
-#  def validate
-#    info("Checking that MySQL Binlog Checksum is not enabled")
-#    checkSum = get_applier_datasource.get_value("show variables like 'binlog_checksum'", "Value")
-#    if (checkSum == 'CRC32') 
-#      error("This instance is running with BinLog checksum enabled which is not yet supported")
-#    end
-#  end
-#end
 
 class MySQLDumpCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck
