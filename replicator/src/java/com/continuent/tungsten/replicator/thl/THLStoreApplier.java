@@ -45,6 +45,7 @@ public class THLStoreApplier implements Applier
 {
     private static Logger logger   = Logger.getLogger(THLStoreApplier.class);
     private String        storeName;
+    private boolean       autoFlush;
     private THL           thl;
     private PluginContext context;
     private LogConnection client;
@@ -65,6 +66,18 @@ public class THLStoreApplier implements Applier
     public void setStoreName(String storeName)
     {
         this.storeName = storeName;
+    }
+
+    /** If true, flush log writes immediately to page cache. */
+    public boolean isAutoFlush()
+    {
+        return autoFlush;
+    }
+
+    /** Set to true to flush log writes immediately to page cache. */
+    public void setAutoFlush(boolean autoFlush)
+    {
+        this.autoFlush = autoFlush;
     }
 
     /**
@@ -138,7 +151,13 @@ public class THLStoreApplier implements Applier
             client.store(thlEvent, doCommit);
             if (doCommit)
             {
+                // Commit to the log first so it becomes visible as quickly as
+                // possible.
+                commit();
+
+                // Next sync the THL position if desired.
                 if (syncTHL)
+                {
                     try
                     {
                         thl.updateCommitSeqno(thlEvent);
@@ -165,7 +184,14 @@ public class THLStoreApplier implements Applier
                                         + " events since database access error.");
                         }
                     }
-                commit();
+                }
+            }
+            else if (autoFlush && event.getLastFrag())
+            {
+                // Commit the log records we just wrote if we are at the end of
+                // a transaction. This flushes immediately if log flush interval
+                // (flushIntervalMillis) is set to 0 on the log.
+                client.commit();
             }
             if (logger.isDebugEnabled())
                 logger.debug("Stored event " + event.getSeqno());
