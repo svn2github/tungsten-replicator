@@ -19,11 +19,15 @@ class ConfigureDatabasePlatform
   end
   
   def run(command)
-    raise "Undefined function: #{self.class.name}.run"
+    Configurator.instance.debug("Unable to run #{command} against #{self.class.name} connection")
+    
+    nil
   end
   
   def get_value(command, column = nil)
-    raise "Undefined function: #{self.class.name}.get_value"
+    Configurator.instance.debug("Unable to run #{command} against #{self.class.name} connection")
+    
+    nil
   end
 	
 	def get_extractor_template
