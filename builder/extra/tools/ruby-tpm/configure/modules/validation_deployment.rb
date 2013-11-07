@@ -1198,6 +1198,9 @@ class HostsFileCheck < ConfigureValidationCheck
             if line =~ /^127/
               error("An IP address in /etc/hosts for #{h_name} begins with 127")
               help("Eliminate any loopback addresses associated with #{h_name} from /etc/hosts")
+            elsif line =~ /^::1/
+              error("An IP address in /etc/hosts for #{h_name} begins with ::1")
+              help("Eliminate any loopback addresses associated with #{h_name} from /etc/hosts")
             else
               line_parts = line.split(/\s/)
               return_addresses[ds_alias][h_alias] = line_parts[0]
