@@ -1,0 +1,299 @@
+#!/usr/bin/env ruby
+
+require "#{File.dirname(__FILE__)}/../../cluster-home/lib/ruby/tungsten"
+
+class TungstenMultipleTrepctl
+  include TungstenScript
+  
+  def main
+    begin
+      # Collect records from all trepctl locations filtering out
+      # replication services that don't match --roles or --services if given
+      records = load_services({
+        "role" => opt(:limit_roles),
+        "serviceName" => opt(:limit_services)
+      })
+      
+      # Sort records by the fields passed in on --sort-by
+      records = sort_records(records, opt(:sort_by))
+      
+      # Output the matching records
+      output_records(records, opt(:fields), opt(:format))
+    rescue => e
+      raise e
+    end
+  end
+  
+  # Run the command in parallel on each trepctl location collecting the output
+  def collect_trepctl_output(command)
+    threads = []
+    results = {}
+    
+    # Run the trepctl services -full -json command on each matching
+    # location and wait for the output
+    @trepctl_locations.each{
+      |loc_id,loc|
+      
+      threads << Thread.fork {
+        options = []
+        if loc.has_key?(:port)
+          options << "-port #{loc[:port]}"
+        end
+        
+        results[loc_id] = TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl #{options.join(" ")} #{command}", loc[:host], TI.user())
+      }
+    }
+    # Wait for each thread to finish   
+    threads.each{|thread| thread.join() }
+    
+    results
+  end
+  
+  # Load the status for all matching replication services and return them
+  # as an array
+  def load_services(filters = {})
+    services = []
+    filters = prepare_filters(filters)
+    results = collect_trepctl_output("services -full -json")
+    
+    # Parse the JSON output from each return value and add matching
+    # replication services to the services array
+    results.each{
+      |loc_id, output|
+      host_trepctl_services = JSON.parse(output)
+      
+      unless host_trepctl_services.instance_of?(Array)
+        raise "Unable to parse the response from #{host}:#{dir}"
+      end
+      
+      host_trepctl_services.each{
+        |svc|
+      
+        # Only add it to the final array if it matches the filters
+        if matches_filters?(svc, filters) == true
+          services << svc.merge({:loc_id => loc_id})
+        end
+      }
+    }
+    
+    services
+  end
+  
+  # Turn each filter value into an array for evaluation
+  def prepare_filters(filters = {})
+    filters.each_key{
+      |key|
+      if filters[key].is_a?(String)
+        filters[key] = filters[key].split(",")
+      end
+    }
+    
+    filters
+  end
+  
+  def matches_filters?(record, filters = {})
+    matches_filters = true
+    filters.each{
+      |key,values|
+      if values == nil
+        next
+      end
+      
+      if values.is_a?(Array)
+        unless values.include?(record[key])
+          matches_filters = false
+        end
+      else
+        unless values == record[key]
+          matches_filters = false
+        end
+      end
+    }
+    
+    matches_filters
+  end
+  
+  def output_records(records, fields, format)
+    if fields.is_a?(String)
+      fields = fields.split(",")
+    end
+    
+    if fields.size() == 0
+      raise "Unable to print output because no fields have been requested"
+    end
+    
+    if format == "info"
+      # Display the fields from each record as a table
+      records.each{|rec|
+        to_display = []
+        fields.each{|field| to_display << rec[field]}
+        
+        puts to_display.join(",")
+      }
+    elsif format == "tab"
+      # Display the fields from each record as tab-delmited lines
+      records.each{|rec|
+        to_display = []
+        fields.each{|field| to_display << rec[field]}
+        puts to_display.join("\t")
+      }
+    elsif format == "list"
+      # Collect the first field from each record and display on a single line
+      to_display = []
+      records.each{|rec| to_display << rec[fields[0]] }
+      puts to_display.uniq().join(",")
+    elsif format == "name"
+      # Display the first field from each record on individual lines
+      to_display = []
+      records.each{|rec| to_display << rec[fields[0]] }
+      puts to_display.uniq().join("\n")
+    elsif format == "json"
+      # Display the fields from each record as a JSON array of hashes
+      puts JSON.pretty_generate(records.map{|rec|
+        to_display = {}
+        fields.each{|field| to_display[field] = rec[field]}
+        to_display
+      })
+    end
+  end
+  
+  def sort_records(records, sort_keys)
+    if sort_keys.is_a?(String)
+      sort_keys = sort_keys.split(",")
+    end
+    
+    # Create a sort index for each record based on sort_keys
+    records.each{
+      |rec|
+      sort_values = []
+      sort_keys.each{|key| sort_values << rec[key]}
+      rec[:sort] = sort_values
+    }
+    
+    records.sort { |a, b| a[:sort] <=> b[:sort] }
+  end
+  
+  def configure
+    super()
+    description("")
+
+    add_option(:hosts, {
+      :on => ["--hosts String", "--host String"],
+      :help => "The hosts to check replicators on"
+    })
+    
+    add_option(:directories, {
+      :on => ["--directories String", "--dir String"],
+      :help => "The Tungsten directories to check"
+    })
+    
+    add_option(:limit_roles, {
+      :on => ["--roles String", "--role String"],
+      :help => "The replication service roles to limit on"
+    })
+    
+    add_option(:limit_services, {
+      :on => ["--services String", "--service String"],
+      :help => "The replication service names to limit on"
+    })
+    
+    add_option(:fields, {
+      :on => "--fields String",
+      :help => "The status fields to display in the output"
+    })
+    
+    add_option(:sort_by, {
+      :on => "--sort-by String",
+      :default => "host,serviceName",
+      :help => "Sort output by these fields"
+    })
+    
+    add_option(:by_service, {
+      :on => "--by-service",
+      :default => false,
+      :help => "Sort output by replication service"
+    }) {
+      opt(:sort_by, "serviceName,host")
+      nil
+    }
+    
+    add_option(:no_headers, {
+      :on => "--no-headers",
+      :default => false,
+      :help => "Suppress headers in output"
+    })
+    
+    add_option(:format, {
+      :on => "--output String",
+      :default => "info",
+      :help => "Display format for record output (info|tab|list|name|json)"
+    })
+  end
+  
+  def validate
+    super()
+    
+    check_hosts = opt(:hosts).to_s().split(",")
+    if check_hosts.size() == 0
+      check_hosts = [TI.hostname()]
+    end
+    
+    check_directories = []
+    opt(:directories).to_s().split(",").each{
+      |dir|
+      dir_parts = dir.split(":")
+      if dir_parts.size() == 1
+        check_directories << {
+          :directory => dir_parts[0]
+        }
+      elsif dir_parts.size() == 2
+        check_directories << {
+          :directory => dir_parts[0],
+          :port => dir_parts[1]
+        }
+      else
+        TU.error("Each directory to check must be valid path and include the RMI port.")
+      end
+    }
+    if check_directories.size() == 0
+      check_directories = [{
+        :directory => TI.root(),
+        :port => TI.setting(REPL_RMI_PORT)
+      }]
+    end
+    
+    # Identify the combinations of check_hosts and check_directories that
+    # actually contain a replicator
+    threads = []
+    @trepctl_locations = {}
+    check_hosts.each{
+      |host|
+      check_directories.each{
+        |dir|        
+        threads << Thread.fork {
+          begin
+            present = TU.ssh_result("test -f #{dir[:directory]}/tungsten/tungsten-replicator/bin/trepctl", host, TI.user())
+            
+            loc_id = TU.to_identifier("#{host}_#{dir[:directory]}")
+            @trepctl_locations[loc_id] = dir.merge({:host => host})
+          rescue RemoteCommandError
+            TU.debug("Unable to find a replicator at #{host}:#{dir[:directory]}")
+          rescue CommandError
+            TU.debug("Unable to find a replicator at #{host}:#{dir[:directory]}")
+          end
+        }
+      }
+    }
+    threads.each{|thread| thread.join() }
+    
+    if opt(:fields) == nil
+      opt(:fields, "host,serviceName,role,state,appliedLastSeqno,appliedLatency")
+    end
+    
+    unless ["info","tab","list","name","json"].include?(opt(:format))
+      TU.error("The specified value for --output is invalid. Valid values are info, tab, list, name and json.")
+    end
+  end
+  
+  self.new().run()
+end
