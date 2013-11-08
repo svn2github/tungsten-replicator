@@ -1,6 +1,6 @@
 class TungstenInstall
   def initialize(base_path)
-    unless File.exists?("#{base_path}/.manifest") && File.exists?("#{base_path}/.lock")
+    unless self.class.is_installed?(base_path)
       raise "Unable to use #{base_path} because it is not an installed Tungsten directory"
     end
     
@@ -38,6 +38,14 @@ class TungstenInstall
       setting(HOST_ENABLE_CONNECTOR, "false")
       setting(REPL_RMI_PORT, TU.cmd_result("grep rmi_port #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/services.properties | grep -v '^#' | awk -F= '{print $2}' | tr -d ' '"))
       setting("host_name", TU.cmd_result("egrep '^replicator.host=' #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/services.properties | awk -F= '{print $2}'"))
+    end
+  end
+  
+  def self.is_installed?(base_path)
+    if File.exists?("#{base_path}/.manifest") && File.exists?("#{base_path}/.lock")
+      return true
+    else
+      return false
     end
   end
   

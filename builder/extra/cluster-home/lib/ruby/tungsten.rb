@@ -27,8 +27,15 @@ TU = TungstenUtil.instance()
 
 begin
   # Intialize a default TungstenInstall object that uses TU.get_base_path()
-  # as the default. If --home-directory is found, that path is used instead.
+  # as the default. If --directory is found, that path is used instead.
+  
   install_base_path = TU.get_base_path()
+  unless TungstenInstall.is_installed?(TU.get_base_path())
+    if ENV.has_key?("CONTINUENT_ROOT")
+      install_base_path = ENV["CONTINUENT_ROOT"] + "/tungsten"
+    end
+  end
+  
   opts = OptionParser.new
   opts.on("--directory String") {|val| install_base_path = "#{val}/tungsten"}
   TU.run_option_parser(opts)
