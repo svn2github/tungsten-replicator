@@ -351,6 +351,8 @@ class TungstenUtil
       raise MessageError.new(connection_error)
     rescue NotImplementedError => nie
       raise MessageError.new(nie.message + ". Try modifying your ~/.ssh/config file to define values for Cipher and Ciphers that do not include this algorithm.  The supported encryption algorithms are #{Net::SSH::Transport::CipherFactory::SSH_TO_OSSL.keys().delete_if{|e| e == "none"}.join(", ")}.")
+    rescue => e
+      raise e
     end
 
     if rc != 0

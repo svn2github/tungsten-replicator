@@ -26,7 +26,7 @@ class TungstenMultipleTrepctl
   
   # Run the command in parallel on each trepctl location collecting the output
   def collect_trepctl_output(command)
-    threads = []
+    pids = []
     results = {}
     
     # Run the trepctl services -full -json command on each matching
@@ -34,17 +34,24 @@ class TungstenMultipleTrepctl
     @trepctl_locations.each{
       |loc_id,loc|
       
-      threads << Thread.fork {
+      results[loc_id] = Tempfile.new('ssh')
+      pids << fork {
         options = []
         if loc.has_key?(:port)
           options << "-port #{loc[:port]}"
         end
         
-        results[loc_id] = TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl #{options.join(" ")} #{command}", loc[:host], TI.user())
+        results[loc_id].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl #{options.join(" ")} #{command}", loc[:host], TI.user()))
       }
     }
     # Wait for each thread to finish   
-    threads.each{|thread| thread.join() }
+    pids.each{|pid| Process.waitpid(pid) }
+    
+    results.each{
+      |loc_id, file|
+      file.rewind()
+      results[loc_id] = file.read()
+    }
     
     results
   end
@@ -123,15 +130,26 @@ class TungstenMultipleTrepctl
     end
     
     if format == "info"
+      table_rows = []
+      
+      unless opt(:hide_headers) == true
+        table_rows << fields.dup()
+      end
+      
       # Display the fields from each record as a table
       records.each{|rec|
         to_display = []
         fields.each{|field| to_display << rec[field]}
         
-        puts to_display.join(",")
+        table_rows << to_display.dup()
       }
+      output_table(table_rows)
     elsif format == "tab"
       # Display the fields from each record as tab-delmited lines
+      unless opt(:hide_headers) == true
+        puts fields.join("\t")
+      end
+      
       records.each{|rec|
         to_display = []
         fields.each{|field| to_display << rec[field]}
@@ -155,6 +173,35 @@ class TungstenMultipleTrepctl
         to_display
       })
     end
+  end
+  
+  def output_table(table_rows)
+    fields_max_length = []
+    
+    # Determine the maximum length for each column
+    table_rows.each{|row|
+      row.each_index{|idx|
+        length = row[idx].to_s().length()
+        
+        if fields_max_length[idx] == nil || fields_max_length[idx] < length
+          fields_max_length[idx] = length
+        end
+      }
+    }
+    
+    # Print a line for each row
+    table_rows.each{|row|
+      row.each_index{|idx|
+        if (row[idx] =~ /^[\d]+(\.[\d]+){0,1}$/) != nil
+          flag = ""
+        else
+          flag = "-"
+        end
+        format = "| %#{flag}#{fields_max_length[idx]}s "
+        printf(format, row[idx])
+      }
+      print "|\n"
+    }
   end
   
   def sort_records(records, sort_keys)
@@ -217,10 +264,11 @@ class TungstenMultipleTrepctl
       nil
     }
     
-    add_option(:no_headers, {
-      :on => "--no-headers",
+    add_option(:hide_headers, {
+      :on => "--hide-headers",
       :default => false,
-      :help => "Suppress headers in output"
+      :help => "Suppress headers in output",
+      :aliases => ["--skip-headers"]
     })
     
     add_option(:format, {
@@ -264,27 +312,43 @@ class TungstenMultipleTrepctl
     
     # Identify the combinations of check_hosts and check_directories that
     # actually contain a replicator
-    threads = []
-    @trepctl_locations = {}
+    pids = []
+    results = []
+    idx = 0
     check_hosts.each{
       |host|
       check_directories.each{
-        |dir|        
-        threads << Thread.fork {
+        |dir|
+
+        results[idx] = Tempfile.new('tpm')
+        pids[idx] = fork {
           begin
             present = TU.ssh_result("test -f #{dir[:directory]}/tungsten/tungsten-replicator/bin/trepctl", host, TI.user())
-            
-            loc_id = TU.to_identifier("#{host}_#{dir[:directory]}")
-            @trepctl_locations[loc_id] = dir.merge({:host => host})
+            results[idx].write(Marshal.dump(dir.merge({:host => host})))
           rescue RemoteCommandError
             TU.debug("Unable to find a replicator at #{host}:#{dir[:directory]}")
           rescue CommandError
             TU.debug("Unable to find a replicator at #{host}:#{dir[:directory]}")
           end
         }
+        idx = idx+1
       }
     }
-    threads.each{|thread| thread.join() }
+    pids.each{|pid| Process.waitpid(pid) }
+
+    @trepctl_locations = {}
+    results.each{
+      |file|
+      file.rewind()
+
+      begin
+        result = Marshal.load(file.read())
+        loc_id = TU.to_identifier("#{result[:host]}_#{result[:directory]}")
+        @trepctl_locations[loc_id] = result
+      rescue TypeError => te
+      rescue ArgumentError => ae
+      end
+    }
     
     if opt(:fields) == nil
       opt(:fields, "host,serviceName,role,state,appliedLastSeqno,appliedLatency")
