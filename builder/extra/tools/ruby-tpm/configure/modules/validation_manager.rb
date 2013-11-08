@@ -156,12 +156,12 @@ class ManagerWitnessNeededCheck < ConfigureValidationCheck
     
     if repl_members.to_s().split(",").size() < 3
       if witnesses == ""
-        error("This dataservice is configured with less than 3 members and no witnesses. Update the configuration with an active witness for the highest stability. Visit https://docs.continuent.com/ct/deployment-host-types.html for more information.")
+        error("This dataservice is configured with less than 3 members and no witnesses. Update the configuration with an active witness for the highest stability. Visit http://docs.continuent.com/ct/host-types for more information.")
       end
     end
     
     if @config.getProperty(ENABLE_ACTIVE_WITNESSES) == "false" && witnesses != ""
-      warning("This dataservice is using a passive witness. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit https://docs.continuent.com/ct/deployment-host-types.html for more information.")
+      warning("This dataservice is using a passive witness. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit http://docs.continuent.com/ct/host-types for more information.")
     end
   end
 end
@@ -203,13 +203,13 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
       |witness|
       witness_ips = Configurator.instance.get_ip_addresses(witness)
       if witness_ips == false
-        error("Unable to find an IP address for the passive witness #{witness}. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit https://docs.continuent.com/ct/deployment-host-types.html for more information.")
+        error("Unable to find an IP address for the passive witness #{witness}. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit http://docs.continuent.com/ct/host-types for more information.")
         next
       end
       
       debug("Check if witness #{witness} is pingable")
       if Configurator.instance.check_addresses_is_pingable(witness) == false
-        error("The passive witness address '#{witness}' is not returning pings. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit https://docs.continuent.com/ct/deployment-host-types.html for more information.")
+        error("The passive witness address '#{witness}' is not returning pings. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit http://docs.continuent.com/ct/host-types for more information.")
         help("Specify a valid hostname or ip address for the passive witness host ")
       end
       
@@ -227,7 +227,7 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
       }
       
       if same_network != true
-        error("The passive witness address '#{witness}' is not in the same subnet as the manager. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit https://docs.continuent.com/ct/deployment-host-types.html for more information.")
+        error("The passive witness address '#{witness}' is not in the same subnet as the manager. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit http://docs.continuent.com/ct/host-types for more information.")
       end
     }
   end
