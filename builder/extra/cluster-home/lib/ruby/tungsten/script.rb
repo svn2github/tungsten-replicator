@@ -69,6 +69,7 @@ module TungstenScript
         cleanup(1)
       end
     
+      TU.debug("Command: #{@command}")
       TU.debug("Options:")
       @options.each{
         |k,v|

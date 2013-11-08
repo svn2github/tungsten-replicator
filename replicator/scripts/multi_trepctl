@@ -7,6 +7,11 @@ class TungstenMultipleTrepctl
   
   def main
     begin
+      args = TU.remaining_arguments
+      if args.size() > 0
+        raise "Extra commands are not yet implemented"
+      end
+      
       # Collect records from all trepctl locations filtering out
       # replication services that don't match --roles or --services if given
       records = load_services({
@@ -14,11 +19,29 @@ class TungstenMultipleTrepctl
         "serviceName" => opt(:limit_services)
       })
       
-      # Sort records by the fields passed in on --sort-by
-      records = sort_records(records, opt(:sort_by))
-      
-      # Output the matching records
-      output_records(records, opt(:fields), opt(:format))
+      if args[0] == "backups"
+        @command = args.shift()
+        raise "The backups command has not been implemented"
+      elsif args[0] == "db"
+        @command = args.shift()
+        raise "The db command has not been implemented"
+      elsif args[0] == "masterof"
+        @command = args.shift()
+        raise "The masterof command has not been implemented"
+      elsif args[0] == "sql"
+        @command = args.shift()
+        @sql_command = args.join(" ")
+        raise "The sql command has not been implemented"
+      elsif args.size() > 0
+        # collect_trepctl_output(args.join(" "))
+        raise "This command has not been implemented"
+      else
+        # Sort records by the fields passed in on --sort-by
+        records = sort_records(records, opt(:sort_by))
+
+        # Output the matching records
+        output_records(records, opt(:fields), opt(:format))
+      end
     rescue => e
       raise e
     end
@@ -41,7 +64,13 @@ class TungstenMultipleTrepctl
           options << "-port #{loc[:port]}"
         end
         
-        results[loc_id].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl #{options.join(" ")} #{command}", loc[:host], TI.user()))
+        begin
+          results[loc_id].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl #{options.join(" ")} #{command}", loc[:host], TI.user()))
+        rescue RemoteCommandError => rce
+          results[loc_id].write(Marshal.dump(rce))
+        rescue CommandError => ce
+          results[loc_id].write(Marshal.dump(ce))
+        end
       }
     }
     # Wait for each thread to finish   
@@ -51,6 +80,14 @@ class TungstenMultipleTrepctl
       |loc_id, file|
       file.rewind()
       results[loc_id] = file.read()
+      
+      begin
+        exception = Marshal.load(results[loc_id])
+        if exception.is_a?(CommandError)
+          results[loc_id] = exception
+        end
+      rescue
+      end
     }
     
     results
@@ -78,6 +115,13 @@ class TungstenMultipleTrepctl
       
         # Only add it to the final array if it matches the filters
         if matches_filters?(svc, filters) == true
+          svc.keys().each{
+            |key|
+            svc[key.downcase()] = svc[key]
+          }
+          svc["service"] = svc["servicename"]
+          svc["seqno"] = svc["appliedlastseqno"]
+          svc["latency"] = svc["appliedlatency"]
           services << svc.merge({:loc_id => loc_id})
         end
       }
@@ -130,41 +174,25 @@ class TungstenMultipleTrepctl
     end
     
     if format == "info"
-      table_rows = []
-      
-      unless opt(:hide_headers) == true
-        table_rows << fields.dup()
-      end
-      
-      # Display the fields from each record as a table
-      records.each{|rec|
-        to_display = []
-        fields.each{|field| to_display << rec[field]}
-        
-        table_rows << to_display.dup()
-      }
-      output_table(table_rows)
+      output_table(build_table_rows(records, fields, opt(:hide_headers)), fields)
     elsif format == "tab"
-      # Display the fields from each record as tab-delmited lines
-      unless opt(:hide_headers) == true
-        puts fields.join("\t")
-      end
-      
-      records.each{|rec|
-        to_display = []
-        fields.each{|field| to_display << rec[field]}
-        puts to_display.join("\t")
+      # Display the fields from each record as tab-delimited lines
+      build_table_rows(records, fields, opt(:hide_headers)).each{|row|
+        puts row.join("\t")
       }
     elsif format == "list"
-      # Collect the first field from each record and display on a single line
-      to_display = []
-      records.each{|rec| to_display << rec[fields[0]] }
-      puts to_display.uniq().join(",")
+      is_first = true
+      build_table_rows(records, fields, true).each{|row|
+        if is_first == false
+          print ";"
+        end
+        print row.join(",")
+        is_first = false
+      }
     elsif format == "name"
-      # Display the first field from each record on individual lines
-      to_display = []
-      records.each{|rec| to_display << rec[fields[0]] }
-      puts to_display.uniq().join("\n")
+      build_table_rows(records, fields, true).each{|row|
+        puts row.join(" ")
+      }
     elsif format == "json"
       # Display the fields from each record as a JSON array of hashes
       puts JSON.pretty_generate(records.map{|rec|
@@ -175,7 +203,25 @@ class TungstenMultipleTrepctl
     end
   end
   
-  def output_table(table_rows)
+  def build_table_rows(records, fields, hide_headers)
+    table_rows = []
+    
+    unless hide_headers == true
+      table_rows << fields.dup()
+    end
+    
+    # Display the fields from each record as a table
+    records.each{|rec|
+      to_display = []
+      fields.each{|field| to_display << rec[field]}
+      
+      table_rows << to_display.dup()
+    }
+    
+    table_rows
+  end
+  
+  def output_table(table_rows, fields)
     fields_max_length = []
     
     # Determine the maximum length for each column
@@ -189,15 +235,19 @@ class TungstenMultipleTrepctl
       }
     }
     
+    float_columns = ["latency", "appliedlatency", "relativelatency", "timeinstateseconds", "uptimeseconds"]
     # Print a line for each row
     table_rows.each{|row|
       row.each_index{|idx|
-        if (row[idx] =~ /^[\d]+(\.[\d]+){0,1}$/) != nil
-          flag = ""
+        if (row[idx] =~ /^(-)?[\d]+(\.[\d]+){0,1}$/) != nil
+          if float_columns.include?(fields[idx])
+            format = "| %#{fields_max_length[idx]}.3f "
+          else
+            format = "| %#{fields_max_length[idx]}s "
+          end
         else
-          flag = "-"
+          format = "| %-#{fields_max_length[idx]}s "
         end
-        format = "| %#{flag}#{fields_max_length[idx]}s "
         printf(format, row[idx])
       }
       print "|\n"
@@ -213,7 +263,14 @@ class TungstenMultipleTrepctl
     records.each{
       |rec|
       sort_values = []
-      sort_keys.each{|key| sort_values << rec[key]}
+      sort_keys.each{|key|
+        # Make sure numeric values are sorted as numbers
+        if rec[key] =~ /^(-)?[\d]+(\.[\d]+){0,1}$/
+          sort_values << rec[key].to_f()
+        else
+          sort_values << rec[key]
+        end
+      }
       rec[:sort] = sort_values
     }
     
@@ -229,8 +286,8 @@ class TungstenMultipleTrepctl
       :help => "The hosts to check replicators on"
     })
     
-    add_option(:directories, {
-      :on => ["--directories String", "--dir String"],
+    add_option(:paths, {
+      :on => ["--paths String", "--path String"],
       :help => "The Tungsten directories to check"
     })
     
@@ -287,7 +344,7 @@ class TungstenMultipleTrepctl
     end
     
     check_directories = []
-    opt(:directories).to_s().split(",").each{
+    opt(:paths).to_s().split(",").each{
       |dir|
       dir_parts = dir.split(":")
       if dir_parts.size() == 1
@@ -353,6 +410,9 @@ class TungstenMultipleTrepctl
     if opt(:fields) == nil
       opt(:fields, "host,serviceName,role,state,appliedLastSeqno,appliedLatency")
     end
+    
+    opt(:fields, opt(:fields).downcase())
+    opt(:sort_by, opt(:sort_by).downcase())
     
     unless ["info","tab","list","name","json"].include?(opt(:format))
       TU.error("The specified value for --output is invalid. Valid values are info, tab, list, name and json.")
