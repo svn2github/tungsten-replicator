@@ -338,11 +338,6 @@ class TungstenMultipleTrepctl
   def validate
     super()
     
-    check_hosts = opt(:hosts).to_s().split(",")
-    if check_hosts.size() == 0
-      check_hosts = [TI.hostname()]
-    end
-    
     check_directories = []
     opt(:paths).to_s().split(",").each{
       |dir|
@@ -360,6 +355,43 @@ class TungstenMultipleTrepctl
         TU.error("Each directory to check must be valid path and include the RMI port.")
       end
     }
+    if check_directories.size() == 0
+      running_replicators = TU.cmd_result("ps -eo args | grep \"Tungsten Replicator\"")
+      running_replicators.each{
+        |ps|
+        match = ps.match(/^([a-zA-Z\/]*)\/releases/)
+        unless match == nil
+          check_directories << {
+            :directory => match[1]
+          }
+        end
+      }
+    end
+    
+    check_hosts = opt(:hosts).to_s().split(",")
+    
+    if check_hosts.size() == 0
+      check_directories.each{
+        |dir|
+        ds_list = TU.cmd_result("#{dir[:directory]}/tungsten/tools/tpm query dataservices | awk -F \":\" '{print $1}' | tr -d \" \"")
+        ds_list.split("\n").each{
+          |ds|
+          begin
+            value_key = "dataservices.#{ds}.dataservice_replication_members"
+            host_list_raw = TU.cmd_result("#{dir[:directory]}/tungsten/tools/tpm query values #{value_key}")
+            host_list = JSON.parse(host_list_raw)
+            check_hosts = check_hosts + host_list[value_key].split(",")
+          rescue CommandError
+          end
+        }
+        check_hosts.uniq!()
+      }
+    end
+    
+    if check_hosts.size() == 0
+      check_hosts = [TI.hostname()]
+    end
+    
     if check_directories.size() == 0
       check_directories = [{
         :directory => TI.root(),
