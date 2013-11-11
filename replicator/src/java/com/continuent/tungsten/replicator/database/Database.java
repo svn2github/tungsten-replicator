@@ -486,6 +486,28 @@ public interface Database
             throws SQLException, ConsistencyException;
 
     /**
+     * Runs consistency check transaction:<br/>
+     * a.) If masterCrc==null - normal (master side) consistency check is
+     * executed, which is expected to be replicated to the slaves by
+     * replication.<br/>
+     * b.) If masterCrc!=null, then masterCrc and masterCnt are put into
+     * corresponding columns, while executed check's results are put into
+     * this_crc and this_cnt columns. The idea behind this is that if there's no
+     * replication running, that would usually copy over the consistency check
+     * from master to slave, it inserts consistency check results of the master
+     * to this slave, runs consistency check on this slave and updates the slave
+     * part (this_crc and this_cnt) in the created consistency row accordingly.
+     * 
+     * @param ct Consistency table.
+     * @param cc ConsistencyCheck specification.
+     * @param masterCrc CRC value of this check on the master.
+     * @param masterCnt Count of rows of this check on the master.
+     */
+    public void consistencyCheck(Table ct, ConsistencyCheck cc,
+            String masterCrc, int masterCnt) throws SQLException,
+            ConsistencyException;
+
+    /**
      * getNowFunction returns the database-specific way to get current date and
      * time from the database.
      * 

@@ -439,6 +439,26 @@ public class DataScanCtrl
 
         // Connection to the master DB user schema.
         masterDbUser = connectDB(jdbcUrlMaster, jdbcUserMaster, jdbcPassMaster);
+
+        if (checkDirect)
+        {
+            // Find consistency table to be used later on.
+            consistencyTable = TungstenPlugin.findConsistencyTable(
+                    masterDbUser, serviceSchema);
+
+            // Turn off binary logging for direct checks.
+            if (masterDbUser.supportsControlSessionLevelLogging())
+            {
+                println("Turning off transacion logging for this direct-check session");
+                masterDbUser.controlSessionLevelLogging(true);
+            }
+            else
+            {
+                println("WARNING: can't turn off transaction logging. "
+                        + "Slave will probably fail next time it's started up. "
+                        + "To fix - skip generated consistency check events.");
+            }
+        }
     }
 
     /**
@@ -447,7 +467,9 @@ public class DataScanCtrl
     private Database connectDB(String url, String user, String pass)
             throws SQLException
     {
-        Database connDB = DatabaseFactory.createDatabase(url, user, pass);
+        // Need privileged connection for direct checks to be able to turn off
+        // transaction logging.
+        Database connDB = DatabaseFactory.createDatabase(url, user, pass, checkDirect);
         connDB.connect();
         println(String.format("Connected to %s: %s", connDB.getType()
                 .toString(), url));
@@ -465,7 +487,21 @@ public class DataScanCtrl
 
             // TODO: enable more than one slave checking with direct method.
             slaveDbTungsten = new Database[1];
-            slaveDbTungsten[0] = connectDB(jdbcUrlSlave[0], jdbcUserMaster, jdbcPassMaster);
+            slaveDbTungsten[0] = connectDB(jdbcUrlSlave[0], jdbcUserMaster,
+                    jdbcPassMaster);
+
+            // Turn off binary logging for direct checks.
+            if (slaveDbTungsten[0].supportsControlSessionLevelLogging())
+            {
+                println("Turning off transacion logging for this direct-check session");
+                masterDbUser.controlSessionLevelLogging(true);
+            }
+            else
+            {
+                println("WARNING: can't turn off transaction logging. "
+                        + "If this slave has slaves of its own, they will receive "
+                        + "all the rows that this consistency check generates.");
+            }
         }
         else
         {
@@ -603,20 +639,16 @@ public class DataScanCtrl
                                 rowTill));
             }
 
-            if (chunkSize == -1)
+            String chunkNote = "";
+            if (chunkSize == -1 || chunkSize > (rowTill - rowFrom))
             {
-                // User asked for a single-chunk pass.
+                // User asked for a single-chunk pass or row range is smaller
+                // than current chunk size.
                 chunkSize = findClosestChunk((int) (rowTill - rowFrom));
+                chunkNote = " (auto - closest to row range)";
             }
-            println("Chunk size: " + chunkSize);
+            println("Chunk size: " + chunkSize + chunkNote);
             println("Granularity: " + granularity);
-            
-            if (checkDirect)
-            {
-                // Find consistency table to be used later on.
-                consistencyTable = TungstenPlugin.findConsistencyTable(
-                        masterDbUser, serviceSchema);
-            }
 
             printvln("Checking (sequentially):");
             for (long r = rowFrom; r < rowTill; r += chunkSize)
@@ -696,14 +728,19 @@ public class DataScanCtrl
         int id = -1;
         if (checkDirect)
         {
-            // Issue the check directly into the database.
+            // Issue the check directly into the master database.
             id = TungstenPlugin.findNextConsistencyId(masterDbUser,
                     consistencyTable);
             // TODO: make check column names and types a dynamic choice.
             ConsistencyCheck cc = ConsistencyCheckFactory
                     .createConsistencyCheck(id, table, (int) row, (int) range,
-                            getMethod(), true, false);
+                            getMethod(), false, false);
             masterDbUser.consistencyCheck(consistencyTable, cc);
+            
+            // In direct we assume that slave Replicator is down, so
+            // we need to calculate the check on its behalf.
+            // TODO: support more than one slave for direct check.
+            copyMasterCCToSlave(cc, slaveDbTungsten[0]);
         }
         else
         {
@@ -712,6 +749,68 @@ public class DataScanCtrl
                     (int) row, (int) range);
         }
         return id;
+    }
+
+    /**
+     * Reads result of the specified consistency check from the master and
+     * copies it over to the slave (manually, without replication).
+     * 
+     * @param slaveDb Slave Database connection to copy to.
+     * @return false, if consistency check result was not found on master. true,
+     *         if it was found and copied over to the slave.
+     */
+    private boolean copyMasterCCToSlave(ConsistencyCheck cc, Database slaveDb)
+            throws SQLException, ConsistencyException
+    {
+        String query = String.format("SELECT %s,%s FROM %s.%s WHERE %s = %d",
+                ConsistencyTable.masterCrcColumnName,
+                ConsistencyTable.masterCntColumnName, serviceSchema,
+                ConsistencyTable.TABLE_NAME, ConsistencyTable.idColumnName,
+                cc.getCheckId());
+
+        Statement st = null;
+        ResultSet rs = null;
+        try
+        {
+            st = masterDbUser.createStatement();
+            rs = st.executeQuery(query);
+            if (rs.next())
+            {
+                String masterCrc = rs
+                        .getString(ConsistencyTable.masterCrcColumnName);
+                int masterCnt = rs.getInt(ConsistencyTable.masterCntColumnName);
+                slaveDb.consistencyCheck(consistencyTable, cc, masterCrc,
+                        masterCnt);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try
+                {
+                    rs.close();
+                }
+                catch (SQLException e)
+                {
+                }
+            }
+            if (st != null)
+            {
+                try
+                {
+                    st.close();
+                }
+                catch (SQLException e)
+                {
+                }
+            }
+        }
     }
 
     /**

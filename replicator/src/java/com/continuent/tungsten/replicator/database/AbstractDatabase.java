@@ -1044,6 +1044,20 @@ public abstract class AbstractDatabase implements Database
     public void consistencyCheck(Table ct, ConsistencyCheck cc)
             throws SQLException, ConsistencyException
     {
+        consistencyCheck(ct, cc, null, -1);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#consistencyCheck(com.continuent.tungsten.replicator.database.Table,
+     *      com.continuent.tungsten.replicator.consistency.ConsistencyCheck,
+     *      String, int)
+     */
+    public void consistencyCheck(Table ct, ConsistencyCheck cc,
+            String masterCrc, int masterCnt) throws SQLException,
+            ConsistencyException
+    {
         String tableName = cc.getTableName();
         String schemaName = cc.getSchemaName();
         int id = cc.getCheckId();
@@ -1131,12 +1145,35 @@ public abstract class AbstractDatabase implements Database
                 // Create SET array
                 Column col;
                 ArrayList<Column> setColumns = new ArrayList<Column>();
-                col = ctColumns.get(ConsistencyTable.masterCrcColumnIdx);
-                col.setValue(rs.getString(ConsistencyTable.thisCrcColumnName));
-                setColumns.add(col);
-                col = ctColumns.get(ConsistencyTable.masterCntColumnIdx);
-                col.setValue(rs.getInt(ConsistencyTable.thisCntColumnName));
-                setColumns.add(col);
+                if (masterCrc == null)
+                {
+                    // We are the master, so put CC results into master columns.
+                    col = ctColumns.get(ConsistencyTable.masterCrcColumnIdx);
+                    col.setValue(rs
+                            .getString(ConsistencyTable.thisCrcColumnName));
+                    setColumns.add(col);
+                    col = ctColumns.get(ConsistencyTable.masterCntColumnIdx);
+                    col.setValue(rs.getInt(ConsistencyTable.thisCntColumnName));
+                    setColumns.add(col);
+                }
+                else
+                {
+                    // We got CC values from the master up-front.
+                    col = ctColumns.get(ConsistencyTable.masterCrcColumnIdx);
+                    col.setValue(masterCrc);
+                    setColumns.add(col);
+                    col = ctColumns.get(ConsistencyTable.masterCntColumnIdx);
+                    col.setValue(masterCnt);
+                    setColumns.add(col);
+                    // Save calculated CC values to "this" fields.
+                    col = ctColumns.get(ConsistencyTable.thisCrcColumnIdx);
+                    col.setValue(rs
+                            .getString(ConsistencyTable.thisCrcColumnName));
+                    setColumns.add(col);
+                    col = ctColumns.get(ConsistencyTable.thisCntColumnIdx);
+                    col.setValue(rs.getInt(ConsistencyTable.thisCntColumnName));
+                    setColumns.add(col);
+                }
                 rs.close();
 
                 // record CC values obtained on master
