@@ -356,7 +356,7 @@ class TungstenMultipleTrepctl
       end
     }
     if check_directories.size() == 0
-      running_replicators = TU.cmd_result("ps -eo args | grep \"Tungsten Replicator\"")
+      running_replicators = TU.cmd_result("ps -eo args | grep \"Tungsten Replicator\"").split("\n")
       running_replicators.each{
         |ps|
         match = ps.match(/^([a-zA-Z\/]*)\/releases/)
