@@ -95,6 +95,7 @@ public class DataScanCtrl
 
     // TODO: add automated calculation based on table size?
     int                                chunkSize        = 131072;
+    int                                chunkPause       = -1;
     private int                        granularity      = 1;
 
     /** Where to start scanning the table. Used with a single table. */
@@ -230,6 +231,14 @@ public class DataScanCtrl
                     }
                 }
             }
+            else if ("-chunk-pause".equals(curArg))
+            {
+                if (argvIterator.hasNext())
+                {
+                    String val = argvIterator.next();
+                    chunkPause = Integer.parseInt(val);
+                }
+            }
             else if ("-granularity".equals(curArg))
             {
                 if (argvIterator.hasNext())
@@ -311,7 +320,7 @@ public class DataScanCtrl
         }
 
         if (schema == null)
-            fatal("Database is not provided! Use -db parameter.", null);
+            fatal("Database is not provided! Use: -db", null);
     }
 
     /**
@@ -482,7 +491,7 @@ public class DataScanCtrl
         {
             // Establish DBMS connection to the slave from user parameters.
             if (jdbcUrlSlave == null)
-                fatal("Direct check selected, but no slave DBMS credentials provided",
+                fatal("Direct check selected, but no slave DBMS credentials provided! Use: -url2",
                         null);
 
             // TODO: enable more than one slave checking with direct method.
@@ -581,6 +590,62 @@ public class DataScanCtrl
     }
 
     /**
+     * Initialize row range to scan.
+     * 
+     * @param from If true - initialize rowFrom, if false - rowTill.
+     * @throws Exception
+     */
+    private void initRowRange(Table table, boolean from) throws Exception
+    {
+        long row = rowTill;
+        String caption = "till";
+        if (from)
+        {
+            row = rowFrom;
+            caption = "from";
+        }
+        String usePk = "";
+        if (methodPk)
+            usePk = " (PK)";
+
+        if (row >= 0)
+        {
+            // User explicitly specified row position.
+            println(String.format("Row %s%s: %d", caption, usePk, row));
+        }
+        else
+        {
+            // User didn't specify, hence determine position automatically.
+            if (methodPk)
+            {
+                if (from)
+                {
+                    rowFrom = retrieveMaxMinPK(masterDbUser, table, false);
+                    println("Row from (min PK): " + rowFrom);
+                }
+                else
+                {
+                    rowTill = retrieveMaxMinPK(masterDbUser, table, true);
+                    println("Row till (max PK): " + rowTill);
+                }
+            }
+            else
+            {
+                if (from)
+                {
+                    rowFrom = 0;
+                    println("Row from: " + rowFrom);
+                }
+                else
+                {
+                    rowTill = retrieveRowCount(masterDbUser, table);
+                    println("Row till (count): " + rowTill);
+                }
+            }
+        }
+    }
+
+    /**
      * Process commands.
      */
     public void go()
@@ -608,29 +673,9 @@ public class DataScanCtrl
             validateTable(table);
 
             // Determine begin and end position.
-            if (rowFrom >= 0 && rowTill > 0)
-            {
-                String usePk = "";
-                if (methodPk)
-                    usePk = " (PK)";
-                println("Row from" + usePk + ": " + rowFrom);
-                println("Row till" + usePk + ": " + rowTill);
-            }
-            else if (methodPk)
-            {
-                rowFrom = retrieveMaxMinPK(masterDbUser, table, false);
-                rowTill = retrieveMaxMinPK(masterDbUser, table, true);
-                println("Row from (min PK): " + rowFrom);
-                println("Row till (max PK): " + rowTill);
-            }
-            else if (!methodPk)
-            {
-                rowFrom = 0;
-                rowTill = retrieveRowCount(masterDbUser, table);
-                println("Row from: " + rowFrom);
-                println("Row till (count): " + rowTill);
-            }
-
+            initRowRange(table, true);
+            initRowRange(table, false);
+           
             // Print actual count of rows.
             if (methodPk)
             {
@@ -648,6 +693,8 @@ public class DataScanCtrl
                 chunkNote = " (auto - closest to row range)";
             }
             println("Chunk size: " + chunkSize + chunkNote);
+            if (chunkPause > 0)
+                println("Chunk pause (s): " + chunkPause);
             println("Granularity: " + granularity);
 
             printvln("Checking (sequentially):");
@@ -679,6 +726,10 @@ public class DataScanCtrl
                 }
 
                 printProgress(r, rowFrom, rowTill);
+
+                // TODO: add parameter to pause drill-down too.
+                if (chunkPause > 0)
+                    Thread.sleep(chunkPause * 1000);
             }
             println("");
             println("Checking completed.");
@@ -838,7 +889,7 @@ public class DataScanCtrl
             {
                 println(":");
                 printCurrentValues(slaveDbTungsten, table, row, range);
-                println("vs. master values:");
+                println("vs.");
                 printCurrentValues(masterDbUser, table, row, range);
             }
             else
