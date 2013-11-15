@@ -177,7 +177,6 @@ public class DataScanCtrl
                     else
                         fatal("Unrecognised method (use pk or limit instead): "
                                 + m, null);
-                    println(String.format("Method: " + m));
                 }
             }
             else if ("-rmiHost".equals(curArg))
@@ -514,30 +513,43 @@ public class DataScanCtrl
         }
         else
         {
-            // Find slaves from master Replicator.
-            slaves = master.getClients();
-            if (slaves == null)
-                throw new ReplicatorException("No slaves to check found");
-            OpenReplicatorManagerMBean[] slave = new OpenReplicatorManagerMBean[slaves
-                    .size()];
-            slaveDbTungsten = new Database[slaves.size()];
-            jdbcUrlSlave = new String[slaves.size()];
-            for (int c = 0; c < slaves.size(); c++)
+            // Replicated check.
+            if (jdbcUrlSlave != null && jdbcUrlSlave[0] != null)
             {
-                // Connect to JMX.
-                Map<String, String> client = slaves.get(c);
-                String rmiHostSlave = client.get(ProtocolParams.RMI_HOST);
-                String rmiPortSlave = client.get(ProtocolParams.RMI_PORT);
-                slave[c] = getOpenReplicator(rmiHostSlave, rmiPortSlave,
-                        service);
-
-                // Connect to DBMS and Tungsten schema.
-                // TODO: support for different DB password for slaves.
-                jdbcUrlSlave[c] = slave[c]
-                        .properties(ReplicatorConf.THL_DB_URL).get(
-                                ReplicatorConf.THL_DB_URL);
-                slaveDbTungsten[c] = connectDB(jdbcUrlSlave[c], jdbcUserMaster,
+                // User specified slave DBMS URL manually.
+                slaveDbTungsten = new Database[1];
+                slaveDbTungsten[0] = connectDB(jdbcUrlSlave[0], jdbcUserMaster,
                         jdbcPassMaster);
+            }
+            else
+            {
+                // Find slaves and DBMS URLs from master Replicator.
+                slaves = master.getClients();
+                if (slaves == null)
+                    throw new ReplicatorException("No slaves to check found");
+                println(String.format("Slaves found: %d", slaves.size()));
+                
+                OpenReplicatorManagerMBean[] slave = new OpenReplicatorManagerMBean[slaves
+                        .size()];
+                slaveDbTungsten = new Database[slaves.size()];
+                jdbcUrlSlave = new String[slaves.size()];
+                for (int c = 0; c < slaves.size(); c++)
+                {
+                    // Connect to JMX.
+                    Map<String, String> client = slaves.get(c);
+                    String rmiHostSlave = client.get(ProtocolParams.RMI_HOST);
+                    String rmiPortSlave = client.get(ProtocolParams.RMI_PORT);
+                    slave[c] = getOpenReplicator(rmiHostSlave, rmiPortSlave,
+                            service);
+
+                    // Connect to DBMS and Tungsten schema.
+                    // TODO: support for different DB password for slaves.
+                    jdbcUrlSlave[c] = slave[c].properties(
+                            ReplicatorConf.THL_DB_URL).get(
+                            ReplicatorConf.THL_DB_URL);
+                    slaveDbTungsten[c] = connectDB(jdbcUrlSlave[c],
+                            jdbcUserMaster, jdbcPassMaster);
+                }
             }
         }
     }
@@ -558,6 +570,28 @@ public class DataScanCtrl
             {
                 println("WARNING: " + table.getName()
                         + " has a single-column PK, but it's not numeric");
+                return false;
+            }
+            else if (table.getPrimaryKey() != null
+                    && table.getPrimaryKey().getColumns().size() != 1)
+            {
+                String pkCols = "";
+                for (Column column : table.getPrimaryKey().getColumns())
+                {
+                    pkCols += " " + column.getName();
+                }
+                println(String.format(
+                        "WARNING: PK method works with tables having a single-column numeric PK."
+                                + " PK of %s:%s", table.getName(),
+                        pkCols));
+                return false;
+            }
+            else if (table.getPrimaryKey() == null)
+            {
+                println(String.format(
+                        "WARNING: PK method works with tables having a single-column numeric PK, "
+                                + "while table %s has no primary key at all",
+                        table.getName()));
                 return false;
             }
         }
@@ -644,6 +678,31 @@ public class DataScanCtrl
             }
         }
     }
+    
+    /**
+     * Validate and change chosen consistency check method, if needed. If method
+     * is PK, but table has a composite PK, it will be reverted to limit.
+     */
+    private void initMethod(Table table)
+    {
+        String note = "";
+        boolean valid = validateTable(table);
+
+        if (!valid && methodPk)
+        {
+            methodPk = false;
+            note = " (auto - reverted)";
+        }
+
+        if (methodPk)
+        {
+            println(String.format("Method: pk" + note));
+        }
+        else
+        {
+            println(String.format("Method: limit" + note));
+        }
+    }
 
     /**
      * Process commands.
@@ -670,7 +729,8 @@ public class DataScanCtrl
                 println("Columns:");
                 printColumns(table);
             }
-            validateTable(table);
+            
+            initMethod(table);
 
             // Determine begin and end position.
             initRowRange(table, true);
@@ -713,9 +773,9 @@ public class DataScanCtrl
                     {
                         String host = slaveDbTungsten[c].getDatabaseMetaData()
                                 .getURL();
-                        if (!checkDirect)
+                        if (!checkDirect && slaves != null)
                             host = slaves.get(c).get(ProtocolParams.RMI_HOST);
-                        println("x");
+                       println("x");
                         printvln("Inconsistent chunk @ " + host + ": row=" + r
                                 + " range=" + chunkSize + " check=" + id);
                         printvln("Drilling down (binary search):");
@@ -1045,8 +1105,8 @@ public class DataScanCtrl
             throw new Exception(table.getName() + " has no PK");
         else if (table.getPrimaryKey().getColumns().size() != 1)
             throw new Exception(table.getName()
-                    + " PK is not a single-column one: "
-                    + table.getPrimaryKey().getColumns() + " columns");
+                    + " PK is not a single-column one "
+                    + table.getPrimaryKey().getColumns());
 
         String function = "MIN";
         if (max)
