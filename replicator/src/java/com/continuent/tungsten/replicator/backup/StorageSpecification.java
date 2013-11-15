@@ -34,7 +34,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
  */
-public class StorageSpecification
+public class StorageSpecification implements Comparable<StorageSpecification>
 {
     // Property serialization information.
     private static final String VERSION_NO  = "1.0";
@@ -45,7 +45,7 @@ public class StorageSpecification
     private static final String FILE_CRC    = "file_crc";
     private static final String BACKUP_DATE = "backup_date";
     private static final String URI         = "uri";
-    private static final String FILE_COUNT = "archive.file_count";
+    private static final String FILE_COUNT  = "archive.file_count";
     private static final String DB_NAME     = "database_name";
 
     // Specification values.
@@ -96,6 +96,7 @@ public class StorageSpecification
             this.fileLengths.add(props.getLong(FILE_LENGTH));
             this.fileCrcs.add(props.getLong(FILE_CRC));
         }
+        this.backupDate = props.getDate(BACKUP_DATE);
     }
 
     /**
@@ -189,7 +190,7 @@ public class StorageSpecification
             props.setLong(buildPropertyName(FILE_LENGTH, i), getFileLength(i));
             props.setLong(buildPropertyName(FILE_CRC, i), getFileCrc(i));
             String dbName = getDatabaseName(i);
-            if(dbName != null)
+            if (dbName != null)
             {
                 props.setString(buildPropertyName(DB_NAME, i), dbName);
             }
@@ -218,12 +219,26 @@ public class StorageSpecification
     {
         this.databaseNames.add(databaseName);
     }
-    
+
     public String getDatabaseName(int index)
     {
-        if(databaseNames.size() <= index)
+        if (databaseNames.size() <= index)
             return null;
         return this.databaseNames.get(index);
     }
-    
+
+    @Override
+    public int compareTo(StorageSpecification o)
+
+    {
+        if (o == null)
+            return 0;
+        if (this.getBackupDate().before(o.getBackupDate()))
+            return -1;
+        else if (this.getBackupDate().equals(o.getBackupDate()))
+            return this.getUri().compareTo(o.getUri());
+        else
+            return 1;
+    }
+
 }

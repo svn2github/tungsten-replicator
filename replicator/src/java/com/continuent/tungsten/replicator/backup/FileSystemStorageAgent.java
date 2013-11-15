@@ -46,24 +46,30 @@ import com.continuent.tungsten.common.config.TungstenProperties;
  */
 public class FileSystemStorageAgent implements StorageAgent
 {
-    private static final Logger logger      = Logger
-                                                    .getLogger(FileSystemStorageAgent.class);
-    private static final String SCHEME      = "storage";
-    private static final String SERVICE     = "file-system";
-    private static final String INDEX_FILE  = "storage.index";
-    private static final int    BUFFER_SIZE = 1024;
+    private static final Logger logger                       = Logger.getLogger(FileSystemStorageAgent.class);
+    private static final String SCHEME                       = "storage";
+    private static final String SERVICE                      = "file-system";
+    private static final String INDEX_FILE                   = "storage.index";
+    private static final int    BUFFER_SIZE                  = 1024;
+
+    private static final String STORAGE_SPECIFICATION_PREFIX = "store-";
+    private static final String STORAGE_SPECIFICATION_SUFFIX = ".properties";
 
     // Storage properties.
-    private int                 retention   = 3;
+    private int                 retention                    = 3;
     private File                directory;
     private boolean             crcCheckingEnabled;
+
+    private long                lastFileNumber;
 
     // Filter for locating storage specification files.
     class PropfileFilter implements FileFilter
     {
         public boolean accept(File pathname)
         {
-            return (pathname.getName().endsWith(".properties"));
+            String file = pathname.getName();
+            return (file.startsWith(STORAGE_SPECIFICATION_PREFIX) && file
+                    .endsWith(STORAGE_SPECIFICATION_SUFFIX));
         }
     }
 
@@ -128,16 +134,36 @@ public class FileSystemStorageAgent implements StorageAgent
      * 
      * @see com.continuent.tungsten.replicator.backup.StorageAgent#list()
      */
-    public URI[] list() throws BackupException
+    public StorageSpecification[] list() throws BackupException
     {
+        // Compute the max file number when listing
+        lastFileNumber = -1;
+        
         File[] specFiles = directory.listFiles(propfileFilter);
-        URI[] uris = new URI[specFiles.length];
+        StorageSpecification[] specs = new StorageSpecification[specFiles.length];
+
         for (int i = 0; i < specFiles.length; i++)
         {
-            uris[i] = this.createUri(specFiles[i]);
+            String spec = specFiles[i].getName();
+            specs[i] = new StorageSpecification(loadProperties(specFiles[i],
+                    "Unable to load backup specification file"));
+
+            String fileNumber = spec.substring(
+                    STORAGE_SPECIFICATION_PREFIX.length(), spec.length()
+                            - STORAGE_SPECIFICATION_SUFFIX.length());
+            try
+            {
+                long number = Long.parseLong(fileNumber);
+                if (number > lastFileNumber)
+                    lastFileNumber = number;
+            }
+            catch (NumberFormatException e)
+            {
+                // Not a number... probably a file that is not a real backup
+            }
         }
-        Arrays.sort(uris);
-        return uris;
+        Arrays.sort(specs);
+        return specs;
     }
 
     /**
@@ -147,14 +173,14 @@ public class FileSystemStorageAgent implements StorageAgent
      */
     public URI last() throws BackupException
     {
-        URI[] uris = list();
+        StorageSpecification[] uris = list();
         if (uris.length == 0)
         {
             return null;
         }
         else
         {
-            return uris[uris.length - 1];
+            return URI.create(uris[uris.length - 1].getUri());
         }
     }
 
@@ -221,8 +247,8 @@ public class FileSystemStorageAgent implements StorageAgent
 
         for (int fileIndex = 0; fileIndex < storageSpec.getFilesCount(); fileIndex++)
         {
-            File backupFile = new File(directory, storageSpec
-                    .getFileName(fileIndex));
+            File backupFile = new File(directory,
+                    storageSpec.getFileName(fileIndex));
 
             // Ensure the backupFile exists and has the correct length.
             if (!backupFile.exists())
@@ -267,12 +293,16 @@ public class FileSystemStorageAgent implements StorageAgent
      */
     public URI store(BackupSpecification backupSpec) throws BackupException
     {
+        // Getting file list prior to backup
+        StorageSpecification[] allSpecs = list();
+
         // Get the storage index file and allocate a new backup number.
         StorageIndex index = loadAndIncrementStorageIndex();
 
         // Generate file names.
-        String prefix = "store-" + String.format("%010d", index.getIndex());
-        String specFileName = prefix + ".properties";
+        String prefix = STORAGE_SPECIFICATION_PREFIX
+                + String.format("%010d", index.getIndex());
+        String specFileName = prefix + STORAGE_SPECIFICATION_SUFFIX;
         File specFile = new File(directory, specFileName);
         URI uri = createUri(specFile);
         logger.info("Allocated backup location: uri =" + uri);
@@ -294,18 +324,16 @@ public class FileSystemStorageAgent implements StorageAgent
         {
             fromFile = locator.getContents();
             toFile = new File(directory, prefix + "-" + fromFile.getName());
-            
+
             // Attempt to rename the file first, otherwise copy it
             long crc = renameFile(fromFile, toFile);
             if (crc == -1)
             {
                 crc = copyFile(fromFile, toFile);
             }
-            
-            logger
-                    .info("Stored backup storage file: file="
-                            + toFile.getAbsolutePath() + " length="
-                            + fromFile.length());
+
+            logger.info("Stored backup storage file: file="
+                    + toFile.getAbsolutePath() + " length=" + fromFile.length());
             // Fill out and write the storage specification.
             storageSpec.setFileName(toFile.getName());
             storageSpec.setFileLength(toFile.length());
@@ -324,15 +352,15 @@ public class FileSystemStorageAgent implements StorageAgent
                 + specFile.getAbsolutePath() + " length=" + specFile.length());
 
         // Delete files if we have exceeded the retention.
-        URI[] allUris = list();
-        if (allUris.length > retention)
+        // Don't forget to add the newly created backup to the count
+        if (allSpecs.length + 1 > retention)
         {
-            int numberToDelete = allUris.length - retention;
+            int numberToDelete = allSpecs.length + 1 - retention;
             logger.info("Purging old backups that exceed retention: number="
                     + numberToDelete);
             for (int i = 0; i < numberToDelete; i++)
             {
-                delete(allUris[i]);
+                delete(URI.create(allSpecs[i].getUri()));
             }
         }
 
@@ -414,9 +442,9 @@ public class FileSystemStorageAgent implements StorageAgent
         logger.info("Deleting all backups");
         boolean successful = true;
 
-        for (URI uri : list())
+        for (StorageSpecification uri : list())
         {
-            if (!delete(uri))
+            if (!delete(URI.create(uri.getUri())))
                 successful = false;
         }
         return successful;
@@ -500,6 +528,9 @@ public class FileSystemStorageAgent implements StorageAgent
         // Increment to assign the next index value.
         index.incrementIndex();
 
+        if (index.getIndex() <= lastFileNumber)
+            index.setIndex(lastFileNumber + 1);
+
         // Write the file back to storage.
         storageProps = index.toProperties();
         storeProperties(indexFile, storageProps,
@@ -563,10 +594,11 @@ public class FileSystemStorageAgent implements StorageAgent
             }
         }
     }
-    
+
     // Attempt to rename the file and return the CRC, return -1 if
     // there is a failure
-    protected long renameFile(File fromFile, File toFile) throws BackupException
+    protected long renameFile(File fromFile, File toFile)
+            throws BackupException
     {
         FileInputStream fis = null;
         CRC32 crc = new CRC32();
@@ -576,7 +608,7 @@ public class FileSystemStorageAgent implements StorageAgent
             logger.debug("Renaming file: from=" + fromFile.getAbsolutePath()
                     + " to=" + toFile.getAbsolutePath());
         }
-        
+
         long fromFileLength = fromFile.length();
         // Attempt to rename the file. This will be faster than a copy
         // if the paths are on the same filesystem
@@ -584,7 +616,7 @@ public class FileSystemStorageAgent implements StorageAgent
         {
             return -1;
         }
-        
+
         // Open the destination path to calculate the CRC
         try
         {
@@ -593,7 +625,8 @@ public class FileSystemStorageAgent implements StorageAgent
         catch (IOException e)
         {
             throw new BackupException(formatErrorMessage(
-                    "Unable to open input file for calculating CRC", null, toFile), e);
+                    "Unable to open input file for calculating CRC", null,
+                    toFile), e);
         }
 
         // Copy contents byte-for-byte.

@@ -59,7 +59,7 @@ public class RestoreTask implements Callable<Boolean>
      */
     public Boolean call() throws BackupException
     {
-        logger.info("Backup task starting...");
+        logger.info("Restore task starting...");
         boolean completed = false;
         try
         {
