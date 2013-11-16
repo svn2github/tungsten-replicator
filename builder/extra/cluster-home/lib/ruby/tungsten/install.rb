@@ -11,6 +11,9 @@ class TungstenInstall
     
     begin
       @has_tpm = (TU.cmd_result("#{tpm()} query staging") != "")
+      if @has_tpm == false
+        @has_tpm = (TU.cmd_result("#{tpm()} query dataservices") != "")
+      end
     rescue
       @has_tpm = false
     end
