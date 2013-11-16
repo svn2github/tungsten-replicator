@@ -117,7 +117,7 @@ module JSON
             depth = state.depth += 1
             first = true
             indent = !state.object_nl.empty?
-            keys().sort().each{|key|
+            keys().sort{ |a, b| a.to_s() <=> b.to_s() }.each{|key|
               value = self[key]
               json = value.to_json(state)
               if json == ""

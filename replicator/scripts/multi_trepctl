@@ -7,11 +7,6 @@ class TungstenMultipleTrepctl
   
   def main
     begin
-      args = TU.remaining_arguments
-      if args.size() > 0
-        raise "Extra commands are not yet implemented"
-      end
-      
       # Collect records from all trepctl locations filtering out
       # replication services that don't match --roles or --services if given
       records = load_services({
@@ -19,23 +14,40 @@ class TungstenMultipleTrepctl
         "serviceName" => opt(:limit_services)
       })
       
-      if args[0] == "backups"
-        @command = args.shift()
+      if command() == "backups"
         raise "The backups command has not been implemented"
-      elsif args[0] == "db"
-        @command = args.shift()
+      elsif command() == "db"
         raise "The db command has not been implemented"
-      elsif args[0] == "masterof"
-        @command = args.shift()
+      elsif command() == "masterof"
         raise "The masterof command has not been implemented"
-      elsif args[0] == "sql"
-        @command = args.shift()
-        @sql_command = args.join(" ")
+      elsif command() == "sql"
         raise "The sql command has not been implemented"
-      elsif args.size() > 0
-        # collect_trepctl_output(args.join(" "))
-        raise "This command has not been implemented"
-      else
+      elsif command() == "run"
+        #raise "This command has not been implemented"
+        records = collect_trepctl_output_from_services(records, @trepctl_command)
+        
+        records.each{|rec|
+          if rec[:output] == nil
+            rec["commandResult"] = "ERROR"
+            rec["commandMessage"] = "No response was received for this service"
+          elsif rec[:output].is_a?(CommandError)
+            rec["commandResult"] = "ERROR"
+            rec["commandMessage"] = rec[:output].result
+          elsif rec[:output].is_a?(StandardError)
+            rec["commandResult"] = "ERROR"
+            rec["commandMessage"] = rec[:output].message
+          else
+            rec["commandResult"] = "SUCCESS"
+            rec["commandMessage"] = rec[:output].to_s()
+          end
+        }
+        
+        # Sort records by the fields passed in on --sort-by
+        records = sort_records(records, opt(:sort_by))
+        
+        # Output the matching records
+        output_records(records, opt(:fields), opt(:format))
+      elsif command() == "list"
         # Sort records by the fields passed in on --sort-by
         records = sort_records(records, opt(:sort_by))
 
@@ -47,8 +59,60 @@ class TungstenMultipleTrepctl
     end
   end
   
+  # Run the command in parallel on each replication service collecting the output
+  def collect_trepctl_output_from_services(records, command)
+    pids = []
+    results = []
+    
+    # Run the trepctl services -full -json command on each matching
+    # location and wait for the output
+    records.each_index{
+      |idx|
+      
+      results[idx] = Tempfile.new('ssh')
+      pids << fork {
+        rec = records[idx]
+        loc = @trepctl_locations[rec[:loc_id]]
+        
+        options = []
+        if loc.has_key?(:rmi_port)
+          options << "-port #{loc[:rmi_port]}"
+        end
+        
+        begin
+          results[idx].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl -service #{rec['serviceName']} #{options.join(" ")} #{command}", loc[:host], TI.user()))
+        rescue RemoteCommandError => rce
+          results[idx].write(Marshal.dump(rce))
+        rescue CommandError => ce
+          results[idx].write(Marshal.dump(ce))
+        end
+      }
+    }
+    # Wait for each thread to finish   
+    pids.each{|pid| Process.waitpid(pid) }
+    
+    results.each_index{
+      |idx|
+      file = results[idx]
+      file.rewind()
+      results[idx] = file.read()
+      
+      begin
+        exception = Marshal.load(results[idx])
+        if exception.is_a?(CommandError)
+          results[idx] = exception
+        end
+      rescue
+      end
+      
+      records[idx][:output] = results[idx]
+    }
+    
+    records
+  end
+  
   # Run the command in parallel on each trepctl location collecting the output
-  def collect_trepctl_output(command)
+  def collect_trepctl_output_from_locations(command)
     pids = []
     results = {}
     
@@ -60,8 +124,8 @@ class TungstenMultipleTrepctl
       results[loc_id] = Tempfile.new('ssh')
       pids << fork {
         options = []
-        if loc.has_key?(:port)
-          options << "-port #{loc[:port]}"
+        if loc.has_key?(:rmi_port)
+          options << "-port #{loc[:rmi_port]}"
         end
         
         begin
@@ -98,7 +162,7 @@ class TungstenMultipleTrepctl
   def load_services(filters = {})
     services = []
     filters = prepare_filters(filters)
-    results = collect_trepctl_output("services -full -json")
+    results = collect_trepctl_output_from_locations("services -full -json")
     
     # Parse the JSON output from each return value and add matching
     # replication services to the services array
@@ -115,14 +179,10 @@ class TungstenMultipleTrepctl
       
         # Only add it to the final array if it matches the filters
         if matches_filters?(svc, filters) == true
-          svc.keys().each{
-            |key|
-            svc[key.downcase()] = svc[key]
-          }
-          svc["service"] = svc["servicename"]
-          svc["seqno"] = svc["appliedlastseqno"]
-          svc["latency"] = svc["appliedlatency"]
-          services << svc.merge({:loc_id => loc_id})
+          services << svc.merge({
+            :loc_id => loc_id,
+            "directory" => @trepctl_locations[loc_id][:directory]
+          })
         end
       }
     }
@@ -196,9 +256,16 @@ class TungstenMultipleTrepctl
     elsif format == "json"
       # Display the fields from each record as a JSON array of hashes
       puts JSON.pretty_generate(records.map{|rec|
-        to_display = {}
-        fields.each{|field| to_display[field] = rec[field]}
-        to_display
+        if fields.include?("*")
+          rec.dup().delete_if{
+            |key,value|
+            (key.is_a?(String) != true)
+          }
+        else
+          to_display = {}
+          fields.each{|field| to_display[field] = get_record_value(rec, field)}
+          to_display
+        end
       })
     end
   end
@@ -213,7 +280,7 @@ class TungstenMultipleTrepctl
     # Display the fields from each record as a table
     records.each{|rec|
       to_display = []
-      fields.each{|field| to_display << rec[field]}
+      fields.each{|field| to_display << get_record_value(rec, field)}
       
       table_rows << to_display.dup()
     }
@@ -262,14 +329,24 @@ class TungstenMultipleTrepctl
     # Create a sort index for each record based on sort_keys
     records.each{
       |rec|
+      rec[:aliases] = {}
+      rec.keys().each{
+        |key|
+        if key.is_a?(String)
+          rec[:aliases][key.downcase()] = rec[key]
+        end
+      }
+      
+      get_field_aliases().each{
+        |dest,src|
+        if rec.has_key?(src)
+          rec[:aliases][dest] = rec[src]
+        end
+      }
+      
       sort_values = []
       sort_keys.each{|key|
-        # Make sure numeric values are sorted as numbers
-        if rec[key] =~ /^(-)?[\d]+(\.[\d]+){0,1}$/
-          sort_values << rec[key].to_f()
-        else
-          sort_values << rec[key]
-        end
+        sort_values << get_record_value(rec, key)
       }
       rec[:sort] = sort_values
     }
@@ -277,9 +354,32 @@ class TungstenMultipleTrepctl
     records.sort { |a, b| a[:sort] <=> b[:sort] }
   end
   
+  def get_record_value(rec, key)
+    value = rec[key]
+    if value == nil
+      value = rec[:aliases][key]
+    end
+    
+    # Make sure numeric values are returned as numbers
+    if value =~ /^(-)?[\d]+(\.[\d]+){0,1}$/
+      value.to_f()
+    else
+      value
+    end
+  end
+  
   def configure
     super()
-    description("")
+    description("Run the trepctl command across many file locations and hosts.<br>
+<br>
+The script will automatically find all instances of Tungsten Replicator running on the current box. It will use those locations to discover additional servers that it will attempt to contact. You may override this behavior with the --paths and --hosts options.<br>
+<br>
+Examples:<br>
+$> multi_trepctl<br>
+$> multi_trepctl list --fields=host,service,latency,channels<br>
+$> multi_trepctl offline<br>
+$> multi_trepctl online<br>
+$> multi_trepctl -- online -skip-seqno 5<br>")
 
     add_option(:hosts, {
       :on => ["--hosts String", "--host String"],
@@ -333,6 +433,29 @@ class TungstenMultipleTrepctl
       :default => "info",
       :help => "Display format for record output (info|tab|list|name|json)"
     })
+    
+    add_field_alias("serviceName", "service")
+    add_field_alias("appliedLastSeqno", "seqno")
+    add_field_alias("appliedLatency", "latency")
+    
+    add_command(:backups, {
+      :help => "List available backups for each replication service"
+    })
+    add_command(:db, {
+      :help => "Display the status of trep_commit_seqno for each replication service"
+    })
+    add_command(:masterof, {
+      :help => "Display the master for each replication service"
+    })
+    add_command(:sql, {
+      :help => "Run the SQL command against the database server for each replication service"
+    })
+    add_command(:run, {
+      :help => "Run the trepctl command against the database server for each replication service"
+    })
+    add_command(:list, {
+      :help => "Display information about each replication service"
+    })
   end
   
   def validate
@@ -349,7 +472,7 @@ class TungstenMultipleTrepctl
       elsif dir_parts.size() == 2
         check_directories << {
           :directory => dir_parts[0],
-          :port => dir_parts[1]
+          :rmi_port => dir_parts[1]
         }
       else
         TU.error("Each directory to check must be valid path and include the RMI port.")
@@ -395,7 +518,7 @@ class TungstenMultipleTrepctl
     if check_directories.size() == 0
       check_directories = [{
         :directory => TI.root(),
-        :port => TI.setting(REPL_RMI_PORT)
+        :rmi_port => TI.setting(REPL_RMI_PORT)
       }]
     end
     
@@ -439,8 +562,37 @@ class TungstenMultipleTrepctl
       end
     }
     
+    if command() == nil
+      if (TU.remaining_arguments() + TU.extra_arguments()).size() > 0
+        @command = "run"
+      else
+        @command = "list"
+      end
+    end
+    
+    if command() == "backups"
+      raise "The backups command has not been implemented"
+    elsif command() == "db"
+      raise "The db command has not been implemented"
+    elsif command() == "masterof"
+      raise "The masterof command has not been implemented"
+    elsif command() == "sql"
+      raise "The sql command has not been implemented"
+    elsif command() == "run"
+      @trepctl_command = (TU.remaining_arguments() + TU.extra_arguments()).join(" ")
+    elsif command() == "list"
+    end
+    
     if opt(:fields) == nil
-      opt(:fields, "host,serviceName,role,state,appliedLastSeqno,appliedLatency")
+      if command() == "backups"
+      elsif command() == "db"
+      elsif command() == "masterof"
+      elsif command() == "sql"
+      elsif command() == "run"
+        opt(:fields, "host,serviceName,commandResult,commandMessage")
+      else
+        opt(:fields, "host,serviceName,role,state,appliedLastSeqno,appliedLatency")
+      end
     end
     
     opt(:fields, opt(:fields).downcase())
@@ -449,6 +601,19 @@ class TungstenMultipleTrepctl
     unless ["info","tab","list","name","json"].include?(opt(:format))
       TU.error("The specified value for --output is invalid. Valid values are info, tab, list, name and json.")
     end
+  end
+  
+  def add_field_alias(src, dest)
+    @field_aliases ||= {}
+    @field_aliases[dest] = src
+  end
+  
+  def get_field_aliases()
+    @field_aliases || {}
+  end
+  
+  def require_command?
+    false
   end
   
   self.new().run()

@@ -1,6 +1,6 @@
 class TungstenUtil
   include Singleton
-  attr_accessor :remaining_arguments
+  attr_accessor :remaining_arguments, :extra_arguments
   
   def initialize()
     super()
@@ -21,9 +21,12 @@ class TungstenUtil
     arguments = ARGV.dup
                   
     if arguments.size() > 0
+      @extra_arguments = []
+      
       # This fixes an error that was coming up reading certain characters wrong
       # The root cause is unknown but this allowed Ruby to parse the 
       # arguments properly
+      send_to_extra_arguments = false
       arguments = arguments.map{|arg|
         newarg = ''
         arg.split("").each{|b| 
@@ -31,7 +34,16 @@ class TungstenUtil
             newarg.concat(b) 
           end
         }
-        newarg
+        
+        if newarg == "--"
+          send_to_extra_arguments = true
+          nil
+        elsif send_to_extra_arguments == true
+          @extra_arguments << newarg
+          nil
+        else
+          newarg
+        end
       }
 
       opts=OptionParser.new
@@ -58,6 +70,7 @@ class TungstenUtil
       @remaining_arguments = run_option_parser(opts, arguments)
     else
       @remaining_arguments = []
+      @extra_arguments = []
     end
   end
   
