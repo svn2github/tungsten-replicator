@@ -437,6 +437,7 @@ public class DataScanCtrl
         if (!checkDirect)
         {
             initRMIParameters();
+
             // Connect to the master.
             master = getOpenReplicator(rmiHostMaster, rmiPortMaster, service);
             if (master == null)
@@ -549,6 +550,15 @@ public class DataScanCtrl
                             ReplicatorConf.THL_DB_URL);
                     slaveDbTungsten[c] = connectDB(jdbcUrlSlave[c],
                             jdbcUserMaster, jdbcPassMaster);
+
+                    // Validate consistency check policy.
+                    String policy = slave[c].properties(
+                            ReplicatorConf.APPLIER_CONSISTENCY_POLICY).get(
+                            ReplicatorConf.APPLIER_CONSISTENCY_POLICY);
+                    if (policy.compareToIgnoreCase("stop") == 0)
+                        fatal("Replicated check selected, but slave consistency policy is set to stop! "
+                                + "Reconfigure slave to ignore failed consistency checks.",
+                                null);
                 }
             }
         }
@@ -721,7 +731,7 @@ public class DataScanCtrl
             println("Table(s): " + tables);
 
             Table table = masterDbUser.findTable(schema, tables);
-            if (table == null)
+            if (tables == null || table == null)
                 fatal("Table not found (note: multiple tables not supported yet)",
                         null);
             if (printValues)
@@ -847,11 +857,12 @@ public class DataScanCtrl
                     .createConsistencyCheck(id, table, (int) row, (int) range,
                             getMethod(), false, false);
             masterDbUser.consistencyCheck(consistencyTable, cc);
-            
+
             // In direct we assume that slave Replicator is down, so
             // we need to calculate the check on its behalf.
             // TODO: support more than one slave for direct check.
-            copyMasterCCToSlave(cc, slaveDbTungsten[0]);
+            copyMasterCCToSlave(cc, table.getSchema(), table.getName(),
+                    slaveDbTungsten[0]);
         }
         else
         {
@@ -870,9 +881,20 @@ public class DataScanCtrl
      * @return false, if consistency check result was not found on master. true,
      *         if it was found and copied over to the slave.
      */
-    private boolean copyMasterCCToSlave(ConsistencyCheck cc, Database slaveDb)
+    private boolean copyMasterCCToSlave(ConsistencyCheck cc, String schema, String table, Database slaveDb)
             throws SQLException, ConsistencyException
     {
+        // Construct consistency check with slave's table column names (in case
+        // column names differ between databases).
+        // TODO: instead of searching for table each time, prepare a map of
+        // tables beforehand.
+        Table tableSlave = slaveDb.findTable(schema, table);
+        ConsistencyCheck ccSlave = ConsistencyCheckFactory
+                .createConsistencyCheck(cc.getCheckId(), tableSlave,
+                        (int) cc.getRowOffset(), (int) cc.getRowLimit(),
+                        getMethod(), false, false);
+
+        // Retrieve check results from the master.
         String query = String.format("SELECT %s,%s FROM %s.%s WHERE %s = %d",
                 ConsistencyTable.masterCrcColumnName,
                 ConsistencyTable.masterCntColumnName, serviceSchema,
@@ -890,7 +912,9 @@ public class DataScanCtrl
                 String masterCrc = rs
                         .getString(ConsistencyTable.masterCrcColumnName);
                 int masterCnt = rs.getInt(ConsistencyTable.masterCntColumnName);
-                slaveDb.consistencyCheck(consistencyTable, cc, masterCrc,
+                
+                // Put master's results into slave and execute local check.
+                slaveDb.consistencyCheck(consistencyTable, ccSlave, masterCrc,
                         masterCnt);
                 return true;
             }
