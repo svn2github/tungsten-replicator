@@ -35,6 +35,10 @@ module ClusterDiagnosticPackage
       h_alias = config.getProperty(DEPLOYMENT_HOST)
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}")
       
+      out = File.open("#{diag_dir}/#{h_alias}/manifest.json", "w")
+      out.puts(@promotion_settings.getProperty([h_alias, "manifest"]))
+      out.close
+      
       out = File.open("#{diag_dir}/#{h_alias}/tpm.txt", "w")
       out.puts(@promotion_settings.getProperty([h_alias, "tpm_reverse"]))
       out.close
@@ -46,6 +50,10 @@ module ClusterDiagnosticPackage
           out.close
         end
       
+        out = File.open("#{diag_dir}/#{h_alias}/trepctl.json", "w")
+        out.puts(@promotion_settings.getProperty([h_alias, "replicator_json_status"]))
+        out.close
+        
         out = File.open("#{diag_dir}/#{h_alias}/trepctl.txt", "w")
         config.getPropertyOr([REPL_SERVICES], {}).keys().sort().each{
           |rs_alias|
@@ -159,7 +167,8 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
     tpm_cmd = c.get_tpm_path(current_release_directory)
     
     begin
-      output_property("tpm_reverse", cmd_result("#{tpm_cmd} reverse --public"))
+      output_property("manifest", cmd_result("cat #{current_release_directory}/.manifest.json"))
+      output_property("tpm_reverse", cmd_result("#{tpm_cmd} reverse --public --stream"))
       
       ["manager", "replicator", "connector"].each {
         |svc|
@@ -177,6 +186,8 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
       end
       
       if c.svc_is_running?(c.get_svc_path("replicator", c.get_base_path()))
+        output_property("replicator_json_status", cmd_result("#{trepctl_cmd} services -full -json", true))
+        
         @config.getPropertyOr([REPL_SERVICES], {}).keys().sort().each{
           |rs_alias|
           if rs_alias == DEFAULTS
