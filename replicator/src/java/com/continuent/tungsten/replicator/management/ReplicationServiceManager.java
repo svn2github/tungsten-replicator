@@ -461,7 +461,7 @@ public class ReplicationServiceManager
         try
         {
             db = DatabaseFactory.createDatabase(url, userName, password);
-            db.connect();
+            db.connect(false);
             progress.put("drop schema", schemaName);
             db.dropSchema(schemaName);
             db.close();
