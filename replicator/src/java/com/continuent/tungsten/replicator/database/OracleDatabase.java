@@ -722,8 +722,23 @@ public class OracleDatabase extends AbstractDatabase
             if (!tungstenTableType.equals("CDCSYNC"))
             {
                 // Disable Tungsten Change Set
-                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
-                        + changeSetName + "',enable_capture=>'N'); END;");
+                try
+                {
+                    execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
+                            + changeSetName + "',enable_capture=>'N'); END;");
+                }
+                catch (SQLException e1)
+                {
+                    if (e1.getErrorCode() == 31410)
+                    {
+                        throw new SQLException(
+                                "The change set "
+                                        + changeSetName
+                                        + " does not seem to exist on Oracle. Did you run setupCDC.sh ?",
+                                e1);
+                    }
+                    throw e1;
+                }
 
                 // Or prepare table for asynchronous capture.
                 // This should not be done for synchronous capture as this would
@@ -745,11 +760,12 @@ public class OracleDatabase extends AbstractDatabase
             }
 
             String cdcSQL;
+            int oracleVersion = dbConn.getMetaData().getDatabaseMajorVersion();
             if (tungstenTableType.equals("CDCSYNC")
-                    && dbConn.getMetaData().getDatabaseMajorVersion() >= 11)
+                    && oracleVersion >= 11)
             {
-                logger.info("Setting up synchronous data capture with version > "
-                        + dbConn.getMetaData().getDatabaseMajorVersion());
+                logger.info("Setting up synchronous data capture with version = "
+                        + oracleVersion);
                 cdcSQL = "BEGIN "
                         + "DBMS_CDC_PUBLISH.CREATE_CHANGE_TABLE(owner=>'"
                         + table.getSchema()
@@ -791,8 +807,23 @@ public class OracleDatabase extends AbstractDatabase
                         + "target_colmap => 'y', source_colmap => 'n', "
                         + "options_string=>'TABLESPACE " + table.getSchema()
                         + "'); END;";
-
-            execute(cdcSQL);
+            
+            try
+            {
+                execute(cdcSQL);
+            }
+            catch (SQLException e1)
+            {
+                if (e1.getErrorCode() == 31415)
+                {
+                    throw new SQLException(
+                            "The change set "
+                                    + changeSetName
+                                    + " does not seem to exist on Oracle. Did you run setupCDC.sh ?",
+                            e1);
+                }
+                throw e1;
+            }
 
             execute("GRANT SELECT ON CT_" + tableName + " TO PUBLIC");
             execute("GRANT SELECT ON " + tableName + " TO PUBLIC");
