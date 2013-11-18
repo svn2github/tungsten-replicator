@@ -99,6 +99,10 @@ module RemoteCommand
       host_configs.each_value{
         |config_obj|
         
+        if config_obj == false
+          next
+        end
+        
         if config_obj.has_key?(DATASERVICES)
           config_obj[DATASERVICES].each_key{
             |ds_alias|
@@ -287,7 +291,7 @@ module RemoteCommand
           config_output = ssh_result(command, target_host, target_user)
           parsed_contents = JSON.parse(config_output)
           unless parsed_contents.instance_of?(Hash)
-            raise "Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+            raise MessageError.new("Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}")
           end
         end
       rescue CommandError => ce
@@ -301,7 +305,7 @@ module RemoteCommand
           config_output = ssh_result("cat #{parent_dir}/configs/tungsten.cfg | egrep -v '^#'", target_host, target_user)
           parsed_contents = JSON.parse(config_output)
           unless parsed_contents.instance_of?(Hash)
-            raise "Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+            raise MessageError.new("Unable to read the configuration file from #{target_user}@#{target_host}:#{target_home_directory}")
           end
           
           migrate_tungsten_installer_configuration(parsed_contents)
@@ -309,9 +313,15 @@ module RemoteCommand
         end
       end
       
-      host_configs[target_host] = parsed_contents.dup
+      if parsed_contents == nil
+        raise MessageError.new("Unable to find configuration for #{target_user}@#{target_host}:#{target_home_directory}")
+      else
+        host_configs[target_host] = parsed_contents.dup
+      end
     rescue JSON::ParserError
       error "Unable to parse the configuration file from #{target_user}@#{target_host}:#{target_home_directory}"
+    rescue MessageError => me
+      exception(me)
     rescue => e
       exception(e)
       error "Unable to load the current config from #{target_user}@#{target_host}:#{target_home_directory}"
