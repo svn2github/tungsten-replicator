@@ -168,7 +168,12 @@ class TungstenMultipleTrepctl
     # replication services to the services array
     results.each{
       |loc_id, output|
-      host_trepctl_services = JSON.parse(output)
+      begin
+        host_trepctl_services = JSON.parse(output.tr("
+",""))
+      rescue ParserError => pe
+        raise "Unable to parse the response from #{host}:#{dir}"
+      end
       
       unless host_trepctl_services.instance_of?(Array)
         raise "Unable to parse the response from #{host}:#{dir}"
