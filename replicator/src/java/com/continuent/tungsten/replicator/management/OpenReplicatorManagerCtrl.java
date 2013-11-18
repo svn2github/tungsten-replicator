@@ -854,7 +854,7 @@ public class OpenReplicatorManagerCtrl
     {
         boolean yes = confirm("This command is DEPRECATED and will be removed! Use `replicator stop` instead."
                 + "\r\nDo you really want to shutdown the replicator?");
-   if (yes)
+        if (yes)
         {
             expectLostConnection = true;
             this.serviceManagerMBean.stop();
@@ -1458,9 +1458,9 @@ public class OpenReplicatorManagerCtrl
             fatal("Missing value for " + curArg, null);
         }
 
-        boolean success = getOpenReplicator().restore(uri, seconds);
-        if (success)
-            println("Restore completed successfully");
+        String result = getOpenReplicator().restore(uri, seconds);
+        if (result != null)
+            println("Restore completed successfully; URI=" + result);
         else
             println("Restore is pending; check log for status");
     }
@@ -1642,7 +1642,7 @@ public class OpenReplicatorManagerCtrl
         if (propIdx < 0)
             println("");
     }
-    
+
     /**
      * Prints property values only. Useful for feeding into another process
      * parameters.

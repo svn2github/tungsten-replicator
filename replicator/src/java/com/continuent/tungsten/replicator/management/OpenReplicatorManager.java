@@ -742,7 +742,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
      */
     class RestoreEvent extends Event
     {
-        private volatile Future<Boolean> future;
+        private volatile Future<String> future;
         private final String             uri;
 
         public RestoreEvent(String uri)
@@ -751,12 +751,12 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             this.uri = uri;
         }
 
-        public Future<Boolean> getFuture()
+        public Future<String> getFuture()
         {
             return future;
         }
 
-        public void setFuture(Future<Boolean> future)
+        public void setFuture(Future<String> future)
         {
             this.future = future;
         }
@@ -1392,7 +1392,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             {
                 RestoreEvent restoreEvent = (RestoreEvent) event;
                 String uri = restoreEvent.getUri();
-                Future<Boolean> task = backupManager.spawnRestore(uri);
+                Future<String> task = backupManager.spawnRestore(uri);
                 restoreEvent.setFuture(task);
             }
             catch (Exception e)
@@ -2425,7 +2425,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
      *      long)
      */
     @MethodDesc(description = "Restores the database", usage = "restore <uri> <timeout>")
-    public boolean restore(
+    public String restore(
             @ParamDesc(name = "uri", description = "URI of backup to restore") String uri,
             @ParamDesc(name = "timeout", description = "Seconds to wait before timing out (0=infinity") long timeout)
             throws Exception
@@ -2437,8 +2437,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             handleEventSynchronous(restoreEvent);
 
             // The event returns a Future on the backup task.
-            Future<Boolean> restoreTask = restoreEvent.getFuture();
-            boolean completed = false;
+            Future<String> restoreTask = restoreEvent.getFuture();
+            String completed = null;
             try
             {
                 if (timeout <= 0)

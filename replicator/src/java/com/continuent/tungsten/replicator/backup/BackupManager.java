@@ -213,7 +213,7 @@ public class BackupManager
      * @param uri URI to locate backup or null to get latest backup from default
      *            storage
      */
-    public Future<Boolean> spawnRestore(String uri) throws BackupException
+    public Future<String> spawnRestore(String uri) throws BackupException
     {
         if (logger.isDebugEnabled())
         {
@@ -271,7 +271,7 @@ public class BackupManager
         // Spawn the restore task.
         RestoreTask callable = new RestoreTask(realUri, eventDispatcher,
                 backupAgent, storageAgent);
-        Future<Boolean> task = taskService.submit(callable);
+        Future<String> task = taskService.submit(callable);
         return task;
     }
 

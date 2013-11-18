@@ -104,7 +104,7 @@ public interface OpenReplicatorManagerMBean
      * Returns the URI on which this master listens when operating as a slave.
      */
     public String getMasterListenUri();
-    
+
     /**
      * Returns true if the Replicator uses SSL connections.
      */
@@ -119,7 +119,7 @@ public interface OpenReplicatorManagerMBean
      * Returns clients (slaves) of this server.
      */
     public List<Map<String, String>> getClients() throws Exception;
-    
+
     /**
      * Returns the current replicator state.
      */
@@ -431,11 +431,12 @@ public interface OpenReplicatorManagerMBean
      * @param uri URI of the backup to load
      * @param timeout Number of seconds to wait. 0 is indefinite, negative means
      *            no wait.
-     * @return true if the restore is known to have completed successfully,
-     *         otherwise false, which means restore is still pending
+     * @return the URI of the restored backup if the restore is known to have
+     *         completed successfully, otherwise null, which means restore is
+     *         still pending
      * @throws Exception if there is a restore failure
      */
-    public boolean restore(String uri, long timeout) throws Exception;
+    public String restore(String uri, long timeout) throws Exception;
 
     /**
      * Provisions a database from another copy and optionally waits for

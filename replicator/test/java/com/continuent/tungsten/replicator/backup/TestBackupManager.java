@@ -43,8 +43,7 @@ import com.continuent.tungsten.replicator.management.MockEventDispatcher;
  */
 public class TestBackupManager extends TestCase
 {
-    private static Logger logger           = Logger
-                                                   .getLogger(TestBackupManager.class);
+    private static Logger logger           = Logger.getLogger(TestBackupManager.class);
     private static String STORAGE_DIR_NAME = "backup-manager-test/";
 
     /**
@@ -160,8 +159,8 @@ public class TestBackupManager extends TestCase
     }
 
     /**
-     * Verify that backups that are not enabled for hot backup fail if 
-     * we try to run them hot. 
+     * Verify that backups that are not enabled for hot backup fail if we try to
+     * run them hot.
      */
     public void testNoHotBackupAvailable() throws Exception
     {
@@ -252,13 +251,14 @@ public class TestBackupManager extends TestCase
         bmgr.initialize(props);
 
         // Run a backup and wait for URI to be returned.
-        Future<String> backup = bmgr.spawnBackup(backupName, storageName, false);
+        Future<String> backup = bmgr
+                .spawnBackup(backupName, storageName, false);
         String uri = backup.get();
         assertNotNull("Expect backup URI to be non-null", uri);
 
         // Run a restore task using the said URI.
-        Future<Boolean> restore = bmgr.spawnRestore(uri);
-        boolean success = restore.get();
+        Future<String> restore = bmgr.spawnRestore(uri);
+        boolean success = restore.get() != null;
         assertTrue("Expect restore to succeed", success);
 
         bmgr.release();
