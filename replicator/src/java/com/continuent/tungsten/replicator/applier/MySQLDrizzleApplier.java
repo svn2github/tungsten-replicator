@@ -324,7 +324,8 @@ public class MySQLDrizzleApplier extends MySQLApplier
         {
             int length = ((byte[]) value.getValue()).length;
 
-            if (columnSpec.getTypeDescription().startsWith("BINARY")
+            if (columnSpec.getTypeDescription() != null
+                    && columnSpec.getTypeDescription().startsWith("BINARY")
                     && length < columnSpec.getLength())
             {
                 ByteBuffer bb = ByteBuffer.allocate(columnSpec.getLength());

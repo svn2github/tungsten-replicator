@@ -415,8 +415,10 @@ public class JdbcApplier implements RawApplier
      * @return Number of columns that a table has. Zero, if no columns were
      *         retrieved (table does not exist or has no columns).
      * @throws SQLException
+     * @throws ApplierException
      */
-    protected int fillColumnNames(OneRowChange data) throws SQLException
+    protected int fillColumnNames(OneRowChange data) throws SQLException,
+            ApplierException
     {
         Table t = tableMetadataCache.retrieve(data.getSchemaName(),
                 data.getTableName());
@@ -431,16 +433,32 @@ public class JdbcApplier implements RawApplier
             {
                 rs = conn.getColumnsResultSet(meta, data.getSchemaName(),
                         data.getTableName());
-                while (rs.next())
+                if (rs.next())
                 {
-                    String columnName = rs.getString("COLUMN_NAME");
-                    int columnIdx = rs.getInt("ORDINAL_POSITION");
+                    do
+                    {
+                        String columnName = rs.getString("COLUMN_NAME");
+                        int columnIdx = rs.getInt("ORDINAL_POSITION");
 
-                    Column column = addColumn(rs, columnName);
-                    column.setPosition(columnIdx);
-                    t.AddColumn(column);
+                        Column column = addColumn(rs, columnName);
+                        column.setPosition(columnIdx);
+                        t.AddColumn(column);
+                    }
+                    while (rs.next());
+                    tableMetadataCache.store(t);
                 }
-                tableMetadataCache.store(t);
+                else
+                {
+                    // Empty resultset, i.e. table not found in database : it
+                    // won't be possible to generate a correct statement for
+                    // this row update
+                    throw new ApplierException(
+                            "Table "
+                                    + data.getSchemaName()
+                                    + "."
+                                    + data.getTableName()
+                                    + " not found in database. Unable to generate a valid statement.");
+                }
             }
             finally
             {
@@ -1303,7 +1321,7 @@ public class JdbcApplier implements RawApplier
             else if (header instanceof ReplDBMSFilteredEvent)
             {
                 // This is a range of filtered events
-                // Update the position and commit if desired. 
+                // Update the position and commit if desired.
                 ((ReplDBMSFilteredEvent) header).updateCommitSeqno();
                 updateCommitSeqno(header, appliedLatency);
                 if (doCommit)
