@@ -8,6 +8,8 @@ module JSON
       STRING                = /" ((?:[^\x0-\x1f"\\] |
                                    # escaped special characters:
                                   \\["\\\/bfnrt] |
+                                   # newline characters
+                                  [\n] |
                                   \\u[0-9a-fA-F]{4} |
                                    # match all but escaped special characters:
                                   \\[\x20-\x21\x23-\x2e\x30-\x5b\x5d-\x61\x63-\x65\x67-\x6d\x6f-\x71\x73\x75-\xff])*)

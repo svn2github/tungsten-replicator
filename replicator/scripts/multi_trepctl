@@ -169,9 +169,8 @@ class TungstenMultipleTrepctl
     results.each{
       |loc_id, output|
       begin
-        host_trepctl_services = JSON.parse(output.tr("
-",""))
-      rescue ParserError => pe
+        host_trepctl_services = JSON.parse(output)
+      rescue JSON::ParserError => pe
         raise "Unable to parse the response from #{host}:#{dir}"
       end
       
