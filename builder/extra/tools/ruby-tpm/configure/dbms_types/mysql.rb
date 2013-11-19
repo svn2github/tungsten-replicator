@@ -590,7 +590,7 @@ class MySQLServerID < ConfigurePrompt
   
   def load_default_value
     begin
-      server_id = get_applier_datasource().get_value("SHOW VARIABLES LIKE 'server_id'", "Value")
+      server_id = get_applier_datasource().get_value("BEGIN;SHOW VARIABLES LIKE 'server_id'", "Value")
       if server_id == nil
         raise "Unable to determine server_id"
       end
@@ -1089,7 +1089,7 @@ class MySQLApplierServerIDCheck < ConfigureValidationCheck
       error("The server-id '#{server_id}' for #{get_applier_datasource.get_connection_summary()} is too large")
     end
     
-    retrieved_server_id = get_applier_datasource.get_value("SHOW VARIABLES LIKE 'server_id'", "Value")
+    retrieved_server_id = get_applier_datasource.get_value("BEGIN;SHOW VARIABLES LIKE 'server_id'", "Value")
     if server_id.to_i != retrieved_server_id.to_i
       error("The server-id '#{server_id}' does not match the the server-id from #{get_applier_datasource.get_connection_summary()} '#{retrieved_server_id}'")
     end
