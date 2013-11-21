@@ -426,9 +426,11 @@ module ClusterCommandModule
       return
     end
     
+    include_all_dataservices = false
     if dataservices == nil
       dataservices = command_dataservices()
       if dataservices.empty?()
+        include_all_dataservices = true
         dataservices = @config.getPropertyOr([DATASERVICES], {}).keys().delete_if{|v| (v == DEFAULTS)}
         if dataservices.size() == 0
           raise "You must specify a dataservice name after the command or by the --dataservice-name argument"
@@ -515,6 +517,7 @@ module ClusterCommandModule
         (dataservice_hosts+connector_hosts).uniq().each{
           |host|
           h_alias = to_identifier(host)
+          hs_alias = dataservice_alias + "_" + h_alias
           if h_alias == ""
             next
           end
@@ -527,8 +530,14 @@ module ClusterCommandModule
           @config.override([HOSTS, h_alias], @host_options.getProperty([HOSTS, DEFAULTS]))
           @config.override([HOSTS, h_alias], @host_options.getProperty([HOSTS, COMMAND]))
 
-          _load_fixed_properties([HOSTS, h_alias, FIXED_PROPERTY_STRINGS])
-          _load_fixed_properties([HOSTS, h_alias, FIXED_PROPERTY_STRINGS], @add_fixed_properties, @remove_fixed_properties)
+          if include_all_dataservices == true
+            _load_fixed_properties([HOSTS, h_alias, FIXED_PROPERTY_STRINGS])
+            _load_fixed_properties([HOSTS, h_alias, FIXED_PROPERTY_STRINGS], @add_fixed_properties, @remove_fixed_properties)
+          else
+            _load_fixed_properties([REPL_SERVICES, hs_alias, FIXED_PROPERTY_STRINGS])
+            _load_fixed_properties([REPL_SERVICES, hs_alias, FIXED_PROPERTY_STRINGS], @add_fixed_properties, @remove_fixed_properties)
+          end
+          
           _load_skipped_validation_classes([HOSTS, h_alias, SKIPPED_VALIDATION_CLASSES])
           _load_skipped_validation_classes([HOSTS, h_alias, SKIPPED_VALIDATION_CLASSES], @skip_validation_checks, @enable_validation_checks)
           _load_skipped_validation_warnings([HOSTS, h_alias, SKIPPED_VALIDATION_WARNINGS])
@@ -610,27 +619,67 @@ module ClusterCommandModule
       remove = removed_properties()
     end
     
-    @config.append(target_key, add)
-    
-    if remove.size() > 0
-      props = @config.getNestedProperty(target_key)
-      if props == nil
-        return
+    # Parse the current fixed properties into the key and value
+    current_properties = []
+    (@config.getNestedProperty(target_key) || []).each{
+      |val|
+      unless val =~ /=/
+        raise "Invalid value #{val} given for '--property'.  There should be a key/value pair joined by a single =."
       end
       
-      remove.each{
-        |remove_key|
+      parts = val.split("=")
+      prop_key = parts.shift()
+      current_properties << {:key => prop_key, :value => parts.join("=")}
+    }
+    
+    # Remove any keys that match
+    remove.each{
+      |remove_key|
+      
+      current_properties.delete_if{
+        |prop|
+        if prop[:key] =~ /^#{remove_key}[+~]?/
+          true
+        else
+          false
+        end
+      }
+    }
+    
+    # Add new fixed properties being sure to update existing entries
+    # instead of adding them to the end
+    add.each{
+      |val|
+      unless val =~ /=/
+        raise "Invalid value #{val} given for '--property'.  There should be a key/value pair joined by a single =."
+      end
+      
+      parts = val.split("=")
+      prop_key = parts.shift()
+      
+      is_found=false
+      current_properties.each{
+        |prop|
         
-        props.delete_if{
-          |prop_val|
-          if prop_val =~ /^#{remove_key}[+~]?=/
-            true
-          else
-            false
-          end
-        }
-      }  
-      @config.setProperty(target_key, props)
+        if prop[:key] == prop_key
+          prop[:value] = parts.join("=")
+          is_found = true
+        end
+      }
+      
+      if is_found == false
+        current_properties << {:key => prop_key, :value => parts.join("=")}
+      end
+    }
+    
+    # Rebuild the configuration value using the new list
+    if current_properties.size() == 0
+      @config.setProperty(target_key, nil)
+    else
+      @config.setProperty(target_key, current_properties.map{
+        |prop|
+        "#{prop[:key]}=#{prop[:value]}"
+      })
     end
   end
   
