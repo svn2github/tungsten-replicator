@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2103 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,14 +28,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
-
-import com.continuent.tungsten.common.io.BufferedFileDataInput;
 
 /**
  * Test capabilities for buffered reads and writes to files.
@@ -45,8 +45,7 @@ import com.continuent.tungsten.common.io.BufferedFileDataInput;
  */
 public class BufferedFileDataInputTest extends TestCase
 {
-    private static Logger logger = Logger
-                                         .getLogger(BufferedFileDataInputTest.class);
+    private static Logger logger = Logger.getLogger(BufferedFileDataInputTest.class);
 
     /**
      * Setup.
@@ -382,27 +381,153 @@ public class BufferedFileDataInputTest extends TestCase
         FileOutputStream fos = new FileOutputStream(f);
         DataOutputStream dos = new DataOutputStream(fos);
 
-        // Confirm wait returns 0 on empty file. 
+        // Confirm wait returns 0 on empty file.
         BufferedFileDataInput bfdi = new BufferedFileDataInput(f);
         assertEquals("empty file", 0, bfdi.waitAvailable(4, 10));
 
-        // Wait when more than enough data. 
+        // Wait when more than enough data.
         dos.writeInt(0);
         dos.writeInt(1);
         dos.flush();
         assertEquals("sufficient data", 8, bfdi.waitAvailable(4, 10));
-        
-        // Wait when exactly enough data. 
+
+        // Wait when exactly enough data.
         bfdi.readInt();
         assertEquals("exactly enough data", 4, bfdi.waitAvailable(4, 10));
 
-        // Wait when data exhausted. 
+        // Wait when data exhausted.
         bfdi.readInt();
         assertEquals("data exhausted", 0, bfdi.waitAvailable(4, 10));
 
         // Clean up.
         dos.close();
         bfdi.close();
+    }
+
+    /**
+     * Confirm that if we interrupt waiting for input an InterruptedException is
+     * returned. This is important because underlying Java NIO routines may turn
+     * an interrupt into a ClosedByInterruptException, which subclasses from
+     * IOException.
+     */
+    public void testInputWaitInterruption() throws Exception
+    {
+        // Construct file and add 2 bytes of output.
+        File f = this.initFile("testInputWaitInterruption");
+        FileOutputStream fos = new FileOutputStream(f);
+        DataOutputStream dos = new DataOutputStream(fos);
+        dos.writeShort(13);
+        dos.flush();
+
+        // Start a thread to wait for input.
+        logger.info("Starting read thread interruption");
+        BufferedFileDataInput bfdi = new BufferedFileDataInput(f);
+        CountDownLatch latch = new CountDownLatch(1);
+        SampleInputReader reader = new SampleInputReader(bfdi, 100, latch);
+        Thread readerThread = new Thread(reader);
+        readerThread.start();
+
+        try
+        {
+            // Wait for the latch to trigger, which means we can think
+            // about interrupting.
+            assertTrue("Waiting for reader thread to become ready",
+                    latch.await(5, TimeUnit.SECONDS));
+
+            // Interrupt the thread after 75ms. This should ensure it is
+            // waiting for output.
+            Thread.sleep(75);
+            readerThread.interrupt();
+
+            // Make sure the reader is ok, i.e., has not recorded an
+            // exception.
+            reader.assertOK();
+        }
+        finally
+        {
+            // Cancel the thread.
+            reader.cancel();
+            readerThread.join(1000);
+        }
+    }
+
+    /**
+     * Confirm that if we interrupt waiting for input an InterruptedException is
+     * returned. This is important because underlying Java NIO routines may turn
+     * an interrupt into a ClosedByInterruptException, which subclasses from
+     * IOException.
+     */
+    public void testInputWaitInterruption2() throws Exception
+    {
+        // Construct file and add output.
+        File f = this.initFile("testInputWaitInterruption2");
+        FileOutputStream fos = new FileOutputStream(f);
+        DataOutputStream dos = new DataOutputStream(fos);
+
+        // Maintain a count of stats so we can confirm something actually
+        // happened.
+        int written = 0;
+        long read = 0;
+        long interrupts = 0;
+
+        // Interrupt the thread at random intervals.
+        logger.info("Starting random read thread interruptions");
+        for (int i = 1; i <= 500; i++)
+        {
+            // Write some data. The reader is reading ints, so
+            // every second write it will have enough to do.
+            dos.writeShort(i);
+            dos.flush();
+            written += 2;
+
+            // Start the reader thread.
+            BufferedFileDataInput bfdi = new BufferedFileDataInput(f);
+            CountDownLatch latch = new CountDownLatch(1);
+            SampleInputReader reader = new SampleInputReader(bfdi, 3, latch);
+            Thread readerThread = new Thread(reader);
+            readerThread.start();
+
+            try
+            {
+                // Wait for the latch to trigger, which means we can think
+                // about interrupting.
+                assertTrue("Waiting for reader thread to become ready",
+                        latch.await(5, TimeUnit.SECONDS));
+
+                // Try to interrupt the thread at a random point.
+                long sleepMillis = (long) (Math.random() * 10.0);
+                Thread.sleep(sleepMillis);
+                readerThread.interrupt();
+
+                // Pause briefly to allow the interrupt to be delivered and
+                // acted upon. Then check the state of the reader.
+                readerThread.join(25);
+                reader.assertOK();
+
+                // Collect stats. Print them periodically so that we can track
+                // what the thread is up to.
+                interrupts = interrupts + reader.getInterrupts();
+                read += reader.getBytesRead();
+                if (i % 50 == 0)
+                {
+                    logger.info(String
+                            .format("Iteration: %d..., total written: %d, total read: %d, total interrupts: %d",
+                                    i, written, read, interrupts));
+                }
+            }
+            finally
+            {
+                // Cancel the thread.
+                bfdi.close();
+                reader.cancel();
+                readerThread.join(1000);
+            }
+        }
+
+        // Ensure liveness--we must have read data and accepted
+        // interrupts on the reader.
+        assertTrue("Interrupts received must be greater than 0", interrupts > 0);
+        assertTrue("Bytes read must be greater than 0", read > 0);
     }
 
     /**
@@ -503,5 +628,90 @@ public class BufferedFileDataInputTest extends TestCase
         for (int i = 0; i < n; i++)
             dos.writeInt(i);
         dos.close();
+    }
+}
+
+class SampleInputReader implements Runnable
+{
+    private final BufferedFileDataInput bfdi;
+    private final int                   waitMillis;
+    private final CountDownLatch        latch;
+    private volatile boolean            cancelled  = false;
+    private volatile Exception          exception  = null;
+    private volatile long               interrupts = 0;
+    private volatile long               bytesRead  = 0;
+
+    public SampleInputReader(BufferedFileDataInput bfdi, int waitMillis,
+            CountDownLatch latch)
+    {
+        this.bfdi = bfdi;
+        this.waitMillis = waitMillis;
+        this.latch = latch;
+    }
+
+    public boolean isCancelled()
+    {
+        return cancelled;
+    }
+
+    public Exception getException()
+    {
+        return exception;
+    }
+
+    public long getInterrupts()
+    {
+        return interrupts;
+    }
+
+    public long getBytesRead()
+    {
+        return bytesRead;
+    }
+
+    public void run()
+    {
+        try
+        {
+            while (!cancelled)
+            {
+                try
+                {
+                    // Make sure control case knows we are ready.
+                    latch.countDown();
+
+                    // Wait for data and read if it is there.
+                    if (bfdi.waitAvailable(4, waitMillis) >= 4)
+                    {
+                        bfdi.readInt();
+                        bytesRead += 4;
+                    }
+                }
+                catch (InterruptedException e)
+                {
+                    // After an interrupt we are done with reading.
+                    interrupts++;
+                    cancelled = true;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            cancelled = true;
+            exception = e;
+        }
+    }
+
+    public void cancel()
+    {
+        cancelled = true;
+    }
+
+    public boolean assertOK() throws Exception
+    {
+        if (exception == null)
+            return true;
+        else
+            throw exception;
     }
 }

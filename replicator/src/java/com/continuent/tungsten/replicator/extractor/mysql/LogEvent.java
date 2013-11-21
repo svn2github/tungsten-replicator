@@ -450,7 +450,8 @@ public abstract class LogEvent
      */
     private static void readDataFromBinlog(ReplicatorRuntime runtime,
             BinlogReader binlog, byte[] data, int offset, int length,
-            int timeout) throws IOException, ReplicatorException
+            int timeout) throws IOException, ReplicatorException,
+            InterruptedException
     {
         boolean alreadyLogged = false;
         int spentTime = 0;

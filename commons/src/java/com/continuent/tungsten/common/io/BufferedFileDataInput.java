@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-12 Continuent Inc.
+ * Copyright (C) 2011-13 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -95,10 +95,20 @@ public class BufferedFileDataInput
      * 
      * @return Number of bytes available for non-blocking read
      */
-    public long available() throws IOException
+    public long available() throws IOException, InterruptedException
     {
-        available = fileChannel.size() - offset;
-        return available;
+        try
+        {
+            available = fileChannel.size() - offset;
+            return available;
+        }
+        catch (ClosedByInterruptException e)
+        {
+            // This is NIO's version of an interrupt, which we convert
+            // for convenience of callers.  At this point the channel is
+            // no longer good, and further calls will fail. 
+            throw new InterruptedException(e.getClass().getName());
+        }
     }
 
     /**
@@ -126,6 +136,12 @@ public class BufferedFileDataInput
         while (available() < requested
                 && System.currentTimeMillis() < timeoutMillis)
         {
+            // We might get interrupted, in which case we want to terminate
+            // the loop. 
+            if (Thread.interrupted())
+                throw new InterruptedException();
+            
+            // Now bide a wee. 
             Thread.sleep(50);
             if (System.currentTimeMillis() > nextReportMillis)
             {
@@ -135,7 +151,7 @@ public class BufferedFileDataInput
             }
         }
 
-        // Return number of bytes available for non-blocking read. 
+        // Return number of bytes available for non-blocking read.
         return available;
     }
 
@@ -206,9 +222,9 @@ public class BufferedFileDataInput
         }
         catch (ClosedByInterruptException e)
         {
-            // NIO rewrites InterruptException into this, which seems broken.
-            // To preserve interrupt handling behavior up the stack, we throw
-            // InterruptException.
+            // This is NIO's version of an interrupt, which we convert
+            // for convenience of callers.  At this point the channel is
+            // no longer good, and further calls will fail. 
             throw new InterruptedException();
         }
         bufferedInput = new BufferedInputStream(fileInput, size);
@@ -286,6 +302,8 @@ public class BufferedFileDataInput
     {
         try
         {
+            // We don't try to trap NIO interrupts here as we are shutting down
+            // anyway.
             if (fileChannel != null)
                 fileChannel.close();
             fileInput.close();
