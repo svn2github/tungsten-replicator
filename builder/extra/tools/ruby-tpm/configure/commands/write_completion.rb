@@ -83,7 +83,8 @@ EOF
         "tungsten-replicator/scripts/tungsten_read_master_events",
         "tungsten-replicator/scripts/tungsten_set_position",
         "tungsten-replicator/scripts/xtrabackup_to_slave",
-        "tungsten-replicator/scripts/mysqldump_to_slave"
+        "tungsten-replicator/scripts/mysqldump_to_slave",
+        "tungsten-replicator/scripts/multi_trepctl"
         ]
       scripts.each{
         |path|

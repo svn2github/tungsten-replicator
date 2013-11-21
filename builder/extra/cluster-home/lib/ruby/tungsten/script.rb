@@ -189,12 +189,6 @@ module TungstenScript
   end
   
   def parse_options
-    if @command_definitions.size() > 0 && TU.remaining_arguments.size() > 0
-      if @command_definitions.has_key?(TU.remaining_arguments[0].to_sym())
-        @command = TU.remaining_arguments.shift()
-      end
-    end
-    
     opts = OptionParser.new()
     
     @option_definitions.each{
@@ -228,6 +222,12 @@ module TungstenScript
     }
     
     TU.run_option_parser(opts)
+    
+    if @command_definitions.size() > 0 && TU.remaining_arguments.size() > 0
+      if @command_definitions.has_key?(TU.remaining_arguments[0].to_sym())
+        @command = TU.remaining_arguments.shift()
+      end
+    end
   end
   
   def parse_integer_option(val)

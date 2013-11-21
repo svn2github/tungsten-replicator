@@ -24,7 +24,7 @@ class TungstenMultipleTrepctl
         raise "The sql command has not been implemented"
       elsif command() == "run"
         #raise "This command has not been implemented"
-        records = collect_trepctl_output_from_services(records, @trepctl_command)
+        records = collect_trepctl_output_from_services(records, @trepctl_command, 0)
         
         records.each{|rec|
           if rec[:output] == nil
@@ -60,7 +60,7 @@ class TungstenMultipleTrepctl
   end
   
   # Run the command in parallel on each replication service collecting the output
-  def collect_trepctl_output_from_services(records, command)
+  def collect_trepctl_output_from_services(records, command, timeout = 5)
     pids = []
     results = []
     
@@ -80,7 +80,11 @@ class TungstenMultipleTrepctl
         end
         
         begin
-          results[idx].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl -service #{rec['serviceName']} #{options.join(" ")} #{command}", loc[:host], TI.user()))
+          Timeout::timeout(timeout) do
+            results[idx].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl -service #{rec['serviceName']} #{options.join(" ")} #{command}", loc[:host], TI.user()))
+          end
+        rescue Timeout::Error => te
+          results[loc_id].write(Marshal.dump(MessageError.new("The replicator at #{loc[:host]}:#{loc[:directory]} is taking too long to respond")))
         rescue RemoteCommandError => rce
           results[idx].write(Marshal.dump(rce))
         rescue CommandError => ce
@@ -99,7 +103,7 @@ class TungstenMultipleTrepctl
       
       begin
         exception = Marshal.load(results[idx])
-        if exception.is_a?(CommandError)
+        if exception.is_a?(StandardError)
           results[idx] = exception
         end
       rescue
@@ -112,7 +116,7 @@ class TungstenMultipleTrepctl
   end
   
   # Run the command in parallel on each trepctl location collecting the output
-  def collect_trepctl_output_from_locations(command)
+  def collect_trepctl_output_from_locations(command, timeout = 5)
     pids = []
     results = {}
     
@@ -129,7 +133,11 @@ class TungstenMultipleTrepctl
         end
         
         begin
-          results[loc_id].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl #{options.join(" ")} #{command}", loc[:host], TI.user()))
+          Timeout::timeout(timeout) do
+            results[loc_id].write(TU.ssh_result("#{loc[:directory]}/tungsten/tungsten-replicator/bin/trepctl #{options.join(" ")} #{command}", loc[:host], TI.user()))
+          end
+        rescue Timeout::Error => te
+          results[loc_id].write(Marshal.dump(MessageError.new("The replicator at #{loc[:host]}:#{loc[:directory]} is taking too long to respond")))
         rescue RemoteCommandError => rce
           results[loc_id].write(Marshal.dump(rce))
         rescue CommandError => ce
@@ -147,7 +155,7 @@ class TungstenMultipleTrepctl
       
       begin
         exception = Marshal.load(results[loc_id])
-        if exception.is_a?(CommandError)
+        if exception.is_a?(StandardError)
           results[loc_id] = exception
         end
       rescue
@@ -168,7 +176,17 @@ class TungstenMultipleTrepctl
     # replication services to the services array
     results.each{
       |loc_id, output|
+      host = @trepctl_locations[loc_id][:host]
+      dir = @trepctl_locations[loc_id][:directory]
       begin
+        if output.is_a?(MessageError)
+          TU.debug(output.message)
+          next
+        elsif output.is_a?(StandardError)
+          TU.debug("Unable to load information from #{host}:#{dir}")
+          next
+        end
+        
         host_trepctl_services = JSON.parse(output)
       rescue JSON::ParserError => pe
         raise "Unable to parse the response from #{host}:#{dir}"
@@ -306,12 +324,11 @@ class TungstenMultipleTrepctl
       }
     }
     
-    float_columns = ["latency", "appliedlatency", "relativelatency", "timeinstateseconds", "uptimeseconds"]
     # Print a line for each row
     table_rows.each{|row|
       row.each_index{|idx|
         if (row[idx] =~ /^(-)?[\d]+(\.[\d]+){0,1}$/) != nil
-          if float_columns.include?(fields[idx])
+          if get_float_columns().include?(fields[idx])
             format = "| %#{fields_max_length[idx]}.3f "
           else
             format = "| %#{fields_max_length[idx]}s "
@@ -366,7 +383,11 @@ class TungstenMultipleTrepctl
     
     # Make sure numeric values are returned as numbers
     if value =~ /^(-)?[\d]+(\.[\d]+){0,1}$/
-      value.to_f()
+      if get_float_columns().include?(key)
+        value.to_f()
+      else
+        value.to_i()
+      end
     else
       value
     end
@@ -412,7 +433,7 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     
     add_option(:sort_by, {
       :on => "--sort-by String",
-      :default => "host,serviceName",
+      :default => "host,role,serviceName",
       :help => "Sort output by these fields"
     })
     
@@ -421,7 +442,7 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
       :default => false,
       :help => "Sort output by replication service"
     }) {
-      opt(:sort_by, "serviceName,host")
+      opt(:sort_by, "serviceName,role,host")
       nil
     }
     
@@ -441,6 +462,12 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     add_field_alias("serviceName", "service")
     add_field_alias("appliedLastSeqno", "seqno")
     add_field_alias("appliedLatency", "latency")
+    
+    add_float_column("latency")
+    add_float_column("appliedlatency")
+    add_float_column("relativelatency")
+    add_float_column("timeinstateseconds")
+    add_float_column("uptimeseconds")
     
     add_command(:backups, {
       :help => "List available backups for each replication service"
@@ -482,6 +509,7 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
         TU.error("Each directory to check must be valid path and include the RMI port.")
       end
     }
+    
     if check_directories.size() == 0
       running_replicators = TU.cmd_result("ps -eo args | grep \"Tungsten Replicator\"").split("\n")
       running_replicators.each{
@@ -493,6 +521,12 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
           }
         end
       }
+    end
+    
+    if check_directories.size() == 0
+      check_directories = [{
+        :directory => TI.root()
+      }]
     end
     
     check_hosts = opt(:hosts).to_s().split(",")
@@ -517,13 +551,6 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     
     if check_hosts.size() == 0
       check_hosts = [TI.hostname()]
-    end
-    
-    if check_directories.size() == 0
-      check_directories = [{
-        :directory => TI.root(),
-        :rmi_port => TI.setting(REPL_RMI_PORT)
-      }]
     end
     
     # Identify the combinations of check_hosts and check_directories that
@@ -614,6 +641,15 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
   
   def get_field_aliases()
     @field_aliases || {}
+  end
+  
+  def add_float_column(src)
+    @float_columns ||= []
+    @float_columns << src
+  end
+  
+  def get_float_columns()
+    @float_columns || []
   end
   
   def require_command?
