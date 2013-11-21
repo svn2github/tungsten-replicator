@@ -535,7 +535,7 @@ class SudoCheck < ConfigureValidationCheck
   
   def add_help
     help("Update the /etc/sudoers file or disable sudo by adding --enable-sudo-access=false")
-    help("Review https://docs.continuent.com/wiki/display/TEDOC/System+Requirements for more details on the /etc/sudoers file")
+    help("Review https://docs.continuent.com/ for more details on the /etc/sudoers file")
   end
   
   def enabled?
