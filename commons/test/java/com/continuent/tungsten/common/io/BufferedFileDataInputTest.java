@@ -421,9 +421,8 @@ public class BufferedFileDataInputTest extends TestCase
 
         // Start a thread to wait for input.
         logger.info("Starting read thread interruption");
-        BufferedFileDataInput bfdi = new BufferedFileDataInput(f);
         CountDownLatch latch = new CountDownLatch(1);
-        SampleInputReader reader = new SampleInputReader(bfdi, 100, latch);
+        SampleInputReader reader = new SampleInputReader(f, 100, latch);
         Thread readerThread = new Thread(reader);
         readerThread.start();
 
@@ -441,7 +440,7 @@ public class BufferedFileDataInputTest extends TestCase
 
             // Make sure the reader is ok, i.e., has not recorded an
             // exception.
-            reader.assertOK();
+            reader.assertOK("[single run]");
         }
         finally
         {
@@ -481,9 +480,8 @@ public class BufferedFileDataInputTest extends TestCase
             written += 2;
 
             // Start the reader thread.
-            BufferedFileDataInput bfdi = new BufferedFileDataInput(f);
             CountDownLatch latch = new CountDownLatch(1);
-            SampleInputReader reader = new SampleInputReader(bfdi, 3, latch);
+            SampleInputReader reader = new SampleInputReader(f, 3, latch);
             Thread readerThread = new Thread(reader);
             readerThread.start();
 
@@ -502,7 +500,7 @@ public class BufferedFileDataInputTest extends TestCase
                 // Pause briefly to allow the interrupt to be delivered and
                 // acted upon. Then check the state of the reader.
                 readerThread.join(25);
-                reader.assertOK();
+                reader.assertOK("[run: " + i + "]");
 
                 // Collect stats. Print them periodically so that we can track
                 // what the thread is up to.
@@ -518,7 +516,6 @@ public class BufferedFileDataInputTest extends TestCase
             finally
             {
                 // Cancel the thread.
-                bfdi.close();
                 reader.cancel();
                 readerThread.join(1000);
             }
@@ -633,6 +630,7 @@ public class BufferedFileDataInputTest extends TestCase
 
 class SampleInputReader implements Runnable
 {
+    private static Logger               logger     = Logger.getLogger(SampleInputReader.class);
     private final BufferedFileDataInput bfdi;
     private final int                   waitMillis;
     private final CountDownLatch        latch;
@@ -641,10 +639,10 @@ class SampleInputReader implements Runnable
     private volatile long               interrupts = 0;
     private volatile long               bytesRead  = 0;
 
-    public SampleInputReader(BufferedFileDataInput bfdi, int waitMillis,
-            CountDownLatch latch)
+    public SampleInputReader(File f, int waitMillis, CountDownLatch latch)
+            throws InterruptedException, FileNotFoundException, IOException
     {
-        this.bfdi = bfdi;
+        this.bfdi = new BufferedFileDataInput(f);
         this.waitMillis = waitMillis;
         this.latch = latch;
     }
@@ -700,6 +698,10 @@ class SampleInputReader implements Runnable
             cancelled = true;
             exception = e;
         }
+        finally
+        {
+            bfdi.close();
+        }
     }
 
     public void cancel()
@@ -707,11 +709,16 @@ class SampleInputReader implements Runnable
         cancelled = true;
     }
 
-    public boolean assertOK() throws Exception
+    public boolean assertOK(String message) throws Exception
     {
         if (exception == null)
             return true;
         else
+        {
+            logger.error("Input reading failed: message=" + message
+                    + " bytesRead=" + bytesRead + " interrupts=" + interrupts,
+                    exception);
             throw exception;
+        }
     }
 }
