@@ -105,8 +105,8 @@ public class BufferedFileDataInput
         catch (ClosedByInterruptException e)
         {
             // This is NIO's version of an interrupt, which we convert
-            // for convenience of callers.  At this point the channel is
-            // no longer good, and further calls will fail. 
+            // for convenience of callers. At this point the channel is
+            // no longer good, and further calls will fail.
             throw new InterruptedException(e.getClass().getName());
         }
     }
@@ -137,11 +137,11 @@ public class BufferedFileDataInput
                 && System.currentTimeMillis() < timeoutMillis)
         {
             // We might get interrupted, in which case we want to terminate
-            // the loop. 
+            // the loop.
             if (Thread.interrupted())
                 throw new InterruptedException();
-            
-            // Now bide a wee. 
+
+            // Now bide a wee.
             Thread.sleep(50);
             if (System.currentTimeMillis() > nextReportMillis)
             {
@@ -213,25 +213,38 @@ public class BufferedFileDataInput
     public void seek(long seekBytes) throws FileNotFoundException, IOException,
             InterruptedException
     {
-        fileInput = new FileInputStream(file);
-        fileChannel = fileInput.getChannel();
-
         try
         {
+            // We do a close to avoid leaking file descriptors. Close might
+            // generate a ClosedByInterruptException but it is hard to be sure.
+            if (fileInput != null)
+            {
+                fileInput.close();
+            }
+
+            // Refresh the file input.
+            fileInput = new FileInputStream(file);
+            fileChannel = fileInput.getChannel();
+
+            // Position on the correct location in the file.
             fileChannel.position(seekBytes);
         }
         catch (ClosedByInterruptException e)
         {
             // This is NIO's version of an interrupt, which we convert
-            // for convenience of callers.  At this point the channel is
-            // no longer good, and further calls will fail. 
+            // for convenience of callers. At this point the channel is
+            // no longer good, and further calls will fail.
             throw new InterruptedException();
         }
         bufferedInput = new BufferedInputStream(fileInput, size);
         dataInput = new DataInputStream(bufferedInput);
         offset = seekBytes;
         markOffset = -1;
-        available = 0;
+
+        // Determine number of bytes available immediately. This appears
+        // to mitigate a race condition that occurs if the thread is interrupted
+        // shortly after doing a seek. (See Google Issue 714.)
+        available();
     }
 
     /**
@@ -306,7 +319,8 @@ public class BufferedFileDataInput
             // anyway.
             if (fileChannel != null)
                 fileChannel.close();
-            fileInput.close();
+            if (fileInput != null)
+                fileInput.close();
         }
         catch (IOException e)
         {

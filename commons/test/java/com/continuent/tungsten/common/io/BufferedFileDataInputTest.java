@@ -500,14 +500,7 @@ public class BufferedFileDataInputTest extends TestCase
                 // Pause briefly to allow the interrupt to be delivered and
                 // acted upon. Then check the state of the reader.
                 readerThread.join(25);
-                try
-                {
-                    reader.assertOK("[run: " + i + "]");
-                }
-                catch (Exception e)
-                {
-                    logger.warn("Failed read operation", e);
-                }
+                reader.assertOK("[run: " + i + "]");
 
                 // Collect stats. Print them periodically so that we can track
                 // what the thread is up to.
