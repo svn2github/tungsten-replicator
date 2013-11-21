@@ -234,6 +234,19 @@ module ClusterCommandModule
         load_cluster_options([to_identifier(section)])
       end
     }
+    
+    if Configurator.instance.is_locked?()
+      # Read the staging directory information from the current file
+      original_config_file = Configurator.instance.get_base_path() + "/" + Configurator::HOST_CONFIG
+      if File.exist?(original_config_file)
+        original_config = Properties.new()
+        original_config.load(original_config_file)
+        @config.setProperty(DEPLOYMENT_HOST, original_config.getProperty(DEPLOYMENT_HOST))
+        @config.setProperty(STAGING_HOST, original_config.getProperty(STAGING_HOST))
+        @config.setProperty(STAGING_USER, original_config.getProperty(STAGING_USER))
+        @config.setProperty(STAGING_DIRECTORY, original_config.getProperty(STAGING_DIRECTORY))
+      end
+    end
   end
   
   def get_external_option_arguments
@@ -1162,16 +1175,6 @@ module ClusterCommandModule
       config_obj.setProperty(STAGING_HOST, Configurator.instance.hostname())
       config_obj.setProperty(STAGING_USER, Configurator.instance.whoami())
       config_obj.setProperty(STAGING_DIRECTORY, Configurator.instance.get_base_path())
-    else
-      # Read the staging directory information from the current file
-      original_config_file = Configurator.instance.get_base_path() + "/" + Configurator::HOST_CONFIG
-      if File.exist?(original_config_file)
-        original_config = Properties.new()
-        original_config.load(original_config_file)
-        config_obj.setProperty(STAGING_HOST, original_config.getProperty(STAGING_HOST))
-        config_obj.setProperty(STAGING_USER, original_config.getProperty(STAGING_USER))
-        config_obj.setProperty(STAGING_DIRECTORY, original_config.getProperty(STAGING_DIRECTORY))
-      end
     end
 
     [

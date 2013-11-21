@@ -168,7 +168,7 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
     
     begin
       output_property("manifest", cmd_result("cat #{current_release_directory}/.manifest.json"))
-      output_property("tpm_reverse", cmd_result("#{tpm_cmd} reverse --public --stream"))
+      output_property("tpm_reverse", cmd_result("#{tpm_cmd} reverse --public"))
       
       ["manager", "replicator", "connector"].each {
         |svc|

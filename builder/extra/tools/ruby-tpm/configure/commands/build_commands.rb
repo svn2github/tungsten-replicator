@@ -13,7 +13,7 @@ class ReverseEngineerCommand
   
   def run
     commands = build_commands(@config)
-    output commands.join("\n")
+    Configurator.instance.force_output commands.join("\n")
   end
   
   def parsed_options?(arguments)
