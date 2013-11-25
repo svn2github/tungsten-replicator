@@ -851,6 +851,7 @@ class CurrentTopologyCheck < ConfigureValidationCheck
   
   def enabled?
     super() && File.exists?("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/tpm") &&
+    @config.getProperty(HOST_ENABLE_REPLICATOR) == "true" &&
     Configurator.instance.svc_is_running?("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/bin/manager")
   end
 end
