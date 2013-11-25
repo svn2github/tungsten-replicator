@@ -115,8 +115,6 @@ public class RouterConfiguration extends ClusterConfiguration
 
     private boolean           rrIncludeMaster                                = false;
 
-    /** Router Gateway flag */
-    private boolean           useNewProtocol                                 = false;
     /** Router Gateway manager list */
     private List<String>      managerList                                    = Arrays.asList("localhost");
     /** Router gateway listen port */
@@ -551,16 +549,6 @@ public class RouterConfiguration extends ClusterConfiguration
     public void setRrIncludeMaster(boolean rrIncludeMaster)
     {
         this.rrIncludeMaster = rrIncludeMaster;
-    }
-
-    public void setUseNewProtocol(boolean useIt)
-    {
-        useNewProtocol = useIt;
-    }
-
-    public boolean getUseNewProtocol()
-    {
-        return useNewProtocol;
     }
 
     public void setManagerList(List<String> list)

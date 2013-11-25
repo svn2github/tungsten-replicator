@@ -489,16 +489,14 @@ public class ClusterConfiguration
         }
 
         RouterConfiguration config = new RouterConfiguration(null);
-        config.setUseNewProtocol(true);
         config.setClusterHome(getClusterHome());
         config.setHost(ConfigurationConstants.TR_RMI_DEFAULT_HOST);
         // TODO:
-        if (config.getUseNewProtocol())
-        {
-            ArrayList<String> al = new ArrayList<String>();
-            al.add("localhost:9998");
-            config.setManagerList(al);
-        }
+        // TUC-1749 : Always use new router gateway protocol
+        ArrayList<String> al = new ArrayList<String>();
+        al.add("localhost:9998");
+        config.setManagerList(al);
+
         TungstenProperties configProps = new TungstenProperties();
         configProps.extractProperties(config, true);
 
