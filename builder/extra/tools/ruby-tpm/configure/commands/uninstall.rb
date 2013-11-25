@@ -96,7 +96,7 @@ module UninstallClusterDeploymentStep
         
         ds = get_applier_datasource(rs_alias)
         if ds.is_a?(MySQLDatabasePlatform)
-          ds.run("drop schema #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA])}")
+          ds.run("drop schema if exists #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA])}")
         end
         
         [
