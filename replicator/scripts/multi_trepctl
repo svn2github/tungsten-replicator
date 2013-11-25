@@ -24,21 +24,21 @@ class TungstenMultipleTrepctl
         raise "The sql command has not been implemented"
       elsif command() == "run"
         #raise "This command has not been implemented"
-        records = collect_trepctl_output_from_services(records, @trepctl_command, 0)
+        records = collect_trepctl_output_from_services(records, @trepctl_command_parts.join(" "), 0)
         
         records.each{|rec|
-          if rec[:output] == nil
-            rec["commandResult"] = "ERROR"
+          if rec[:command_output] == nil
+            rec["commandResult"] = 1
             rec["commandMessage"] = "No response was received for this service"
-          elsif rec[:output].is_a?(CommandError)
-            rec["commandResult"] = "ERROR"
-            rec["commandMessage"] = rec[:output].result
-          elsif rec[:output].is_a?(StandardError)
-            rec["commandResult"] = "ERROR"
-            rec["commandMessage"] = rec[:output].message
+          elsif rec[:command_output].is_a?(CommandError)
+            rec["commandResult"] = rec[:command_output].rc
+            rec["commandMessage"] = rec[:command_output].result
+          elsif rec[:command_output].is_a?(StandardError)
+            rec["commandResult"] = 1
+            rec["commandMessage"] = rec[:command_output].message
           else
-            rec["commandResult"] = "SUCCESS"
-            rec["commandMessage"] = rec[:output].to_s()
+            rec["commandResult"] = 0
+            rec["commandMessage"] = rec[:command_output].to_s()
           end
         }
         
@@ -109,7 +109,7 @@ class TungstenMultipleTrepctl
       rescue
       end
       
-      records[idx][:output] = results[idx]
+      records[idx][:command_output] = results[idx]
     }
     
     records
@@ -275,6 +275,29 @@ class TungstenMultipleTrepctl
       build_table_rows(records, fields, true).each{|row|
         puts row.join(" ")
       }
+    elsif format == "yaml"
+      is_first = true
+      build_table_rows(records, fields, true).each{|row|
+        if is_first == false
+          print "---\n"
+        end
+        
+        row.each_index{|idx|
+          if row[idx].is_a?(Float)
+            format = "%s: %.3f\n"
+          elsif row[idx].is_a?(Integer)
+            format = "%s: %s\n"
+          elsif column_format(fields[idx]) == "block"
+            format = "%s: |\n  %s\n"
+          else
+            format = "%s: %s\n"
+          end
+          printf(format, fields[idx], row[idx])
+        }
+        
+        is_first = false
+      }
+      puts "...\n"
     elsif format == "json"
       # Display the fields from each record as a JSON array of hashes
       puts JSON.pretty_generate(records.map{|rec|
@@ -327,12 +350,10 @@ class TungstenMultipleTrepctl
     # Print a line for each row
     table_rows.each{|row|
       row.each_index{|idx|
-        if (row[idx] =~ /^(-)?[\d]+(\.[\d]+){0,1}$/) != nil
-          if get_float_columns().include?(fields[idx])
-            format = "| %#{fields_max_length[idx]}.3f "
-          else
-            format = "| %#{fields_max_length[idx]}s "
-          end
+        if row[idx].is_a?(Float)
+          format = "| %#{fields_max_length[idx]}.3f "
+        elsif row[idx].is_a?(Integer)
+          format = "| %#{fields_max_length[idx]}s "
         else
           format = "| %-#{fields_max_length[idx]}s "
         end
@@ -383,7 +404,7 @@ class TungstenMultipleTrepctl
     
     # Make sure numeric values are returned as numbers
     if value =~ /^(-)?[\d]+(\.[\d]+){0,1}$/
-      if get_float_columns().include?(key)
+      if column_format(key) == "float"
         value.to_f()
       else
         value.to_i()
@@ -455,32 +476,36 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     
     add_option(:format, {
       :on => "--output String",
-      :default => "info",
-      :help => "Display format for record output (info|tab|list|name|json)"
+      :help => "Display format for record output (info|tab|list|name|json|yaml)"
     })
     
     add_field_alias("serviceName", "service")
     add_field_alias("appliedLastSeqno", "seqno")
     add_field_alias("appliedLatency", "latency")
+    add_field_alias("commandResult", "rc")
+    add_field_alias("commandMessage", "output")
     
-    add_float_column("latency")
-    add_float_column("appliedlatency")
-    add_float_column("relativelatency")
-    add_float_column("timeinstateseconds")
-    add_float_column("uptimeseconds")
+    column_format("latency", "float")
+    column_format("appliedlatency", "float")
+    column_format("relativelatency", "float")
+    column_format("timeinstateseconds", "float")
+    column_format("uptimeseconds", "float")
+    column_format("commandmessage", "block")
+    column_format("output", "block")
     
-    add_command(:backups, {
-      :help => "List available backups for each replication service"
-    })
-    add_command(:db, {
-      :help => "Display the status of trep_commit_seqno for each replication service"
-    })
-    add_command(:masterof, {
-      :help => "Display the master for each replication service"
-    })
-    add_command(:sql, {
-      :help => "Run the SQL command against the database server for each replication service"
-    })
+    
+    #add_command(:backups, {
+    #  :help => "List available backups for each replication service"
+    #})
+    #add_command(:db, {
+    #  :help => "Display the status of trep_commit_seqno for each replication service"
+    #})
+    #add_command(:masterof, {
+    #  :help => "Display the master for each replication service"
+    #})
+    #add_command(:sql, {
+    #  :help => "Run the SQL command against the database server for each replication service"
+    #})
     add_command(:run, {
       :help => "Run the trepctl command against the database server for each replication service"
     })
@@ -601,6 +626,21 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
       end
     end
     
+    if opt(:fields) == nil
+      if command() == "backups"
+      elsif command() == "db"
+      elsif command() == "masterof"
+      elsif command() == "sql"
+      elsif command() == "run"
+        opt(:fields, "host,serviceName,output")
+      else
+        opt(:fields, "host,serviceName,role,state,appliedLastSeqno,appliedLatency")
+      end
+    end
+    
+    opt(:fields, opt(:fields).downcase())
+    opt(:sort_by, opt(:sort_by).downcase())
+    
     if command() == "backups"
       raise "The backups command has not been implemented"
     elsif command() == "db"
@@ -610,27 +650,30 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     elsif command() == "sql"
       raise "The sql command has not been implemented"
     elsif command() == "run"
-      @trepctl_command = (TU.remaining_arguments() + TU.extra_arguments()).join(" ")
+      @trepctl_command_parts = TU.remaining_arguments() + TU.extra_arguments()
+      
+      fields = opt(:fields).split(",")
+      unless fields.include?("commandmessage") || fields.include?("output")
+        fields << "output"
+        opt(:fields, fields.join(","))
+      end
     elsif command() == "list"
     end
     
-    if opt(:fields) == nil
+    if opt(:format) == nil
       if command() == "backups"
       elsif command() == "db"
       elsif command() == "masterof"
       elsif command() == "sql"
       elsif command() == "run"
-        opt(:fields, "host,serviceName,commandResult,commandMessage")
+        opt(:format, "yaml")
       else
-        opt(:fields, "host,serviceName,role,state,appliedLastSeqno,appliedLatency")
+        opt(:format, "info")
       end
     end
     
-    opt(:fields, opt(:fields).downcase())
-    opt(:sort_by, opt(:sort_by).downcase())
-    
-    unless ["info","tab","list","name","json"].include?(opt(:format))
-      TU.error("The specified value for --output is invalid. Valid values are info, tab, list, name and json.")
+    unless ["info","tab","list","name","json", "yaml"].include?(opt(:format))
+      TU.error("The specified value for --output is invalid. Valid values are info, tab, list, name, yaml and json.")
     end
   end
   
@@ -643,13 +686,12 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     @field_aliases || {}
   end
   
-  def add_float_column(src)
-    @float_columns ||= []
-    @float_columns << src
-  end
-  
-  def get_float_columns()
-    @float_columns || []
+  def column_format(src, format = nil)
+    @column_formats ||= {}
+    if format != nil
+      @column_formats[src] = format
+    end
+    @column_formats[src]
   end
   
   def require_command?
