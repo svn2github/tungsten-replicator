@@ -2,7 +2,6 @@ class UninstallClusterCommand
   include ConfigureCommand
   include RemoteCommand
   include ClusterCommandModule
-  include RequireDataserviceArgumentModule
   
   def initialize(config)
     super(config)
