@@ -471,8 +471,11 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
       :on => "--hide-headers",
       :default => false,
       :help => "Suppress headers in output",
-      :aliases => ["--skip-headers"]
-    })
+      :aliases => ["--skip-headers", "--no-headers"]
+    }) {
+      opt(:hide_headers, true)
+      nil
+    }
     
     add_option(:format, {
       :on => "--output String",
