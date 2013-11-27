@@ -104,11 +104,11 @@ public class RouterConfiguration extends ClusterConfiguration
      * The cluster member where the router is running.
      */
     private String            clusterMemberName;
-    /**
-     * If the property is non-null, this is a class that will be loaded tonull;
-     * listen for router notifications
-     */
-    private String            routerListenerClass                            = "com.continuent.tungsten.common.patterns.notification.adaptor.ResourceNotificationListenerStub";
+//    /**
+//     * If the property is non-null, this is a class that will be loaded tonull;
+//     * listen for router notifications
+//     */
+//    private String            routerListenerClass                            = "com.continuent.tungsten.common.patterns.notification.adaptor.ResourceNotificationListenerStub";
 
     private int               notifyPort                                     = 10121;
     private String            notifierMonitorClass                           = "com.continuent.tungsten.common.patterns.notification.adaptor.ResourceNotifierStub";
@@ -432,25 +432,25 @@ public class RouterConfiguration extends ClusterConfiguration
         this.props.setInt("waitIfUnavailableTimeout", waitIfUnavailableTimeout);
     }
 
-    /**
-     * Returns the routerListenerClass value.
-     * 
-     * @return Returns the routerListenerClass.
-     */
-    public String getRouterListenerClass()
-    {
-        return routerListenerClass;
-    }
+//    /**
+//     * Returns the routerListenerClass value.
+//     * 
+//     * @return Returns the routerListenerClass.
+//     */
+//    public String getRouterListenerClass()
+//    {
+//        return routerListenerClass;
+//    }
 
-    /**
-     * Sets the routerListenerClass value.
-     * 
-     * @param routerListenerClass The routerListenerClass to set.
-     */
-    public void setRouterListenerClass(String routerListenerClass)
-    {
-        this.routerListenerClass = routerListenerClass;
-    }
+//    /**
+//     * Sets the routerListenerClass value.
+//     * 
+//     * @param routerListenerClass The routerListenerClass to set.
+//     */
+//    public void setRouterListenerClass(String routerListenerClass)
+//    {
+//        this.routerListenerClass = routerListenerClass;
+//    }
 
     public boolean isWaitIfDisabled()
     {
