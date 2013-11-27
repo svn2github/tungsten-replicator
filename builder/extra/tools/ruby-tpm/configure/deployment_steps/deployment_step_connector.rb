@@ -21,16 +21,21 @@ module ConfigureDeploymentStepConnector
     transformer.output
     watch_file(transformer.get_filename())
     
+    connector_readonly_properties = "#{get_deployment_basedir()}/tungsten-connector/conf/connector.ro.properties"
     if @config.getPropertyOr(CONN_RO_LISTEN_PORT) != "" && @config.getProperty(ENABLE_CONNECTOR_RO) != "true"
       ConfigureDeploymentStepConnector.connector_ro_mode?(true)
       transformer = Transformer.new(
   		  "#{get_deployment_basedir()}/tungsten-connector/samples/conf/connector.properties.tpl",
-  			"#{get_deployment_basedir()}/tungsten-connector/conf/connector.ro.properties", "#")
+  			connector_readonly_properties, "#")
   	  transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
       transformer.transform_values(method(:transform_values))
       transformer.output
       watch_file(transformer.get_filename())
       ConfigureDeploymentStepConnector.connector_ro_mode?(false)
+    else
+      if File.exist?(connector_readonly_properties)
+        FileUtils.rm_f(connector_readonly_properties)
+      end
     end
     
     write_connector_wrapper_conf()
