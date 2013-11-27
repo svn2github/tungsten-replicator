@@ -38,6 +38,7 @@ JAVA_CONNECTOR_KEYSTORE_PATH = "java_connector_keystore_path"
 GLOBAL_JAVA_CONNECTOR_KEYSTORE_PATH = "global_java_connector_keystore_path"
 ENABLE_CONNECTOR_RO = "enable_connector_readonly"
 ENABLE_CONNECTOR_BRIDGE_MODE = "enable_connector_bridge_mode"
+CONN_AFFINITY = "connector_affinity"
 CONN_RO_PROPERTIES_EXISTS = "connector_ro_properties_exists"
 CONN_MAX_SLAVE_LATENCY = "connector_max_slave_latency"
 
@@ -898,4 +899,32 @@ class ConnectorMaxSlaveLatency < ConfigurePrompt
   end
   
   ConnectorDriverOptions.register(CONN_MAX_SLAVE_LATENCY)
+end
+
+class ConnectorAffinity < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(CONN_AFFINITY, "The default affinity for all connections", PV_ANY)
+  end
+  
+  def required?
+    false
+  end
+  
+  def add_jdbc_driver_options(opts)
+    if get_value() != nil
+      opts << "affinity=#{get_value}"
+    end
+  end
+  
+  def get_template_value(transform_values_method)
+    if @config.getTemplateValue(get_member_key(ENABLE_CONNECTOR_RO)) == "true"
+      super(transform_values_method)
+    else
+      ""
+    end
+  end
+  
+  ConnectorDriverOptions.register(CONN_AFFINITY)
 end
