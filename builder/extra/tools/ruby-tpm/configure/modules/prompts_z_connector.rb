@@ -41,6 +41,8 @@ ENABLE_CONNECTOR_BRIDGE_MODE = "enable_connector_bridge_mode"
 CONN_AFFINITY = "connector_affinity"
 CONN_RO_PROPERTIES_EXISTS = "connector_ro_properties_exists"
 CONN_MAX_SLAVE_LATENCY = "connector_max_slave_latency"
+CONN_MAX_CONNECTIONS = "connector_max_connections"
+CONN_DROP_AFTER_MAX_CONNECTIONS = "connector_drop_after_max_connections"
 
 class Connectors < GroupConfigurePrompt
   def initialize
@@ -927,4 +929,20 @@ class ConnectorAffinity < ConfigurePrompt
   end
   
   ConnectorDriverOptions.register(CONN_AFFINITY)
+end
+
+class ConnectorMaxConnections < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(CONN_MAX_CONNECTIONS, "The maximum number of connections the connector should allow at any time", PV_ANY_INTEGER, "-1")
+  end
+end
+
+class ConnectorDropAfterMaxConnections < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(CONN_DROP_AFTER_MAX_CONNECTIONS, "Instantly drop connections that arrive after --connector-max-connections has been reached", PV_BOOLEAN, "false")
+  end
 end
