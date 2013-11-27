@@ -17,11 +17,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s): Robert Hodges, Edward Archibald, Gilles Rayrat
+ * Contributor(s): Robert Hodges, Edward Archibald, Gilles Rayrat, Ludovic Launer
  */
 
 package com.continuent.tungsten.common.config.cluster;
 
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -175,6 +176,15 @@ public class RouterConfiguration extends ClusterConfiguration
     public RouterConfiguration load() throws ConfigurationException
     {
         load(ConfigurationConstants.TR_PROPERTIES);
+        
+        // TUC-1750 : managerList router properties is no longer in router.properties
+        // Get the value from dataservices.properties
+        DataServicesConfiguration d = DataServicesConfiguration.getInstance();
+        String managerList = d.getProps().get(props.get(ConfigurationConstants.CLUSTER_CLUSTERNAME));
+        props.put(ConfigurationConstants.CLUSTER_MANAGER_LIST, managerList);
+        if (managerList==null)
+            logger.warn((MessageFormat.format("Could not retrieve a value for {0} by reading {1}", ConfigurationConstants.CLUSTER_MANAGER_LIST, ConfigurationConstants.TR_PROPERTIES)));
+        
         props.applyProperties(this, true);
         loadClusterDataSourceMap();
         return this;

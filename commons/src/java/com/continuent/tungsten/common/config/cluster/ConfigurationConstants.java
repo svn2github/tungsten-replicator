@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s): Robert Hodges
+ * Contributor(s): Robert Hodges, Ludovic Launer
  */
 
 package com.continuent.tungsten.common.config.cluster;
@@ -40,6 +40,7 @@ public class ConfigurationConstants
     static public final String CLUSTER_CLUSTERNAME                                            = "clusterName";
     static public final String CLUSTER_MEMBERNAME                                             = "memberName";
     static public final String CLUSTER_PORT                                                   = "port";
+    static public final String CLUSTER_MANAGER_LIST                                           = "managerList";
 
     static public final String CLUSTER_STATE_MAP_PROPS                                        = "statemap.properties";
 
