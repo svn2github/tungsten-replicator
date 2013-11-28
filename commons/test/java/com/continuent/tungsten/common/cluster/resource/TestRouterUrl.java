@@ -208,6 +208,27 @@ public class TestRouterUrl extends TestCase
         copy.setDbname("other");
         RouterURL copy2 = (RouterURL) copy.clone();
         assertFalse(orig.equals(copy2));
+    }
 
+    public void testUrlOptionsParsing() throws SQLException
+    {
+        Properties props = new Properties();
+        RouterURL.urlOptionsToProperties("qos=RO_RELAXED&affinity=sjc", props);
+        assertEquals("Props should contain qos=RO_RELAXED", "RO_RELAXED",
+                props.get("qos"));
+        assertEquals("Props should contain affinity=sjc", "sjc",
+                props.get("affinity"));
+        RouterURL.urlOptionsToProperties("qos=RW_STRICT", props);
+        assertEquals("Props should contain qos=RW_STRICT", "RW_STRICT",
+                props.get("qos"));
+        try
+        {
+            RouterURL.urlOptionsToProperties("invalid", props);
+            fail("invalid paramater should trigger an error");
+        }
+        catch (SQLException sqle)
+        {
+            // expected
+        }
     }
 }

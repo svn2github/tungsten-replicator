@@ -157,28 +157,46 @@ public class RouterURL implements Cloneable
         {
             dbname = "";
         }
+        parseURLOptions(url.substring(urlBaseEndIndex));
 
-        // Get properties.
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Parsed t-router URL: " + toString());
+        }
+    }
+
+    public void parseURLOptions(String substring) throws SQLException
+    {
+        urlOptionsToProperties(substring, props);
+        transferRouterPropertiesToMemberVariables();
+    }
+
+    /**
+     * Given a string of URL options (eg. affinity=blah&maxAppliedLatency=2),
+     * extracts each option and add them to the given Properties parameter TODO:
+     * urlOptionsToProperties definition.
+     * 
+     * @param urlOptions string to parse
+     * @param p output properties to which options will be added, overwriting
+     *            them if already in
+     * @throws SQLException in case of parsing error
+     */
+    public static void urlOptionsToProperties(String urlOptions, Properties p)
+            throws SQLException
+    {
         String key;
-        StringTokenizer st = new StringTokenizer(
-                url.substring(urlBaseEndIndex), URL_OPTIONS_DELIMITERS);
+        StringTokenizer st = new StringTokenizer(urlOptions,
+                URL_OPTIONS_DELIMITERS);
         while (st.hasMoreTokens())
         {
             key = st.nextToken();
             if (!st.hasMoreTokens())
             {
                 throw new SQLException("Invalid empty value for property '"
-                        + key + "' in URL: " + url);
+                        + key + "' in URL: " + urlOptions);
             }
             String value = st.nextToken();
-            props.setProperty(key, value);
-        }
-
-        transferRouterPropertiesToMemberVariables();
-
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("Parsed t-router URL: " + toString());
+            p.setProperty(key, value);
         }
     }
 
@@ -191,9 +209,15 @@ public class RouterURL implements Cloneable
     protected void transferRouterPropertiesToMemberVariables()
             throws SQLException
     {
+        transferPropertiesToRouterURLMemberVariables(props);
+    }
+
+    public void transferPropertiesToRouterURLMemberVariables(Properties propsArg)
+            throws SQLException
+    {
         // If QOS is among the properties, set it explicitly and remove it from
         // there
-        String qosValue = (String) props.remove(KEY_QOS);
+        String qosValue = (String) propsArg.remove(KEY_QOS);
         if (qosValue != null)
         {
             try
@@ -216,7 +240,7 @@ public class RouterURL implements Cloneable
             }
         }
         // Same for max latency...
-        String maxAppliedLatencyValue = (String) props
+        String maxAppliedLatencyValue = (String) propsArg
                 .remove(KEY_MAX_APPLIED_LATENCY);
         if (maxAppliedLatencyValue != null)
         {
@@ -235,14 +259,14 @@ public class RouterURL implements Cloneable
             }
         }
         // ...for affinity...
-        String affinityInProps = (String) props.remove(KEY_AFFINITY);
+        String affinityInProps = (String) propsArg.remove(KEY_AFFINITY);
         if (affinityInProps != null)
         {
             this.affinity = affinityInProps;
         }
 
         // ...and for session ID
-        String propsSessionId = (String) props.remove(KEY_SESSION_ID);
+        String propsSessionId = (String) propsArg.remove(KEY_SESSION_ID);
         if (propsSessionId != null)
         {
             boolean wasAutoSession = isAutoSession();
