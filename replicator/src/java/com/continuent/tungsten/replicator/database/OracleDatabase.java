@@ -37,8 +37,12 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.channel.ShardChannelTable;
+import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
+import com.continuent.tungsten.replicator.shard.ShardTable;
+import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
 
 /**
  * Defines an interface to the Oracle database
@@ -681,9 +685,15 @@ public class OracleDatabase extends AbstractDatabase
             throws SQLException
     {
         createTable(table, replace);
+        createChangeTable(table, tungstenSchema, tungstenTableType, serviceName);
+
+    }
+
+    private void createChangeTable(Table table, String tungstenSchema,
+            String tungstenTableType, String serviceName) throws SQLException
+    {
 
         String tableName = HeartbeatTable.TABLE_NAME.toUpperCase();
-
         if (tungstenTableType.startsWith("CDC")
                 && table.getSchema().equals(tungstenSchema)
                 && table.getName().equalsIgnoreCase(tableName))
@@ -707,7 +717,6 @@ public class OracleDatabase extends AbstractDatabase
                 if (rs != null)
                     rs.close();
                 statement.close();
-
             }
 
             if (changeTableAlreadyDefined)
@@ -761,8 +770,7 @@ public class OracleDatabase extends AbstractDatabase
 
             String cdcSQL;
             int oracleVersion = dbConn.getMetaData().getDatabaseMajorVersion();
-            if (tungstenTableType.equals("CDCSYNC")
-                    && oracleVersion >= 11)
+            if (tungstenTableType.equals("CDCSYNC") && oracleVersion >= 11)
             {
                 logger.info("Setting up synchronous data capture with version = "
                         + oracleVersion);
@@ -807,7 +815,7 @@ public class OracleDatabase extends AbstractDatabase
                         + "target_colmap => 'y', source_colmap => 'n', "
                         + "options_string=>'TABLESPACE " + table.getSchema()
                         + "'); END;";
-            
+
             try
             {
                 execute(cdcSQL);
@@ -834,7 +842,6 @@ public class OracleDatabase extends AbstractDatabase
                 execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
                         + changeSetName + "',enable_capture=>'Y'); END;");
             }
-
         }
     }
 
@@ -851,5 +858,126 @@ public class OracleDatabase extends AbstractDatabase
         // We could query V$RESERVED_WORDS catalog to get reserved words, but
         // usually we don't have permissions to do that.
         return reservedWords;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropTungstenCatalog(java.lang.String)
+     */
+    @Override
+    public void dropTungstenCatalog(String schemaName,
+            String tungstenTableType, String serviceName) throws SQLException
+    {
+        // In Oracle, Tungsten user is not dropped automatically.
+        // However, all Tungsten tables will be dropped.
+        dropTable(new Table(schemaName, CommitSeqnoTable.TABLE_NAME));
+        dropTable(new Table(schemaName, ConsistencyTable.TABLE_NAME));
+        dropTable(new Table(schemaName, ShardChannelTable.TABLE_NAME));
+        dropTable(new Table(schemaName, ShardTable.TABLE_NAME));
+
+        dropTable(new Table(schemaName, HeartbeatTable.TABLE_NAME),
+                tungstenTableType, serviceName);
+
+    }
+
+    private void dropTable(Table table, String tungstenTableType,
+            String serviceName) throws SQLException
+    {
+        dropChangeTable(table, tungstenTableType, serviceName);
+        super.dropTable(table);
+    }
+
+    private void dropChangeTable(Table table, String tungstenTableType,
+            String serviceName) throws SQLException
+    {
+        String tableName = HeartbeatTable.TABLE_NAME.toUpperCase();
+
+        if (tungstenTableType.startsWith("CDC"))
+        {
+            String changeSetName = TUNGSTEN_CHANGE_SET_PREFIX + serviceName;
+
+            Statement statement = dbConn.createStatement();
+            ResultSet rs = null;
+            boolean changeTableExists = false;
+            try
+            {
+                rs = statement
+                        .executeQuery("SELECT * FROM USER_TABLES WHERE table_name='CT_"
+                                + tableName + "'");
+
+                changeTableExists = rs.next();
+            }
+            finally
+            {
+                if (rs != null)
+                    rs.close();
+                statement.close();
+            }
+
+            if (!changeTableExists)
+            {
+                logger.info("Tungsten Heartbeat change table not found for service '"
+                        + serviceName + "'. Skipping");
+                // We are done, just exit.
+                return;
+            }
+
+            logger.info("Dropping Tungsten Heartbeat change table for service '"
+                    + serviceName + "'");
+
+            if (!tungstenTableType.equals("CDCSYNC"))
+            {
+                // Disable Tungsten Change Set
+                try
+                {
+                    execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
+                            + changeSetName + "',enable_capture=>'N'); END;");
+                }
+                catch (SQLException e1)
+                {
+                    if (e1.getErrorCode() == 31410)
+                    {
+                        throw new SQLException(
+                                "The change set "
+                                        + changeSetName
+                                        + " does not seem to exist on Oracle. Did you run setupCDC.sh?",
+                                e1);
+                    }
+                    throw e1;
+                }
+            }
+
+            String cdcSQL;
+            cdcSQL = "BEGIN " + "DBMS_CDC_PUBLISH.DROP_CHANGE_TABLE(owner=>'"
+                    + table.getSchema() + "', change_table_name=> '" + "CT_"
+                    + tableName + "', force_flag=>'Y'); END;";
+
+            try
+            {
+                execute(cdcSQL);
+            }
+            catch (SQLException e1)
+            {
+                if (e1.getErrorCode() == 31415)
+                {
+                    throw new SQLException(
+                            "The change set "
+                                    + changeSetName
+                                    + " does not seem to exist on Oracle. Did you run setupCDC.sh?",
+                            e1);
+                }
+                throw e1;
+            }
+
+            if (!tungstenTableType.equals("CDCSYNC"))
+            {
+                // Enable Tungsten Change Set back
+                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
+                        + changeSetName + "',enable_capture=>'Y'); END;");
+            }
+
+        }
+        // else no change table, as table type is not CDC like
     }
 }

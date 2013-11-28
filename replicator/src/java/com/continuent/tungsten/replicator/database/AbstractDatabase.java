@@ -1287,4 +1287,18 @@ public abstract class AbstractDatabase implements Database
         throw new UnsupportedOperationException(
                 "List of reserved words is not implemented");
     }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws SQLException
+     * @see com.continuent.tungsten.replicator.database.Database#dropTungstenCatalog(java.lang.String)
+     */
+    @Override
+    public void dropTungstenCatalog(String schemaName,
+            String tungstenTableType, String serviceName) throws SQLException
+    {
+        dropSchema(schemaName);
+    }
+
 }

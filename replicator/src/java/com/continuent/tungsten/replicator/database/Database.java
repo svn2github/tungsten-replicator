@@ -590,7 +590,7 @@ public interface Database
      * @return A property configured CsvWriter instance
      */
     public CsvWriter getCsvWriter(BufferedWriter writer);
-    
+
     /**
      * Returns a list of reserved words used by the DBMS, which cannot be used
      * as table and column names.<br/>
@@ -601,4 +601,15 @@ public interface Database
      * @return A list of reserved words.
      */
     public ArrayList<String> getReservedWords();
+
+    /**
+     * dropTungstenCatalog removes Tungsten catalog.
+     * 
+     * @param schemaName The schema name where Tungsten catalog is stored 
+     * @param tungstenTableType The type of table used to store Tungsten metadata
+     * @param serviceName The service name for which the catalog has to be dropped
+     * @throws SQLException when an error occurs
+     */
+    public void dropTungstenCatalog(String schemaName,
+            String tungstenTableType, String serviceName) throws SQLException;
 }

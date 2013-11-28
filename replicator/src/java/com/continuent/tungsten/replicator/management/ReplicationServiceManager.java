@@ -67,10 +67,10 @@ public class ReplicationServiceManager
         implements
             ReplicationServiceManagerMBean
 {
-    public static final String                         CONFIG_SERVICES       = "services.properties";
-    public static final String                         CONFIG_FILE_PREFIX    = "static-";
-    public static final String                         CONFIG_FILE_SUFFIX    = ".properties";
-    
+    public static final String                          CONFIG_SERVICES       = "services.properties";
+    public static final String                          CONFIG_FILE_PREFIX    = "static-";
+    public static final String                          CONFIG_FILE_SUFFIX    = ".properties";
+
     private static Logger                               logger                = Logger.getLogger(ReplicationServiceManager.class);
     private TungstenProperties                          serviceProps          = null;
     private TreeMap<String, OpenReplicatorManagerMBean> replicators           = new TreeMap<String, OpenReplicatorManagerMBean>();
@@ -450,11 +450,12 @@ public class ReplicationServiceManager
             Map<String, String> progress)
     {
         // Remove schema.
-        String schemaName = serviceProps.getString("replicator.schema");
-        String userName = serviceProps.getString("replicator.global.db.user");
+        String schemaName = serviceProps
+                .getString(ReplicatorConf.METADATA_SCHEMA);
+        String userName = serviceProps.getString(ReplicatorConf.GLOBAL_DB_USER);
         String password = serviceProps
-                .getString("replicator.global.db.password");
-        String url = serviceProps.getString("replicator.store.thl.url");
+                .getString(ReplicatorConf.GLOBAL_DB_PASSWORD);
+        String url = serviceProps.getString(ReplicatorConf.THL_DB_URL);
 
         Database db = null;
 
@@ -463,7 +464,9 @@ public class ReplicationServiceManager
             db = DatabaseFactory.createDatabase(url, userName, password, true);
             db.connect(false);
             progress.put("drop schema", schemaName);
-            db.dropSchema(schemaName);
+            db.dropTungstenCatalog(schemaName,
+                    serviceProps.getString(ReplicatorConf.METADATA_TABLE_TYPE),
+                    serviceProps.getString(ReplicatorConf.SERVICE_NAME));
             db.close();
         }
         catch (Exception e)
