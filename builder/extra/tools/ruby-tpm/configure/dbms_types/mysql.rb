@@ -1692,6 +1692,10 @@ class MySQLConnectorPermissionsCheck < ConfigureValidationCheck
             error("The user specified in --application-user (#{connuser}@#{host}) does not have REPLICATION CLIENT privileges and SMARTSCALE in enabled")
             help("When SmartScale is enabled, all application users require the REPLICATION CLIENT  privilege. Grant it to the user via GRANT REPLICATION CLIENT on *.* to '#{connuser}'@#{host}")
           end
+          if get_applier_datasource.get_value(" select count(*) from mysql.user where User not in ('root','tungsten') and  Repl_client_priv = 'N'").to_i != 0
+            warning("Users exist in the database that do not have REPLICATION CLIENT privileges and SMARTSCALE in enabled")
+            help("When SmartScale is enabled, all application users require the REPLICATION CLIENT  privilege to connect . Grant it to the user via GRANT REPLICATION CLIENT on *.* to '<username>'@'<host>'")
+          end
         end
       end
     end
