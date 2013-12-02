@@ -277,7 +277,7 @@ class ConnectorReadOnlyListenPort < ConfigurePrompt
   include ConnectorPrompt
   
   def initialize
-    super(CONN_RO_LISTEN_PORT, "Port for the connector to listen for read-only connections on", PV_INTEGER)
+    super(CONN_RO_LISTEN_PORT, "Port for the connector to listen on for read-only connections", PV_INTEGER)
     override_command_line_argument("application-readonly-port")
   end
   

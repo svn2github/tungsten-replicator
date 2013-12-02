@@ -57,7 +57,7 @@ replicator.source_id=@{EXTRACTOR.REPL_DBHOST}
 # current log position after a Tungsten cluster failover to a new master.  
 # In standalone replication it should be set to false or you may encounter
 # data loss if the source ID changes unexpectedly. 
-replicator.repositionOnSourceIdChange=true
+replicator.repositionOnSourceIdChange=@{REPL_SVC_REPOSITION_ON_SOURCE_ID_CHANGE}
 
 # Site to which the replicator belongs.
 site.name=default

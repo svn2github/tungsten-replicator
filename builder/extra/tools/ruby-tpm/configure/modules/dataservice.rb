@@ -465,7 +465,7 @@ class ReplicationServiceAutoEnable < ConfigurePrompt
   include AdvancedPromptModule
   
   def initialize
-    super(REPL_AUTOENABLE, "Auto-enable services after start-up", 
+    super(REPL_AUTOENABLE, "Put replication services ONLINE after the replicator starts", 
       PV_BOOLEAN, "true")
   end
 end
@@ -624,7 +624,7 @@ class BackupMethod < ConfigurePrompt
   include ReplicationServicePrompt
 
   def initialize
-    super(REPL_BACKUP_METHOD, "Database backup method", nil)
+    super(REPL_BACKUP_METHOD, "The default backup method", nil)
   end
   
   def load_default_value
@@ -659,7 +659,7 @@ class ReplicationServiceBackupStorageDirectory < BackupConfigurePrompt
   include ConstantValueModule
   
   def initialize
-    super(REPL_BACKUP_STORAGE_DIR, "Backup permanent shared storage", PV_FILENAME)
+    super(REPL_BACKUP_STORAGE_DIR, "Permanent backup storage directory", PV_FILENAME)
     self.extend(NotTungstenInstallerPrompt)
   end
   
@@ -676,7 +676,7 @@ class BackupStorageTempDirectory < BackupConfigurePrompt
   include ReplicationServicePrompt
   
   def initialize
-    super(REPL_BACKUP_DUMP_DIR, "Backup temporary dump directory", PV_FILENAME, "/tmp")
+    super(REPL_BACKUP_DUMP_DIR, "Temporary backup storage directory", PV_FILENAME, "/tmp")
   end
   
   def update_deprecated_keys()
@@ -1361,6 +1361,22 @@ class ReplicationHeterogenousSlave < ConfigurePrompt
       @default = "true"
     else
       super()
+    end
+  end
+end
+
+class ReplicationServiceRepositionOnSourceIDChange < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(REPL_SVC_REPOSITION_ON_SOURCE_ID_CHANGE, "The master will come ONLINE from the current position if the stored source_id does not match the value in the static properties.", PV_BOOLEAN, "true")
+  end
+  
+  def load_default_value
+    if get_topology().is_a?(ClusterTopology)
+      @default = "true"
+    else
+      @default = "false"
     end
   end
 end

@@ -1368,3 +1368,11 @@ class ReplicationServiceEnableShardComments < ConfigurePrompt
     super(REPL_SVC_ENABLE_MASTER_SERVICE_COMMENTS, "Add a comment to extracted events with the current service name", PV_BOOLEAN, "false")
   end
 end
+
+class ReplicationServiceRepositionOnSourceIDChange < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(REPL_SVC_REPOSITION_ON_SOURCE_ID_CHANGE, "The master will come ONLINE from the current position if the stored source_id does not match the value in the static properties.", PV_BOOLEAN, "true")
+  end
+end
