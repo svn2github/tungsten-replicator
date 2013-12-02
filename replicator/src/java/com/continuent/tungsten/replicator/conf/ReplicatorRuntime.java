@@ -185,6 +185,20 @@ public class ReplicatorRuntime implements PluginContext
                 ReplicatorConf.AUTO_ENABLE, ReplicatorConf.AUTO_ENABLE_DEFAULT);
         autoEnable = new Boolean(autoEnableSetting);
 
+        // Ensure auto-master repositioning property is set to an acceptable
+        // value.
+        String autoMasterRepositioningSetting = assertPropertyDefault(
+                ReplicatorConf.AUTO_MASTER_REPOSITIONING,
+                ReplicatorConf.AUTO_MASTER_REPOSITIONING_DEFAULT);
+        if (!"false".equals(autoMasterRepositioningSetting)
+                && !"true".equals(autoMasterRepositioningSetting))
+        {
+            throw new ReplicatorException(String.format(
+                    "%s property must be set to true or false: %s",
+                    ReplicatorConf.AUTO_MASTER_REPOSITIONING,
+                    autoMasterRepositioningSetting));
+        }
+
         // Ensure source ID is available.
         sourceId = assertPropertyDefault(ReplicatorConf.SOURCE_ID,
                 ReplicatorConf.SOURCE_ID_DEFAULT);
@@ -723,7 +737,7 @@ public class ReplicatorRuntime implements PluginContext
         return new PluginSpecification(pluginPrefix, name, pluginClass,
                 pluginProperties);
     }
-    
+
     /**
      * Returns OpenReplicatorContext used for registering current runtime.
      */

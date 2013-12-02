@@ -270,7 +270,7 @@ public class THL implements Store
      * If set to true, perform an fsync with every flush. Warning: fsync is very
      * slow, so you want a long flush interval in this case.
      */
-    public synchronized void setFsyncOnFlush(boolean fsyncOnFlush)
+    public void setFsyncOnFlush(boolean fsyncOnFlush)
     {
         this.fsyncOnFlush = fsyncOnFlush;
     }
@@ -584,7 +584,7 @@ public class THL implements Store
 
         return props;
     }
-    
+
     /**
      * Returns list of currently connected clients.
      * 

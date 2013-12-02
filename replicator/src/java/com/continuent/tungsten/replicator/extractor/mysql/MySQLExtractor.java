@@ -235,7 +235,7 @@ public class MySQLExtractor implements RawExtractor
     {
         this.useRelayLogs = useRelayDir;
     }
-
+    
     public long getRelayLogWaitTimeout()
     {
         return relayLogWaitTimeout;
@@ -1181,7 +1181,6 @@ public class MySQLExtractor implements RawExtractor
         {
             logger.warn("Interrupted while extracting format description event");
         }
-
     }
 
     /**

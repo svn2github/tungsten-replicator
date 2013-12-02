@@ -25,8 +25,9 @@ replicator.master.listen.uri=@{REPL_THL_PROTOCOL}://@{HOST.HOST}:@{REPL_SVC_THL_
 # at start-up time. 
 replicator.auto_enable=@{REPL_AUTOENABLE}
 
-# Source ID. This required parameter is used to identify replication
-# event source.  It must be unique for each replicator node.
+# Source ID.  Identifies the replication event source.  It must be 
+# unique for each replicator node and normally is the host name.
+# Do not use values like localhost or 127.0.0.1. 
 replicator.source_id=@{EXTRACTOR.REPL_DBHOST}
 
 # Cluster name to which the replicator belongs.

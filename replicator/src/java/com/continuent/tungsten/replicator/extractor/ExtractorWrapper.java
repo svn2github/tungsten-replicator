@@ -35,7 +35,9 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.cluster.resource.OpenReplicatorParams;
+import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.consistency.ConsistencyCheckFilter;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.EventMetadataFilter;
@@ -55,14 +57,15 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class ExtractorWrapper implements Extractor
 {
-    private static Logger logger      = Logger.getLogger(ExtractorWrapper.class);
+    private static Logger logger                  = Logger.getLogger(ExtractorWrapper.class);
     private PluginContext pluginContext;
     private RawExtractor  extractor;
     private String        sourceId;
-    private long          seqno       = 0;
-    private short         fragno      = 0;
-    private long          epochNumber = 0;
-    private List<Filter>  autoFilters = new ArrayList<Filter>();
+    private long          seqno                   = 0;
+    private short         fragno                  = 0;
+    private long          epochNumber             = 0;
+    private List<Filter>  autoFilters             = new ArrayList<Filter>();
+    private boolean       autoMasterRepositioning = true;
 
     /**
      * Create a new instance to wrap Creates a new <code>ExtractorWrapper</code>
@@ -97,7 +100,7 @@ public class ExtractorWrapper implements Extractor
 
         if (dbmsEvent == null)
             return null;
-        
+
         // Generate the event.
         Timestamp extractTimestamp = dbmsEvent.getSourceTstamp();
         ReplDBMSEvent replEvent = new ReplDBMSEvent(seqno, fragno,
@@ -173,7 +176,8 @@ public class ExtractorWrapper implements Extractor
             seqno = 0;
             eventId = null;
         }
-        else if (sourceId.equals(header.getSourceId()))
+        else if (sourceId.equals(header.getSourceId())
+                )
         {
             // Continuing local extraction. Ask for next event.
             if (logger.isDebugEnabled())
@@ -184,14 +188,23 @@ public class ExtractorWrapper implements Extractor
         }
         else
         {
-            // Master source ID has shifted; remember seqno but start local
-            // extraction from scratch.
+            // Master source ID has shifted; remember the seqno. 
             logger.info("Local source ID differs from last stored source ID: local="
                     + sourceId + " stored=" + header.getSourceId());
-            logger.info("Restarting replication from scratch");
-
             seqno = header.getSeqno() + 1;
-            eventId = null;
+
+            // If auto repositioning is enabled, reposition.  Otherwise, print a
+            // warning and try to use the source ID. 
+            if (autoMasterRepositioning)
+            {
+                logger.info("Repositioning replication to current log position on master due to source ID change");
+                eventId = null;
+            }
+            else
+            {
+                logger.info("Auto-repositioning is not enabled; continuing from last master log position");
+                eventId = header.getEventId();
+            }
         }
 
         // See if we have an override on the seqno. That takes priority over
@@ -206,8 +219,8 @@ public class ExtractorWrapper implements Extractor
         setLastEventId(eventId);
         epochNumber = seqno;
     }
-    
-    // Override base sequence number if different from current base. 
+
+    // Override base sequence number if different from current base.
     private void overrideBaseSeqno()
     {
         long newBaseSeqno = pluginContext.getOnlineOptions().getLong(
@@ -244,6 +257,17 @@ public class ExtractorWrapper implements Extractor
         extractor.configure(pluginContext);
         for (Filter filter : autoFilters)
             filter.configure(pluginContext);
+
+        // Fetch the auto-reposition policy for masters and print
+        // an appropriate message.
+        TungstenProperties replicatorProps = pluginContext
+                .getReplicatorProperties();
+        autoMasterRepositioning = replicatorProps
+                .getBoolean(ReplicatorConf.AUTO_MASTER_REPOSITIONING);
+        if (autoMasterRepositioning)
+            logger.info("Master auto-repositioning on source_id change is enabled; extractor will reposition current log position if last extracted source_id differs from current source_id");
+        else
+            logger.info("Master auto-repositioning on source_id change is disabled; extractor will not reposition automatically");
     }
 
     /**

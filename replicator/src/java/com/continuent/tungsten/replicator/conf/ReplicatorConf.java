@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s): Alex Yurchenko, Linas Virbalas, Stephane Giron
+ * Contributor(s): Alex Yurchenko, Linas Virbalas, Stephane Giron, Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.conf;
@@ -64,6 +64,13 @@ public class ReplicatorConf
     /** Whether to go online automatically at startup time. */
     static public final String   AUTO_ENABLE                           = "replicator.auto_enable";
     static public final String   AUTO_ENABLE_DEFAULT                   = "false";
+
+    /**
+     * Whether to reposition data extraction automatically on a master when the
+     * source_id changes.
+     */
+    static public final String   AUTO_MASTER_REPOSITIONING             = "replicator.repositionOnSourceIdChange";
+    static public final String   AUTO_MASTER_REPOSITIONING_DEFAULT     = "true";
 
     /** Whether to automatically provision this server at startup time. */
     static public final String   AUTO_PROVISION                        = "replicator.auto_provision";
