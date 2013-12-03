@@ -429,6 +429,26 @@ host=#{ds_alias}"
       write_router_properties()
       write_policymgr_properties()
     end
+    
+    if is_replicator?()
+      @config.getPropertyOr(REPL_SERVICES, {}).keys().each{
+        |rs_alias|
+
+        if rs_alias == DEFAULTS
+          next
+        end
+        
+        # Update the THL URI in dynamic properties so it uses the correct protocol
+        dynamic_properties = @config.getProperty([REPL_SERVICES, rs_alias,REPL_SVC_DYNAMIC_CONFIG])
+        if File.exists?(dynamic_properties)
+          if @config.getProperty([REPL_SERVICES, rs_alias, REPL_ENABLE_THL_SSL]) == "true"
+            cmd_result("sed -i 's/uri=thl\\\\/uri=thls\\\\/' #{dynamic_properties}")
+          else
+            cmd_result("sed -i 's/uri=thls\\\\/uri=thl\\\\/' #{dynamic_properties}")
+          end
+        end
+      }
+    end
   end
   
   def write_dataservices_properties
