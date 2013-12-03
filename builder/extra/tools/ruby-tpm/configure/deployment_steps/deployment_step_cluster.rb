@@ -184,9 +184,14 @@ module ConfigureDeploymentStepDeployment
           dsids[ds_name] = "configure $COMPOSITE_DS"
         else
           ds_name=@config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
+          master=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_MASTER_MEMBER])
+          slaves=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_REPLICATION_MEMBERS]).split(",")-[master]
+          connectors=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS])
+          
           transformer << "export DS_NAME#{dsid}=#{ds_name}"
-          transformer << "export MASTER#{dsid}=#{@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_MASTER_MEMBER])}"
-          transformer << "export CONNECTORS#{dsid}=#{@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS])}"
+          transformer << "export MASTER#{dsid}=#{master}"
+          transformer << "export SLAVES#{dsid}=#{slaves.join(",")}"
+          transformer << "export CONNECTORS#{dsid}=#{connectors}"
           
           dsids[ds_name] = "configure $DS_NAME#{dsid}"
           dsid = dsid+1
@@ -423,6 +428,8 @@ host=#{ds_alias}"
     FileUtils.touch(target_dir)
     
     FileUtils.cp(current_release_directory + '/' + Configurator::HOST_CONFIG, current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig')
+    cmd_result("chmod o-rwx #{current_release_directory + '/' + Configurator::HOST_CONFIG}")
+    cmd_result("chmod o-rwx #{current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig'}")
     
     if is_manager?() || is_connector?()
       write_dataservices_properties()

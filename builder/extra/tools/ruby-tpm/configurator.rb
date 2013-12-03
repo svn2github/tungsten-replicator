@@ -187,7 +187,7 @@ class Configurator
     
     if @log
       begin
-        @log.chmod(0666)
+        @log.chmod(0660)
       rescue
       end
       
@@ -682,7 +682,7 @@ class Configurator
   def initialize_log
     unless @log
       begin
-        @log = File.open(get_log_filename(), "a")
+        @log = File.open(get_log_filename(), "a", 0660)
       rescue => e
         raise e
       end

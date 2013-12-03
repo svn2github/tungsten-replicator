@@ -1621,7 +1621,7 @@ module ConfigureDeploymentStepMySQL
     	  transformer.transform_values(method(:transform_replication_dataservice_values))
         transformer.output
         watch_file(transformer.get_filename())
-        File.chmod(0755, "#{get_deployment_basedir()}/cluster-home/bin/mysql_readonly")
+        File.chmod(0750, "#{get_deployment_basedir()}/cluster-home/bin/mysql_readonly")
       else
         FileUtils.rm_f("#{get_deployment_basedir()}/cluster-home/conf/cluster/#{@config.getProperty(DATASERVICENAME)}/service/mysql_readonly.properties")
         FileUtils.rm_f("#{get_deployment_basedir()}/cluster-home/bin/mysql_readonly")

@@ -44,6 +44,9 @@ module ConfigureDeploymentStepServices
         file_to_watch = file
       end
       out.puts file_to_watch
+      
+      cmd_result("chmod o-rwx #{file}")
+      cmd_result("chmod o-rwx #{get_original_watch_file(file)}")
     }
     out.close
   end
