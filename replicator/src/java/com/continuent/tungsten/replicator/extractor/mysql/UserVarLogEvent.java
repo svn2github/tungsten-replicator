@@ -86,7 +86,7 @@ public class UserVarLogEvent extends LogEvent
             throws ReplicatorException
     {
         super(buffer, descriptionEvent, MysqlBinlog.USER_VAR_EVENT);
-        
+
         this.startPosition = currentPosition;
         if (logger.isDebugEnabled())
             logger.debug("Extracting event at position  : " + startPosition
@@ -211,12 +211,22 @@ public class UserVarLogEvent extends LogEvent
                         throw new MySQLExtractException(
                                 "ROW_RESULT user variable type is unsupported");
                     case DECIMAL_RESULT :
+                        byte precision = buffer[variableValueIndex];
+                        byte scale = buffer[variableValueIndex + 1];
+
                         if (logger.isDebugEnabled())
                             logger.debug("Decimal value dump: "
-                                    + hexdump(buffer, variableValueIndex));
+                                    + hexdump(buffer, variableValueIndex + 2)
+                                    + " precision = " + precision + " scale = "
+                                    + scale);
+                        int bin_size = getDecimalBinarySize(precision, scale);
+                        byte[] dec = new byte[bin_size];
+                        for (int i = 0; i < bin_size; i++)
+                            dec[i] = buffer[variableValueIndex + 2 + i];
 
-                        value = MysqlBinlog.convertDecimalToString(buffer,
-                                variableValueIndex, variableValueLength);
+                        value = extractDecimal(dec, precision, scale)
+                                .toString();
+
                         break;
                     default :
                         throw new MySQLExtractException(

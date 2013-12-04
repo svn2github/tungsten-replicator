@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.extractor.mysql;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 import org.apache.log4j.Logger;
@@ -31,6 +32,7 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.extractor.ExtractorException;
+import com.continuent.tungsten.replicator.extractor.mysql.conversion.BigEndianConversion;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 
 /**
@@ -561,6 +563,141 @@ public abstract class LogEvent
                     logger.warn("Failed to compute checksum", ignore);
                 }
         }
+    }
+
+    protected BigDecimal extractDecimal(byte[] buffer, int precision, int scale)
+    {
+        //
+        // Decimal representation in binlog seems to be as follows:
+        // 1 byte - 'precision'
+        // 1 byte - 'scale'
+        // remaining n bytes - integer such that value = n / (10^scale)
+        // Integer is represented as follows:
+        // 1st bit - sign such that set == +, unset == -
+        // every 4 bytes represent 9 digits in big-endian order, so that if
+        // you print the values of these quads as big-endian integers one after
+        // another, you get the whole number string representation in decimal.
+        // What remains is to put a sign and a decimal dot.
+        // 13 0a 80 00 00 05 1b 38 b0 60 00 means:
+        // 0x13 - precision = 19
+        // 0x0a - scale = 10
+        // 0x80 - positive
+        // 0x00000005 0x1b38b060 0x00
+        // 5 456700000 0
+        // 54567000000 / 10^{10} = 5.4567
+        //
+        // int_size below shows how long is integer part
+        //
+        // offset = offset + 2; // offset of the number part
+        //
+        int intg = precision - scale;
+        int intg0 = intg / MysqlBinlog.DIG_PER_INT32;
+        int frac0 = scale / MysqlBinlog.DIG_PER_INT32;
+        int intg0x = intg - intg0 * MysqlBinlog.DIG_PER_INT32;
+        int frac0x = scale - frac0 * MysqlBinlog.DIG_PER_INT32;
+
+        int offset = 0;
+
+        int sign = (buffer[offset] & 0x80) == 0x80 ? 1 : -1;
+
+        // how many bytes are used to represent given amount of digits?
+        int integerSize = intg0 * MysqlBinlog.SIZE_OF_INT32
+                + MysqlBinlog.dig2bytes[intg0x];
+        int decimalSize = frac0 * MysqlBinlog.SIZE_OF_INT32
+                + MysqlBinlog.dig2bytes[frac0x];
+
+        if (logger.isDebugEnabled())
+            logger.debug("Integer size in bytes = " + integerSize
+                    + " - Fraction size in bytes = " + decimalSize);
+        int bin_size = integerSize + decimalSize; // total bytes
+        byte[] d_copy = new byte[bin_size];
+
+        if (bin_size > buffer.length)
+        {
+            throw new ArrayIndexOutOfBoundsException("Calculated bin_size: "
+                    + bin_size + ", available bytes: " + buffer.length);
+        }
+
+        // Invert first bit
+        d_copy[0] = buffer[0];
+        d_copy[0] ^= 0x80;
+        if (sign == -1)
+        {
+            // Invert every byte
+            d_copy[0] ^= 0xFF;
+        }
+
+        for (int i = 1; i < bin_size; i++)
+        {
+            d_copy[i] = buffer[i];
+            if (sign == -1)
+            {
+                // Invert every byte
+                d_copy[i] ^= 0xFF;
+            }
+        }
+
+        // Integer part
+        offset = MysqlBinlog.dig2bytes[intg0x];
+
+        BigDecimal intPart = new BigDecimal(0);
+
+        if (offset > 0)
+            intPart = BigDecimal.valueOf(BigEndianConversion
+                    .convertNBytesToInt(d_copy, 0, offset));
+
+        while (offset < integerSize)
+        {
+            intPart = intPart.movePointRight(MysqlBinlog.DIG_PER_DEC1).add(
+                    BigDecimal.valueOf(BigEndianConversion.convert4BytesToInt(
+                            d_copy, offset)));
+            offset += 4;
+        }
+
+        // Decimal part
+        BigDecimal fracPart = new BigDecimal(0);
+        int shift = 0;
+        for (int i = 0; i < frac0; i++)
+        {
+            shift += MysqlBinlog.DIG_PER_DEC1;
+            fracPart = fracPart.add(BigDecimal.valueOf(
+                    BigEndianConversion.convert4BytesToInt(d_copy, offset))
+                    .movePointLeft(shift));
+            offset += 4;
+        }
+
+        if (MysqlBinlog.dig2bytes[frac0x] > 0)
+        {
+            fracPart = fracPart.add(BigDecimal.valueOf(
+                    BigEndianConversion.convertNBytesToInt(d_copy, offset,
+                            MysqlBinlog.dig2bytes[frac0x])).movePointLeft(
+                    shift + frac0x));
+        }
+
+        return BigDecimal.valueOf(sign).multiply(intPart.add(fracPart));
+
+    }
+
+    /**
+     * Returns the number of bytes that is used to store a decimal whose
+     * precision and scale are given
+     * 
+     * @param precision of the decimal
+     * @param scale of the decimal
+     * @return number of bytes used to store the decimal(precision, scale)
+     */
+    protected int getDecimalBinarySize(int precision, int scale)
+    {
+        int intg = precision - scale;
+        int intg0 = intg / MysqlBinlog.DIG_PER_DEC1;
+        int frac0 = scale / MysqlBinlog.DIG_PER_DEC1;
+        int intg0x = intg - intg0 * MysqlBinlog.DIG_PER_DEC1;
+        int frac0x = scale - frac0 * MysqlBinlog.DIG_PER_DEC1;
+
+        assert (scale >= 0 && precision > 0 && scale <= precision);
+
+        return intg0 * (4) + MysqlBinlog.dig2bytes[intg0x] + frac0 * (4)
+                + MysqlBinlog.dig2bytes[frac0x];
     }
 
     public static String hexdump(byte[] buffer)

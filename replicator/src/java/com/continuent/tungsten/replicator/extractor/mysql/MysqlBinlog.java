@@ -34,7 +34,6 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
-import com.continuent.tungsten.replicator.extractor.mysql.conversion.BigEndianConversion;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 
 /**
@@ -785,86 +784,6 @@ public class MysqlBinlog
             ret = (ret << 8) + val;
         }
         return ret;
-    }
-
-    public static String convertDecimalToString(byte[] buffer, int offset,
-            int length)
-    {
-        //
-        // Decimal representation in binlog seems to be as follows:
-        // 1 byte - 'precision'
-        // 1 byte - 'scale'
-        // remaining n bytes - integer such that value = n / (10^scale)
-        // Integer is represented as follows:
-        // 1st bit - sign such that set == +, unset == -
-        // every 4 bytes represent 9 digits in big-endian order, so that if
-        // you print the values of these quads as big-endian integers one after
-        // another, you get the whole number string representation in decimal.
-        // What remains is to put a sign and a decimal dot.
-        // 13 0a 80 00 00 05 1b 38 b0 60 00 means:
-        // 0x13 - precision = 19
-        // 0x0a - scale = 10
-        // 0x80 - positive
-        // 0x00000005 0x1b38b060 0x00
-        // 5 456700000 0
-        // 54567000000 / 10^{10} = 5.4567
-        //
-        // int_size below shows how long is integer part
-        //
-
-        int precision = buffer[offset];
-        int scale = buffer[offset + 1];
-        offset = offset + 2; // offset of the number part
-
-        int intg = precision - scale;
-        int intg0 = intg / DIG_PER_INT32;
-        int frac0 = scale / DIG_PER_INT32;
-        int intg0x = intg - intg0 * DIG_PER_INT32;
-        int frac0x = scale - frac0 * DIG_PER_INT32;
-
-        int sign = (buffer[offset] & 0x80) != 0x80 ? 1 : -1;
-
-        // how many bytes are used to represent given amount of digits?
-        int integerSize = intg0 * SIZE_OF_INT32 + dig2bytes[intg0x];
-        int decimalSize = frac0 * SIZE_OF_INT32 + dig2bytes[frac0x];
-        int bin_size = integerSize + decimalSize; // total bytes
-        byte[] d_copy = new byte[bin_size];
-
-        if (bin_size > (length - 2))
-        {
-            throw new ArrayIndexOutOfBoundsException("Calculated bin_size: "
-                    + bin_size + ", available bytes: " + (length - 2));
-        }
-
-        for (int i = 0; i < bin_size; i++)
-        {
-            d_copy[i] = buffer[offset + i];
-        }
-        // clear sign bit
-        d_copy[0] = (byte) (d_copy[0] & 0x7F);
-
-        // first digits of integer part are special:
-        // no need for leading zeroes and sign must be present
-        offset = (integerSize < SIZE_OF_INT32) ? integerSize : SIZE_OF_INT32;
-        int int32 = BigEndianConversion.convertNBytesToInt(d_copy, 0, offset);
-        String num = Integer.toString(int32);
-        if (sign < 0)
-        {
-            num = "-" + num;
-        }
-
-        // remaining integer part
-        num = num
-                + BigEndianConversion.convertNBytesToString(d_copy, offset,
-                        integerSize - offset);
-        // decimal point
-        num = num + ".";
-        // fraction part
-        num = num
-                + BigEndianConversion.convertNBytesToString(d_copy,
-                        integerSize, decimalSize);
-
-        return num;
     }
 
     public static long[] decodePackedInteger(byte[] buffer, int position)
