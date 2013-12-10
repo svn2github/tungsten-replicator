@@ -84,6 +84,39 @@ module ClusterDiagnosticPackage
           exception(me)
         end
         
+        begin
+          log = "#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/xtrabackup.log"
+          if remote_file_exists?(log, config.getProperty(HOST), config.getProperty(USERID))
+            scp_download(log, "#{diag_dir}/#{h_alias}/xtrabackup.log", config.getProperty(HOST), config.getProperty(USERID))
+          end
+        rescue CommandError => ce
+          exception(ce)
+        rescue MessageError => me
+          exception(me)
+        end
+        
+        begin
+          log = "#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/mysqldump.log"
+          if remote_file_exists?(log, config.getProperty(HOST), config.getProperty(USERID))
+            scp_download(log, "#{diag_dir}/#{h_alias}/mysqldump.log", config.getProperty(HOST), config.getProperty(USERID))
+          end
+        rescue CommandError => ce
+          exception(ce)
+        rescue MessageError => me
+          exception(me)
+        end
+        
+        begin
+          log = "#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/script.log"
+          if remote_file_exists?(log, config.getProperty(HOST), config.getProperty(USERID))
+            scp_download(log, "#{diag_dir}/#{h_alias}/script.log", config.getProperty(HOST), config.getProperty(USERID))
+          end
+        rescue CommandError => ce
+          exception(ce)
+        rescue MessageError => me
+          exception(me)
+        end
+        
         if @promotion_settings.getProperty([h_alias, MANAGER_ENABLED]) == "true"
           begin
             scp_download("#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/log/tmsvc.log", "#{diag_dir}/#{h_alias}/tmsvc.log.tmp", config.getProperty(HOST), config.getProperty(USERID))

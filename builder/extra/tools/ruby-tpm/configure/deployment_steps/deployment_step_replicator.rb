@@ -59,6 +59,8 @@ module ConfigureDeploymentStepReplicator
     write_wrapper_conf()
     add_service("tungsten-replicator/bin/replicator")
     add_log_file("tungsten-replicator/log/trepsvc.log")
+    add_log_file("tungsten-replicator/log/xtrabackup.log")
+    add_log_file("tungsten-replicator/log/mysqldump.log")
     set_run_as_user("#{get_deployment_basedir()}/tungsten-replicator/bin/replicator")
   end
   

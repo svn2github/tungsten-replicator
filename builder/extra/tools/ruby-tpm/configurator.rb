@@ -1752,6 +1752,19 @@ def scp_result(local_file, remote_file, host, user)
   end
 end
 
+def remote_file_exists?(remote_file, host, user)
+  begin
+    exists = ssh_result("if [ -f #{remote_file} ]; then echo 0; else echo 1; fi", host, user)
+    if exists == "1"
+      return false
+    else
+      return true
+    end
+  rescue CommandError
+    raise MessageError.new("Unable to check if '#{remote_file}' exists on #{host}")
+  end
+end
+
 def scp_download(remote_file, local_file, host, user)
   if Configurator.instance.display_help? && !Configurator.instance.display_preview?
     raise RemoteCommandNotAllowed.new("Copying '#{local_file}' not allowed because help mode is enabled")
