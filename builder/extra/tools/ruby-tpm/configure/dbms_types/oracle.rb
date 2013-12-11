@@ -97,6 +97,10 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   def extractor_provides_colnames?
     true
   end
+  
+  def applier_supports_parallel_apply?()
+    true
+  end
 end
 
 #

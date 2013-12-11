@@ -350,6 +350,10 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def drop_tungsten_schema(schema_name)
     self.run("SET SQL_LOG_BIN=0; DROP SCHEMA IF EXISTS #{schema_name};")
   end
+  
+  def applier_supports_parallel_apply?()
+    true
+  end
 end
 
 #

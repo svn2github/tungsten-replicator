@@ -505,6 +505,19 @@ class ReplicationServiceParallelizationType < ConfigurePrompt
       PropertyValidator.new("disk|memory|none", 
         "Value must be disk, memory, or none"), "none")
   end
+  
+  def validate_value(value)
+    if value != "none"
+      ds = get_datasource()
+      unless ds.applier_supports_parallel_apply?()
+        error("Parallelization type must be set to 'none' when applying to #{ds.get_uri_scheme()}")
+      end
+    end
+    
+    if is_valid?()
+      super(value)
+    end
+  end
 end
 
 class ReplicationServiceParallelizationStoreClass < ConfigurePrompt
