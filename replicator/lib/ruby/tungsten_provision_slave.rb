@@ -160,6 +160,28 @@ class TungstenReplicatorProvisionSlave
       TU.error("This server is not configured for replication")
     end
     
+    # This section evaluates :mysqldump and :xtrabackup to determine the best
+    # mechanism to use. This will need to be more generic as we support
+    # more platforms
+    if opt(:mysqldump) == true && opt(:xtrabackup) == true
+      TU.warning("You have specified --mysqldump and --xtrabackup, the script will use xtrabackup")
+    end
+    
+    # Make sure to unset the :mysqldump value if :xtrabackup has been given
+    if opt(:xtrabackup) == true
+      opt(:mysqldump, false)
+    end
+    
+    # Inspect the default value for the replication service to identify the 
+    # preferred method
+    if opt(:mysqldump) == nil && opt(:xtrabackup) == nil
+      if TI.trepctl_property(opt(:service), "replicator.backup.default") == "mysqldump"
+        opt(:mysqldump, true)
+      else
+        opt(:mysqldump, false)
+      end
+    end
+    
     if @options[:mysqldump] == false
       if sudo_prefix() != ""
         if TI.setting("root_command_prefix") != "true"
@@ -244,8 +266,12 @@ class TungstenReplicatorProvisionSlave
     
     add_option(:mysqldump, {
       :on => "--mysqldump",
-      :default => false,
       :help => "Use mysqldump instead of xtrabackup"
+    })
+    
+    add_option(:xtrabackup, {
+      :on => "--xtrabackup",
+      :help => "Use xtrabackup instead of mysqldump"
     })
     
     add_option(:source, {
