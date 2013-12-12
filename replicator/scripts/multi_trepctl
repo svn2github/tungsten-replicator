@@ -549,6 +549,14 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
           }
         end
       }
+    else
+      check_directories.collect!{|dir|
+        if dir[:directory] == "self"
+          dir[:directory] = TI.root()
+        end
+        
+        dir
+      }
     end
     
     if check_directories.size() == 0
@@ -574,6 +582,14 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
           end
         }
         check_hosts.uniq!()
+      }
+    else
+      check_hosts.collect!{|host|
+        if host == "self"
+          TI.hostname()
+        else
+          host
+        end
       }
     end
     
