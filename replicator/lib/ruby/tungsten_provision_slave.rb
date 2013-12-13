@@ -153,8 +153,6 @@ class TungstenReplicatorProvisionSlave
   end
   
   def validate
-    super()
-    
     # All replication must be OFFLINE
     unless TI.is_replicator?()
       TU.error("This server is not configured for replication")
@@ -181,6 +179,10 @@ class TungstenReplicatorProvisionSlave
         opt(:mysqldump, false)
       end
     end
+    
+    # Run validation for super classes after we have determined the backup
+    # type. This makes sure that the needed options are loaded
+    super()
     
     if @options[:mysqldump] == false
       if sudo_prefix() != ""
