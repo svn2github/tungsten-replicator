@@ -1236,11 +1236,10 @@ public class THLManagerCtrl
         println("       [-json]                      Output in machine-parsable JSON format");
         println("       [-no-checksum]               Suppress checksums");
         println("  index [-no-checksum]            - Display index of log files");
-        println("  purge [-low #] [-high #] [-no-checksum] [-y]   - Delete events within the given range");
-        println("  purge [-seqno #] [-y]           - Delete the exact event");
-        println("                                    Use -y to suppress prompt");
+        println("  purge [-low #] [-high #]        - Delete THL files identified by the given range");
+        println("        [-no-checksum] [-y]         Use -y to suppress prompt");
         println("  info [-no-checksum]             - Display minimum, maximum sequence number");
-        println("                                     and other summary information about log");
+        println("                                    and other summary information about log");
         println("  help                            - Print this help display");
     }
 
