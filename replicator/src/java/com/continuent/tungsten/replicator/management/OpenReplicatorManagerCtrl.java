@@ -342,8 +342,14 @@ public class OpenReplicatorManagerCtrl
             else if (command.equals(Commands.SERVICES))
                 doServices();
             else if (command.equals(Commands.START))
-                doLoadService();
+                fatal("This command has been renamed, use '" + Commands.LOAD
+                        + "'", null);
             else if (command.equals(Commands.STOP))
+                fatal("This command has been renamed, use '" + Commands.UNLOAD
+                        + "'", null);
+            else if (command.equals(Commands.LOAD))
+                doLoadService();
+            else if (command.equals(Commands.UNLOAD))
                 doUnloadService();
             else if (command.equals(Commands.RESET))
                 doResetService();
@@ -2034,8 +2040,10 @@ public class OpenReplicatorManagerCtrl
     {
         // Replicator-wide commands.
         public static final String SERVICES         = "services";
-        public static final String START            = "load";
-        public static final String STOP             = "unload";
+        public static final String START            = "start";
+        public static final String STOP             = "stop";
+        public static final String LOAD             = "load";
+        public static final String UNLOAD           = "unload";
         public static final String SHUTDOWN         = "shutdown";
         public static final String KILL             = "kill";
 
