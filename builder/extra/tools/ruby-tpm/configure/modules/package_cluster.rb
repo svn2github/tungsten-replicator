@@ -1439,14 +1439,20 @@ module ClusterCommandModule
       hosts_arg = "--hosts=#{command_hosts().join(',')}"
     end
     
-    output = ""
+    output = []
     
+    has_replicator = false
     display_promote_connectors = false
     display_start = true
+    root = "$CONTINUENT_ROOT"
     get_deployment_configurations().each{
       |cfg|
       
       h_alias = cfg.getProperty(DEPLOYMENT_HOST)
+
+      if cfg.getProperty(HOST_ENABLE_REPLICATOR) == "true"
+        has_replicator = true
+      end
 
       if cfg.getProperty(HOST_ENABLE_CONNECTOR) == "true"
         if @promotion_settings.getProperty([h_alias, RESTART_CONNECTORS]) == false
@@ -1465,28 +1471,30 @@ module ClusterCommandModule
       if cfg.getProperty(SVC_START) == "true" || cfg.getProperty(SVC_REPORT) == "true"
         display_start = false
       end
+      
+      root = cfg.getProperty(HOME_DIRECTORY)
     }
     if display_promote_connectors == true && Configurator.instance.command.is_a?(UpdateCommand)
-      output = <<OUT
+      str = <<OUT
 The connectors are not running the latest version.  In order to complete 
 the process you must promote the connectors.
 
-  tools/tpm promote-connector #{command_dataservices().join(',')}
-
+  #{root}/tungsten/tools/tpm promote-connector #{command_dataservices().join(',')}
 OUT
+      output << str
     end
     
     if display_start == true
-      output = <<OUT
-#{output}Unless automatically started, you must start the Tungsten services before the 
-cluster will be available.  Use the tpm command to start the services:
+      str = <<OUT
+Unless automatically started, you must start the Tungsten services before the 
+cluster will be available.
 
-  tools/tpm start #{command_dataservices().join(',')} #{hosts_arg}
+  #{root}/tungsten/cluster-home/bin/startall
 
 Wait a minute for the services to start up and configure themselves.  After 
 that you may proceed.
-
 OUT
+      output << str
     end
     
     display_profile_info = true
@@ -1497,41 +1505,45 @@ OUT
           Configurator.instance.is_localhost?(cfg.getProperty(HOST)) && 
           Configurator.instance.whoami == cfg.getProperty(USERID)
           
-        output = <<OUT
-#{output}We have added Tungsten environment variables to #{cfg.getProperty(PROFILE_SCRIPT)}.
+        str = <<OUT
+We have added Tungsten environment variables to #{cfg.getProperty(PROFILE_SCRIPT)}.
 Run `source #{cfg.getProperty(PROFILE_SCRIPT)}` to rebuild your environment.
-
 OUT
+        output << str
         
         display_profile_info = false
       end
     }
-     
-    if Configurator.instance.is_enterprise?()
-      output = <<OUT
-#{output}Once your services start successfully you may begin to use the cluster.
+    
+    if has_replicator == true
+      if Configurator.instance.is_enterprise?()
+        str = <<OUT
+Once your services start successfully you may begin to use the cluster.
 To look at services and perform administration, run the following command
 from any database server.
 
-  $CONTINUENT_ROOT/tungsten/tungsten-manager/bin/cctrl
+  #{root}/tungsten/tungsten-manager/bin/cctrl
 
 Configuration is now complete.  For further information, please consult
 Tungsten documentation, which is available at docs.continuent.com.
 OUT
-  else
-    output = <<OUT
-#{output}Once your services start successfully replication will begin.
+        output << str
+      else
+        str = <<OUT
+Once your services start successfully replication will begin.
 To look at services and perform administration, run the following command
 from any database server.
 
-$CONTINUENT_ROOT/tungsten/tungsten-replicator/bin/trepctl services
+  #{root}/tungsten/tungsten-replicator/bin/trepctl services
 
 Configuration is now complete.  For further information, please consult
 Tungsten documentation, which is available at docs.continuent.com.
 OUT
-  end
+        output << str
+      end
+    end
 
-    return output
+    return output.join("\n")
   end
 end
 
