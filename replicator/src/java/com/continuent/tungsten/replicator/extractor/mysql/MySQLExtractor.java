@@ -235,7 +235,7 @@ public class MySQLExtractor implements RawExtractor
     {
         this.useRelayLogs = useRelayDir;
     }
-    
+
     public long getRelayLogWaitTimeout()
     {
         return relayLogWaitTimeout;
@@ -535,7 +535,7 @@ public class MySQLExtractor implements RawExtractor
         boolean doFileFragment = false;
         Timestamp startTime = null;
 
-        long sessionId = 0;
+        long sessionId = -1;
         ArrayList<DBMSData> dataArray = new ArrayList<DBMSData>();
 
         boolean foundRowsLogEvent = false;
@@ -691,7 +691,7 @@ public class MySQLExtractor implements RawExtractor
 
                         if (sessionId == -1)
                         {
-                            // first query in transaction
+                            // first query in transaction / event
                             sessionId = event.getSessionId();
                         }
                         else
