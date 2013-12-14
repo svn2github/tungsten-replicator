@@ -145,6 +145,18 @@ replicator.plugin=tungsten
 # REPLICATOR PIPELINES          #
 #################################
 
+# Pipeline stages use block commit to commit multiple source transactions
+# simultaneously.  Block commit is controlled by the following settings on 
+# stages:
+#   blockCommitRowCount -- Commit when this number of transactions is 
+#   reached or stage runs out of in-coming transactions
+#   blockCommitInterval -- Commit when time interval elapses *or* number of 
+#   transactions for blockCommitRowCount is reached. 
+# If neither setting is in effect, replicators commit each transaciton 
+# individually.  Interval settings are milliseconds by default.  You can also
+# apply settings in seconds, minutes, hours, and days, as in 10s, 30m, 2h, 
+# or 1d respectively. 
+
 # Generic pipelines.
 replicator.pipelines=direct
 

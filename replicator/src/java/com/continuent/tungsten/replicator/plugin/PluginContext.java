@@ -100,6 +100,14 @@ public interface PluginContext
     /** Returns the role name. */
     public abstract String getRoleName();
 
+    /**
+     * Returns the role as of the last time the replicator went online or null
+     * if the role is not known. When the replicator is in the ONLINE state the
+     * is the same as {@link #getRoleName()}. This value is used to help with
+     * recovery when transitioning between states.
+     */
+    public abstract String getLastOnlineRoleName();
+
     /** Returns true if the replicator role is slave. */
     public abstract boolean isSlave();
 

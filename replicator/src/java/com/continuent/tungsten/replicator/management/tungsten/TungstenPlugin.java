@@ -572,6 +572,10 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                         "MASTER_ONLINE");
                 heartbeat(props);
             }
+            
+            // If we got this far, write the current role to help with recovery
+            // later on. 
+            runtime.setLastOnlineRoleName(runtime.getRoleName());
         }
         catch (ReplicatorException e)
         {

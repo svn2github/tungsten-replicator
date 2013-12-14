@@ -27,11 +27,6 @@ replicator.master.connect.uri=@{REPL_MASTER_URI}
 # use this as their connect URI.
 replicator.master.listen.uri=@{REPL_THL_PROTOCOL}://@{HOST.HOST}:@{REPL_SVC_THL_PORT}/
 
-# Force replicator to check if THL is in sync with database. 
-# This check is enabled by default. Set the following property 
-# to false in order to disable the check.
-# replicator.master.thl_check=true
-
 # Replicator auto-enable.  If true, replicator automatically goes online 
 # at start-up time. 
 replicator.auto_enable=@{REPL_AUTOENABLE}
@@ -92,6 +87,18 @@ replicator.plugin=tungsten
 # REPLICATOR PIPELINES          #
 #################################
 
+# Pipeline stages use block commit to commit multiple source transactions
+# simultaneously.  Block commit is controlled by the following settings on 
+# stages:
+#   blockCommitRowCount -- Commit when this number of transactions is 
+#   reached or stage runs out of in-coming transactions
+#   blockCommitInterval -- Commit when time interval elapses *or* number of
+#   transactions for blockCommitRowCount is reached.
+# If neither setting is in effect, replicators commit each transaciton 
+# individually.  Interval settings are milliseconds by default.  You can also
+# apply settings in seconds, minutes, hours, and days, as in 10s, 30m, 2h, 
+# or 1d respectively. 
+
 # Generic pipelines.
 replicator.pipelines=archive
 
@@ -129,6 +136,11 @@ replicator.store.thl.password=
 # other service logs. 
 replicator.store.thl.log_dir=@{SERVICE.REPL_LOG_DIR}
 replicator.store.thl.log_file_size=@{REPL_THL_LOG_FILE_SIZE}
+
+# Force replicator to check if THL is in sync with database.
+# This check is enabled by default. Set the following property
+# to false in order to disable the check.
+replicator.store.thl.logConsistencyCheck=true
 
 # The following property tells the THL server how long, as a maximum,
 # in milliseconds, to block during an accept() call.  This interval, in turn

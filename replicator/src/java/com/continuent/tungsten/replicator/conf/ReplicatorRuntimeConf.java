@@ -51,6 +51,7 @@ public class ReplicatorRuntimeConf
 
     private final File         replicatorProperties;
     private final File         replicatorDynamicProperties;
+    private final File         replicatorDynamicRole;
     private final boolean      clearDynamicProperties;
 
     /** Creates a new instance. */
@@ -75,6 +76,10 @@ public class ReplicatorRuntimeConf
         // Configure location of replicator dynamic properties file.
         replicatorDynamicProperties = new File(replicatorConfDir, "dynamic-"
                 + serviceName + ".properties");
+
+        // Configure location of replicator online role file.
+        replicatorDynamicRole = new File(replicatorConfDir, "dynamic-"
+                + serviceName + ".role");
 
         // Determine whether we want to clear dynamic properties at start-up.
         this.clearDynamicProperties = Boolean.parseBoolean(System
@@ -113,6 +118,11 @@ public class ReplicatorRuntimeConf
     public File getReplicatorDynamicProperties()
     {
         return replicatorDynamicProperties;
+    }
+
+    public File getReplicatorDynamicRole()
+    {
+        return replicatorDynamicRole;
     }
 
     public boolean getClearDynamicProperties()
@@ -186,5 +196,41 @@ public class ReplicatorRuntimeConf
             }
         }
         return replicatorConfDir;
+    }
+
+    /**
+     * Locate and return the replicator role file, returning null if the file
+     * configuration file does not exist. This call avoids exceptions if the
+     * configuration directory location cannot be found.
+     */
+    public static File locateReplicatorRoleFile(String serviceName)
+    {
+        // First, find the replicator configuration directory.
+        File confDir = null;
+        if (replicatorConfDir != null)
+        {
+            confDir = replicatorConfDir;
+        }
+        else if (System.getProperty(CONF_DIR) != null)
+        {
+            confDir = new File(System.getProperty(CONF_DIR));
+        }
+        else if (System.getProperty(HOME_DIR) != null)
+        {
+            File homeDir = new File(System.getProperty(HOME_DIR));
+            confDir = new File(homeDir, "conf");
+        }
+
+        // If we cannot find the directory specification or it
+        // does not exist, return a null. Otherwise return a
+        // path for the role file.
+        if (confDir == null || !confDir.isDirectory())
+        {
+            return null;
+        }
+        else
+        {
+            return new File(confDir, "dynamic-" + serviceName + ".role");
+        }
     }
 }

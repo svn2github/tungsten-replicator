@@ -29,11 +29,6 @@ replicator.role=@{REPL_ROLE}
 # URI to which we connect when this replicator is a slave.   
 replicator.master.connect.uri=@{REPL_MASTER_URI}
 
-# Force replicator to check if THL is in sync with database. 
-# This check is enabled by default. Set the following property 
-# to false in order to disable the check.
-# replicator.master.thl_check=true
-
 # Replicator auto-enable.  If true, replicator automatically goes online 
 # at start-up time. 
 replicator.auto_enable=@{REPL_AUTOENABLE}
@@ -134,6 +129,18 @@ replicator.plugin=tungsten
 # REPLICATOR PIPELINES          #
 #################################
 
+# Pipeline stages use block commit to commit multiple source transactions
+# simultaneously.  Block commit is controlled by the following settings on
+# stages:
+#   blockCommitRowCount -- Commit when this number of transactions is
+#   reached or stage runs out of in-coming transactions
+#   blockCommitInterval -- Commit when time interval elapses *or* number of
+#   transactions for blockCommitRowCount is reached.
+# If neither setting is in effect, replicators commit each transaciton
+# individually.  Interval settings are milliseconds by default.  You can also
+# apply settings in seconds, minutes, hours, and days, as in 10s, 30m, 2h, 
+# or 1d respectively.
+
 # Generic pipelines.
 replicator.pipelines=slave-prefetch
 
@@ -176,6 +183,11 @@ replicator.store.thl=com.continuent.tungsten.replicator.thl.THL
 replicator.store.thl.url=@{APPLIER.REPL_DBTHLURL}
 replicator.store.thl.user=${replicator.global.db.user}
 replicator.store.thl.password=${replicator.global.db.password}
+
+# Force replicator to check if THL is in sync with database.
+# This check is enabled by default. Set the following property
+# to false in order to disable the check.
+replicator.store.thl.logConsistencyCheck=true
 
 # Uncomment the following properties to control disk log storage location
 # and size of files.  These are default values.  NOTE:  naming the logs by 

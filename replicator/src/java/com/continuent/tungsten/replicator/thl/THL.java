@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.thl;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
@@ -124,6 +125,9 @@ public class THL implements Store
     // data despite errors while storing its position into database
     // (CommitSeqno)
     private boolean            stopOnDBError        = true;
+
+    // If true check log consistency with catalog when starting up. 
+    private boolean            logConsistencyCheck       = false;
 
     /** Creates a store instance. */
     public THL()
@@ -290,6 +294,16 @@ public class THL implements Store
         return stopOnDBError;
     }
 
+    public boolean isLogConsistencyCheck()
+    {
+        return logConsistencyCheck;
+    }
+
+    public void setLogConsistencyCheck(boolean checkRecoveredMasterLog)
+    {
+        this.logConsistencyCheck = checkRecoveredMasterLog;
+    }
+
     // STORE API STARTS HERE.
 
     /**
@@ -379,6 +393,9 @@ public class THL implements Store
         diskLog.prepare();
         logger.info("Log preparation is complete");
 
+        // Ensure the restart position is consistent and adjust if necessary.
+        ensureRestartPositionConsistency();
+
         // Start server for THL connections.
         if (context.isRemoteService() == false)
         {
@@ -391,6 +408,98 @@ public class THL implements Store
             {
                 throw new ReplicatorException("Unable to start THL server", e);
             }
+        }
+    }
+
+    /**
+     * Ensure that the log and catalog restart point are consistent. If we are
+     * going online as a slave and the last online role was master, we expect
+     * the trep_commit_seqno restart position matches the end of the THL. Since
+     * masters cannot always update the commit position before going offline, we
+     * must in that case adjust the position to avoid errors.
+     * <p/>
+     * This check is a separate function as there are numerous boundary
+     * conditions for a successful check.
+     */
+    private void ensureRestartPositionConsistency() throws ReplicatorException,
+            InterruptedException
+    {
+        // Establish boundary conditions for a check.
+        if (!logConsistencyCheck)
+        {
+            logger.info("Restart consistency checking is disabled");
+            return;
+        }
+        if (catalog == null)
+        {
+            logger.info("Restart consistency checking skipped because catalog is disabled");
+            return;
+        }
+        if (!"master".equals(context.getLastOnlineRoleName())
+                || !context.isSlave())
+        {
+            logger.info("Restart consistency checking skipped as we are not recovering a master to a slave");
+            return;
+        }
+
+        // It is now safe to look at the events as we know the catalog exists.
+        ReplDBMSHeader lastLogEvent = getLastLoggedEvent();
+        ReplDBMSHeader lastCatalogEvent = catalog.getMinLastEvent();
+
+        if (lastCatalogEvent == null)
+        {
+            logger.info("Restart consistency checking skipped as there is no restart point in catalog");
+            return;
+        }
+        if (lastLogEvent == null)
+        {
+            logger.info("Restart consistency checking skipped as THL does not contain events");
+            return;
+        }
+
+        // A check is useful and required.
+        logger.info("Checking restart consistency when recovering master to slave: THL seqno="
+                + lastLogEvent.getSeqno()
+                + " catalog seqno="
+                + lastCatalogEvent.getSeqno());
+        if (lastLogEvent.getSeqno() > lastCatalogEvent.getSeqno())
+        {
+            // Bring catalog up to date but only if the epoch numbers match.
+            // This ensures we are talking about transactions from the same
+            // master and is why epoch numbers were invented. 
+            if (lastLogEvent.getEpochNumber() == lastCatalogEvent
+                    .getEpochNumber())
+            {
+                logger.info("Updating catalog seqno position to match THL");
+                THLEvent thlEvent = new THLEvent(lastLogEvent.getSeqno(),
+                        lastLogEvent.getFragno(), lastLogEvent.getLastFrag(),
+                        lastLogEvent.getSourceId(), THLEvent.REPL_DBMS_EVENT,
+                        lastLogEvent.getEpochNumber(), (Timestamp) null,
+                        lastLogEvent.getExtractedTstamp(),
+                        lastLogEvent.getEventId(), lastLogEvent.getShardId(),
+                        (ReplEvent) null);
+                this.updateCommitSeqno(thlEvent);
+            }
+            else
+            {
+                logger.warn("Unable to update catalog position as epoch numbers do not match: seqno="
+                        + lastLogEvent.getSeqno()
+                        + " THL epoch number="
+                        + lastLogEvent.getEpochNumber()
+                        + " catalog epoch number="
+                        + lastCatalogEvent.getEpochNumber());
+            }
+        }
+        else if (lastLogEvent.getSeqno() < lastCatalogEvent.getSeqno())
+        {
+            // Note if the catalog is higher than the log. This could indicate a
+            // consistency issue.
+            logger.info("Unable to update catalog position as last THL record is lower than catalog seqno");
+            logger.info("This condition may occur naturally if the THL has been truncated");
+        }
+        else
+        {
+            logger.info("Restart position is consistent; no need to update");
         }
     }
 
@@ -506,9 +615,33 @@ public class THL implements Store
     public ReplDBMSHeader getLastAppliedEvent() throws ReplicatorException,
             InterruptedException
     {
+        // Look first in the log.
+        ReplDBMSHeader lastHeader = getLastLoggedEvent();
+        if (lastHeader != null)
+            return lastHeader;
+
+        // If that does not work, try the catalog trep_commit_seqno position.
+        if (catalog != null)
+        {
+            lastHeader = catalog.getMinLastEvent();
+        }
+
+        // Return whatever we found, which will be null for a newly initialized
+        // log.
+        return null;
+    }
+
+    /**
+     * Get the last event applied to the replicator log or return null if there
+     * is no such event.
+     * 
+     * @return An event header or null if log is newly initialized
+     */
+    public ReplDBMSHeader getLastLoggedEvent() throws ReplicatorException,
+            InterruptedException
+    {
         // Look for maximum sequence number in log and use that if available.
         if (diskLog != null)
-
         {
             long maxSeqno = diskLog.getMaxSeqno();
             if (maxSeqno > -1)
@@ -547,14 +680,8 @@ public class THL implements Store
             }
         }
 
-        // If that does not work, try the catalog.
-        if (catalog != null)
-        {
-            return catalog.getMinLastEvent();
-        }
-
-        // If we get to this point, the log is newly initialized and there is no
-        // such event to return.
+        // If we get to this point, the log is newly initialized and there is
+        // nothing to return.
         return null;
     }
 
