@@ -1649,6 +1649,12 @@ public class TungstenProperties implements Serializable
         return builder.toString();
     }
 
+    public String toJSON() throws JsonGenerationException,
+            JsonMappingException, IOException
+    {
+        return this.toJSON(false);
+    }
+
     /**
      * Serialize the TungstenProperties into a JSON String
      * 
@@ -1659,12 +1665,6 @@ public class TungstenProperties implements Serializable
      * @throws JsonMappingException
      * @throws IOException
      */
-    public String toJSON() throws JsonGenerationException,
-            JsonMappingException, IOException
-    {
-        return this.toJSON(false);
-    }
-
     public String toJSON(boolean prettyPrint) throws JsonGenerationException,
             JsonMappingException, IOException
     {
