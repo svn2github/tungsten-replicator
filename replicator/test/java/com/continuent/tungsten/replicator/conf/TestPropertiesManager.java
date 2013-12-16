@@ -44,6 +44,7 @@ public class TestPropertiesManager extends TestCase
 {
     File              replicatorProperties = new File("replicator.properties");
     File              dynamicProperties    = new File("dynamic.properties");
+    File              dynamicRole          = new File("dynamic.role");
     PropertiesManager pm;
 
     /**
@@ -67,7 +68,8 @@ public class TestPropertiesManager extends TestCase
         if (dynamicProperties.exists())
             dynamicProperties.delete();
 
-        pm = new PropertiesManager(replicatorProperties, dynamicProperties);
+        pm = new PropertiesManager(replicatorProperties, dynamicProperties,
+                dynamicRole);
     }
 
     /**
@@ -98,11 +100,11 @@ public class TestPropertiesManager extends TestCase
     public void testDynamicPropertyUpdate() throws Exception
     {
         PropertiesManager pm = new PropertiesManager(replicatorProperties,
-                dynamicProperties);
+                dynamicProperties, dynamicRole);
 
         // Ensure no dynamic properties are present.
-        assertFalse("dynamic.properties file exists", dynamicProperties
-                .exists());
+        assertFalse("dynamic.properties file exists",
+                dynamicProperties.exists());
 
         // Get the original value of THL remote URI.
         pm.loadProperties();
@@ -113,8 +115,8 @@ public class TestPropertiesManager extends TestCase
         TungstenProperties tp1Dynamic = pm.getDynamicProperties();
         assertTrue("Dynamic properties are empty", tp1Dynamic.size() > 0);
         assertEquals(ReplicatorConf.MASTER_CONNECT_URI + " before set",
-                thlRemoteUri, tp1Dynamic
-                        .getString(ReplicatorConf.MASTER_CONNECT_URI));
+                thlRemoteUri,
+                tp1Dynamic.getString(ReplicatorConf.MASTER_CONNECT_URI));
 
         // Update and save.
         TungstenProperties dynaProps = new TungstenProperties();
@@ -124,32 +126,33 @@ public class TestPropertiesManager extends TestCase
 
         // Read it back.
         TungstenProperties tp2 = pm.getProperties();
-        assertEquals(ReplicatorConf.MASTER_CONNECT_URI + " after set", "hi!", tp2
-                .getString(ReplicatorConf.MASTER_CONNECT_URI));
+        assertEquals(ReplicatorConf.MASTER_CONNECT_URI + " after set", "hi!",
+                tp2.getString(ReplicatorConf.MASTER_CONNECT_URI));
         TungstenProperties tp2Dynamic = pm.getDynamicProperties();
-        assertTrue("Dynamic properties have at least 1 value", tp2Dynamic.size() >= 1);
+        assertTrue("Dynamic properties have at least 1 value",
+                tp2Dynamic.size() >= 1);
 
         // Reload files and confirm.
         pm.loadProperties();
         TungstenProperties tp3 = pm.getProperties();
-        assertEquals(ReplicatorConf.MASTER_CONNECT_URI + " after set", "hi!", tp3
-                .getString(ReplicatorConf.MASTER_CONNECT_URI));
+        assertEquals(ReplicatorConf.MASTER_CONNECT_URI + " after set", "hi!",
+                tp3.getString(ReplicatorConf.MASTER_CONNECT_URI));
 
         // Wipe out dynamic properties and confirm they are gone. Old value
         // should be back and dynamic.properties should be gone.
         pm.clearDynamicProperties();
-        assertFalse("dynamic.properties file exists", dynamicProperties
-                .exists());
+        assertFalse("dynamic.properties file exists",
+                dynamicProperties.exists());
 
         pm.loadProperties();
         TungstenProperties tp4 = pm.getProperties();
-        assertEquals(ReplicatorConf.MASTER_CONNECT_URI, thlRemoteUri, tp4
-                .getString(ReplicatorConf.MASTER_CONNECT_URI));
+        assertEquals(ReplicatorConf.MASTER_CONNECT_URI, thlRemoteUri,
+                tp4.getString(ReplicatorConf.MASTER_CONNECT_URI));
 
         TungstenProperties tp4Dynamic = pm.getDynamicProperties();
         assertEquals(ReplicatorConf.MASTER_CONNECT_URI + " after clear",
-                thlRemoteUri, tp4Dynamic
-                        .getString(ReplicatorConf.MASTER_CONNECT_URI));
+                thlRemoteUri,
+                tp4Dynamic.getString(ReplicatorConf.MASTER_CONNECT_URI));
     }
 
     /**
@@ -195,8 +198,8 @@ public class TestPropertiesManager extends TestCase
                 dynamic.size() > 0);
         for (String name : dynamic.keyNames())
         {
-            assertEquals("Checking dynamic vs. static: " + name, all
-                    .getString(name), dynamic.getString(name));
+            assertEquals("Checking dynamic vs. static: " + name,
+                    all.getString(name), dynamic.getString(name));
         }
     }
 
@@ -207,7 +210,7 @@ public class TestPropertiesManager extends TestCase
     public void testNoReplicatorProperties() throws Exception
     {
         PropertiesManager pm = new PropertiesManager(new File("foo"),
-                this.dynamicProperties);
+                this.dynamicProperties, dynamicRole);
         try
         {
             pm.loadProperties();

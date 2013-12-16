@@ -416,7 +416,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 .getConfiguration(serviceName);
         propertiesManager = new PropertiesManager(
                 runtimeConf.getReplicatorProperties(),
-                runtimeConf.getReplicatorDynamicProperties());
+                runtimeConf.getReplicatorDynamicProperties(),
+                runtimeConf.getReplicatorDynamicRole());
         propertiesManager.loadProperties();
 
         // Clear properties if that is desired.
@@ -743,7 +744,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     class RestoreEvent extends Event
     {
         private volatile Future<String> future;
-        private final String             uri;
+        private final String            uri;
 
         public RestoreEvent(String uri)
         {
@@ -3018,7 +3019,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 .getConfiguration(serviceName);
         PropertiesManager propertiesManager = new PropertiesManager(
                 runtimeConf.getReplicatorProperties(),
-                runtimeConf.getReplicatorDynamicProperties());
+                runtimeConf.getReplicatorDynamicProperties(),
+                runtimeConf.getReplicatorDynamicRole());
         propertiesManager.loadProperties();
 
         return propertiesManager.getProperties();

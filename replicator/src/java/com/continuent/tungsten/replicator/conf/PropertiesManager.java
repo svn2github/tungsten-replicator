@@ -50,8 +50,7 @@ import com.continuent.tungsten.replicator.ReplicatorException;
  */
 public class PropertiesManager
 {
-    private static Logger      logger = Logger
-                                              .getLogger(PropertiesManager.class);
+    private static Logger      logger = Logger.getLogger(PropertiesManager.class);
 
     private TungstenProperties staticProperties;
     private TungstenProperties dynamicProperties;
@@ -59,6 +58,7 @@ public class PropertiesManager
     // Locations of property files.
     private final File         staticPropertiesFile;
     private final File         dynamicPropertiesFile;
+    private final File         dynamicRoleFile;
 
     /**
      * Creates a new <code>PropertiesManager</code> object
@@ -67,15 +67,18 @@ public class PropertiesManager
      *            (replicator.properties), which must exist
      * @param dynamicPropertiesFile File containing dynamic properties, which
      *            does not have to exist
+     * @param dynamicRoleFile File containing dynamic role, which likewise does
+     *            not have to exist
      */
     public PropertiesManager(File staticPropertiesFile,
-            File dynamicPropertiesFile)
+            File dynamicPropertiesFile, File dynamicRoleFile)
     {
         this.staticPropertiesFile = staticPropertiesFile;
         this.dynamicPropertiesFile = dynamicPropertiesFile;
+        this.dynamicRoleFile = dynamicRoleFile;
     }
 
-    // Loads all properties. 
+    // Loads all properties.
     public void loadProperties() throws ReplicatorException
     {
         loadStaticProperties();
@@ -84,18 +87,18 @@ public class PropertiesManager
 
     /**
      * Returns current state of properties. Dynamic properties are automatically
-     * read from files and merged to their current values.  You must load
-     * properties before calling this method. 
+     * read from files and merged to their current values. You must load
+     * properties before calling this method.
      */
     public synchronized TungstenProperties getProperties()
     {
         TungstenProperties rawProps = new TungstenProperties();
         rawProps.putAll(staticProperties);
         rawProps.putAll(dynamicProperties);
-        
-        // Kludge to perform variable substitutions on merged properties. 
-        // Otherwise we lose substitutions that come from the dynamic 
-        // properties 
+
+        // Kludge to perform variable substitutions on merged properties.
+        // Otherwise we lose substitutions that come from the dynamic
+        // properties
         Properties substitutedProps = rawProps.getProperties();
         TungstenProperties.substituteSystemValues(substitutedProps, 10);
         TungstenProperties props = new TungstenProperties();
@@ -106,10 +109,12 @@ public class PropertiesManager
     /**
      * Clear in-memory dynamic properties and delete on-disk file, if it exists.
      */
-    public synchronized void clearDynamicProperties() throws ReplicatorException
+    public synchronized void clearDynamicProperties()
+            throws ReplicatorException
     {
         logger.info("Clearing dynamic properties");
-        // Check for null; this may be invoked before properties are loaded. 
+
+        // Check for null; this may be invoked before properties are loaded.
         if (dynamicProperties != null)
             dynamicProperties.clear();
         if (dynamicPropertiesFile.exists())
@@ -118,10 +123,21 @@ public class PropertiesManager
                 logger.error("Unable to delete dynamic properties file: "
                         + dynamicPropertiesFile.getAbsolutePath());
         }
+
+        // Clear the dynamic role file.
+        if (dynamicRoleFile != null)
+        {
+            if (dynamicRoleFile.exists())
+            {
+                if (!dynamicRoleFile.delete())
+                    logger.error("Unable to delete dynamic role file: "
+                            + dynamicRoleFile.getAbsolutePath());
+            }
+        }
     }
 
     /**
-     * Return current values of all supported dynamic values. 
+     * Return current values of all supported dynamic values.
      */
     public synchronized TungstenProperties getDynamicProperties()
             throws ReplicatorException
@@ -129,16 +145,16 @@ public class PropertiesManager
         validateProperties();
         TungstenProperties dynamic = new TungstenProperties();
         TungstenProperties all = getProperties();
-        for (String dynamicName: ReplicatorConf.DYNAMIC_PROPERTIES)
+        for (String dynamicName : ReplicatorConf.DYNAMIC_PROPERTIES)
         {
             dynamic.setString(dynamicName, all.getString(dynamicName));
         }
-        return dynamic; 
+        return dynamic;
     }
 
     /**
-     * Sets one or more dynammic properties after checking we permit them to be 
-     * set. 
+     * Sets one or more dynamic properties after checking we permit them to be
+     * set.
      */
     public synchronized void setDynamicProperties(TungstenProperties dynaProps)
             throws ReplicatorException
@@ -146,7 +162,7 @@ public class PropertiesManager
         validateProperties();
 
         // Ensure each property may be set dynamically.
-        for (String name: dynaProps.keyNames())
+        for (String name : dynaProps.keyNames())
         {
             boolean settable = false;
             for (String settableName : ReplicatorConf.DYNAMIC_PROPERTIES)
@@ -191,8 +207,8 @@ public class PropertiesManager
             }
         }
 
-        // List updated properties. 
-        for (String name: dynaProps.keyNames())
+        // List updated properties.
+        for (String name : dynaProps.keyNames())
         {
             logger.info("Dynamic property updated: name=" + name + " value="
                     + dynaProps.getString(name));
