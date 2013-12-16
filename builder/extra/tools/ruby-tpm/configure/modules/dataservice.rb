@@ -1384,14 +1384,6 @@ class ReplicationServiceRepositionOnSourceIDChange < ConfigurePrompt
   def initialize
     super(REPL_SVC_REPOSITION_ON_SOURCE_ID_CHANGE, "The master will come ONLINE from the current position if the stored source_id does not match the value in the static properties.", PV_BOOLEAN, "true")
   end
-  
-  def load_default_value
-    if get_topology().is_a?(ClusterTopology)
-      @default = "true"
-    else
-      @default = "false"
-    end
-  end
 end
 
 class ReplicationServiceGlobalProperties < ConfigurePrompt
