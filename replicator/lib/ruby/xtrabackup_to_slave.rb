@@ -16,6 +16,10 @@ class TungstenXtrabackupToSlaveScript < TungstenBackupScript
       additional_args = []
       additional_args << "--no-timestamp"
       additional_args << "--stream=tar"
+      
+      if xtrabackup_supports_argument("--no-version-check")
+        additional_args << "--no-version-check"
+      end
 
       # Build the command and run it
       # All STDERR output from the command is processed before going to STDERR

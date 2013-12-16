@@ -46,6 +46,10 @@ class TungstenXtrabackupScript < TungstenBackupScript
       additional_args = []
       additional_args << "--no-timestamp"
       additional_args << "--stream=tar"
+      
+      if xtrabackup_supports_argument("--no-version-check")
+        additional_args << "--no-version-check"
+      end
 
       TU.output("Create full backup in #{tar_file}")  
       TU.cmd_stderr("#{get_xtrabackup_command()} #{additional_args.join(" ")} #{@options[:directory]} > #{tar_file}") {
@@ -143,6 +147,10 @@ class TungstenXtrabackupScript < TungstenBackupScript
 
     additional_args = []
     additional_args << "--no-timestamp"
+    
+    if xtrabackup_supports_argument("--no-version-check")
+      additional_args << "--no-version-check"
+    end
 
     # Build the command and run it
     # All STDERR output from the command is processed before going to STDERR
@@ -249,12 +257,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
 
       # Does this version of innobackupex-1.5.1 support the faster 
       # --move-back instead of --copy-back
-      supports_move_back = TU.cmd_result("#{get_xtrabackup_command()} --help | grep -e\"\-\-move\-back\" | wc -l")
-      if supports_move_back == "1"
-        supports_move_back = true
-      else
-        supports_move_back = false
-      end
+      supports_move_back = xtrabackup_supports_argument("--move-back")
 
       # Prepare the staging directory for the data
       # If we are restoring directly to the data directory then MySQL

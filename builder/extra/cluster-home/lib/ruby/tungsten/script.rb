@@ -763,6 +763,16 @@ module MySQLServiceScript
     "innobackupex-1.5.1 --defaults-file=#{defaults_file} --host=#{@options[:mysqlhost]} --port=#{@options[:mysqlport]}"
   end
   
+  def xtrabackup_supports_argument(arg)
+    arg = arg.tr("-", "\\-")
+    supports_argument = TU.cmd_result("#{get_xtrabackup_command()} --help /tmp | grep -e\"#{arg}\" | wc -l")
+    if supports_argument == "1"
+      return true
+    else
+      return false
+    end
+  end
+  
   def get_mysql_result(command, timeout = 30)
     begin      
       Timeout.timeout(timeout.to_i()) {

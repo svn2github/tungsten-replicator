@@ -21,12 +21,7 @@ class TungstenReplicatorProvisionSlave
     begin
       # Does this version of innobackupex-1.5.1 support the faster 
       # --move-back instead of --copy-back
-      supports_move_back = TU.cmd_result("#{get_xtrabackup_command()} --help | grep -e\"\-\-move\-back\" | wc -l")
-      if supports_move_back == "1"
-        supports_move_back = true
-      else
-        supports_move_back = false
-      end
+      supports_move_back = xtrabackup_supports_argument("--move-back")
 
       # Prepare the staging directory for the data
       # If we are restoring directly to the data directory then MySQL
