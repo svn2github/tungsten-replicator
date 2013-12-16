@@ -135,18 +135,18 @@ class APICall
     # returns a header for the API call fields
     #
     def self.header ()
-        return sprintf @@template , 'name', 'type', 'prefix', 'command' , 'help'
+        return sprintf(@@template , 'name', 'type', 'prefix', 'command' , 'help')
     end
 
     #
     # returns a set of dashes to ptint below the header
     #
     def self.dashes ()
-        return sprintf @@template , '----', '----', '------', '-------' , '----'
+        return sprintf(@@template , '----', '----', '------', '-------' , '----')
     end
 
     def to_s
-        return sprintf @@template , @name, @type, @prefix, @command , @help     
+        return sprintf(@@template , @name, @type, @prefix, @command , @help)
     end
 
     def to_hash
@@ -306,18 +306,18 @@ class ReplicatorAPICall < APICall
     # override ancestor's header
     #
     def self.header
-        return sprintf @@template, :name.to_s, :tool.to_s, :command.to_s, :help.to_s
+        return sprintf(@@template, :name.to_s, :tool.to_s, :command.to_s, :help.to_s)
     end
 
     #
     # override ancestor's dashes
     #
     def self.dashes
-        return sprintf @@template, '----', '----', '-------', '----'
+        return sprintf(@@template, '----', '----', '-------', '----')
     end
 
     def to_s
-        return sprintf @@template, @name, @tool, @command, @help
+        return sprintf(@@template, @name, @tool, @command, @help)
     end
 
     def to_hash
