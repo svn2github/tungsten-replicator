@@ -1079,9 +1079,19 @@ class ReplicationServiceApplierConfig < ConfigurePrompt
   end
   
   def get_template_value(transform_values_method)
-    transformer = Transformer.new(@config.getProperty(PREPARE_DIRECTORY) + "/" + 
-      get_applier_datasource().get_applier_template())
-    transformer.set_fixed_properties(@config.getTemplateValue(get_member_key(FIXED_PROPERTY_STRINGS)))
+    if @config.getProperty(PREFETCH_ENABLED) == "true"
+      template = @config.getProperty(PREPARE_DIRECTORY) + "/" + 
+        "tungsten-replicator/samples/conf/appliers/prefetch.tpl"
+    elsif @config.getProperty(BATCH_ENABLED) == "true"
+      template = @config.getProperty(PREPARE_DIRECTORY) + "/" + 
+        "tungsten-replicator/samples/conf/appliers/batch.tpl"
+    else
+      template = @config.getProperty(PREPARE_DIRECTORY) + "/" + 
+        get_applier_datasource().get_applier_template()
+    end
+    
+    transformer = Transformer.new(template)
+    transformer.set_fixed_properties(@config.getProperty(get_member_key(FIXED_PROPERTY_STRINGS)))
     transformer.transform_values(transform_values_method)
     
     return transformer.to_s
