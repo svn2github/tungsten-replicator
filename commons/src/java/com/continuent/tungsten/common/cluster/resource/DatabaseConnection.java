@@ -25,6 +25,7 @@ package com.continuent.tungsten.common.cluster.resource;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Date;
 
 import com.continuent.tungsten.common.patterns.order.Sequence;
 import com.continuent.tungsten.common.utils.CLUtils;
@@ -42,6 +43,9 @@ public class DatabaseConnection
     private Sequence       sequence = null;
     private DataSource     ds       = null;
     private Object         context;
+    
+    /** Last time the connection was used */
+    private Date lastUsed = new Date();
 
     public DatabaseConnection(ConnectionType type, String name,
             Connection connection, DataSource ds, Object context)
@@ -104,6 +108,25 @@ public class DatabaseConnection
     public DataSource getDs()
     {
         return ds;
+    }
+    
+    /**
+     * Returns the lastUsed value.
+     * 
+     * @return Returns the lastUsed.
+     */
+    public Date getLastUsed()
+    {
+        return lastUsed;
+    }
+
+    /**
+     * Updates the lastUsed value to the current Date/Time.
+     * 
+     */
+    public void touch()
+    {
+        this.lastUsed = new Date();
     }
 
     public String toString()

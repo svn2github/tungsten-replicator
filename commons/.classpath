@@ -17,7 +17,7 @@
 	<classpathentry kind="lib" path="lib/json_simple-1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jackson-core-asl-1.9.2.jar"/>
 	<classpathentry kind="lib" path="lib/jackson-jaxrs-1.9.2.jar"/>
-	<classpathentry kind="lib" path="lib/jackson-mapper-asl-1.9.2.jar"/>
+	<classpathentry kind="lib" path="lib/jackson-mapper-asl-1.9.2.jar" sourcepath="/Users/launer/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.9.2/jackson-mapper-asl-1.9.2-sources.jar"/>
 	<classpathentry kind="lib" path="lib/jackson-xc-1.9.2.jar"/>
 	<classpathentry kind="lib" path="lib/commons-configuration-1.9.jar">
 		<attributes>
