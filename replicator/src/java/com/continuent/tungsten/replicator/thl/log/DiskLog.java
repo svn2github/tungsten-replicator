@@ -151,6 +151,14 @@ public class DiskLog
     {
         return this.logDirName;
     }
+    
+    /**
+     * Returns THL log filename prefix.
+     */
+    public String getFilePrefix()
+    {
+        return DATA_FILENAME_PREFIX;
+    }
 
     /**
      * Sets the log file size. This is approximate as rotation will occur after

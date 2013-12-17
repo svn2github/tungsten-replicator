@@ -193,10 +193,23 @@ public class THLManagerCtrl
     {
         long minSeqno = diskLog.getMinSeqno();
         long maxSeqno = diskLog.getMaxSeqno();
-        String logDir = diskLog.getLogDir();
+        String logDirName = diskLog.getLogDir();
+        
         int logFiles = diskLog.getLogFileNames().length;
-        return new InfoHolder(logDir, minSeqno, maxSeqno, maxSeqno - minSeqno,
-                -1, logFiles);
+
+        File logDir = new File(logDirName);
+        File[] logs = DiskLog.listLogFiles(logDir, diskLog.getFilePrefix());
+        File oldestFile = logs[0];
+        File newestFile = logs[logs.length - 1];
+        
+        long logsSize = 0;
+        for (File log : logs)
+        {
+            logsSize += log.length();
+        }
+
+        return new InfoHolder(logDirName, minSeqno, maxSeqno, maxSeqno
+                - minSeqno, -1, logFiles, oldestFile, newestFile, logsSize);
     }
 
     /**
@@ -1004,9 +1017,12 @@ public class THLManagerCtrl
                 InfoHolder info = thlManager.getInfo();
                 println("log directory = " + info.getLogDir());
                 println("log files = " + info.getLogFiles());
+                printLogsSize(info.getLogsSize());
                 println("min seq# = " + info.getMinSeqNo());
                 println("max seq# = " + info.getMaxSeqNo());
                 println("events = " + info.getEventCount());
+                printTHLFileInfo("oldest file", info.getOldestFile());
+                printTHLFileInfo("newest file", info.getNewestFile());
 
                 thlManager.release();
             }
@@ -1110,6 +1126,31 @@ public class THLManagerCtrl
         {
             fatal("Fatal error: " + t.getMessage(), t);
         }
+    }
+    
+    /**
+     * Converts size in bytes to megabytes.
+     */
+    private static float bytesToMB(long bytes)
+    {
+        float sizeInMB = (float) bytes / 1024f / 1024f;
+        return sizeInMB;
+    }
+
+    private static void printLogsSize(long logsSize)
+    {
+        float sizeInMB = bytesToMB(logsSize);
+        println(String.format("logs size = %.2f MB", sizeInMB));
+    }
+
+    private static void printTHLFileInfo(String message, File thlFile)
+    {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        float sizeInMB = bytesToMB(thlFile.length());
+
+        println(String
+                .format("%s = %s (%.2f MB, %s)", message, thlFile.getName(),
+                        sizeInMB, sdf.format(thlFile.lastModified())));
     }
 
     // Return the service configuration file if there is one
@@ -1344,9 +1385,13 @@ public class THLManagerCtrl
         private long   eventCount             = -1;
         private long   highestReplicatedEvent = -1;
         private int    logFiles               = -1;
+        private File   oldestFile             = null;
+        private File   newestFile             = null;
+        private long   logsSize               = -1;
 
         public InfoHolder(String logDir, long minSeqNo, long maxSeqNo,
-                long eventCount, long highestReplicatedEvent, int logFiles)
+                long eventCount, long highestReplicatedEvent, int logFiles,
+                File oldestFile, File newestFile, long logsSize)
         {
             this.logDir = logDir;
             this.minSeqNo = minSeqNo;
@@ -1354,6 +1399,9 @@ public class THLManagerCtrl
             this.eventCount = eventCount;
             this.highestReplicatedEvent = highestReplicatedEvent;
             this.logFiles = logFiles;
+            this.oldestFile = oldestFile;
+            this.newestFile = newestFile;
+            this.logsSize = logsSize;
         }
 
         public String getLogDir()
@@ -1384,6 +1432,21 @@ public class THLManagerCtrl
         public int getLogFiles()
         {
             return logFiles;
+        }
+        
+        public File getOldestFile()
+        {
+            return oldestFile;
+        }
+        
+        public File getNewestFile()
+        {
+            return newestFile;
+        }
+
+        public long getLogsSize()
+        {
+            return logsSize;
         }
     }
 }
