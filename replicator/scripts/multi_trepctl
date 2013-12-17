@@ -393,7 +393,15 @@ class TungstenMultipleTrepctl
       rec[:sort] = sort_values
     }
     
-    records.sort { |a, b| a[:sort] <=> b[:sort] }
+    records.sort { |a, b|
+      unless a[:sort].is_a?(Array)
+        a[:sort] = []
+      end
+      unless b[:sort].is_a?(Array)
+        b[:sort] = []
+      end
+      (a[:sort] <=> b[:sort])
+    }
   end
   
   def get_record_value(rec, key)
