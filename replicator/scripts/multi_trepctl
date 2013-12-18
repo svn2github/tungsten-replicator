@@ -527,6 +527,11 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
   end
   
   def validate
+    if TI && TI.use_tpm?() != true
+      TU.error("Unable to run the multi_trepctl script in a directory installed with tungsten-installer")
+      return
+    end
+    
     super()
     
     check_directories = []
