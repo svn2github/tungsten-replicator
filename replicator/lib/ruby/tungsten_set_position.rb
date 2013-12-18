@@ -113,7 +113,8 @@ $> tungsten_set_position.sh --seqno=35 --epoch=23")
     add_option(:sql, {
       :on => "--sql",
       :default => false,
-      :help => "Only output the SQL statements needed to update the schema"
+      :help => "Only output the SQL statements needed to update the schema",
+      :aliases => ["--dry-run"]
     })
   end
   
