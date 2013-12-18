@@ -232,8 +232,11 @@ public class HostAddressService
         byte[] host1Raw = host1Address.getAddress();
         byte[] host2Raw = host2Address.getAddress();
 
-        for (int octet = 0; octet < 4; octet++)
+        for (int octet = 0; octet < 3; octet++)
         {
+            CLUtils.println(String.format("%d, netmask=%d: %d == %d ?", octet,
+                    netMask[octet], host1Raw[octet] & netMask[octet],
+                    host2Raw[octet] & netMask[octet]));
             if ((host1Raw[octet] & netMask[octet]) != (host2Raw[octet] & netMask[octet]))
                 return false;
         }
@@ -401,7 +404,7 @@ public class HostAddressService
         }
 
     }
-    
+
     /**
      * This method returns a prefix for a given internet address. It will only
      * work on the host for which the address is bound.
