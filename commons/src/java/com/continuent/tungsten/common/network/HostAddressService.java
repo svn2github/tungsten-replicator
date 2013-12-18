@@ -234,9 +234,6 @@ public class HostAddressService
 
         for (int octet = 0; octet < 3; octet++)
         {
-            CLUtils.println(String.format("%d, netmask=%d: %d == %d ?", octet,
-                    netMask[octet], host1Raw[octet] & netMask[octet],
-                    host2Raw[octet] & netMask[octet]));
             if ((host1Raw[octet] & netMask[octet]) != (host2Raw[octet] & netMask[octet]))
                 return false;
         }
