@@ -166,6 +166,9 @@ class Configurator
         @options.config = "#{get_base_path()}/#{HOST_CONFIG}"
       end
     end
+    
+    puts "WARN  >> This command has been DEPRECATED"
+    puts "WARN  >> Switch to the tpm script for managing installation and upgrade"
   end
   
   def get_default_package_class
