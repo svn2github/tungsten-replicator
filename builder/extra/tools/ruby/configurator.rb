@@ -635,7 +635,7 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
   end
 
   def output_version
-    write "#{File.basename(__FILE__)} version #{VERSION}"
+    write "#{File.basename(__FILE__)} version #{get_release_version}"
   end
   
   def display_help
@@ -954,6 +954,12 @@ Do you want to continue with the configuration (Y) or quit (Q)?"
   def get_release_name
     release_details = get_release_details()
     release_details["name"]
+  end
+  
+  # Parse the manifest to determine what kind of package this is
+  def get_release_version
+    release_details = get_release_details()
+    release_details["version"]
   end
   
   def advanced_mode?
