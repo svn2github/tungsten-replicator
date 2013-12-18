@@ -1202,6 +1202,22 @@ public class DiskLog
     {
         return index.toString();
     }
+    
+    /**
+     * Returns the first index file or null if no such file exists.
+     */
+    public String getFirstFile()
+    {
+        return index.getFirstFile();
+    }
+
+    /**
+     * Returns the last index file or null if no such file exists.
+     */
+    public String getLastFile()
+    {
+        return index.getLastFile();
+    }
 
     /**
      * Returns a sorted list of log files.

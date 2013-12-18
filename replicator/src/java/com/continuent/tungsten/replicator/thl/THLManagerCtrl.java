@@ -198,15 +198,24 @@ public class THLManagerCtrl
         int logFiles = diskLog.getLogFileNames().length;
 
         File logDir = new File(logDirName);
-        File[] logs = DiskLog.listLogFiles(logDir, diskLog.getFilePrefix());
-        File oldestFile = logs[0];
-        File newestFile = logs[logs.length - 1];
         
+        // Calculate total size.
+        File[] logs = DiskLog.listLogFiles(logDir, diskLog.getFilePrefix());
         long logsSize = 0;
         for (File log : logs)
         {
             logsSize += log.length();
         }
+
+        // Get oldest and newest files.
+        File oldestFile = null;
+        File newestFile = null;
+        if (diskLog.getFirstFile() != null)
+            oldestFile = new File(logDir + File.separator
+                    + diskLog.getFirstFile());
+        if (diskLog.getLastFile() != null)
+            newestFile = new File(logDir + File.separator
+                    + diskLog.getLastFile());
 
         return new InfoHolder(logDirName, minSeqno, maxSeqno, maxSeqno
                 - minSeqno, -1, logFiles, oldestFile, newestFile, logsSize);
@@ -1145,12 +1154,19 @@ public class THLManagerCtrl
 
     private static void printTHLFileInfo(String message, File thlFile)
     {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        float sizeInMB = bytesToMB(thlFile.length());
+        if (thlFile != null)
+        {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            float sizeInMB = bytesToMB(thlFile.length());
 
-        println(String
-                .format("%s = %s (%.2f MB, %s)", message, thlFile.getName(),
-                        sizeInMB, sdf.format(thlFile.lastModified())));
+            println(String.format("%s = %s (%.2f MB, %s)", message,
+                    thlFile.getName(), sizeInMB,
+                    sdf.format(thlFile.lastModified())));
+        }
+        else
+        {
+            println(message + " = ?");
+        }
     }
 
     // Return the service configuration file if there is one
