@@ -203,6 +203,7 @@ class TungstenMultipleTrepctl
         if matches_filters?(svc, filters) == true
           services << svc.merge({
             :loc_id => loc_id,
+            "host" => @trepctl_locations[loc_id][:host],
             "directory" => @trepctl_locations[loc_id][:directory]
           })
         end
@@ -388,7 +389,7 @@ class TungstenMultipleTrepctl
       
       sort_values = []
       sort_keys.each{|key|
-        sort_values << get_record_value(rec, key)
+        sort_values << get_record_value(rec, key).to_s()
       }
       rec[:sort] = sort_values
     }
