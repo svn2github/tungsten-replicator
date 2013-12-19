@@ -158,5 +158,13 @@ $> tungsten_read_master_events.sh --low=10 --high=20")
     if @options[:after] == nil && lowhigh == false
       TU.error("You must specify the --after argument or the --low and --high arguments")
     end
+    
+    if opt(:service).to_s() != "" && @options[:source] != TI.hostname()
+      cmd = "egrep \"^service.name\" #{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/static-* | awk -F \"=\" '{print $2}'"
+      services = TU.ssh_result(cmd, @options[:source], TI.user()).split("\n")
+      unless services.include?(@options[:service])
+        TU.error("The #{@options[:service]} service was not found in the replicator at #{@options[:source]}:#{TI.root()}")
+      end
+    end
   end
 end

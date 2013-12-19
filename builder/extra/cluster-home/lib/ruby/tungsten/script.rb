@@ -446,6 +446,12 @@ module SingleServiceScript
   
     if @options[:service] == nil
       TU.error("You must specify a dataservice for this command with the --service argument")
+    else
+      if TI
+        unless TI.replication_services().include?(@options[:service])
+          TU.error("The #{@options[:service]} service was not found in the replicator at #{TI.hostname()}:#{TI.root()}")
+        end
+      end
     end
   end
 end
@@ -684,6 +690,10 @@ module MySQLServiceScript
     super()
     
     if @options[:service].to_s() == ""
+      return
+    end
+    
+    unless TI.replication_services().include?(@options[:service])
       return
     end
     
