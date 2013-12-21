@@ -103,6 +103,14 @@ public class Replicator extends Resource implements Serializable
     /** Host name of this replicator. */
     public static final String DATASERVERHOST                 = "dataServerHost";
 
+    public static final String RESOURCE_PORT                  = "resourcePort";
+
+    public static final String RESOURCE_REPL_USER             = "resourceReplUser";
+
+    public static final String RESOURCE_REPL_PASSWORD         = "resourceReplPassword";
+
+    public static final String RESOURCE_REPL_SCHEMA           = "resourceReplSchema";
+
     /** Seconds since replicator has started. */
     public static final String UPTIME_SECONDS                 = "uptimeSeconds";
 

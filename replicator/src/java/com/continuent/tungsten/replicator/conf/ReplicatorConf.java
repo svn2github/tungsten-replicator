@@ -239,6 +239,9 @@ public class ReplicatorConf
     static public final String   RESOURCE_LOGPATTERN                   = "replicator.resourceLogPattern";
     static public final String   RESOURCE_DISKLOGDIR                   = "replicator.resourceDiskLogDir";
     static public final String   RESOURCE_PORT                         = "replicator.resourcePort";
+    static public final String   RESOURCE_REPL_USER                    = "replicator.resourceReplUser";
+    static public final String   RESOURCE_REPL_PASSWORD                = "replicator.resourceReplPassword";
+    static public final String   RESOURCE_REPL_SCHEMA                  = "replicator.resourceReplSchema";
     static public final String   RESOURCE_DATASERVER_HOST              = "replicator.resourceDataServerHost";
 
     static public final String   GLOBAL_DB_USER                        = "replicator.global.db.user";
