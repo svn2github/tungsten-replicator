@@ -423,3 +423,42 @@ class ParallelReplicationCheck < ConfigureValidationCheck
     end
   end
 end
+
+class ConsistentReplicationCredentialsCheck < ConfigureValidationCheck
+  include ReplicationServiceValidationCheck
+  
+  def set_vars
+    @title = "Consistent replication credentials check"
+  end
+  
+  def validate
+    p = @config.getPromptHandler().find_prompt(get_member_key(REPL_DBLOGIN))
+    host_value = @config.getNestedProperty(get_member_key(REPL_DBLOGIN))
+    ds_value = p.get_default_value()
+    if host_value != nil && host_value != ds_value
+      error("You are trying to configure this host with a custom --replication-user.  That is not currently supported.")
+    end
+    
+    p = @config.getPromptHandler().find_prompt(get_member_key(REPL_DBPASSWORD))
+    host_value = @config.getNestedProperty(get_member_key(REPL_DBPASSWORD))
+    ds_value = p.get_default_value()
+    if host_value != nil && host_value != ds_value
+      error("You are trying to configure this host with a custom --replication-password.  That is not currently supported.")
+    end
+    
+    p = @config.getPromptHandler().find_prompt(get_member_key(REPL_DBPORT))
+    host_value = @config.getNestedProperty(get_member_key(REPL_DBPORT))
+    ds_value = p.get_default_value()
+    if host_value != nil && host_value != ds_value
+      error("You are trying to configure this host with a custom --replication-port.  That is not currently supported.")
+    end
+  end
+  
+  def enabled?
+    if get_topology().is_a?(ClusterTopology)
+      super()
+    else
+      false
+    end
+  end
+end
