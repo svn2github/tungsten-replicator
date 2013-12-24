@@ -194,12 +194,6 @@ public class Replicator
     /** Port on which apps access resource */
     static public final String RESOURCE_PORT               = "resourcePort";
 
-    static public final String RESOURCE_REPL_USER          = "resourceReplUser";
-
-    static public final String RESOURCE_REPL_PASSWORD      = "resourceReplPassword";
-
-    static public final String RESOURCE_REPL_SCHEMA        = "resourceReplSchema";
-
     /**
      * Log sequence number type to allow managers to figure out how to sort
      * values.

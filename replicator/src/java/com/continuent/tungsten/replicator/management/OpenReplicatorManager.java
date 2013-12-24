@@ -1952,15 +1952,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
 
             pluginStatus.put(Replicator.DATASERVER_HOST, properties
                     .getString(ReplicatorConf.RESOURCE_DATASERVER_HOST));
-            pluginStatus.put(Replicator.RESOURCE_PORT, properties
-                    .getString(ReplicatorConf.RESOURCE_PORT));
-            pluginStatus.put(Replicator.RESOURCE_REPL_USER, properties
-                    .getString(ReplicatorConf.RESOURCE_REPL_USER));
-            pluginStatus.put(Replicator.RESOURCE_REPL_PASSWORD, properties
-                    .getString(ReplicatorConf.RESOURCE_REPL_PASSWORD));
-            pluginStatus.put(Replicator.RESOURCE_REPL_SCHEMA, properties
-                    .getString(ReplicatorConf.RESOURCE_REPL_SCHEMA));
-                      
             pluginStatus.put(Replicator.UPTIME_SECONDS,
                     Double.toString(getUptimeSeconds()));
             pluginStatus.put(Replicator.TIME_IN_STATE_SECONDS,

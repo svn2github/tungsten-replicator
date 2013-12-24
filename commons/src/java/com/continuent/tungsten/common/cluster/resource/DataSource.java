@@ -44,10 +44,6 @@ public class DataSource extends Resource implements Serializable
     public static final String      ALERT_TIME                     = "alertTime";
     public static final String      APPLIED_LATENCY                = "appliedLatency";
     public static final String      HOST                           = "host";
-    public static final String      PORT                           = "port";
-    public static final String      REPL_USER                      = "replUser";
-    public static final String      REPL_PASSWORD                  = "replPassword";
-    public static final String      REPL_SCHEMA                    = "replSchema";
     public static final String      ROLE                           = "role";
     public static final String      VENDOR                         = "vendor";
     public static final String      DRIVER                         = "driver";
@@ -83,10 +79,6 @@ public class DataSource extends Resource implements Serializable
     private int                     precedence                     = 0;
     private boolean                 isAvailable                    = false;
     private String                  masterConnectUri               = "";
-    private String                  replUser                       = "";
-    private String                  replPassword                   = "";
-    private String                  replSchema                     = "";
-    private int                     port                           = -1;
 
     private ResourceState           state                          = ResourceState.UNKNOWN;
 
@@ -267,18 +259,6 @@ public class DataSource extends Resource implements Serializable
         dsProps.setString(VIPADDRESS, replicatorProps.getString(
                 Replicator.RESOURCE_VIP_ADDRESS, null, true));
 
-        String port = replicatorProps.getString(Replicator.RESOURCE_PORT);
-
-        if (port != null)
-        {
-            dsProps.setInt(PORT, Integer.parseInt(port));
-        }
-
-        dsProps.setString(REPL_USER,
-                replicatorProps.getString(Replicator.RESOURCE_REPL_USER));
-        dsProps.setString(REPL_PASSWORD,
-                replicatorProps.getString(Replicator.RESOURCE_REPL_PASSWORD));
-
         return dsProps;
     }
 
@@ -296,21 +276,6 @@ public class DataSource extends Resource implements Serializable
         newDs.setDriver(replicatorProps.getString(
                 Replicator.RESOURCE_JDBC_DRIVER).trim());
         newDs.setRole(replicatorProps.getString(Replicator.ROLE).toLowerCase());
-
-        String port = replicatorProps.getString(Replicator.RESOURCE_PORT);
-
-        if (port != null)
-        {
-            newDs.setPort(Integer.parseInt(port));
-        }
-
-        newDs.setReplUser(replicatorProps
-                .getString(Replicator.RESOURCE_REPL_USER));
-        newDs.setReplPassword(replicatorProps
-                .getString(Replicator.RESOURCE_REPL_PASSWORD));
-
-        newDs.setReplSchema(replicatorProps
-                .getString(Replicator.RESOURCE_REPL_SCHEMA));
 
         boolean isStandby = replicatorProps
                 .getBoolean(Replicator.RESOURCE_IS_STANDBY_DATASOURCE);
@@ -548,10 +513,6 @@ public class DataSource extends Resource implements Serializable
             this.setVipAddress(ds.getVipAddress());
             this.setVipInterface(ds.getVipInterface());
             this.setVipIsBound(ds.getVipIsBound());
-            this.setReplUser(ds.getReplUser());
-            this.setReplPassword(ds.getReplPassword());
-            this.setReplSchema(ds.getReplSchema());
-            this.setPort(ds.getPort());
             this.setLastUpdateToNow();
             this.notifyAll();
         }
@@ -565,7 +526,6 @@ public class DataSource extends Resource implements Serializable
         props.setString(VENDOR, getVendor());
         props.setString(CLUSTERNAME, getDataServiceName());
         props.setString(HOST, getHost());
-        props.setInt(PORT, getPort());
         props.setString(DRIVER, getDriver());
         props.setString(URL, getUrl());
         props.setString(ROLE, getRole().toString());
@@ -593,9 +553,6 @@ public class DataSource extends Resource implements Serializable
         props.setString(VIPINTERFACE, getVipInterface());
         props.setBoolean(VIPISBOUND, getVipIsBound());
         props.setBoolean(ISCOMPOSITE, isComposite());
-        props.setString(REPL_USER, getReplUser());
-        props.setString(REPL_PASSWORD, getReplPassword());
-        props.setString(REPL_SCHEMA, getReplSchema());
 
         return props;
     }
@@ -1100,75 +1057,5 @@ public class DataSource extends Resource implements Serializable
                     + (slashIdx != -1 ? slashIdx : remainder.length())
                     + ". Found colonIdx=" + colonIdx + " slashIdx=" + slashIdx);
         }
-    }
-
-    public int getPort()
-    {
-        return port;
-    }
-
-    public void setPort(int port)
-    {
-        this.port = port;
-    }
-
-    /**
-     * Returns the replUser value.
-     * 
-     * @return Returns the replUser.
-     */
-    public String getReplUser()
-    {
-        return replUser;
-    }
-
-    /**
-     * Sets the replUser value.
-     * 
-     * @param replUser The replUser to set.
-     */
-    public void setReplUser(String replUser)
-    {
-        this.replUser = replUser;
-    }
-
-    /**
-     * Returns the replPassword value.
-     * 
-     * @return Returns the replPassword.
-     */
-    public String getReplPassword()
-    {
-        return replPassword;
-    }
-
-    /**
-     * Sets the replPassword value.
-     * 
-     * @param replPassword The replPassword to set.
-     */
-    public void setReplPassword(String replPassword)
-    {
-        this.replPassword = replPassword;
-    }
-
-    /**
-     * Returns the replSchema value.
-     * 
-     * @return Returns the replSchema.
-     */
-    public String getReplSchema()
-    {
-        return replSchema;
-    }
-
-    /**
-     * Sets the replSchema value.
-     * 
-     * @param replSchema The replSchema to set.
-     */
-    public void setReplSchema(String replSchema)
-    {
-        this.replSchema = replSchema;
     }
 }
