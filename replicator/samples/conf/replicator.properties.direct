@@ -129,9 +129,6 @@ replicator.resourceLogPattern=
 replicator.resourceLogDir=
 replicator.resourcePort=${replicator.global.db.port}
 replicator.resourceDataServerHost=${replicator.global.db.host}
-replicator.resourceReplUser=@{APPLIER.REPL_DBLOGIN}
-replicator.resourceReplPassword=@{APPLIER.REPL_DBPASSWORD}
-replicator.resourceReplSchema=@{REPL_SVC_SCHEMA}
 
 ##########################
 # OPEN REPLICATOR PLUGIN #
