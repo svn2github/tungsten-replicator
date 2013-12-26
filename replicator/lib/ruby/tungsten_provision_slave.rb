@@ -42,7 +42,17 @@ class TungstenReplicatorProvisionSlave
       # into the staging_dir directory
       TU.notice("Create a backup of #{@options[:source]} in #{staging_dir}")
       TU.forward_cmd_results?(true)
-      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-directory=#{staging_dir} --service=#{@options[:service]}", 
+      
+      backup_options=[]
+      backup_options << TU.get_tungsten_command_options()
+      backup_options << "--backup"
+      backup_options << "--target=#{TI.hostname()}"
+      backup_options << "--storage-directory=#{staging_dir}"
+      if opt(:is_clustered) == false
+        backup_options << "--service=#{@options[:service]}"
+      end
+      
+      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave #{backup_options.join(' ')}", 
         @options[:source], TI.user())
       TU.forward_cmd_results?(false)
     
@@ -126,7 +136,17 @@ class TungstenReplicatorProvisionSlave
       # into the staging_dir directory
       TU.notice("Create a mysqldump backup of #{@options[:source]} in #{staging_dir}")
       TU.forward_cmd_results?(true)
-      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --storage-file=#{staging_dir}/provision.sql.gz --service=#{@options[:service]}", 
+      
+      backup_options=[]
+      backup_options << TU.get_tungsten_command_options()
+      backup_options << "--backup"
+      backup_options << "--target=#{TI.hostname()}"
+      backup_options << "--storage-file=#{staging_dir}/provision.sql.gz"
+      if opt(:is_clustered) == false
+        backup_options << "--service=#{@options[:service]}"
+      end
+      
+      TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave #{backup_options.join(' ')}", 
         @options[:source], TI.user())
       TU.forward_cmd_results?(false)
       
@@ -178,6 +198,10 @@ class TungstenReplicatorProvisionSlave
     # Run validation for super classes after we have determined the backup
     # type. This makes sure that the needed options are loaded
     super()
+    
+    unless TU.is_valid?()
+      return
+    end
     
     if @options[:mysqldump] == false
       if sudo_prefix() != ""
@@ -244,11 +268,21 @@ class TungstenReplicatorProvisionSlave
       if TU.test_ssh(@options[:source], TI.user())
         begin
           TU.forward_cmd_results?(true)
+          
+          backup_options=[]
+          backup_options << TU.get_tungsten_command_options()
+          backup_options << "--backup"
+          backup_options << "--target=#{TI.hostname()}"
+          backup_options << "--validate"
+          if opt(:is_clustered) == false
+            backup_options << "--service=#{@options[:service]}"
+          end
+          
           if @options[:mysqldump] == false
-            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
+            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/xtrabackup_to_slave #{backup_options.join(' ')}", 
               @options[:source], TI.user())
           else
-            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave #{TU.get_tungsten_command_options()} --backup --target=#{TI.hostname()} --service=#{@options[:service]} --validate", 
+            TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/mysqldump_to_slave #{backup_options.join(' ')}", 
               @options[:source], TI.user())
           end
           TU.forward_cmd_results?(false)
@@ -287,6 +321,12 @@ class TungstenReplicatorProvisionSlave
     set_option_default(:clear_logs, true)
     set_option_default(:offline, true)
     set_option_default(:online, true)
+    
+    if TI.setting("dataservices.#{opt(:service)}.dataservice_topology") == "clustered"
+      opt(:is_clustered, true)
+    else
+      opt(:is_clustered, false)
+    end
   end
   
   def empty_mysql_directory

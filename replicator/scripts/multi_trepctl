@@ -591,7 +591,7 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
             value_key = "dataservices.#{ds}.dataservice_replication_members"
             host_list_raw = TU.cmd_result("#{dir[:directory]}/tungsten/tools/tpm query values #{value_key}")
             host_list = JSON.parse(host_list_raw)
-            check_hosts = check_hosts + host_list[value_key].split(",")
+            check_hosts = check_hosts + host_list[value_key].to_s().split(",")
           rescue CommandError
           end
         }
