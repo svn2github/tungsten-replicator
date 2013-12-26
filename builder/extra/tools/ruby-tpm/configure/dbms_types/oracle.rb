@@ -150,8 +150,7 @@ class OracleService < OracleConfigurePrompt
   include DatasourcePrompt
   
   def initialize
-    super(REPL_ORACLE_SERVICE, "Oracle Service", 
-      PV_IDENTIFIER)
+    super(REPL_ORACLE_SERVICE, "Oracle Service", PV_ANY)
   end
 end
 
@@ -159,7 +158,7 @@ class OracleSCAN < OracleConfigurePrompt
   include DatasourcePrompt
   
   def initialize
-    super(REPL_ORACLE_SCAN, "Oracle SCAN", PV_IDENTIFIER)
+    super(REPL_ORACLE_SCAN, "Oracle SCAN", PV_HOSTNAME)
   end
   
   def required?
@@ -171,8 +170,7 @@ class OracleExtractorService < OracleConfigurePrompt
   include DatasourcePrompt
   
   def initialize
-    super(EXTRACTOR_REPL_ORACLE_SERVICE, "Oracle Service", 
-      PV_IDENTIFIER)
+    super(EXTRACTOR_REPL_ORACLE_SERVICE, "Oracle Service", PV_ANY)
   end
   
   def load_default_value
@@ -184,7 +182,7 @@ class OracleExtractorSCAN < OracleConfigurePrompt
   include DatasourcePrompt
   
   def initialize
-    super(EXTRACTOR_REPL_ORACLE_SCAN, "Oracle SCAN", PV_IDENTIFIER)
+    super(EXTRACTOR_REPL_ORACLE_SCAN, "Oracle SCAN", PV_HOSTNAME)
   end
   
   def required?
