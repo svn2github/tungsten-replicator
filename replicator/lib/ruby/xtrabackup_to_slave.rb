@@ -130,4 +130,8 @@ class TungstenXtrabackupToSlaveScript < TungstenBackupScript
   def require_local_mysql_service?
     true
   end
+  
+  def script_name
+    "xtrabackup_to_slave.sh"
+  end
 end

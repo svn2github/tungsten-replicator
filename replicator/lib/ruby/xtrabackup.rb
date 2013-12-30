@@ -559,6 +559,10 @@ class TungstenXtrabackupScript < TungstenBackupScript
   def require_local_mysql_service?
     true
   end
+  
+  def script_name
+    "xtrabackup.sh"
+  end
 end
 
 class BrokenLineageError < StandardError

@@ -153,4 +153,8 @@ $> tungsten_set_position.sh --seqno=35 --epoch=23")
       super()
     end
   end
+  
+  def script_name
+    "tungsten_set_position"
+  end
 end

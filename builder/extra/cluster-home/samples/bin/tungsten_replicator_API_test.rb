@@ -25,6 +25,10 @@ class TungstenEnvironment
       json_obj = cctrl.get( 'thl_headers', nil, nil, '-low 10 -high 13')
       pp json_obj
   end
+  
+  def script_name
+    "tungsten_replicator_API_test.rb"
+  end
 
   self.new().run()
 end

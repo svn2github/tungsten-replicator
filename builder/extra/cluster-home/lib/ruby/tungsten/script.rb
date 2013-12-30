@@ -267,7 +267,16 @@ module TungstenScript
     end
   end
   
+  def script_name
+    nil
+  end
+  
   def display_help
+    if script_name().to_s() != ""
+      TU.output("Usage: #{script_name()} [global-options] [script-options]")
+      TU.output("")
+    end
+
     unless description() == nil
       description().split("<br>").each{
         |section|

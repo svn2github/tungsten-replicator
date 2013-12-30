@@ -731,5 +731,9 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     false
   end
   
+  def script_name
+    "multi_trepctl"
+  end
+  
   self.new().run()
 end

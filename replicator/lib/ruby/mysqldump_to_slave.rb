@@ -81,4 +81,8 @@ class TungstenMysqldumpToSlaveScript < TungstenBackupScript
     
     "| gzip -c | ssh #{TU.get_ssh_command_options()} #{@options[:target]} \"tee #{chev} #{@options[:storage_file]}\""
   end
+  
+  def script_name
+    "mysqldump_to_slave.sh"
+  end
 end

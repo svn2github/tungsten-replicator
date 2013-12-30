@@ -322,7 +322,7 @@ class TungstenReplicatorProvisionSlave
     set_option_default(:offline, true)
     set_option_default(:online, true)
     
-    if TI.setting("dataservices.#{opt(:service)}.dataservice_topology") == "clustered"
+    if TI && TI.setting("dataservices.#{opt(:service)}.dataservice_topology") == "clustered"
       opt(:is_clustered, true)
     else
       opt(:is_clustered, false)
@@ -372,5 +372,9 @@ class TungstenReplicatorProvisionSlave
     else
       false
     end
+  end
+  
+  def script_name
+    "tungsten_provision_slave"
   end
 end

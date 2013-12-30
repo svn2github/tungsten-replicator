@@ -173,4 +173,8 @@ $> tungsten_read_master_events.sh --low=10 --high=20")
       #end
     end
   end
+  
+  def script_name
+    "tungsten_read_master_events"
+  end
 end

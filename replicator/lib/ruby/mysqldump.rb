@@ -119,4 +119,8 @@ class TungstenMySQLdumpScript < TungstenBackupScript
   def build_timestamp_id()
     return "mysqldump_" + Time.now.strftime("%Y-%m-%d_%H-%M") + "_" + rand(100).to_s
   end
+  
+  def script_name
+    "mysqldump.sh"
+  end
 end
