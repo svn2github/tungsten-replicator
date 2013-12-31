@@ -305,7 +305,7 @@ public class THLParallelQueue implements ParallelStore
      */
     public long getMaxStoredSeqno()
     {
-        return 0;
+        return -1;
     }
 
     /**
@@ -315,7 +315,7 @@ public class THLParallelQueue implements ParallelStore
      */
     public long getMinStoredSeqno()
     {
-        return 0;
+        return -1;
     }
 
     /**

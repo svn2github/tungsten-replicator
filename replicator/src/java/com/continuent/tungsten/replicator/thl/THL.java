@@ -126,8 +126,8 @@ public class THL implements Store
     // (CommitSeqno)
     private boolean            stopOnDBError        = true;
 
-    // If true check log consistency with catalog when starting up. 
-    private boolean            logConsistencyCheck       = false;
+    // If true check log consistency with catalog when starting up.
+    private boolean            logConsistencyCheck  = false;
 
     /** Creates a store instance. */
     public THL()
@@ -466,7 +466,7 @@ public class THL implements Store
         {
             // Bring catalog up to date but only if the epoch numbers match.
             // This ensures we are talking about transactions from the same
-            // master and is why epoch numbers were invented. 
+            // master and is why epoch numbers were invented.
             if (lastLogEvent.getEpochNumber() == lastCatalogEvent
                     .getEpochNumber())
             {
@@ -618,17 +618,20 @@ public class THL implements Store
         // Look first in the log.
         ReplDBMSHeader lastHeader = getLastLoggedEvent();
         if (lastHeader != null)
-            return lastHeader;
-
-        // If that does not work, try the catalog trep_commit_seqno position.
-        if (catalog != null)
         {
-            lastHeader = catalog.getMinLastEvent();
+            // Return the log position if available.
+            return lastHeader;
         }
-
-        // Return whatever we found, which will be null for a newly initialized
-        // log.
-        return null;
+        else if (catalog != null)
+        {
+            // Return the trep_commit_seqno position if that can be found.
+            return catalog.getMinLastEvent();
+        }
+        else
+        {
+            // Otherwise we have no recorded event, so return null.
+            return null;
+        }
     }
 
     /**

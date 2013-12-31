@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -480,7 +480,7 @@ public class Pipeline implements ReplicatorPlugin
         {
             // First term in predicate ensures that we assign a value.
             long minStoredSeqno = store.getMinStoredSeqno();
-            if (seqno == -1 || seqno > minStoredSeqno)
+            if (seqno == -1 || (seqno > minStoredSeqno && minStoredSeqno != -1))
                 seqno = minStoredSeqno;
         }
         return seqno;
