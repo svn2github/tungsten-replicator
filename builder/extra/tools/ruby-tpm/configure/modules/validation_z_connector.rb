@@ -145,7 +145,8 @@ class ConnectorDBVersionCheck < ConfigureValidationCheck
   end
 
   def validate
-    if @config.getProperty('connector_db_version')[0,1] =~ /[A-Za-z]/
+    version = @config.getProperty(CONN_DB_VERSION)
+    if version != "autodetect" && version[0,1] =~ /[A-Za-z]/
       error("connector-db-version must start with a numeric value - current value is #{@config.getProperty('connector_db_version')}")
     end
   end
