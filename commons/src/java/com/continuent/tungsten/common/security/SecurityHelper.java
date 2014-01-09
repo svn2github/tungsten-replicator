@@ -35,6 +35,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
+import com.continuent.tungsten.common.utils.CLUtils;
 
 /**
  * Helper class for security related topics
@@ -73,8 +74,7 @@ public class SecurityHelper
         catch (org.apache.commons.configuration.ConfigurationException ce)
         {
             logger.error("Error while saving properties for file:"
-                    + authenticationInfo.getPasswordFileLocation());
-            logger.debug(ce.getMessage());
+                    + authenticationInfo.getPasswordFileLocation(), ce);
             throw new ServerRuntimeException("Error while saving Credentials: "
                     + ce.getMessage());
         }
@@ -112,8 +112,7 @@ public class SecurityHelper
         catch (org.apache.commons.configuration.ConfigurationException ce)
         {
             logger.error("Error while saving properties for file:"
-                    + authenticationInfo.getPasswordFileLocation());
-            logger.debug(ce.getMessage());
+                    + authenticationInfo.getPasswordFileLocation(), ce);
             throw new ServerRuntimeException("Error while saving Credentials: "
                     + ce.getMessage());
         }
@@ -142,19 +141,14 @@ public class SecurityHelper
         }
         catch (FileNotFoundException e)
         {
-            logger.error("Unable to find properties file: "
+            throw new ServerRuntimeException("Unable to find properties file: "
                     + authenticationInfo.getPasswordFileLocation(), e);
-            logger.debug("Properties search failure", e);
-            throw new ServerRuntimeException("Unable to find password file: "
-                    + e.getMessage());
+
         }
         catch (IOException e)
         {
-            logger.error("Unable to read properties file: "
+            throw new ServerRuntimeException("Unable to read properties file: "
                     + authenticationInfo.getPasswordFileLocation(), e);
-            logger.debug("Properties read failure", e);
-            throw new ServerRuntimeException("Unable to read password file: "
-                    + e.getMessage());
         }
     }
 
@@ -182,16 +176,14 @@ public class SecurityHelper
      * @throws ConfigurationException
      * @throws ReplicatorException
      */
-    public static AuthenticationInfo loadAuthenticationInformation(String propertiesFileLocation)
-    throws ConfigurationException
+    public static AuthenticationInfo loadAuthenticationInformation(
+            String propertiesFileLocation) throws ConfigurationException
     {
         return loadAuthenticationInformation(propertiesFileLocation, true);
     }
 
     public static AuthenticationInfo loadAuthenticationInformation(
-            String propertiesFileLocation,
-            boolean doConsistencyChecks
-            )
+            String propertiesFileLocation, boolean doConsistencyChecks)
             throws ConfigurationException
     {
         // Load properties and perform substitution
@@ -205,12 +197,12 @@ public class SecurityHelper
             if (doConsistencyChecks)
                 throw ce;
         }
-        
 
-        AuthenticationInfo authInfo = new AuthenticationInfo(propertiesFileLocation);
+        AuthenticationInfo authInfo = new AuthenticationInfo(
+                propertiesFileLocation);
 
         // Authorisation and/or encryption
-        if (securityProperties!=null)
+        if (securityProperties != null)
         {
             securityProperties.trim(); // Remove white spaces
             boolean useAuthentication = securityProperties.getBoolean(
@@ -264,7 +256,9 @@ public class SecurityHelper
 
             // --- Check information is correct ---
             if (doConsistencyChecks)
-                authInfo.checkAuthenticationInfo(); // Checks authentication and encryption parameters: file exists, ...
+                authInfo.checkAuthenticationInfo(); // Checks authentication and
+                                                    // encryption parameters:
+                                                    // file exists, ...
 
             // --- Set critical properties as System Properties ---
             SecurityHelper.setSecurityProperties(authInfo, false);
@@ -284,7 +278,7 @@ public class SecurityHelper
     {
         if (verbose)
         {
-            logger.info("Setting security properties!");
+            CLUtils.println("Setting security properties!");
         }
         setSystemProperty("javax.net.ssl.keyStore",
                 authInfo.getKeystoreLocation(), verbose);
@@ -308,7 +302,7 @@ public class SecurityHelper
     {
         if (verbose)
         {
-            logger.info("Setting system property: name=" + name + " value="
+            CLUtils.println("Setting system property: name=" + name + " value="
                     + value);
         }
         System.setProperty(name, value);
@@ -364,7 +358,7 @@ public class SecurityHelper
             String msg = MessageFormat.format(
                     "Cannot find configuration file: {0}",
                     securityPropertiesFile.getPath());
-            logger.error(msg);
+            logger.debug(msg, e);
             throw new ConfigurationException(msg);
         }
         catch (IOException e)
@@ -372,7 +366,7 @@ public class SecurityHelper
             String msg = MessageFormat.format(
                     "Cannot load configuration file: {0}.\n Reason: {1}",
                     securityPropertiesFile.getPath(), e.getMessage());
-            logger.error(msg);
+            logger.debug(msg, e);
             throw new ConfigurationException(msg);
         }
 
