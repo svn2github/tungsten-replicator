@@ -167,7 +167,7 @@ public class OpenReplicatorManagerCtrl
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("             [-values]         - Print only the values in plain text");
         println("  purge [-y] [-limit s]        - Purge non-Tungsten logins on DBMS, waiting up to s seconds");
-        println("  reset {-all | -thl | -relay | -db} [-y]");
+        println("  reset [-y] {-all | -thl | -relay | -db}");
         println("                               - Deletes the replicator service (-all or empty), thl directory,");
         println("                                 relay logs directory or tungsten database for the service");
         println("  restore [-uri u] [-limit s]  - Restore database");
@@ -805,10 +805,15 @@ public class OpenReplicatorManagerCtrl
                     .format("Do you really want to delete replication service %s completely?",
                             service));
         else
+        {
             while (argvIterator.hasNext())
             {
                 String curOption = argvIterator.next();
-                if ("-all".equalsIgnoreCase(curOption))
+                if ("-y".equals(curOption))
+                {
+                    yes = true;
+                }
+                else if ("-all".equalsIgnoreCase(curOption))
                 {
                     yes = confirm(String
                             .format("Do you really want to delete replication service %s completely?",
@@ -848,6 +853,7 @@ public class OpenReplicatorManagerCtrl
                     fatal("Unrecognized option for reset command : "
                             + curOption, null);
             }
+        }
 
         if (yes)
         {
