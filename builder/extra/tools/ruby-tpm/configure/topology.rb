@@ -23,6 +23,13 @@ module Topology
   end
   
   def enabled?
+    if Configurator.instance.is_enterprise?()
+      enable_all_topologies = @config.getProperty([DATASERVICES, @ds_alias, DATASERVICE_ENABLE_ALL_TOPOLOGIES])
+      if enable_all_topologies == "true"
+        return true
+      end
+    end
+    
     if use_management?()
       # Managed topologies are only enabled if this isn't a 
       # clustering build

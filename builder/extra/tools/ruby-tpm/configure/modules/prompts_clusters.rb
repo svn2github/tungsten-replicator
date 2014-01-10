@@ -27,6 +27,7 @@ DATASERVICE_MASTER_SERVICES = "dataservice_master_services"
 DATASERVICE_HUB_MEMBER = "dataservice_hub_host"
 DATASERVICE_HUB_SERVICE = "dataservice_hub_service"
 TARGET_DATASERVICE = "target_dataservice"
+DATASERVICE_ENABLE_ALL_TOPOLOGIES = "dataservice_enable_all_topologies"
 
 class Clusters < GroupConfigurePrompt
   def initialize
@@ -867,6 +868,23 @@ class DataserviceEnableInstrumentation < ConfigurePrompt
   
   def get_command_line_aliases
     ["enable-instrumentation"]
+  end
+end
+
+class DataserviceEnableAllTopologies < ConfigurePrompt
+  include ClusterPrompt
+  include HiddenValueModule
+  include NoReplicatorRestart
+  include NoConnectorRestart
+  
+  def initialize
+    super(DATASERVICE_ENABLE_ALL_TOPOLOGIES, 
+      "Should we deploy all topologies that are defined?", PV_BOOLEAN, "false")
+    override_command_line_argument("enable-all-topologies")
+  end
+  
+  def get_command_line_argument_value
+    "true"
   end
 end
 
