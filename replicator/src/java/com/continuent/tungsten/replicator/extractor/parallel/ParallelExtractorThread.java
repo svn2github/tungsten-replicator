@@ -48,7 +48,6 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
-import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 
@@ -186,11 +185,11 @@ public class ParallelExtractorThread extends Thread
                     if (rs.next())
                     {
                         RowChangeData rowChangeData = new RowChangeData();
-                        StatementData stmtData = new StatementData(
-                                "TRUNCATE TABLE "
-                                        + chunk.getTable().getSchema() + "."
-                                        + chunk.getTable().getName());
-                        dataArray.add(stmtData);
+                        // StatementData stmtData = new StatementData(
+                        // "TRUNCATE TABLE "
+                        // + chunk.getTable().getSchema() + "."
+                        // + chunk.getTable().getName());
+                        // dataArray.add(stmtData);
                         dataArray.add(rowChangeData);
 
                         int rowIndex = 0;
