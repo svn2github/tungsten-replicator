@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -77,6 +78,12 @@ public class OracleDatabase extends AbstractDatabase
             "TRIGGER", "UID", "UNION", "UNIQUE", "UPDATE", "USER", "VALIDATE",
             "VALUES", "VARCHAR", "VARCHAR2", "VIEW", "WHENEVER", "WHERE",
             "WITH"                                                            }));
+
+    private static final List<String> SYSTEM_SCHEMAS             = Arrays.asList(new String[]{
+            "SYS", "SYSMAN", "SYSTEM", "TSMSYS", "WMSYS", "XDB",
+            "SI_INFORMTN_SCHEMA", "ANONYMOUS", "CTXSYS", "DBSNMP", "DIP",
+            "DMSYS", "EXFSYS", "MDDATA", "MDSYS", "MGMT_VIEW", "OLAPSYS",
+            "ORACLE_OCM", "ORDPLUGINS", "ORDSYS", "OUTLN"             });
 
     public OracleDatabase()
     {
@@ -628,7 +635,7 @@ public class OracleDatabase extends AbstractDatabase
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
         // TODO: Implement ability to fetch base tables properly.
-        return md.getTables(schemaName, null, null, null);
+        return md.getTables(null, schemaName, null, null);
     }
 
     public String getNowFunction()
@@ -980,4 +987,28 @@ public class OracleDatabase extends AbstractDatabase
         }
         // else no change table, as table type is not CDC like
     }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#isSystemSchema(java.lang.String)
+     */
+    @Override
+    public boolean isSystemSchema(String schemaName)
+    {
+        return SYSTEM_SCHEMAS.contains(schemaName);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#getDatabaseObjectName(java.lang.String)
+     */
+    @Override
+    public String getDatabaseObjectName(String name)
+    {
+        // TODO Auto-generated method stub
+        return '\"' + name + '\"';
+    }
+
 }

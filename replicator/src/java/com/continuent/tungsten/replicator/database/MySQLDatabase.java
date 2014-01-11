@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,9 +48,12 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange;
  */
 public class MySQLDatabase extends AbstractDatabase
 {
-    private static Logger logger                        = Logger.getLogger(MySQLDatabase.class);
+    private static Logger             logger                        = Logger.getLogger(MySQLDatabase.class);
 
-    private boolean       sessionLevelLoggingSuppressed = false;
+    private boolean                   sessionLevelLoggingSuppressed = false;
+
+    private static final List<String> SYSTEM_SCHEMAS                = Arrays.asList(new String[]{
+            "mysql", "performance_schema", "information_schema"     });
 
     public MySQLDatabase() throws SQLException
     {
@@ -615,10 +619,10 @@ public class MySQLDatabase extends AbstractDatabase
      */
     public boolean supportsUserManagement()
     {
-        // This requires a privileged account. 
+        // This requires a privileged account.
         if (isPrivileged())
             return true;
-        else 
+        else
             return false;
     }
 
@@ -712,7 +716,7 @@ public class MySQLDatabase extends AbstractDatabase
     @Override
     public void kill(Session session) throws SQLException, ReplicatorException
     {
-        // This requires a privileged account. 
+        // This requires a privileged account.
         if (!isPrivileged())
         {
             throw new ReplicatorException(
@@ -721,4 +725,16 @@ public class MySQLDatabase extends AbstractDatabase
         String sql = String.format("kill %s", session.getIdentifier());
         execute(sql);
     }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#isSystemSchema(java.lang.String)
+     */
+    @Override
+    public boolean isSystemSchema(String schemaName)
+    {
+        return SYSTEM_SCHEMAS.contains(schemaName);
+    }
+
 }

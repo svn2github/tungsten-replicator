@@ -1301,4 +1301,16 @@ public abstract class AbstractDatabase implements Database
         dropSchema(schemaName);
     }
 
+    /**
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.database.Database#isSystemSchema(java.lang.String)
+     */
+    @Override
+    public boolean isSystemSchema(String schemaName)
+    {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    
 }
