@@ -226,14 +226,30 @@ public class THLManagerCtrl
      * 
      * @param charset character set name to be used to decode byte arrays in row
      *            replication
+     * @param specs Provide column specifications.
      */
     public static String formatColumn(OneRowChange.ColumnSpec colSpec,
             OneRowChange.ColumnVal value, String prefix, String charset,
-            boolean hex)
+            boolean hex, boolean specs)
     {
         String log = "  - " + prefix + "(";
         if (colSpec != null)
-            log += colSpec.getIndex() + ": " + colSpec.getName();
+        {
+            if (specs)
+            {
+                log += "index=" + colSpec.getIndex();
+                log += " name=" + colSpec.getName();
+                log += " type=" + colSpec.getType();
+                log += " length=" + colSpec.getLength();
+                log += " unsigned=" + colSpec.isUnsigned();
+                log += " blob=" + colSpec.isBlob();
+                log += " desc=" + colSpec.getTypeDescription();
+            }
+            else
+            {
+                log += colSpec.getIndex() + ": " + colSpec.getName();
+            }
+        }
         log += ") = ";
         if (value != null)
             if (value.getValue() != null)
@@ -345,8 +361,8 @@ public class THLManagerCtrl
      * @throws InterruptedException
      */
     public void listEvents(Long low, Long high, Long by, boolean pureSQL,
-            boolean headersOnly, boolean json, String charset, boolean hex)
-            throws ReplicatorException, InterruptedException
+            boolean headersOnly, boolean json, String charset, boolean hex,
+            boolean specs) throws ReplicatorException, InterruptedException
     {
         // Make sure range is OK.
         if (low != null && high != null && low > high)
@@ -442,7 +458,7 @@ public class THLManagerCtrl
                 {
                     ReplDBMSEvent event = (ReplDBMSEvent) replEvent;
                     StringBuilder sb = new StringBuilder();
-                    printReplDBMSEvent(sb, event, pureSQL, charset, hex);
+                    printReplDBMSEvent(sb, event, pureSQL, charset, hex, specs);
                     print(sb.toString());
                 }
                 else
@@ -589,9 +605,11 @@ public class THLManagerCtrl
      * @param charset character set name to be used to decode byte arrays in row
      *            replication
      * @param hex If true print hex representation of strings
+     * @param specs Provide column specifications.
      */
     public static void printReplDBMSEvent(StringBuilder stringBuilder,
-            ReplDBMSEvent event, boolean pureSQL, String charset, boolean hex)
+            ReplDBMSEvent event, boolean pureSQL, String charset, boolean hex,
+            boolean specs)
     {
         if (event == null)
         {
@@ -648,7 +666,8 @@ public class THLManagerCtrl
             {
                 RowChangeData rowChange = (RowChangeData) dataElem;
                 lastSchema = printRowChangeData(stringBuilder, rowChange,
-                        lastSchema, pureSQL, i, charset, hex, event.getSeqno());
+                        lastSchema, pureSQL, i, charset, hex, specs,
+                        event.getSeqno());
             }
             else if (dataElem instanceof StatementData)
             {
@@ -765,11 +784,12 @@ public class THLManagerCtrl
      * @param sqlIndex Which SQL event is it.
      * @param charset character set name to be used to decode byte arrays in row
      *            replication
+     * @param specs Provide column specifications.
      * @return Last printed schema name.
      */
     private static String printRowChangeData(StringBuilder stringBuilder,
             RowChangeData rowChange, String lastSchema, boolean pureSQL,
-            int sqlIndex, String charset, boolean hex, long seqno)
+            int sqlIndex, String charset, boolean hex, boolean specs, long seqno)
     {
         printOptions(stringBuilder, rowChange.getOptions(), pureSQL);
         if (!pureSQL)
@@ -817,7 +837,7 @@ public class THLManagerCtrl
                             OneRowChange.ColumnVal value = values.get(c);
                             println(stringBuilder,
                                     formatColumn(colSpec, value, "COL",
-                                            charset, hex));
+                                            charset, hex, specs));
                         }
                     }
                     else if (columns.size() > 0)
@@ -850,7 +870,7 @@ public class THLManagerCtrl
                                 value = values.get(k);
                             println(stringBuilder,
                                     formatColumn(colSpec, value, "KEY",
-                                            charset, hex));
+                                            charset, hex, specs));
                         }
                     }
                 }
@@ -915,6 +935,7 @@ public class THLManagerCtrl
             Long high = null;
             Long by = null;
             Boolean pureSQL = null;
+            Boolean specs = null;
             Boolean headersOnly = null;
             Boolean json = null;
             Boolean yesToQuestions = null;
@@ -943,6 +964,8 @@ public class THLManagerCtrl
                     by = Long.parseLong(argvIterator.next());
                 else if ("-sql".equals(curArg))
                     pureSQL = true;
+                else if ("-specs".equals(curArg))
+                    specs = true;
                 else if ("-headers".equals(curArg))
                     headersOnly = true;
                 else if ("-json".equals(curArg))
@@ -1044,18 +1067,18 @@ public class THLManagerCtrl
                 {
                     thlManager.listEvents(fileName, getBoolOrFalse(pureSQL),
                             getBoolOrFalse(headersOnly), getBoolOrFalse(json),
-                            charsetName, hex);
+                            charsetName, hex, getBoolOrFalse(specs));
                 }
                 else if (seqno == null)
                     thlManager.listEvents(low, high, by,
                             getBoolOrFalse(pureSQL),
                             getBoolOrFalse(headersOnly), getBoolOrFalse(json),
-                            charsetName, hex);
+                            charsetName, hex, getBoolOrFalse(specs));
                 else
                     thlManager.listEvents(seqno, seqno, by,
                             getBoolOrFalse(pureSQL),
                             getBoolOrFalse(headersOnly), getBoolOrFalse(json),
-                            charsetName, hex);
+                            charsetName, hex, getBoolOrFalse(specs));
             }
             else if (THLCommands.PURGE.equals(command))
             {
@@ -1202,8 +1225,9 @@ public class THLManagerCtrl
      * @param hex If true print hex representation of strings
      */
     private void listEvents(String fileName, boolean pureSQL,
-            boolean headersOnly, boolean json, String charset, boolean hex)
-            throws ReplicatorException, IOException, InterruptedException
+            boolean headersOnly, boolean json, String charset, boolean hex,
+            boolean specs) throws ReplicatorException, IOException,
+            InterruptedException
     {
         // Ensure we have a simple file name. Log APIs will not accept an
         // absolute path.
@@ -1252,7 +1276,7 @@ public class THLManagerCtrl
                 {
                     ReplDBMSEvent event = (ReplDBMSEvent) replEvent;
                     StringBuilder sb = new StringBuilder();
-                    printReplDBMSEvent(sb, event, pureSQL, charset, hex);
+                    printReplDBMSEvent(sb, event, pureSQL, charset, hex, specs);
                     print(sb.toString());
                 }
                 else
@@ -1289,6 +1313,7 @@ public class THLManagerCtrl
         println("  list [-file <file_name>]        - Dump the content of the given log file");
         println("       [-charset <charset>] [-hex]  Character set used for decoding row data");
         println("       [-sql]                       Representative (no metadata!) SQL mode");
+        println("       [-specs]                     Add detailed column specifications");
         println("       [-headers]                   Print headers only");
         println("       [-json]                      Output in machine-parsable JSON format");
         println("       [-no-checksum]               Suppress checksums");
