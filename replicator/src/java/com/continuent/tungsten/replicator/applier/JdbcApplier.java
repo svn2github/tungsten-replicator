@@ -1182,7 +1182,7 @@ public class JdbcApplier implements RawApplier
                 OneRowChange.ColumnVal value = values.get(c);
                 log.append('\n');
                 log.append(THLManagerCtrl.formatColumn(colSpec, value, "COL",
-                        "utf8", false));
+                        "utf8", false, true));
             }
         }
         // Print key values.
@@ -1195,7 +1195,7 @@ public class JdbcApplier implements RawApplier
                 OneRowChange.ColumnVal value = values.get(k);
                 log.append('\n');
                 log.append(THLManagerCtrl.formatColumn(colSpec, value, "KEY",
-                        "utf8", false));
+                        "utf8", false, true));
             }
         }
         return log.toString();

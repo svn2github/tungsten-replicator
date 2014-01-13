@@ -53,7 +53,7 @@ public class LoggingFilter implements Filter
                 StringBuilder stringBuilder = new StringBuilder();
                 THLManagerCtrl.printHeader(stringBuilder, event);
                 THLManagerCtrl.printReplDBMSEvent(stringBuilder, event, false,
-                        null, false);
+                        null, false, true);
                 logger.info("Filtered event: "
                         + stringBuilder.toString().trim());
             }
