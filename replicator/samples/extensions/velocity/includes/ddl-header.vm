@@ -8,3 +8,8 @@ dbName = $dbName
 rename = $renameDefinitions.getDefinitionsFile()
 #end
 */
+## Check for missing table information.
+#if ( !$table )
+/* ERROR: no tables found! Is database and tables option specified correctly? */
+#stop
+#end
