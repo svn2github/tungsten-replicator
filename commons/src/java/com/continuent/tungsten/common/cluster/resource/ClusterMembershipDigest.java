@@ -150,7 +150,13 @@ public class ClusterMembershipDigest
         ClusterMember cm = potentialQuorumMembersSet.get(member);
         if (cm != null)
         {
+            if (cm.getValidated() == valid)
+            {
+                return;
+            }
+
             cm.setValidated(valid);
+
             if (valid)
             {
                 validated++;
@@ -169,6 +175,9 @@ public class ClusterMembershipDigest
         ClusterMember cm = potentialQuorumMembersSet.get(member);
         if (cm != null)
         {
+            if (cm.getReachable() == reached)
+                return;
+
             cm.setReachable(reached);
 
             if (reached)
@@ -181,6 +190,9 @@ public class ClusterMembershipDigest
             ClusterMember witness = witnessSet.get(member);
             if (member.equals(witness.getName()))
             {
+                if (witness.getReachable() == reached)
+                    return;
+
                 witness.setReachable(reached);
                 if (reached)
                 {
@@ -374,7 +386,9 @@ public class ClusterMembershipDigest
         {
             if (verbose)
             {
-                CLUtils.println("INVALID POTENTIAL QUORUM MEMBERS SET: GROUP COMMUNICATION VIEW NOT TOTALLY VALIDATED");
+                CLUtils.println(String
+                        .format("INVALID POTENTIAL QUORUM MEMBERS SET: VALIDATED COUNT %d NOT EQUAL TO VIEW COUNT %d",
+                                validated, viewMembers.size()));
                 CLUtils.println("(GROUP COMMUNICATIONS MAY BE MISCONFIGURED OR BLOCKED BY A FIREWALL)");
             }
             return false;
@@ -438,7 +452,7 @@ public class ClusterMembershipDigest
             CLUtils.println("CONCLUSION: UNABLE TO ESTABLISH MAJORITY DUE TO INVALID POTENTIAL QUORUM MEMBERS SET");
             return false;
         }
-        
+
         if (!this.isValidMembership(verbose))
         {
             CLUtils.println("CONCLUSION: MEMBERSHIP IS INVALID. FIREWALL OR CONFIGURATION ISSUE");

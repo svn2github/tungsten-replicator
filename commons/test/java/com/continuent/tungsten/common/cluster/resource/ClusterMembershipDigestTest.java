@@ -32,6 +32,8 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
+import com.continuent.tungsten.common.utils.CLUtils;
+
 /**
  * Implements a unit test of IndexedLRUCache features.
  * 
@@ -113,13 +115,13 @@ public class ClusterMembershipDigestTest
 
     /**
      * Verify that a quorum set is a primary partition if there is a simple
-     * majority of validated nodes.
+     * majority of nodes where all nodes in the view are validated.
      */
-    //@Test
+    @Test
     public void testSimpleMajority() throws Exception
     {
         List<String> configured = Arrays.asList("a", "b", "c");
-        List<String> view = Arrays.asList("a", "b", "c");
+        List<String> view = Arrays.asList("a", "b");
         ClusterMembershipDigest digest = new ClusterMembershipDigest("a",
                 configured, view, null);
 
@@ -127,38 +129,71 @@ public class ClusterMembershipDigestTest
         // partition.
         Assert.assertFalse("0 of 3 validated is not majority",
                 digest.isInPrimaryPartition(true));
-        digest.setValidated("b", true);
+        
+        // I need to be sure that 'myself' is validated. But that's not enough
+        // for a majority.
+        CLUtils.println("About to set validated for a");
+        digest.setValidated("a", true);
         Assert.assertFalse("1 of 3 validated is not majority",
                 digest.isInPrimaryPartition(true));
 
-        // 2 of 3 and 3 of 3 is of course a majority.
-        digest.setValidated("c", true);
+        // 2 of 3 is a majority.
+        digest.setValidated("b", true);
         Assert.assertTrue("2 of 3 validated is a majority",
                 digest.isInPrimaryPartition(true));
-        digest.setValidated("a", true);
-        Assert.assertTrue("3 of 3 validated is a majority",
+       
+        // Validating a member that does not appear in the view
+        // should cause an error
+        digest.setValidated("c", true);
+        Assert.assertFalse("3 validated out of a view size of 2 is invalid",
                 digest.isInPrimaryPartition(true));
+        
+        
+        /*
+         * Test for a majority of four configured members.
+         */
+        configured = Arrays.asList("a", "b", "c", "d");
+        view = Arrays.asList("a", "b", "c");
+        digest = new ClusterMembershipDigest("a",
+                configured, view, null);
+        
+        // I need to be sure that 'myself' is validated. But that's not enough
+        // for a majority.
+        digest.setValidated("a", true);
+        Assert.assertFalse("1 of 4 validated is not majority",
+                digest.isInPrimaryPartition(true));
+
+        // 2 of 4 is not a majority.
+        digest.setValidated("b", true);
+        Assert.assertFalse("2 of 4 validated is not a majority",
+                digest.isInPrimaryPartition(true));
+        
+        // 3 of 4 is a majority.
+        digest.setValidated("c", true);
+        Assert.assertTrue("3 of 4 validated is a majority",
+                digest.isInPrimaryPartition(true));
+
     }
 
     /**
      * Verify that a quorum set with an even number of validate nodes plus a
      * reachable witness is a primary partition.
      */
-    //@Test
+    @Test
     public void testWitness() throws Exception
     {
         List<String> configured = Arrays.asList("a", "b");
-        List<String> view = Arrays.asList("a", "b");
+        List<String> view = Arrays.asList("a");
         List<String> witnesses = Arrays.asList("c", "d");
         ClusterMembershipDigest digest = new ClusterMembershipDigest("a",
                 configured, view, witnesses);
 
-        // If we have not validated half of members plus reached all witnesses
-        // we don't have a majority.
-        digest.setValidated("b", true);
+        // Always validate ourself, but that is not enough for a quorum...
+        digest.setValidated("a", true);
         Assert.assertFalse(
                 "1 of 2 validated without witnesses is not majority",
                 digest.isInPrimaryPartition(true));
+        
         digest.setReachable("c", true);
         Assert.assertFalse(
                 "1 of 2 validated without all witnesses reachable is not majority",

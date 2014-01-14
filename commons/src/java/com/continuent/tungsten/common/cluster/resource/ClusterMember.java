@@ -29,12 +29,12 @@ package com.continuent.tungsten.common.cluster.resource;
  */
 public class ClusterMember
 {
-    private String  name;
-    private boolean configured;
-    private boolean inView;
-    private boolean witness;
-    private Boolean validated;
-    private Boolean reachable;
+    private String  name       = null;
+    private boolean configured = false;
+    private boolean inView     = false;
+    private boolean witness    = false;
+    private boolean validated  = false;
+    private boolean reachable  = false;
 
     /**
      * Instantiate a new member record.
