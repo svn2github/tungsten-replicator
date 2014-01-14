@@ -62,7 +62,7 @@ public class ClusterMembershipDigestTest
                 .getViewSetMembers().size());
         Assert.assertEquals("Witness set size", 1, digest
                 .getWitnessSetMembers().size());
-        assertEqualSet("Quorum set", quorumSet, digest.getQuorumSetNames());
+        assertEqualSet("Quorum set", quorumSet, digest.getPotentialQuorumMembersSetNames());
     }
 
     /**
@@ -194,31 +194,31 @@ public class ClusterMembershipDigestTest
         ClusterMembershipDigest badMemberName = new ClusterMembershipDigest(
                 "c", configured, view, null);
         Assert.assertFalse("Member must be in quorum set",
-                badMemberName.isValidQuorumSet(true));
+                badMemberName.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that quorum set must be non-null.
         ClusterMembershipDigest emptyQuorum = new ClusterMembershipDigest("a",
                 new ArrayList<String>(), null, null);
         Assert.assertFalse("Quorum set must non-null",
-                emptyQuorum.isValidQuorumSet(true));
+                emptyQuorum.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that GC view contains members.
         ClusterMembershipDigest emptyView = new ClusterMembershipDigest("a",
                 configured, null, null);
         Assert.assertFalse("View must have members",
-                emptyView.isValidQuorumSet(true));
+                emptyView.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that GC view contains the member name.
         ClusterMembershipDigest memberNotInView = new ClusterMembershipDigest(
                 "a", configured, Arrays.asList("b"), null);
         Assert.assertFalse("View must contain the member name",
-                memberNotInView.isValidQuorumSet(true));
+                memberNotInView.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that configured list has at least one member.
         ClusterMembershipDigest noConfiguredNames = new ClusterMembershipDigest(
                 "a", null, Arrays.asList("a"), null);
         Assert.assertFalse("Configured names must include at least one name",
-                noConfiguredNames.isValidQuorumSet(true));
+                noConfiguredNames.isValidPotentialQuorumMembersSet(true));
     }
 
     // Assert that two lists contain identical members.

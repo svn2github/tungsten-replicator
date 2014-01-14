@@ -40,20 +40,20 @@ public class ClusterMembershipDigest
 {
     // Base data.
     private String                         name;
-    private Vector<String>                 configuredMembers  = new Vector<String>();
-    private Vector<String>                 viewMembers        = new Vector<String>();
-    private Vector<String>                 witnessMembers     = new Vector<String>();
+    private Vector<String>                 configuredMembers         = new Vector<String>();
+    private Vector<String>                 viewMembers               = new Vector<String>();
+    private Vector<String>                 witnessMembers            = new Vector<String>();
 
     // Set consisting of union of all known members.
-    private HashMap<String, ClusterMember> quorumSet          = new HashMap<String, ClusterMember>();
+    private HashMap<String, ClusterMember> potentialQuorumMembersSet = new HashMap<String, ClusterMember>();
 
     // Witness host definition, if used.
-    private HashMap<String, ClusterMember> witnessSet         = new HashMap<String, ClusterMember>();
+    private HashMap<String, ClusterMember> witnessSet                = new HashMap<String, ClusterMember>();
 
     // Counters for number of members marked validated and reachable.
-    private int                            validated          = 0;
-    private int                            reachable          = 0;
-    private int                            reachableWitnesses = 0;
+    private int                            validated                 = 0;
+    private int                            reachable                 = 0;
+    private int                            reachableWitnesses        = 0;
 
     /**
      * Instantiates a digest used to compute whether the member that creates the
@@ -84,31 +84,33 @@ public class ClusterMembershipDigest
         }
 
         // Construct quorum set.
-        deriveQuorumSet();
+        derivePotentialQuorumMembersSet();
     }
 
-    // Construct the quorum set, which is the union of the configured and view
-    // members.
-    private void deriveQuorumSet()
+    /*
+     * Construct the set of all members, which is the union of the configured
+     * and view members, that could potentially be in the quorum set.
+     */
+    private void derivePotentialQuorumMembersSet()
     {
         // Add configured members first.
         for (String name : configuredMembers)
         {
             ClusterMember cm = new ClusterMember(name);
             cm.setConfigured(true);
-            quorumSet.put(name, cm);
+            potentialQuorumMembersSet.put(name, cm);
         }
 
         // Now iterate across the view members and add new member definitions or
         // update existing ones.
         for (String name : viewMembers)
         {
-            ClusterMember cm = quorumSet.get(name);
+            ClusterMember cm = potentialQuorumMembersSet.get(name);
             if (cm == null)
             {
                 cm = new ClusterMember(name);
                 cm.setInView(true);
-                quorumSet.put(name, cm);
+                potentialQuorumMembersSet.put(name, cm);
             }
             else
             {
@@ -134,7 +136,7 @@ public class ClusterMembershipDigest
     /** Return the number of members required to have a simple majority. */
     public int getSimpleMajoritySize()
     {
-        return ((quorumSet.size() / 2) + 1);
+        return ((potentialQuorumMembersSet.size() / 2) + 1);
     }
 
     /**
@@ -145,12 +147,14 @@ public class ClusterMembershipDigest
      */
     public void setValidated(String member, boolean valid)
     {
-        ClusterMember cm = quorumSet.get(member);
+        ClusterMember cm = potentialQuorumMembersSet.get(member);
         if (cm != null)
         {
             cm.setValidated(valid);
             if (valid)
+            {
                 validated++;
+            }
         }
     }
 
@@ -162,29 +166,36 @@ public class ClusterMembershipDigest
      */
     public void setReachable(String member, boolean reached)
     {
-        ClusterMember cm = quorumSet.get(member);
+        ClusterMember cm = potentialQuorumMembersSet.get(member);
         if (cm != null)
         {
-            cm.setReachable(true);
-            reachable++;
+            cm.setReachable(reached);
+
+            if (reached)
+            {
+                reachable++;
+            }
         }
         else
         {
             ClusterMember witness = witnessSet.get(member);
             if (member.equals(witness.getName()))
             {
-                witness.setReachable(true);
-                reachableWitnesses++;
+                witness.setReachable(reached);
+                if (reached)
+                {
+                    reachableWitnesses++;
+                }
             }
         }
     }
 
     /** Return quorum set members. */
-    public List<ClusterMember> getQuorumSetMembers()
+    public List<ClusterMember> getPotentialQuorumMembersSet()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
-                quorumSet.size());
-        list.addAll(quorumSet.values());
+                potentialQuorumMembersSet.size());
+        list.addAll(potentialQuorumMembersSet.values());
         return list;
     }
 
@@ -195,7 +206,7 @@ public class ClusterMembershipDigest
                 configuredMembers.size());
         for (String name : configuredMembers)
         {
-            list.add(quorumSet.get(name));
+            list.add(potentialQuorumMembersSet.get(name));
         }
         return list;
     }
@@ -207,7 +218,7 @@ public class ClusterMembershipDigest
                 viewMembers.size());
         for (String name : viewMembers)
         {
-            list.add(quorumSet.get(name));
+            list.add(potentialQuorumMembersSet.get(name));
         }
         return list;
     }
@@ -228,7 +239,7 @@ public class ClusterMembershipDigest
     public List<ClusterMember> getValidatedMembers()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(validated);
-        for (ClusterMember cm : quorumSet.values())
+        for (ClusterMember cm : potentialQuorumMembersSet.values())
         {
             // Validated members must have been checked *and* must have
             // a true value.
@@ -243,7 +254,7 @@ public class ClusterMembershipDigest
     public List<ClusterMember> getReachableMembers()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(validated);
-        for (ClusterMember cm : quorumSet.values())
+        for (ClusterMember cm : potentialQuorumMembersSet.values())
         {
             // Reachable members must have been checked *and* must have
             // a true value.
@@ -271,9 +282,9 @@ public class ClusterMembershipDigest
     }
 
     /** Return member names from the quorum set. */
-    public List<String> getQuorumSetNames()
+    public List<String> getPotentialQuorumMembersSetNames()
     {
-        return clusterMembersToNames(quorumSet.values());
+        return clusterMembersToNames(potentialQuorumMembersSet.values());
     }
 
     /** Return validated member names. */
@@ -306,21 +317,21 @@ public class ClusterMembershipDigest
     }
 
     /**
-     * Test to see if we have a valid quorum set. This checks a number of
-     * conditions that if violated indicate that the manager is either
-     * misconfigured or group communications is misbehaving, which in turn could
-     * lead to an invalid computation of quorum.
+     * Test to see if we have a valid set of potential quorum members. This
+     * checks a number of conditions that if violated indicate that the manager
+     * is either misconfigured or group communications is misbehaving, which in
+     * turn could lead to an invalid computation of quorum.
      * 
      * @return Returns true if the
      */
-    public boolean isValidQuorumSet(boolean verbose)
+    public boolean isValidPotentialQuorumMembersSet(boolean verbose)
     {
         if (configuredMembers.size() == 0)
         {
             // The quorum set must contain at least one configured member.
             if (verbose)
             {
-                CLUtils.println("INVALID QUORUM SET: NO CONFIGURED MEMBERS FOUND");
+                CLUtils.println("INVALID POTENTIAL QUORUM MEMBERS SET: NO CONFIGURED MEMBERS FOUND");
                 CLUtils.println("(ENSURE THAT dataservices.properties FILE CONTAINS AT LEAST MEMBER "
                         + name + ")");
             }
@@ -331,29 +342,39 @@ public class ClusterMembershipDigest
             // The quorum set must contain at least one member in the GC view.
             if (verbose)
             {
-                CLUtils.println("INVALID QUORUM SET: GROUP COMMUNICATION VIEW CONTAINS NO MEMBERS");
+                CLUtils.println("INVALID POTENTIAL QUORUM MEMBERS SET: GROUP COMMUNICATION VIEW CONTAINS NO MEMBERS");
                 CLUtils.println("(GROUP COMMUNICATIONS MAY BE MISCONFIGURED OR BLOCKED BY A FIREWALL)");
             }
             return false;
         }
-        else if (quorumSet.get(name) == null)
+        else if (potentialQuorumMembersSet.get(name) == null)
         {
             // The quorum set must contain the current member.
             if (verbose)
             {
-                CLUtils.println("INVALID QUORUM SET: THIS MEMBER " + name
-                        + " IS NOT LISTED");
+                CLUtils.println("INVALID POTENTIAL QUORUM MEMBERS SET: THIS MEMBER "
+                        + name + " IS NOT LISTED");
                 CLUtils.println("(GROUP COMMUNICATIONS MAY BE MISCONFIGURED OR BLOCKED BY A FIREWALL; MEMBER NAME MAY BE MISSING FROM dataservices.properties)");
             }
             return false;
         }
-        else if (!quorumSet.get(name).isInView())
+        else if (!potentialQuorumMembersSet.get(name).isInView())
         {
             // The member must be in the group communications view.
             if (verbose)
             {
-                CLUtils.println("INVALID QUORUM SET: THIS MEMBER " + name
+                CLUtils.println("INVALID POTENTIAL QUORUM MEMBERS SET: THIS MEMBER "
+                        + name
                         + " IS NOT LISTED IN THE GROUP COMMUNICATION VIEW");
+                CLUtils.println("(GROUP COMMUNICATIONS MAY BE MISCONFIGURED OR BLOCKED BY A FIREWALL)");
+            }
+            return false;
+        }
+        else if (validated != viewMembers.size())
+        {
+            if (verbose)
+            {
+                CLUtils.println("INVALID POTENTIAL QUORUM MEMBERS SET: GROUP COMMUNICATION VIEW NOT TOTALLY VALIDATED");
                 CLUtils.println("(GROUP COMMUNICATIONS MAY BE MISCONFIGURED OR BLOCKED BY A FIREWALL)");
             }
             return false;
@@ -384,12 +405,18 @@ public class ClusterMembershipDigest
      */
     public boolean isInPrimaryPartition(boolean verbose)
     {
+
+        int simpleMajority = this.getSimpleMajoritySize();
+
         // Print a message to explain what we are doing.
         if (verbose)
         {
-            CLUtils.println("CHECKING FOR QUORUM...");
+            CLUtils.println(String
+                    .format("CHECKING FOR QUORUM: MUST BE AT LEAST %d MEMBERS, OR %d MEMBERS PLUS ALL WITNESSES",
+                            simpleMajority, simpleMajority - 1));
             CLUtils.println("QUORUM SET MEMBERS ARE: "
-                    + CLUtils.iterableToCommaSeparatedList(getQuorumSetNames()));
+                    + CLUtils
+                            .iterableToCommaSeparatedList(getPotentialQuorumMembersSetNames()));
             CLUtils.println("SIMPLE MAJORITY SIZE: "
                     + this.getSimpleMajoritySize());
             CLUtils.println("VALIDATED MEMBERS ARE: "
@@ -406,45 +433,70 @@ public class ClusterMembershipDigest
         }
 
         // Ensure the quorum set is valid.
-        if (!this.isValidQuorumSet(verbose))
+        if (!this.isValidPotentialQuorumMembersSet(verbose))
         {
-            CLUtils.println("UNABLE TO ESTABLISH MAJORITY DUE TO INVALID QUORUM SET");
+            CLUtils.println("CONCLUSION: UNABLE TO ESTABLISH MAJORITY DUE TO INVALID POTENTIAL QUORUM MEMBERS SET");
+            return false;
+        }
+        
+        if (!this.isValidMembership(verbose))
+        {
+            CLUtils.println("CONCLUSION: MEMBERSHIP IS INVALID. FIREWALL OR CONFIGURATION ISSUE");
             return false;
         }
 
-        // If we have a valid quorum set with a single validated member, then we
-        // have a primary partition.
-        if (quorumSet.size() == 1 && validated == 1)
+        /*
+         * If we have a valid quorum set with a single validated member, then we
+         * have a primary partition. This case covers a cluster with a single
+         * master.
+         */
+        if (potentialQuorumMembersSet.size() == 1 && validated == 1)
         {
-            CLUtils.println("I AM IN A PRIMARY PARTITION AS THERE IS A SINGLE VALIDATED MEMBER IN THE QUORUM SET");
+            CLUtils.println("CONCLUSION: I AM IN A PRIMARY PARTITION AS THERE IS A SINGLE VALIDATED MEMBER IN THE QUORUM SET");
             return true;
         }
 
         // If we have a simple majority of validated members in the quorum set,
         // then we have a primary partition.
-        int simpleMajority = this.getSimpleMajoritySize();
         if (validated >= simpleMajority)
         {
             CLUtils.println(String
-                    .format("I AM IN A PRIMARY PARTITION OF %d MEMBERS OUT OF THE REQUIRED MAJORITY OF %d",
+                    .format("CONCLUSION: I AM IN A PRIMARY PARTITION OF %d MEMBERS OUT OF THE REQUIRED MAJORITY OF %d",
                             validated, simpleMajority));
             return true;
         }
 
-        // If we have an even quorum set, a reachable witness host and at
-        // least half the quorum members are validated, then we
-        // have a primary partition.
-        int halfQuorum = quorumSet.size() / 2;
-        if ((halfQuorum * 2) == quorumSet.size())
+        /*
+         * By the time we get here, 'validated' should be equal to 'viewMembers'
+         * since we will return the fact that the the potential quorum members
+         * set is invalid if they are not. So the test that uses 'validated'
+         * below should be sufficient to indicated that all members can be seen.
+         * If we are shy of a majority by one member, we can use witnesses, if
+         * they exist, to break the tie. But the key is that if there is more
+         * than one witness, we need to see ALL of the witnesses. Otherwise we
+         * could end up with a partition in which one partition sees one witness
+         * and the other partition sees another etc.
+         */
+        if (validated == simpleMajority - 1)
         {
             boolean witnessesOk = witnessSet.size() > 0
                     && (witnessSet.size() == reachableWitnesses);
+
             if (witnessesOk)
             {
                 CLUtils.println(String
-                        .format("I AM IN A PRIMARY PARTITION OF %d MEMBERS OUT OF THE REQUIRED MAJORITY OF %d PLUS %d REACHABLE WITNESSES",
-                                reachable, halfQuorum, reachableWitnesses));
+                        .format("CONCLUSION: I AM IN A PRIMARY PARTITION WITH %d REACHABLE MEMBERS AND ALL (%d) REACHABLE WITNESSES",
+                                reachable, reachableWitnesses));
                 return true;
+            }
+            else
+            {
+                CLUtils.println(String
+                        .format("CONCLUSION: I AM IN A NON-PRIMARY PARTITION OF %d MEMBERS OUT OF A REQUIRED MAJORITY SIZE OF %d\n"
+                                + "AND THERE ARE %d REACHABLE WITNESSES OUT OF %d",
+                                validated, getSimpleMajoritySize(),
+                                reachableWitnesses, witnessSet.size()));
+                return false;
             }
         }
 
@@ -452,7 +504,7 @@ public class ClusterMembershipDigest
         if (verbose)
         {
             CLUtils.println(String
-                    .format("I AM IN A NON-PRIMARY PARTITION OF %d MEMBERS OUT OF A REQUIRED MAJORITY SIZE OF %d",
+                    .format("CONCLUSION: I AM IN A NON-PRIMARY PARTITION OF %d MEMBERS OUT OF A REQUIRED MAJORITY SIZE OF %d\n",
                             validated, getSimpleMajoritySize()));
         }
         return false;
