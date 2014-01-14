@@ -115,7 +115,7 @@ public class ClusterMembershipDigestTest
      * Verify that a quorum set is a primary partition if there is a simple
      * majority of validated nodes.
      */
-    @Test
+    //@Test
     public void testSimpleMajority() throws Exception
     {
         List<String> configured = Arrays.asList("a", "b", "c");
@@ -144,7 +144,7 @@ public class ClusterMembershipDigestTest
      * Verify that a quorum set with an even number of validate nodes plus a
      * reachable witness is a primary partition.
      */
-    @Test
+    //@Test
     public void testWitness() throws Exception
     {
         List<String> configured = Arrays.asList("a", "b");
