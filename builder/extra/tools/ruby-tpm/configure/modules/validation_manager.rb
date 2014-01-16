@@ -234,6 +234,7 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
   
   def enabled?
     super() && (@config.getProperty(DATASERVICE_WITNESSES).to_s() != "") &&
-      (@config.getProperty(ENABLE_ACTIVE_WITNESSES) == "false")
+      (@config.getProperty(ENABLE_ACTIVE_WITNESSES) == "false") &&
+      (@config.getProperty(MGR_VALIDATE_WITNESS) == "true")
   end
 end

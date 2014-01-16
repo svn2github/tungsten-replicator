@@ -45,6 +45,7 @@ MGR_JAVA_ENABLE_CONCURRENT_GC = "mgr_java_enable_concurrent_gc"
 MGR_API = "mgr_api"
 MGR_API_PORT = "mgr_api_port"
 MGR_API_ADDRESS = "mgr_api_address"
+MGR_VALIDATE_WITNESS = "mgr_validate_witness"
 MGR_IS_WITNESS = "mgr_is_witness"
 MGR_REPL_DBLOGIN = "mgr_repl_user"
 MGR_REPL_DBPASSWORD = "mgr_repl_password"
@@ -720,6 +721,16 @@ class ManagerAPIAddress < ConfigurePrompt
     super(MGR_API_ADDRESS, "Address for the Manager API", PV_ANY, "127.0.0.1")
   end
 end
+
+class ManagerValidateWitness < ConfigurePrompt
+  include ManagerPrompt
+  include HiddenValueModule
+  
+  def initialize
+    super(MGR_VALIDATE_WITNESS, "Validate the subnet for dataservice witnesses", PV_BOOLEAN, "true")
+  end
+end
+
 
 class ManagerIsWitness < ConfigurePrompt
   include ManagerPrompt
