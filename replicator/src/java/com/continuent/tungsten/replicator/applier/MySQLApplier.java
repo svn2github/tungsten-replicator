@@ -206,7 +206,7 @@ public class MySQLApplier extends JdbcApplier
     {
 
         int type = columnSpec.getType();
-        
+
         if (type == Types.TIMESTAMP && value.getValue() instanceof Integer)
         {
             prepStatement.setInt(bindLoc, 0);
@@ -349,24 +349,28 @@ public class MySQLApplier extends JdbcApplier
             ((com.mysql.jdbc.Statement) statement)
                     .setLocalInfileInputStream(null);
         }
-        
+
         // Clean up the temp file as we may not get a delete file event.
         if (logger.isDebugEnabled())
         {
-            logger.debug("Deleting temp file: " + temporaryFile.getAbsolutePath());
+            logger.debug("Deleting temp file: "
+                    + temporaryFile.getAbsolutePath());
         }
         temporaryFile.delete();
     }
 
+    private static final char[] hexArray = "0123456789abcdef".toCharArray();
+
     protected String hexdump(byte[] buffer)
     {
-        StringBuffer dump = new StringBuffer();
-        for (int i = 0; i < buffer.length; i++)
+        char[] hexChars = new char[buffer.length * 2];
+        for (int j = 0; j < buffer.length; j++)
         {
-            dump.append(String.format("%02x", buffer[i]));
+            int v = buffer[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
-
-        return dump.toString();
+        return new String(hexChars);
     }
 
 }
