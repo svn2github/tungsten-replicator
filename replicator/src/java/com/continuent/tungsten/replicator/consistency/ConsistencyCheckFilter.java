@@ -48,8 +48,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class ConsistencyCheckFilter implements Filter
 {
-    static Logger   logger             = Logger
-                                               .getLogger(ConsistencyCheckFilter.class);
+    static Logger   logger             = Logger.getLogger(ConsistencyCheckFilter.class);
 
     String          metadataSchema;
     String          consistencyTable;
@@ -59,7 +58,6 @@ public class ConsistencyCheckFilter implements Filter
                                                .compile(
                                                        "WHERE\\s*db\\s*=\\s*(?:\'|\")([a-zA-Z0-9_]+)(?:\'|\")\\s* AND",
                                                        Pattern.CASE_INSENSITIVE);
-
 
     /**
      * Stores the consistency check table name. {@inheritDoc}
@@ -143,14 +141,24 @@ public class ConsistencyCheckFilter implements Filter
                     .get(dataArray.size() - 1);
             // TODO: make a better detection of update to
             // consistency table.
-            if (stmt.getQuery() != null)
+
+            /**
+             * Now checking if getQueryAsBytes is null instead of getQuery not
+             * null. This avoids unexpected data conversion (getQuery converts
+             * the byte representation if any into a string, which can lead to a
+             * lot of memory usage ). <BR>
+             * if (stmt.getQuery() != null)
+             */
+            if (stmt.getQueryAsBytes() == null)
+                // TODO : Probably a good idea to perform a substring search,
+                // maybe in the first 200 characters as next case
                 consistencyCheck = stmt.getQuery().contains(consistencyTable);
             else
             {
-                // Check the first few bytes in order to detect a consistency
-                // check.
-                consistencyCheck = new String(stmt.getQueryAsBytes(), 0, Math
-                        .min(200, stmt.getQueryAsBytes().length))
+                // Check the first few bytes in order to detect a
+                // consistency check.
+                consistencyCheck = new String(stmt.getQueryAsBytes(), 0,
+                        Math.min(200, stmt.getQueryAsBytes().length))
                         .contains(consistencyTable);
             }
         }
@@ -203,7 +211,7 @@ public class ConsistencyCheckFilter implements Filter
         else
             insert = new String(insertStatement.getQueryAsBytes())
                     .toLowerCase(Locale.ENGLISH);
-        
+
         if (!insert.matches("^insert\\s+into\\s+.+"))
         {
             logger.error("INSERT:  " + insert);

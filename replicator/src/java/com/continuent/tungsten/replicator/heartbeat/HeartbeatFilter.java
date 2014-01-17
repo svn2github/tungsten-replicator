@@ -49,8 +49,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class HeartbeatFilter implements Filter
 {
-    private static Logger logger               = Logger
-                                                       .getLogger(HeartbeatFilter.class);
+    private static Logger logger               = Logger.getLogger(HeartbeatFilter.class);
     private PluginContext context;
     // Pattern to match UPDATE fragment: "name = '<name>'.
     private Pattern       heartbeatNamePattern = Pattern
@@ -88,37 +87,45 @@ public class HeartbeatFilter implements Filter
         {
             StatementData sd = (StatementData) dbmsData;
 
-            String query = sd.getQuery();
-            boolean bytesFullyDecoded = true;
-            if (query == null)
-                // Is the query stored as bytes ?
-                if (sd.getQueryAsBytes() != null)
-                {
-                    if (sd.getQueryAsBytes().length <= 500)
-                    {
-                        query = new String(sd.getQueryAsBytes(), 0, sd
-                                .getQueryAsBytes().length);
+            String query = null;
+            boolean usingWholeQuery = true;
 
-                    }
-                    else
-                    {
-                        bytesFullyDecoded = false;
-                        query = new String(sd.getQueryAsBytes(), 0, 500);
-                    }
+            if (sd.getQueryAsBytes() == null)
+            {
+                if (sd.getQuery().length() <= 500)
+                    query = sd.getQuery();
+                else
+                {
+                    usingWholeQuery = false;
+                    query = sd.getQuery().substring(0, 500);
                 }
+            }
+            else
+            // Is the query stored as bytes ?
+            {
+                if (sd.getQueryAsBytes().length <= 500)
+                {
+                    query = new String(sd.getQueryAsBytes());
+                }
+                else
+                {
+                    usingWholeQuery = false;
+                    query = new String(sd.getQueryAsBytes(), 0, 500);
+                }
+            }
 
             if (!query.toUpperCase().startsWith("UPDATE")
                     || !query.contains(HeartbeatTable.TABLE_NAME))
             {
                 return event;
             }
-            // bytesFullyDecoded is set to false when and only when
-            // statements are stored as bytes and the length of the statement
-            // was greater than what was decoded. In that case, we want to
-            // extract the whole statement as it is likely to be a heartbeat
-            // statement.
-            if (!(bytesFullyDecoded))
-                query = new String(sd.getQueryAsBytes());
+            // usingWholeQuery is set to false when and only when the length of
+            // the statement was greater than what was used for checking if it
+            // started with UPDATE and contained the heartbeat table name.
+            // In that case, we want to extract the whole statement as it is
+            // likely to be a heartbeat statement.
+            if (!(usingWholeQuery))
+                query = sd.getQuery();
 
             // Get the heartbeat name.
             Matcher m = heartbeatNamePattern.matcher(query);
@@ -166,8 +173,8 @@ public class HeartbeatFilter implements Filter
                 ArrayList<OneRowChange.ColumnVal> colValue0 = colValues.get(0);
                 if (colValue0 != null)
                 {
-                    // TUC-228.  Have to translate bytes to String. Heartbeat 
-                    // must be ASCII-only. 
+                    // TUC-228. Have to translate bytes to String. Heartbeat
+                    // must be ASCII-only.
                     if (colValue0.size() >= 7)
                     {
                         Object value = colValue0.get(7).getValue();
