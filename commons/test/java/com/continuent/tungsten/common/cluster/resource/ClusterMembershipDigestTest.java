@@ -84,7 +84,7 @@ public class ClusterMembershipDigestTest
         for (String member : view)
         {
             Assert.assertFalse("Before member validated: " + member,
-                    digest.isValidMembership(true));
+                    digest.isValidMembership(false));
             digest.setValidated(member, true);
         }
 
