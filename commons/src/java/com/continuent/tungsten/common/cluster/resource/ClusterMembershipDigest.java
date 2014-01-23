@@ -53,7 +53,7 @@ public class ClusterMembershipDigest
     // Counters for number of members marked validated and reachable.
     private int                            validated                 = 0;
     private int                            reachable                 = 0;
-    private int                            reachableWitnesses        = 0;
+    private int                            reachableWitnessesCount   = 0;
 
     /**
      * Instantiates a digest used to compute whether the member that creates the
@@ -196,7 +196,7 @@ public class ClusterMembershipDigest
                 witness.setReachable(reached);
                 if (reached)
                 {
-                    reachableWitnesses++;
+                    reachableWitnessesCount++;
                 }
             }
         }
@@ -281,7 +281,7 @@ public class ClusterMembershipDigest
     public List<ClusterMember> getReachableWitnesses()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
-                reachableWitnesses);
+                reachableWitnessesCount);
         for (ClusterMember cm : witnessSet.values())
         {
             // Reachable witnesses must have been checked *and* must have
@@ -494,13 +494,13 @@ public class ClusterMembershipDigest
         if (validated == simpleMajority - 1)
         {
             boolean witnessesOk = witnessSet.size() > 0
-                    && (witnessSet.size() == reachableWitnesses);
+                    && (witnessSet.size() == reachableWitnessesCount);
 
             if (witnessesOk)
             {
                 CLUtils.println(String
                         .format("CONCLUSION: I AM IN A PRIMARY PARTITION WITH %d REACHABLE MEMBERS AND ALL (%d) REACHABLE WITNESSES",
-                                reachable, reachableWitnesses));
+                                reachable, reachableWitnessesCount));
                 return true;
             }
             else
@@ -509,7 +509,7 @@ public class ClusterMembershipDigest
                         .format("CONCLUSION: I AM IN A NON-PRIMARY PARTITION OF %d MEMBERS OUT OF A REQUIRED MAJORITY SIZE OF %d\n"
                                 + "AND THERE ARE %d REACHABLE WITNESSES OUT OF %d",
                                 validated, getSimpleMajoritySize(),
-                                reachableWitnesses, witnessSet.size()));
+                                reachableWitnessesCount, witnessSet.size()));
                 return false;
             }
         }
@@ -534,12 +534,12 @@ public class ClusterMembershipDigest
      */
     public boolean isValidMembership(boolean verbose)
     {
-        if (viewMembers.size() > 0
-                && viewMembers.size() == getValidatedMembers().size())
+        if (viewMembers.size() > 0 && getValidatedMembers().size() > 0
+                && setsAreEqual(viewMembers, getValidatedMembers()))
         {
             if (verbose)
             {
-                CLUtils.println("MEMBERSHIP IS VALID");
+                CLUtils.println("MEMBERSHIP IS VALID BASED ON VIEW/VALIDATED MEMBERS CONSISTENCY");
                 CLUtils.println("GC VIEW OF CURRENT MEMBERS IS: "
                         + CLUtils.iterableToCommaSeparatedList(viewMembers));
                 CLUtils.println("VALIDATED CURRENT MEMBERS ARE: "
@@ -547,6 +547,19 @@ public class ClusterMembershipDigest
                                 .iterableToCommaSeparatedList(getValidatedMemberNames()));
             }
             return true;
+        }
+        else if (viewMembers.size() > 0 && getReachableMembers().size() > 0
+                && setsAreEqual(viewMembers, getReachableMembers()))
+        {
+            if (verbose)
+            {
+                CLUtils.println("MEMBERSHIP IS VALID BASED ON VIEW/REACHABLE MEMBERS CONSISTENCY");
+                CLUtils.println("GC VIEW OF CURRENT MEMBERS IS: "
+                        + CLUtils.iterableToCommaSeparatedList(viewMembers));
+                CLUtils.println("REACHABLE CURRENT MEMBERS ARE: "
+                        + CLUtils
+                                .iterableToCommaSeparatedList(getReachableMemberNames()));
+            }
         }
 
         if (verbose)
@@ -559,5 +572,22 @@ public class ClusterMembershipDigest
                             .iterableToCommaSeparatedList(getValidatedMemberNames()));
         }
         return false;
+    }
+
+    private boolean setsAreEqual(List<String> viewSet,
+            List<ClusterMember> targetSet)
+    {
+        int hitCount = 0;
+
+        for (String viewMember : viewSet)
+        {
+            for (ClusterMember member : targetSet)
+            {
+                if (member.getName().equals(viewMember))
+                    hitCount++;
+            }
+        }
+
+        return (hitCount == viewSet.size());
     }
 }
