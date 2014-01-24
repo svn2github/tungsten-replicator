@@ -583,7 +583,7 @@ public abstract class RowsLogEvent extends LogEvent
                 long i64 = BigEndianConversion.convertNBytesToLong(row, rowPos,
                         5) - 0x8000000000L;
                 int secPartsLength = 0;
-                
+
                 // Let's check for zero date
                 if (i64 == 0)
                 {
@@ -1005,8 +1005,10 @@ public abstract class RowsLogEvent extends LogEvent
         OneRowChange.ColumnSpec spec = null;
         int nullIndex = 0;
 
+        int colCount = 0;
         for (int i = 0; i < map.getColumnsCount(); i++)
         {
+
             if (logger.isDebugEnabled())
                 logger.debug("Extracting column " + (i + 1) + " out of "
                         + map.getColumnsCount());
@@ -1029,7 +1031,7 @@ public abstract class RowsLogEvent extends LogEvent
                 else
                 {
                     // Check if column was null until now
-                    ColumnSpec keySpec = oneRowChange.getKeySpec().get(i);
+                    ColumnSpec keySpec = oneRowChange.getKeySpec().get(colCount);
                     if (keySpec != null
                             && keySpec.getType() == java.sql.Types.NULL
                             && !isNull)
@@ -1052,7 +1054,9 @@ public abstract class RowsLogEvent extends LogEvent
                 else
                 {
                     // Check if column was null until now
-                    ColumnSpec columnSpec = oneRowChange.getColumnSpec().get(i);
+                    ColumnSpec columnSpec = oneRowChange.getColumnSpec().get(
+                            colCount);
+
                     if (columnSpec != null
                             && columnSpec.getType() == java.sql.Types.NULL
                             && !isNull)
@@ -1093,6 +1097,7 @@ public abstract class RowsLogEvent extends LogEvent
                 }
                 rowPos += size;
             }
+            colCount++;
         }
 
         return rowPos - startIndex;
