@@ -27,7 +27,7 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def get_applier_template
-    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+    if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
       "tungsten-replicator/samples/conf/appliers/#{get_uri_scheme()}.tpl"
     else
       "tungsten-replicator/samples/conf/appliers/oracle-scan.tpl"
@@ -35,7 +35,7 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
 	end
   
   def get_thl_uri
-    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+    if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
 	    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
     else
   	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
@@ -51,7 +51,7 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getBasicJdbcUrl()
-    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+    if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
       "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}"
     else
   	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}"
@@ -59,7 +59,7 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getJdbcUrl()
-    if @config.getPropertyOr([DATASOURCES, @ds_alias, REPL_ORACLE_SCAN], "") == ""
+    if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
 	    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
     else
   	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
@@ -75,7 +75,24 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   end
 
   def get_extractor_template
-    raise "Unable to use OracleDatabasePlatform as an extractor"
+    if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
+      "tungsten-replicator/samples/conf/extractors/#{get_uri_scheme()}.tpl"
+    else
+      "tungsten-replicator/samples/conf/extractors/oracle-scan.tpl"
+    end
+	end
+
+  def get_default_table_engine
+    case @config.getProperty(REPL_ROLE)
+    when REPL_ROLE_S
+      ""
+    else
+      "CDC"
+    end
+  end
+
+  def get_allowed_table_engines
+    ["CDC", "CDCSYNC"]
   end
   
 	def get_applier_filters()
