@@ -118,6 +118,10 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   def applier_supports_parallel_apply?()
     true
   end
+  
+  def applier_supports_reset?
+    true
+  end
 end
 
 #

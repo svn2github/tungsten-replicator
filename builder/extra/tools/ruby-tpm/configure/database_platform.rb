@@ -198,6 +198,10 @@ class ConfigureDatabasePlatform
     false
   end
   
+  def applier_supports_reset?
+    false
+  end
+  
   def self.build(prefix, config)
     klass = self.get_class(config.getProperty(prefix + [REPL_DBTYPE]))
     return klass.new(prefix, config)

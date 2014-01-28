@@ -436,15 +436,46 @@ module ConfigureDeploymentCore
     end
   end
   
-  def start_replication_services
+  def start_replication_services(offline = false)
     if is_manager?() && get_additional_property(MANAGER_IS_RUNNING) == "true" && manager_is_running?() != true
       info("Starting the manager")
       info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/bin/manager start"))
     end
 
     if is_replicator?() && get_additional_property(REPLICATOR_IS_RUNNING) == "true" && replicator_is_running?() != true
+      if offline == true
+        start_command = "start offline"
+      else
+        start_command = "start"
+      end
+      
       info("Starting the replicator")
-      info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/replicator start"))
+      info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/replicator #{start_command}"))
+    end
+  end
+  
+  def start_replication_services_offline
+    start_replication_services(true)
+  end
+  
+  def reset_replication_services
+    if is_replicator?() && get_additional_property(REPLICATOR_IS_RUNNING) == "true"
+      @config.getPropertyOr([REPL_SERVICES], {}).each_key{
+        |rs_alias|
+        if rs_alias == DEFAULTS
+          next
+        end
+
+        svc = @config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])
+        ds = get_applier_datasource(rs_alias)
+        if ds.applier_supports_reset?()
+          info("Reset the #{svc} replication service")
+          cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl -service #{svc} reset -all -y")
+          cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl -service #{svc} online")
+        else
+          warning("Unable to reset the #{svc} replication service. It will be left OFFLINE.")
+        end
+      }
     end
   end
   
