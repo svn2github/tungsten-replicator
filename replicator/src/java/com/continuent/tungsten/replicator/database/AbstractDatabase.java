@@ -954,12 +954,15 @@ public abstract class AbstractDatabase implements Database
                 long colLength = rsc.getLong("COLUMN_SIZE");
                 boolean isNotNull = rsc.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls;
                 String valueString = rsc.getString("COLUMN_DEF");
+                String typeDesc = rsc.getString("TYPE_NAME").toUpperCase();
+                // Issue 798. Mimicking MySQLApplier.
+                boolean isSigned = !typeDesc.contains("UNSIGNED");
 
                 Column column = new Column(colName, colType, colLength,
                         isNotNull, valueString);
                 column.setPosition(rsc.getInt("ORDINAL_POSITION"));
-                column.setTypeDescription(rsc.getString("TYPE_NAME")
-                        .toUpperCase());
+                column.setTypeDescription(typeDesc);
+                column.setSigned(isSigned);
                 table.AddColumn(column);
                 cm.put(column.getName(), column);
             }

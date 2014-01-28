@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Scott Martin
- * Contributor(s): Robert Hodges, Stephane Giron
+ * Contributor(s): Robert Hodges, Stephane Giron, Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.database;
@@ -223,6 +223,11 @@ public class Column implements Serializable
     public boolean isSigned()
     {
         return signed;
+    }
+    
+    public void setSigned(boolean signed)
+    {
+        this.signed = signed; 
     }
 
     public boolean isBlob()
