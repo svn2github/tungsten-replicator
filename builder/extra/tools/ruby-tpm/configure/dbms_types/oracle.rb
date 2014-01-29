@@ -35,11 +35,7 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
 	end
   
   def get_thl_uri
-    if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
-	    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
-    else
-  	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
-	  end
+    getJdbcUrl()
 	end
   
   def get_default_port
@@ -52,18 +48,16 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   
   def getBasicJdbcUrl()
     if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
-      "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}"
+      host_parameter = "replicator.global.db.host"
     else
-  	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}"
+  	  host_parameter = "replicator.applier.oracle.scan"
     end
+    
+    "jdbc:oracle:thin:@//${#{host_parameter}}:${replicator.global.db.port}"
   end
   
   def getJdbcUrl()
-    if @config.getPropertyOr(@prefix + [REPL_ORACLE_SCAN], "") == ""
-	    "jdbc:oracle:thin:@${replicator.global.db.host}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
-    else
-  	  "jdbc:oracle:thin:@//${replicator.applier.oracle.scan}:${replicator.global.db.port}:${replicator.applier.oracle.service}"
-	  end
+    getBasicJdbcUrl() + "/${replicator.applier.oracle.service}"
   end
   
   def getJdbcDriver()
