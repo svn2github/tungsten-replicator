@@ -683,10 +683,6 @@ class ManagerEnableInstrumentation < ConfigurePrompt
   def load_default_value
     @default = @config.getProperty(get_dataservice_key(DATASERVICE_ENABLE_INSTRUMENTATION))
   end
-  
-  def get_command_line_argument_value
-    "true"
-  end
 end
 
 class ManagerAPI < ConfigurePrompt
@@ -695,10 +691,6 @@ class ManagerAPI < ConfigurePrompt
   
   def initialize
     super(MGR_API, "Enable the Manager API", PV_BOOLEAN, "true")
-  end
-  
-  def get_command_line_argument_value
-    "true"
   end
 end
 

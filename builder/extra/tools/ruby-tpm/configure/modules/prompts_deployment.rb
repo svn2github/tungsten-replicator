@@ -1070,10 +1070,6 @@ class StartServicesPrompt < ConfigurePrompt
   def load_default_value
     @default = @config.getProperty(get_member_key(SVC_REPORT))
   end
-  
-  def get_command_line_argument_value
-    "true"
-  end
 end
 
 class ReportServicesPrompt < ConfigurePrompt
@@ -1083,10 +1079,6 @@ class ReportServicesPrompt < ConfigurePrompt
     super(SVC_REPORT, "Start the services and report out the status after configuration", 
       PV_BOOLEAN, "false")
     self.extend(NotTungstenUpdatePrompt)
-  end
-  
-  def get_command_line_argument_value
-    "true"
   end
 end
 

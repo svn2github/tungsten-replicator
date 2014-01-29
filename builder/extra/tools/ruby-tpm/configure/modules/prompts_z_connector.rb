@@ -343,10 +343,6 @@ class ConnectorOverwriteUserMap < ConfigurePrompt
   def initialize
     super(CONN_DELETE_USER_MAP, "Overwrite an existing user.map file", PV_BOOLEAN, "false")
   end
-  
-  def get_command_line_argument_value
-    "true"
-  end
 end
 
 class ConnectorUserMapPasswordLines < ConfigurePrompt

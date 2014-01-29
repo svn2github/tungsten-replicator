@@ -539,10 +539,6 @@ class ClusterActiveWitnesses < ConfigurePrompt
     self.extend(TargetDataservice::TargetDataserviceDefaultValue)
     add_command_line_alias("active-witnesses")
   end
-  
-  def get_command_line_argument_value
-    "true"
-  end
 end
 
 class ClusterRelayEnabled < ConfigurePrompt
@@ -881,10 +877,6 @@ class DataserviceEnableAllTopologies < ConfigurePrompt
     super(DATASERVICE_ENABLE_ALL_TOPOLOGIES, 
       "Should we deploy all topologies that are defined?", PV_BOOLEAN, "false")
     override_command_line_argument("enable-all-topologies")
-  end
-  
-  def get_command_line_argument_value
-    "true"
   end
 end
 

@@ -459,6 +459,14 @@ class ConfigurePrompt
       return []
     end
   end
+  
+  def get_command_line_argument_value
+    if @validator == PV_BOOLEAN
+      "true"
+    else
+      super()
+    end
+  end
 end
 
 module AdvancedPromptModule

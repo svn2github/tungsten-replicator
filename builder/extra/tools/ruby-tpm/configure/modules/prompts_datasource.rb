@@ -307,10 +307,6 @@ class DatasourceDisableRelayLogs < ConfigurePrompt
       "false"
     end
   end
-  
-  def get_command_line_argument_value
-    "true"
-  end
 end
 
 class DirectDatasourceDBType < ConfigurePrompt

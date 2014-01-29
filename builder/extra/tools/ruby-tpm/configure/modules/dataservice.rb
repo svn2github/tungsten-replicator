@@ -414,11 +414,11 @@ class ReplciationServiceTHLReadOnly < ConfigurePrompt
     super(REPL_SVC_THL_READ_ONLY, "Should the THL files be opened as read-only", PV_BOOLEAN)
   end
   
-  def get_default_value
+  def load_default_value
     if @config.getTemplateValue(get_member_key(REPL_ROLE)) == REPL_ROLE_LOCAL_PRE
-      "true"
+      @default = "true"
     else
-      "false"
+      @default = "false"
     end
   end
 end
@@ -626,10 +626,6 @@ class ReplicationServiceSlaveTakeover < ConfigurePrompt
   def update_deprecated_keys()
     replace_deprecated_key(get_member_key('repl_svc_native_slave_takeover'))
     super()
-  end
-  
-  def get_command_line_argument_value
-    "true"
   end
 end
 
