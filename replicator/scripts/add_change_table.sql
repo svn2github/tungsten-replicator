@@ -30,7 +30,7 @@ v_column_type varchar(50);
 column_type_len integer; 
 column_prec integer;
 column_scale integer;
-v_column_list varchar(10000);
+v_column_list varchar(32737);
 
 err_found boolean := false;
 warn_found boolean := false;

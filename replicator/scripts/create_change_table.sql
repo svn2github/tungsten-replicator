@@ -20,7 +20,7 @@ v_quoted_user varchar2(100);
 v_quoted_cs_name varchar2(100);
 v_quoted_schema varchar2(100);
 
-v_create_ct_statement varchar2(10000);
+v_create_ct_statement varchar2(32737);
 
 
 BEGIN
