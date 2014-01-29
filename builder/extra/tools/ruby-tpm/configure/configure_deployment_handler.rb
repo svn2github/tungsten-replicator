@@ -195,7 +195,6 @@ class ConfigureDeploymentHandler
         debug("Validate configuration values for #{@config.getProperty(HOST)}")
 
         # Validate the values in the configuration file against the prompt validation
-        prompt_handler.save_system_defaults()
         prompt_handler.validate()
         
         add_remote_result(prompt_handler.get_remote_result())

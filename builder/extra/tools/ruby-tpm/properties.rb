@@ -131,6 +131,7 @@ class Properties
     old_trap = trap("INT") {
       interrupted = true;
     }
+    @props.delete(SYSTEM)
     
     # Write. 
     File.open(properties_filename, 'w') do |file|
