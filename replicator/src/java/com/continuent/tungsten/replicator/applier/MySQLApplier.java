@@ -56,12 +56,12 @@ public class MySQLApplier extends JdbcApplier
 {
     private static Logger             logger              = Logger.getLogger(MySQLApplier.class);
 
-    private static final int          TINYINT_MAX_VALUE   = 255;
-    private static final int          SMALLINT_MAX_VALUE  = 65535;
-    private static final int          MEDIUMINT_MAX_VALUE = 16777215;
-    private static final long         INTEGER_MAX_VALUE   = 4294967295L;
-    protected static final BigInteger BIGINT_MAX_VALUE    = new BigInteger(
-                                                                  "18446744073709551615");
+    public static final int        TINYINT_MAX_VALUE   = 255;
+    public static final int        SMALLINT_MAX_VALUE  = 65535;
+    public static final int        MEDIUMINT_MAX_VALUE = 16777215;
+    public static final long       INTEGER_MAX_VALUE   = 4294967295L;
+    public static final BigInteger BIGINT_MAX_VALUE    = new BigInteger(
+                                                               "18446744073709551615");
 
     protected String                  host                = "localhost";
     protected int                     port                = 3306;

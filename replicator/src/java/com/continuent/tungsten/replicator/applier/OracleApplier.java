@@ -29,6 +29,7 @@ import java.sql.Connection;
 import java.sql.Types;
 import java.sql.Timestamp;
 import java.io.Writer;
+import java.math.BigInteger;
 
 import oracle.jdbc.OraclePreparedStatement;
 import oracle.sql.CLOB;
@@ -203,6 +204,61 @@ public class OracleApplier extends JdbcApplier
                                 (int) blob.length()));
                     prepStatement.setString(bindLoc, toString);
                 }
+            }
+            // TODO: Code below is similar to the one in MuSQLApplier. Consider
+            // about generalizing it in a separate type-transforming class.
+            else if (type == Types.INTEGER)
+            { // Issue 798 - MySQLExtractor extracts UNSIGNED numbers in a not
+              // platform-indendent way.
+                boolean isNegative = false;
+                Object valToInsert = null;
+                Long extractedVal = null;
+                if (value.getValue() instanceof Integer)
+                {
+                    int val = (Integer) value.getValue();
+                    isNegative = val < 0;
+                    extractedVal = Long.valueOf(val);
+                }
+                else if (value.getValue() instanceof Long)
+                {
+                    long val = (Long) value.getValue();
+                    isNegative = val < 0;
+                    extractedVal = Long.valueOf(val);
+                }
+
+                if (columnSpec.isUnsigned() && isNegative)
+                {
+                    switch (columnSpec.getLength())
+                    {
+                        case 1 :
+                            valToInsert = MySQLApplier.TINYINT_MAX_VALUE + 1
+                                    + extractedVal;
+                            if (logger.isDebugEnabled())
+                                logger.debug("Inserting " + valToInsert);
+                            break;
+                        case 2 :
+                            valToInsert = MySQLApplier.SMALLINT_MAX_VALUE + 1
+                                    + extractedVal;
+                            break;
+                        case 3 :
+                            valToInsert = MySQLApplier.MEDIUMINT_MAX_VALUE + 1
+                                    + extractedVal;
+                            break;
+                        case 4 :
+                            valToInsert = MySQLApplier.INTEGER_MAX_VALUE + 1
+                                    + extractedVal;
+                            break;
+                        case 8 :
+                            valToInsert = MySQLApplier.BIGINT_MAX_VALUE
+                                    .add(BigInteger.valueOf(1 + extractedVal));
+                            break;
+                        default :
+                            break;
+                    }
+                    prepStatement.setObject(bindLoc, valToInsert);
+                }
+                else
+                    prepStatement.setObject(bindLoc, value.getValue());
             }
             else
                 prepStatement.setObject(bindLoc, value.getValue());

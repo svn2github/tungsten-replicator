@@ -46,8 +46,9 @@ import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
- * This class defines a ColumnNameFilter. It adds column name information to
- * events on the extractor side.
+ * ColumnNameFilter adds column meta information (eg. name, signed/unsigned
+ * flag) to the events, which is otherwise unavailable to the extractor, by
+ * querying underlying DBMS.
  * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
@@ -323,7 +324,8 @@ public class ColumnNameFilter implements Filter
     }
 
     /**
-     * In addition to column names, should the filter signed/unsigned flag too?
+     * In addition to the column names, should the add filter signed/unsigned
+     * flag too?
      */
     public void setAddSignedFlag(boolean addSignedFlag)
     {

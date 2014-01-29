@@ -37,12 +37,12 @@ public class Column implements Serializable
 {
     private static final long serialVersionUID = 1L;
     String                    name;
-    int                       type;                  // Type assignment from
-                                                      // java.sql.Types
-    boolean                   signed;
+    int                       type;                   // Type assignment from
+                                                       // java.sql.Types
+    Boolean                   signed           = null;
     long                      length;
-    boolean                   notNull;               // Is the column a NOT
-                                                      // NULL column
+    boolean                   notNull;                // Is the column a NOT
+                                                       // NULL column
     Serializable              value;
     int                       valueInputStreamLength;
     private int               position;
@@ -93,7 +93,9 @@ public class Column implements Serializable
         this.length = colLength;
         this.notNull = isNotNull;
         this.value = value;
-        this.signed = true;
+        // Do not set a default value for the signed flag - we need to know
+        // whether it was actually set or not.
+        // this.signed = true;
         this.blob = false;
     }
 
@@ -220,11 +222,30 @@ public class Column implements Serializable
         return position;
     }
 
+    /**
+     * Returns value of the signed flag. If flag was not set, returns true by default.
+     */
     public boolean isSigned()
     {
-        return signed;
+        // Treat columns as signed, if not set explicitly.
+        if (signed == null)
+            return true;
+        else
+            return signed;
     }
     
+    /**
+     * Returns true only if the signed flag has been set explicitly and is not
+     * in the default state.
+     */
+    public boolean isSignedSet()
+    {
+        if (signed == null)
+            return false;
+        else
+            return true;
+    }
+
     public void setSigned(boolean signed)
     {
         this.signed = signed; 
