@@ -251,6 +251,7 @@ module ClusterCommandModule
   
   def get_external_option_arguments
     external_arguments = []
+    hostname = Configurator.instance.hostname()
     
     if @config_ini_path != nil
       debug("Load external configuration from #{@config_ini_path}")
@@ -258,15 +259,29 @@ module ClusterCommandModule
       ini = IniParse.open(@config_ini_path)
       ini.each{
         |section|
+        key = section.key
         if section.key == "defaults"
-          section.key = DEFAULTS
-        end
-        if section.key == "defaults.replicator"
+          key = DEFAULTS
+        elsif section.key == "defaults.replicator"
           if Configurator.instance.is_enterprise?() == false
-            section.key = DEFAULTS
+            key = DEFAULTS
           else
             debug("Bypassing the defaults.replicator section because this is not a Tungsten Replicator build")
             next
+          end
+        else
+          match = section.key.match(/^([A-Za-z0-9_]+)@([A-Za-z0-9_.\-]+)$/)
+          if match != nil
+            if match[2] == hostname
+              if match[1] == "defaults"
+                key = DEFAULTS
+              else
+                key = match[1]
+              end
+            else
+              debug("Bypassing the #{section.key} section because it does not apply to this host")
+              next
+            end
           end
         end
         
@@ -296,7 +311,7 @@ module ClusterCommandModule
         }
         
         external_arguments << {
-          :key => section.key,
+          :key => key,
           :arguments => args
         }
       }
@@ -403,7 +418,13 @@ module ClusterCommandModule
       ConfigureValidationHandler.get_skipped_validation_classes(),
       ConfigureValidationHandler.get_enabled_validation_classes(),
       ConfigureValidationHandler.get_skipped_validation_warnings(),
-      ConfigureValidationHandler.get_enabled_validation_warnings()
+      ConfigureValidationHandler.get_enabled_validation_warnings(),
+      @add_fixed_properties,
+      @remove_fixed_properties,
+      @skip_validation_checks,
+      @enable_validation_checks,
+      @skip_validation_warnings,
+      @enable_validation_warnings,
     ].each{
       |opts|
       
