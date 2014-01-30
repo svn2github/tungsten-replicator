@@ -77,7 +77,12 @@ module ClusterHostPrompt
   end
   
   def get_hash_prompt_key
-    return [DATASERVICE_HOST_OPTIONS, @config.getProperty(get_member_key(DEPLOYMENT_DATASERVICE)), @name]
+    ds_alias = @config.getNestedProperty([DEPLOYMENT_DATASERVICE])
+    if ds_alias.to_s() == ""
+      ds_alias = @config.getProperty(get_member_key(DEPLOYMENT_DATASERVICE))
+    end
+    
+    return [DATASERVICE_HOST_OPTIONS, ds_alias, @name]
   end
 end
 
