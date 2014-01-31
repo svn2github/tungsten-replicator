@@ -40,15 +40,15 @@ import com.continuent.tungsten.replicator.service.PipelineService;
 /**
  * Provides a service interface to the shard-to-channel assignment table. This
  * service only works for relational databases and deactivates automatically if
- * the URL is not set.  This is necessary to permit proper operation when 
- * applying against NoSQL DBMS like MongoDB. 
+ * the URL is not set. This is necessary to permit proper operation when
+ * applying against NoSQL DBMS like MongoDB.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  */
 public class ChannelAssignmentService implements PipelineService
 {
     // Parameters.
-    private static Logger        logger      = Logger.getLogger(ChannelAssignmentService.class);
+    private static Logger        logger                    = Logger.getLogger(ChannelAssignmentService.class);
     private String               name;
     private String               user;
     private String               url;
@@ -56,13 +56,15 @@ public class ChannelAssignmentService implements PipelineService
     private int                  channels;
 
     // Internal values.
-    private boolean              active      = false;
+    private boolean              active                    = false;
     private Database             conn;
     private ShardChannelTable    channelTable;
-    private Map<String, Integer> assignments = new HashMap<String, Integer>();
-    private int                  maxChannel  = -1;
-    private int                  nextChannel = 0;
+    private Map<String, Integer> assignments               = new HashMap<String, Integer>();
+    private int                  maxChannel                = -1;
+    private int                  nextChannel               = 0;
     private int                  accessFailures;
+    private long                 reconnectTimeoutInSeconds = 60;
+    private long                 connectionLastUsedTime;
 
     public String getName()
     {
@@ -92,6 +94,18 @@ public class ChannelAssignmentService implements PipelineService
     public void setChannels(int channels)
     {
         this.channels = channels;
+    }
+
+    /**
+     * Sets the reconnectTimeoutInSeconds in seconds. Connection will get
+     * renewed if it has not been used for more than this time.
+     * 
+     * @param reconnectTimeoutInSeconds The reconnectTimeoutInSeconds to set in
+     *            seconds.
+     */
+    public void setReconnectTimeoutInSeconds(long reconnectTimeoutInSeconds)
+    {
+        this.reconnectTimeoutInSeconds = reconnectTimeoutInSeconds;
     }
 
     /** Returns true if the channel assignment service is active. */
@@ -154,6 +168,12 @@ public class ChannelAssignmentService implements PipelineService
         try
         {
             conn = DatabaseFactory.createDatabase(url, user, password);
+            if (reconnectTimeoutInSeconds > 0)
+            {
+                logger.info("ChannelAssignmentService will use a "
+                        + reconnectTimeoutInSeconds + "s timeout.");
+                connectionLastUsedTime = System.currentTimeMillis();
+            }
             conn.connect(false);
         }
         catch (SQLException e)
@@ -215,7 +235,7 @@ public class ChannelAssignmentService implements PipelineService
         List<Map<String, String>> channels = null;
         try
         {
-            channels = channelTable.list(conn);
+            channels = channelTable.list(getConnection());
         }
         catch (SQLException e)
         {
@@ -241,7 +261,7 @@ public class ChannelAssignmentService implements PipelineService
         assertActive();
         try
         {
-            channelTable.insert(conn, shardId, channel);
+            channelTable.insert(getConnection(), shardId, channel);
             if (channel > maxChannel)
                 maxChannel = channel;
             assignments.put(shardId, channel);
@@ -252,6 +272,38 @@ public class ChannelAssignmentService implements PipelineService
                     "Unable to access channel assignment table; ensure it is defined",
                     e);
         }
+    }
+
+    /**
+     * Return the internal connection, renewing it if needed.
+     * 
+     * @return Dataabase connection used by the ChannelAssignmentService
+     * @throws SQLException
+     */
+    private Database getConnection() throws SQLException
+    {
+        reconnectIfNeeded();
+        return conn;
+    }
+
+    private void reconnectIfNeeded() throws SQLException
+    {
+        long currentTime = System.currentTimeMillis();
+        if (reconnectTimeoutInSeconds > 0
+                && currentTime - connectionLastUsedTime > reconnectTimeoutInSeconds * 1000)
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("Renewing connection (last active "
+                        + (currentTime - connectionLastUsedTime) / 1000
+                        + "s ago)");
+            // Time to reconnect now
+            conn.close();
+            conn.connect();
+        }
+        else if (logger.isDebugEnabled())
+            logger.debug("Not renewing connection (last active "
+                    + (currentTime - connectionLastUsedTime) / 1000 + "s ago)");
+        connectionLastUsedTime = currentTime;
     }
 
     /**
@@ -295,7 +347,7 @@ public class ChannelAssignmentService implements PipelineService
     {
         try
         {
-            List<Map<String, String>> rows = channelTable.list(conn);
+            List<Map<String, String>> rows = channelTable.list(getConnection());
             for (Map<String, String> assignment : rows)
             {
                 // Populate the table.
