@@ -381,6 +381,7 @@ replicator.applier.parallel-q-applier.storeName=parallel-queue
 replicator.service.channel-assignment=com.continuent.tungsten.replicator.channel.ChannelAssignmentService
 replicator.service.channel-assignment.url=@{APPLIER.REPL_DBTHLURL}
 replicator.service.channel-assignment.channels=${replicator.global.apply.channels}
+replicator.service.channel-assignment.reconnectTimeoutInSeconds=60
 
 ################################
 # BACKUP/RESTORE CONFIGURATION #
