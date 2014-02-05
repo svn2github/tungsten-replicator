@@ -151,8 +151,12 @@ class TungstenReplicatorProvisionSlave
       TU.forward_cmd_results?(false)
       
       TU.notice("Load the mysqldump file")
-      TU.cmd_result("gunzip -c #{staging_dir}/provision.sql.gz | #{get_mysql_command()}")
-    
+      begin
+        TU.cmd_result("gunzip -c #{staging_dir}/provision.sql.gz | #{get_mysql_command()}")
+      rescue CommandError => ce
+        raise MessageError.new("Unable to load the mysqldump file: #{ce.errors}")
+      end
+      
       if staging_dir != "" && File.exists?(staging_dir)
         TU.debug("Remove #{staging_dir}")
         TU.cmd_result("rm -r #{staging_dir}")

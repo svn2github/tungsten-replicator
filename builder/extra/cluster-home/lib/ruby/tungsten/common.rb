@@ -22,7 +22,7 @@ class MessageError < StandardError
 end
 
 class CommandError < StandardError
-  attr_reader :command, :rc, :result
+  attr_reader :command, :rc, :result, :errors
   
   def initialize(command, rc, result, errors="")
     @command = command

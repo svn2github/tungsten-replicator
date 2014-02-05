@@ -82,6 +82,7 @@ class TungstenUtil
     result.strip!()
     errors.strip!()
     
+    original_errors = errors
     rc = status.exitstatus
     if errors == ""
       errors = "No Errors"
@@ -92,12 +93,12 @@ class TungstenUtil
     if log_cmd_results?()
       debug("RC: #{rc}, Result: #{result}, #{errors}")
     elsif forward_cmd_results?()
-      debug("RC: #{rc}, Result length #{result.length}, Errors length #{errors.length}")
+      debug("RC: #{rc}, Result length #{result.length}, Errors length #{original_errors.length}")
     else
       debug("RC: #{rc}, Result length #{result.length}, #{errors}")
     end
     if rc != 0 && ! ignore_fail
-      raise CommandError.new(command, rc, result)
+      raise CommandError.new(command, rc, result, original_errors)
     end
 
     return result
@@ -153,6 +154,7 @@ class TungstenUtil
     result.strip!()
     errors.strip!()
     
+    original_errors = errors
     rc = status.exitstatus
     if errors == ""
       errors = "No Errors"
@@ -163,12 +165,12 @@ class TungstenUtil
     if log_cmd_results?()
       debug("RC: #{rc}, Result: #{result}, #{errors}")
     elsif forward_cmd_results?()
-      debug("RC: #{rc}, Result length #{result.length}, Errors length #{errors.length}")
+      debug("RC: #{rc}, Result length #{result.length}, Errors length #{original_errors.length}")
     else
       debug("RC: #{rc}, Result length #{result.length}, #{errors}")
     end
     if rc != 0 && ! ignore_fail
-      raise CommandError.new(command, rc, result)
+      raise CommandError.new(command, rc, result, original_errors)
     end
 
     return
@@ -215,6 +217,7 @@ class TungstenUtil
     result.strip!()
     errors.strip!()
     
+    original_errors = errors
     rc = status.exitstatus
     if errors == ""
       errors = "No Errors"
@@ -225,12 +228,12 @@ class TungstenUtil
     if log_cmd_results?()
       debug("RC: #{rc}, Result: #{result}, #{errors}")
     elsif forward_cmd_results?()
-      debug("RC: #{rc}, Result length #{result.length}, Errors length #{errors.length}")
+      debug("RC: #{rc}, Result length #{result.length}, Errors length #{original_errors.length}")
     else
       debug("RC: #{rc}, Result length #{result.length}, #{errors}")
     end
     if rc != 0 && ! ignore_fail
-      raise CommandError.new(command, rc, result)
+      raise CommandError.new(command, rc, result, original_errors)
     end
 
     return
