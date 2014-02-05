@@ -337,6 +337,7 @@ class DirectDatasourceDBHost < ConfigurePrompt
 
   def initialize
     super(EXTRACTOR_REPL_DBHOST, "Database server hostname", PV_HOSTNAME)
+    override_command_line_argument("direct-replication-host")
   end
 
   def load_default_value
@@ -467,6 +468,19 @@ class DatasourceJDBCURL < ConfigurePrompt
   
   def get_template_value(transform_values_method)
     get_datasource().getJdbcUrl()
+  end
+end
+
+class DatasourceExtractorJDBCURL < ConfigurePrompt
+  include DatasourcePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(EXTRACTOR_REPL_DBJDBCURL, "Datasource Extraction JDBC URL")
+  end
+  
+  def get_template_value(transform_values_method)
+    get_datasource().getExtractorJdbcUrl()
   end
 end
 

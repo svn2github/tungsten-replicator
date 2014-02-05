@@ -94,6 +94,10 @@ class ConfigureDatabasePlatform
     raise "Undefined function: #{self.class.name}.getJdbcUrl"
   end
   
+  def getExtractorJdbcUrl
+    getJdbcUrl()
+  end
+  
   def getJdbcDriver()
     raise "Undefined function: #{self.class.name}.getJdbcDriver"
   end
