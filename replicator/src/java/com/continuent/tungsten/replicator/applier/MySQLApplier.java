@@ -37,6 +37,8 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
+import com.continuent.tungsten.replicator.datatypes.MySQLUnsignedNumeric;
+import com.continuent.tungsten.replicator.datatypes.Numeric;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileQuery;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
@@ -55,13 +57,6 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 public class MySQLApplier extends JdbcApplier
 {
     private static Logger             logger              = Logger.getLogger(MySQLApplier.class);
-
-    public static final int        TINYINT_MAX_VALUE   = 255;
-    public static final int        SMALLINT_MAX_VALUE  = 65535;
-    public static final int        MEDIUMINT_MAX_VALUE = 16777215;
-    public static final long       INTEGER_MAX_VALUE   = 4294967295L;
-    public static final BigInteger BIGINT_MAX_VALUE    = new BigInteger(
-                                                               "18446744073709551615");
 
     protected String                  host                = "localhost";
     protected int                     port                = 3306;
@@ -217,47 +212,12 @@ public class MySQLApplier extends JdbcApplier
         }
         else if (type == Types.INTEGER)
         {
-            boolean isNegative = false;
             Object valToInsert = null;
-            Long extractedVal = null;
-            if (value.getValue() instanceof Integer)
+            Numeric numeric = new Numeric(columnSpec, value);
+            if (columnSpec.isUnsigned() && numeric.isNegative())
             {
-                int val = (Integer) value.getValue();
-                isNegative = val < 0;
-                extractedVal = Long.valueOf(val);
-            }
-            else if (value.getValue() instanceof Long)
-            {
-                long val = (Long) value.getValue();
-                isNegative = val < 0;
-                extractedVal = Long.valueOf(val);
-            }
-
-            if (columnSpec.isUnsigned() && isNegative)
-            {
-                switch (columnSpec.getLength())
-                {
-                    case 1 :
-                        valToInsert = TINYINT_MAX_VALUE + 1 + extractedVal;
-                        if (logger.isDebugEnabled())
-                            logger.debug("Inserting " + valToInsert);
-                        break;
-                    case 2 :
-                        valToInsert = SMALLINT_MAX_VALUE + 1 + extractedVal;
-                        break;
-                    case 3 :
-                        valToInsert = MEDIUMINT_MAX_VALUE + 1 + extractedVal;
-                        break;
-                    case 4 :
-                        valToInsert = INTEGER_MAX_VALUE + 1 + extractedVal;
-                        break;
-                    case 8 :
-                        valToInsert = BIGINT_MAX_VALUE.add(BigInteger
-                                .valueOf(1 + extractedVal));
-                        break;
-                    default :
-                        break;
-                }
+                valToInsert = MySQLUnsignedNumeric
+                        .negativeToMeaningful(numeric);
                 setInteger(prepStatement, bindLoc, valToInsert);
             }
             else
