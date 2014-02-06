@@ -62,7 +62,7 @@ public class ClusterMembershipDigest
      * @param name Name of this member
      * @param configuredMembers Member names from service configuration
      * @param viewMembers Member names from group communications view
-     * @param witnessMember Name of the witness host
+     * @param witnessMembers Names of the witness hosts
      */
     public ClusterMembershipDigest(String name,
             Collection<String> configuredMembers,

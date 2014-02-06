@@ -36,10 +36,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.common.cluster.resource.DataSource;
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
 import com.continuent.tungsten.common.config.TungstenProperties;
-import com.continuent.tungsten.common.utils.CLUtils;
 import com.continuent.tungsten.manager.router.gateway.RouterGatewayConstants;
 
 public class ClusterConfiguration
@@ -344,7 +342,6 @@ public class ClusterConfiguration
      * 
      * @param moduleProps the module properties file name
      * @param clusterHome location of cluster home
-     * @return
      */
     public static String getModulePropertiesFileName(String moduleProps,
             String clusterHome)

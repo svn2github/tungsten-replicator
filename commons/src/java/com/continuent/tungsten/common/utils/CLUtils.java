@@ -242,7 +242,6 @@ public class CLUtils implements Serializable
     }
 
     /**
-     * @param dsProps
      * @param header
      * @param wasModified
      * @param printDetails
@@ -304,17 +303,7 @@ public class CLUtils implements Serializable
     /**
      * Format manager status
      * 
-     * @param dsProps
-     * @param replProps
-     * @param dbProps
-     * @param routerUsage
-     * @param managerIsOnline
-     * @param header
-     * @param wasModified
-     * @param printDetails
-     * @param includeStatistics
      * @param isRawFormat TODO
-     * @return
      */
     public static String formatStatus(TungstenProperties dsProps,
             TungstenProperties replProps, TungstenProperties dbProps,
