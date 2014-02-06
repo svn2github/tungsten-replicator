@@ -45,6 +45,7 @@ public class MySQLSessionSupportFilter implements Filter
 
     private String              lastSessionId         = "";
     private static final String SET_PTHREAD_STATEMENT = "set @@session.pseudo_thread_id=";
+    private static final String BLANK_THREAD          = "0";
     private boolean             privileged;
 
     /**
@@ -66,6 +67,9 @@ public class MySQLSessionSupportFilter implements Filter
         if (sessionId == null && logger.isDebugEnabled())
             logger.debug(String.format("Found null sessionId for eventId=%s",
                     eventId));
+
+        if (sessionId.equals("-1"))
+            sessionId = BLANK_THREAD;
 
         if (sessionId != null && !sessionId.equals(lastSessionId))
         {
