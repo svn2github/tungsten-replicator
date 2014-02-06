@@ -891,8 +891,8 @@ public class DataScanCtrl
         Table tableSlave = slaveDb.findTable(schema, table);
         ConsistencyCheck ccSlave = ConsistencyCheckFactory
                 .createConsistencyCheck(cc.getCheckId(), tableSlave,
-                        (int) cc.getRowOffset(), (int) cc.getRowLimit(),
-                        getMethod(), false, false);
+                        cc.getRowOffset(), cc.getRowLimit(), getMethod(),
+                        false, false);
 
         // Retrieve check results from the master.
         String query = String.format("SELECT %s,%s FROM %s.%s WHERE %s = %d",

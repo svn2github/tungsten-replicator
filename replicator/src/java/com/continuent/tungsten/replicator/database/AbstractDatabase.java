@@ -1295,7 +1295,6 @@ public abstract class AbstractDatabase implements Database
      * {@inheritDoc}
      * 
      * @throws SQLException
-     * @see com.continuent.tungsten.replicator.database.Database#dropTungstenCatalog(java.lang.String)
      */
     @Override
     public void dropTungstenCatalog(String schemaName,

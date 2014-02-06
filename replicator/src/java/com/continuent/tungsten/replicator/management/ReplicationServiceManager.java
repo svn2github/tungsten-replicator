@@ -308,7 +308,7 @@ public class ReplicationServiceManager
     /**
      * Starts a service if it is defined. {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.management.ReplicationServiceManagerMBean#startService(java.lang.String)
+     * @see com.continuent.tungsten.replicator.management.ReplicationServiceManagerMBean#loadService(String)
      */
     @MethodDesc(description = "Start individual replication service", usage = "startService name")
     public boolean loadService(
@@ -335,7 +335,7 @@ public class ReplicationServiceManager
     /**
      * Stops a service if it is started and defined. {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.management.ReplicationServiceManagerMBean#stopService(java.lang.String)
+     * @see com.continuent.tungsten.replicator.management.ReplicationServiceManagerMBean#unloadService(String)
      */
     @MethodDesc(description = "Stop individual replication service", usage = "stopService name")
     public boolean unloadService(
