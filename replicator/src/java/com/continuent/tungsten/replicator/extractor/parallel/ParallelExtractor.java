@@ -44,27 +44,27 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class ParallelExtractor implements RawExtractor
 {
-    private static Logger                 logger                = Logger.getLogger(ParallelExtractor.class);
+    private static Logger                    logger                = Logger.getLogger(ParallelExtractor.class);
 
-    private String                        url                   = null;
-    private String                        user                  = "root";
-    private String                        password              = "rootpass";
+    private String                           url                   = null;
+    private String                           user                  = "root";
+    private String                           password              = "rootpass";
 
-    private int                           extractChannels       = 5;
-    private List<ParallelExtractorThread> threads;
-    private int                           queueSize             = 20;
+    private int                              extractChannels       = 5;
+    private List<ParallelExtractorThread>    threads;
+    private int                              queueSize             = 20;
 
-    private ArrayBlockingQueue<DBMSEvent> queue;
-    private ArrayBlockingQueue<NumericChunk>     chunks;
+    private ArrayBlockingQueue<DBMSEvent>    queue;
+    private ArrayBlockingQueue<NumericChunk> chunks;
 
-    private boolean                       threadsStarted        = false;
+    private boolean                          threadsStarted        = false;
 
-    private ChunksGeneratorThread         chunksGeneratorThread = null;
-    private int                           activeThreads         = 0;
-    private PluginContext                 context;
-    private String                        chunkDefinitionFile   = null;
+    private ChunksGeneratorThread            chunksGeneratorThread = null;
+    private int                              activeThreads         = 0;
+    private PluginContext                    context;
+    private String                           chunkDefinitionFile   = null;
 
-    private Hashtable<String, Long>       tableBlocks;
+    private Hashtable<String, Long>          tableBlocks;
 
     public void setUrl(String url)
     {
@@ -163,7 +163,7 @@ public class ParallelExtractor implements RawExtractor
             for (Iterator<ParallelExtractorThread> iterator = threads
                     .iterator(); iterator.hasNext();)
             {
-                ((ParallelExtractorThread) iterator.next()).start();
+                iterator.next().start();
             }
 
             threadsStarted = true;
