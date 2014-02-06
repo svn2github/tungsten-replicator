@@ -31,15 +31,47 @@ import com.continuent.tungsten.replicator.database.Table;
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
-public class Chunk
+public class NumericChunk
 {
-    private long         from;
+    private Number       from;
 
-    private long         to;
+    private Number       to;
 
     private Table        table;
 
     private List<String> columns;
+
+    private long         nbBlocks;
+
+    public NumericChunk(Table table, Number from, Number to, String[] columns)
+    {
+        this.table = table;
+        this.from = from;
+        this.to = to;
+        if (columns == null)
+            this.columns = null;
+        else
+            this.columns = Arrays.asList(columns);
+    }
+
+    public NumericChunk(Table table, Number from, Number to, String[] columns,
+            long nbBlocks)
+    {
+        this(table, from, to, columns);
+        this.nbBlocks = nbBlocks;
+    }
+
+    public NumericChunk(Table table, String[] columns)
+    {
+        this(table, -1, -1, columns);
+        this.nbBlocks = 1;
+    }
+
+    public NumericChunk()
+    {
+        // Generate an empty chunk that will tell threads that work is complete
+        this.table = null;
+    }
 
     /**
      * Returns the columns value.
@@ -51,33 +83,6 @@ public class Chunk
         return columns;
     }
 
-    public Chunk(Table table, long from, long to, String[] columns)
-    {
-        this.table = table;
-        this.from = from;
-        this.to = to;
-        if (columns == null)
-            this.columns = null;
-        else
-            this.columns = Arrays.asList(columns);
-    }
-
-    public Chunk(Table table)
-    {
-        this(table, null);
-    }
-
-    public Chunk()
-    {
-        // Generate an empty chunk that will tell threads that work is complete
-        this.table = null;
-    }
-
-    public Chunk(Table table, String[] columns)
-    {
-        this(table, -1, -1, columns);
-    }
-
     /**
      * Returns the from value.
      * 
@@ -85,7 +90,17 @@ public class Chunk
      */
     protected long getFrom()
     {
-        return from;
+        return from.longValue();
+    }
+
+    /**
+     * Returns the nbBlocks value.
+     * 
+     * @return Returns the nbBlocks.
+     */
+    protected long getNbBlocks()
+    {
+        return nbBlocks;
     }
 
     public Table getTable()
@@ -100,7 +115,7 @@ public class Chunk
      */
     protected long getTo()
     {
-        return to;
+        return to.longValue();
     }
 
     /**

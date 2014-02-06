@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.extractor.parallel;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -30,6 +31,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.extractor.RawExtractor;
@@ -53,7 +55,7 @@ public class ParallelExtractor implements RawExtractor
     private int                           queueSize             = 20;
 
     private ArrayBlockingQueue<DBMSEvent> queue;
-    private ArrayBlockingQueue<Chunk>     chunks;
+    private ArrayBlockingQueue<NumericChunk>     chunks;
 
     private boolean                       threadsStarted        = false;
 
@@ -61,6 +63,8 @@ public class ParallelExtractor implements RawExtractor
     private int                           activeThreads         = 0;
     private PluginContext                 context;
     private String                        chunkDefinitionFile   = null;
+
+    private Hashtable<String, Long>       tableBlocks;
 
     public void setUrl(String url)
     {
@@ -102,12 +106,14 @@ public class ParallelExtractor implements RawExtractor
     {
         this.context = context;
 
-        chunks = new ArrayBlockingQueue<Chunk>(5 * extractChannels);
+        chunks = new ArrayBlockingQueue<NumericChunk>(5 * extractChannels);
 
         queue = new ArrayBlockingQueue<DBMSEvent>(queueSize);
 
         chunksGeneratorThread = new ChunksGeneratorThread(user, url, password,
                 extractChannels, chunks, chunkDefinitionFile);
+
+        tableBlocks = new Hashtable<String, Long>();
 
         threads = new ArrayList<ParallelExtractorThread>();
         for (int i = 0; i < extractChannels; i++)
@@ -174,6 +180,37 @@ public class ParallelExtractor implements RawExtractor
                 context.getEventDispatcher().put(new GoOfflineEvent());
             }
             return null;
+        }
+        else
+        // TODO : this should be done only if addTruncateTable setting is set.
+        {
+            // Check metadata of the event
+            String entry = event.getMetadataOptionValue("schema") + "."
+                    + event.getMetadataOptionValue("table");
+
+            Long blk = tableBlocks.remove(entry);
+            if (blk != null)
+            {
+                // Table already in there... no need to add TRUNCATE, but
+                // decrement number of remaining blocks
+                if (blk > 1)
+                    // If the number reaches 0, table was fully processed : no
+                    // need to put tables back in there
+                    tableBlocks.put(entry, blk - 1);
+            }
+            else
+            {
+                event.getData().add(0,
+                        new StatementData("TRUNCATE TABLE " + entry));
+                logger.warn("nbBlocks = "
+                        + event.getMetadataOptionValue("nbBlocks"));
+                blk = Long.valueOf(event.getMetadataOptionValue("nbBlocks"));
+                if (blk > 1)
+                {
+                    tableBlocks.put(entry, blk - 1);
+                }
+
+            }
         }
 
         return event;
