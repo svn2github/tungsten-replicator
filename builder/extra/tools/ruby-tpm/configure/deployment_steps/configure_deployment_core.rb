@@ -479,6 +479,22 @@ module ConfigureDeploymentCore
     end
   end
   
+  def online_replication_services
+    if is_replicator?() && get_additional_property(REPLICATOR_IS_RUNNING) == "true"
+      @config.getPropertyOr([REPL_SERVICES], {}).each_key{
+        |rs_alias|
+        if rs_alias == DEFAULTS
+          next
+        end
+
+        svc = @config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])
+        ds = get_applier_datasource(rs_alias)
+        info("Put the #{svc} replication service online")
+        cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl -service #{svc} online")
+      }
+    end
+  end
+  
   def stop_replication_services
     if is_manager?() && get_additional_property(MANAGER_IS_RUNNING) == "true" && get_additional_property(RESTART_MANAGERS) != false
       info("Stopping the manager")

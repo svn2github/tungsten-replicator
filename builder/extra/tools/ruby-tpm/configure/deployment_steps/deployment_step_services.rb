@@ -6,11 +6,11 @@ module ConfigureDeploymentStepServices
       ConfigureCommitmentMethod.new("stop_replication_services", -1, 0),
       ConfigureCommitmentMethod.new("update_metadata", 1, 0),
       ConfigureCommitmentMethod.new("deploy_services", 1, 1),
-      ConfigureCommitmentMethod.new("start_replication_services", 1, ConfigureDeployment::FINAL_STEP_WEIGHT),
-      ConfigureCommitmentMethod.new("wait_for_manager", 2, -1),
+      ConfigureCommitmentMethod.new("start_replication_services_unless_provisioning", 1, ConfigureDeployment::FINAL_STEP_WEIGHT),
       ConfigureCommitmentMethod.new("set_automatic_policy", 3, 0),
       ConfigureCommitmentMethod.new("start_connector", 4, 1, false),
       ConfigureCommitmentMethod.new("set_original_policy", 4, 2),
+      ConfigureCommitmentMethod.new("provision_server", 5, 1),
       ConfigureCommitmentMethod.new("report_services", ConfigureDeployment::FINAL_GROUP_ID, ConfigureDeployment::FINAL_STEP_WEIGHT-1, false),
       ConfigureCommitmentMethod.new("check_ping", ConfigureDeployment::FINAL_GROUP_ID, ConfigureDeployment::FINAL_STEP_WEIGHT)
     ]
@@ -224,9 +224,9 @@ module ConfigureDeploymentStepServices
     super()
   end
   
-  def start_replication_services
+  def start_replication_services(offline = false)
     if get_additional_property(ACTIVE_DIRECTORY_PATH) && get_additional_property(REPLICATOR_ENABLED) == "true"
-      super()
+      super(offline)
     elsif @config.getProperty(SVC_START) == "true"
       if is_manager?() && manager_is_running?() != true
         info("Starting the manager")
@@ -234,9 +234,21 @@ module ConfigureDeploymentStepServices
       end
 
       if is_replicator?() && replicator_is_running?() != true
+        if offline == true
+          start_command = "start offline"
+        else
+          start_command = "start"
+        end
+        
         info("Starting the replicator")
-        info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/replicator start"))
+        info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/replicator #{start_command}"))
       end
+    end
+  end
+  
+  def start_replication_services_unless_provisioning
+    unless provision_server?()
+      start_replication_services()
     end
   end
   
@@ -279,6 +291,9 @@ module ConfigureDeploymentStepServices
       
       @config.getPropertyOr([REPL_SERVICES], {}).each_key{
         |rs_alias|
+        if rs_alias == DEFAULTS
+          next
+        end
         
         begin
           create_tungsten_schema(rs_alias)
@@ -294,5 +309,100 @@ module ConfigureDeploymentStepServices
         end
       }
     end
+  end
+  
+  def provision_server?()
+    # The ProvisionNewSlavesPackageModule module will only set this value
+    # if this server was not previously configured as a replicator 
+    if ["false", ""].include?(get_additional_property(PROVISION_NEW_SLAVES).to_s())
+      return false
+    end
+    
+    unless is_replicator?()
+      return false
+    end
+    
+    Configurator.instance.command.build_topologies(@config)    
+    @config.getPropertyOr([REPL_SERVICES], {}).each_key{
+      |rs_alias|
+      if rs_alias == DEFAULTS
+        next
+      end
+      
+      # If there is a non-master service, we should provision
+      if @config.getProperty([REPL_SERVICES, rs_alias, REPL_ROLE]) != REPL_ROLE_M
+        return true
+      end
+    }
+    
+    return false
+  end
+  
+  def provision_server
+    unless provision_server?()
+      return
+    end
+    
+    services = AUTODETECT
+    source = AUTODETECT
+    if get_additional_property(PROVISION_NEW_SLAVES) == "true"
+      info("Provision #{@config.getProperty(HOST)}")
+    else
+      info("Provision #{@config.getProperty(HOST)} using #{get_additional_property(PROVISION_NEW_SLAVES)}")
+
+      # Identify the service that should be provisioned, a source may
+      # optionally be provided in the --provision-new-slaves option
+      match = get_additional_property(PROVISION_NEW_SLAVES).to_s().match(/^^([a-zA-Z0-9_]+)(@([a-zA-Z0-9_\.\-]+))?$/)
+      if match == nil
+        error("Unable to parse the provision source: #{get_additional_property(PROVISION_NEW_SLAVES)}")
+        return false
+      end
+      
+      services = [match[1]]
+      unless match[3].to_s() == ""
+        source = match[3]
+      end
+    end
+
+    start_replication_services_offline()
+    
+    # Find all services that should be provisioned. For Fan-In replication, 
+    # we may provision from each master server
+    if services == AUTODETECT
+      services = []
+      @config.getPropertyOr([REPL_SERVICES], {}).each_key{
+        |rs_alias|
+        if rs_alias == DEFAULTS
+          next
+        end
+        
+        if @config.getProperty([REPL_SERVICES, rs_alias, REPL_ROLE]) == REPL_ROLE_M
+          next
+        end
+        
+        services << @config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE])
+        
+        # Stop after finding one until we properly support multi-master topologies
+        break
+      }
+    end
+
+    is_first = true
+    services.each{
+      |svc|
+      args = []
+      args << "--source=#{source}"
+      args << "--service=#{svc}"
+      
+      if is_first == false
+        # Do not add this argument until it is supported and we properly support multi-master topologies
+        # args << "--logical"
+      end
+      
+      info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/scripts/tungsten_provision_slave #{args.join(' ')}"))
+      is_first = false
+    }
+    
+    online_replication_services()
   end
 end

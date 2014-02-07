@@ -4,6 +4,7 @@ class UpdateCommand
   if Configurator.instance.is_locked?() == false
     include RemoteCommand
     include ResetBasenamePackageModule
+    include ProvisionNewSlavesPackageModule
   end
   
   include ClusterCommandModule

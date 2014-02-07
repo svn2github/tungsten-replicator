@@ -8,6 +8,7 @@ class TungstenReplicatorProvisionSlave
   include OfflineServicesScript
   
   MASTER_BACKUP_POSITION_SQL = "xtrabackup_tungsten_master_backup_position.sql"
+  AUTODETECT = 'autodetect'
   
   def main
     if @options[:mysqldump] == false
@@ -175,6 +176,55 @@ class TungstenReplicatorProvisionSlave
     # All replication must be OFFLINE
     unless TI.is_replicator?()
       TU.error("This server is not configured for replication")
+    end
+    
+    if opt(:source) == AUTODETECT
+      @options[:source] = nil
+      
+      if opt(:service) == nil
+        TU.error("Unable to autodetect a value for --source without --service")
+      else
+        # Find all hosts that are replicating this service
+        available_sources = JSON.parse(TU.cmd_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/scripts/multi_trepctl --service=#{opt(:service)} --path=self --output=json"))
+        
+        # Find a non-master service that is ONLINE or OFFLINE:NORMAL
+        available_sources.each{
+          |svc|
+          if svc["host"] == TI.hostname()
+            next
+          end
+          
+          if svc["role"] == "master"
+            next
+          end
+          
+          if ["ONLINE", "OFFLINE:NORMAL"].include?(svc["state"])
+            opt(:source, svc["host"])
+          end
+        }
+        
+        # Accept any master service that is ONLINE
+        if opt(:source) == nil
+          available_sources.each{
+            |svc|
+            if svc["host"] == TI.hostname()
+              next
+            end
+            
+            if svc["role"] != "master"
+              next
+            end
+            
+            if svc["state"] == "ONLINE"
+              opt(:source, svc["host"])
+            end
+          }
+        end
+        
+        if opt(:source) == nil
+          TU.error("Unable to autodetect a value for --source")
+        end
+      end
     end
     
     # This section evaluates :mysqldump and :xtrabackup to determine the best
@@ -380,5 +430,13 @@ class TungstenReplicatorProvisionSlave
   
   def script_name
     "tungsten_provision_slave"
+  end
+  
+  def script_log_path
+    if TI
+      "#{TI.root()}/service_logs/provision_slave.log"
+    else
+      super()
+    end
   end
 end

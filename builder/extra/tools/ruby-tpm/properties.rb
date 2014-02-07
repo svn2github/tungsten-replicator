@@ -446,6 +446,10 @@ class Properties
     (@props.size() == 0)
   end
   
+  def has_key?(key)
+    (getNestedProperty(key) != nil)
+  end
+  
   def override(key, value = {})
     if value == nil || value == ""
       value = {}
