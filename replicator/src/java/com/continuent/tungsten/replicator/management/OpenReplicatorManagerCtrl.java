@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -163,6 +163,7 @@ public class OpenReplicatorManagerCtrl
         println("  online [-force] [-from-event event] [-base-seqno x] [-skip-seqno x,y,z] [-until-seqno seqno] ");
         println("         [-until-event event] [-until-heartbeat [name]] [-until-time YYYY-MM-DD_hh:mm:ss]");
         println("         [-no-checksum]");
+        println("         [-provision]");
         println("                               - Set Replicator to ONLINE with start and stop points");
         println("  properties [-filter name]    - Print all in-memory properties and their current values");
         println("             [-values]         - Print only the values in plain text");
@@ -903,6 +904,7 @@ public class OpenReplicatorManagerCtrl
         String seqnos = null;
         boolean force = false;
         boolean doChecksum = true;
+        boolean doProvision = false;
 
         while (argvIterator.hasNext())
         {
@@ -961,6 +963,8 @@ public class OpenReplicatorManagerCtrl
                     force = true;
                 else if ("-no-checksum".equals(curArg))
                     doChecksum = false;
+                else if ("-provision".equals(curArg))
+                    doProvision = true;
                 else
                     fatal("Unrecognized option: " + curArg, null);
             }
@@ -1000,9 +1004,14 @@ public class OpenReplicatorManagerCtrl
             paramProps.setBoolean(OpenReplicatorParams.FORCE, true);
         if (!doChecksum)
             paramProps.setBoolean(OpenReplicatorParams.DO_CHECKSUM, false);
+        if (doProvision)
+            paramProps.setBoolean(OpenReplicatorParams.DO_PROVISION, true);
 
         // Put replicator online.
-        getOpenReplicator().online2(paramProps.map());
+        if (doProvision)
+            getOpenReplicator().provisionOnline(paramProps.map());
+        else
+            getOpenReplicator().online2(paramProps.map());
     }
 
     // Convert a date-time string to Java time.

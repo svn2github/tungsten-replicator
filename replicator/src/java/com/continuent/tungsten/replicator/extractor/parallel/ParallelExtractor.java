@@ -30,12 +30,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.replicator.InSequenceNotification;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.extractor.RawExtractor;
-import com.continuent.tungsten.replicator.management.events.GoOfflineEvent;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
@@ -177,7 +177,7 @@ public class ParallelExtractor implements RawExtractor
             {
                 // Job is now complete. Check whether we can go back to offline
                 // state
-                context.getEventDispatcher().put(new GoOfflineEvent());
+                context.getEventDispatcher().put(new InSequenceNotification());
             }
             return null;
         }

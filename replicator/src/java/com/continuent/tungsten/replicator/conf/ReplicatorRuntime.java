@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -166,7 +166,15 @@ public class ReplicatorRuntime implements PluginContext
         // Determine the replicator role, providing a proper exception if the
         // role is not correctly set.
         roleName = properties.getString(ReplicatorConf.ROLE);
-        if (ReplicatorConf.ROLE_MASTER.equals(roleName))
+
+        if (isProvisioning())
+        {
+            if (!ReplicatorConf.ROLE_MASTER.equals(roleName))
+                throw new ReplicatorException(
+                        "Provisionning can happen only on master");
+            roleName = ReplicatorConf.ROLE_MASTER + "-provision";
+        }
+        else if (ReplicatorConf.ROLE_MASTER.equals(roleName))
             role = ReplicatorRole.MASTER;
         else if (ReplicatorConf.ROLE_SLAVE.equals(roleName))
             role = ReplicatorRole.SLAVE;
@@ -859,6 +867,17 @@ public class ReplicatorRuntime implements PluginContext
         // Return the online option for whether to do checksums.
         return getOnlineOptions().getBoolean(OpenReplicatorParams.DO_CHECKSUM,
                 "true", true);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#isProvisioning()
+     */
+    public boolean isProvisioning()
+    {
+        // Return the online option for whether to do provision.
+        return getOnlineOptions().getBoolean(OpenReplicatorParams.DO_PROVISION,
+                "false", true);
     }
 
     /**

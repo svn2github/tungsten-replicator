@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -196,8 +196,11 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         Action insertHeartbeatAction = new InsertHeartbeatAction();
         Action stopAction = new StopAction();
         Action goOfflineAction = new GoOfflineAction();
+        Action goOnlineAfterProvisionAction = new GoOnlineAfterProvisionAction();
         Action deferredOfflineAction = new DeferredOfflineAction();
         Action offlineToSynchronizingAction = new OfflineToSynchronizingAction();
+        Action offlineToProvisioningAction = new OfflineToProvisioningAction();
+
         Action clearDynamicPropertiesAction = new ClearDynamicPropertiesAction();
         Action configureAction = new ConfigureAction();
         Action errorClearAction = new ErrorClearAction();
@@ -226,6 +229,10 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         State goingonline = new State("GOING-ONLINE", StateType.ACTIVE);
         State goingonlineSynchronizing = new State("SYNCHRONIZING",
                 StateType.ACTIVE, goingonline);
+
+        State goingonlineProvisioning = new State("PROVISIONING",
+                StateType.ACTIVE, goingonline);
+
         State offlineRestoring = new State("RESTORING", StateType.ACTIVE,
                 offlineNormal);
 
@@ -243,6 +250,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         stmap.addState(offlineError);
         stmap.addState(goingonline);
         stmap.addState(goingonlineSynchronizing);
+        stmap.addState(goingonlineProvisioning);
         stmap.addState(offlineRestoring);
         stmap.addState(goingoffline);
         stmap.addState(online);
@@ -258,6 +266,9 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         Guard clearDynamicGuard = new EventTypeGuard(
                 ClearDynamicPropertiesEvent.class);
         Guard goOnlineGuard = new EventTypeGuard(GoOnlineEvent.class);
+        Guard goOnlineProvisionGuard = new EventTypeGuard(
+                GoOnlineEventProvisioning.class);
+
         Guard inSequenceGuard = new EventTypeGuard(InSequenceNotification.class);
         Guard outOfSequenceGuard = new EventTypeGuard(
                 OutOfSequenceNotification.class);
@@ -313,6 +324,11 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         stmap.addTransition(new Transition("OFFLINE-GO-ONLINE-1",
                 goOnlineGuard, offlineNormal, offlineToSynchronizingAction,
                 goingonlineSynchronizing));
+
+        stmap.addTransition(new Transition("OFFLINE-GO-ONLINE-2",
+                goOnlineProvisionGuard, offlineNormal,
+                offlineToProvisioningAction, goingonlineProvisioning));
+
         stmap.addTransition(new Transition("OFFLINE-BACKUP-1", backupGuard,
                 offlineNormal, backupAction, offlineNormal));
         stmap.addTransition(new Transition("OFFLINE-RESTORE", restoreGuard,
@@ -367,6 +383,10 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 deferredOfflineAction, goingonlineSynchronizing));
         stmap.addTransition(new Transition("SYNCHRONIZING-ONLINE",
                 inSequenceGuard, goingonlineSynchronizing, null, online));
+
+        stmap.addTransition(new Transition("PROVISIONING-ONLINE",
+                inSequenceGuard, goingonlineProvisioning,
+                goOnlineAfterProvisionAction, online));
 
         // ONLINE state transitions
         stmap.addTransition(new Transition("ONLINE-SHUTDOWN", goOfflineGuard,
@@ -839,6 +859,25 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     }
 
     /**
+     * Signals that the replicator should move to the provision state.
+     */
+    class GoOnlineEventProvisioning extends Event
+    {
+        private TungstenProperties params;
+
+        public GoOnlineEventProvisioning(TungstenProperties params)
+        {
+            super(null);
+            this.params = params;
+        }
+
+        public TungstenProperties getParams()
+        {
+            return params;
+        }
+    }
+
+    /**
      * Request to send replicator offline at a later time.
      */
     class DeferredOfflineEvent extends Event
@@ -1263,6 +1302,49 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     };
 
     /*
+     * Action in transition from OFFLINE to PROVISIONING state.
+     */
+    class OfflineToProvisioningAction implements Action
+    {
+        public void doAction(Event event, Entity entity, Transition transition,
+                int actionType) throws TransitionRollbackException,
+                TransitionFailureException
+        {
+            try
+            {
+                TungstenProperties params;
+                if (event instanceof GoOnlineEventProvisioning)
+                {
+                    GoOnlineEventProvisioning goOnlineEvent = (GoOnlineEventProvisioning) event;
+                    params = goOnlineEvent.getParams();
+                }
+                else
+                    params = new TungstenProperties();
+
+                openReplicator.online(params);
+            }
+            catch (ReplicatorException e)
+            {
+                // Pending error is correctly set.
+                pendingError = "Replicator unable to go online due to error";
+                pendingExceptionMessage = e.getMessage();
+                if (logger.isDebugEnabled())
+                    logger.debug(pendingError, e);
+                throw new TransitionFailureException(pendingError, event,
+                        entity, transition, actionType, e);
+            }
+            catch (Throwable e)
+            {
+                pendingError = "Replicator service start-up failed due to underlying error";
+                pendingExceptionMessage = e.toString();
+                logger.error(String.format("%s, reason=%s", pendingError, e));
+                throw new TransitionFailureException(pendingError, event,
+                        entity, transition, actionType, e);
+            }
+        }
+    };
+
+    /*
      * Action for transition from any state to OFFLINE state.
      */
     class GoOfflineAction implements Action
@@ -1274,6 +1356,30 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             {
                 GoOfflineEvent goOfflineEvent = (GoOfflineEvent) event;
                 openReplicator.offline(goOfflineEvent.getParams());
+            }
+            catch (Throwable e)
+            {
+                pendingError = "Replicator service shutdown failed due to underlying error";
+                pendingExceptionMessage = e.toString();
+                logger.error(pendingError, e);
+                throw new TransitionFailureException(pendingError, event,
+                        entity, transition, actionType, e);
+            }
+        }
+    }
+
+    /*
+     * Action for transition from PROVISIONING to ONLINE state.
+     */
+    class GoOnlineAfterProvisionAction implements Action
+    {
+        public void doAction(Event event, Entity entity, Transition transition,
+                int actionType) throws TransitionFailureException
+        {
+            try
+            {
+                openReplicator.offline(new TungstenProperties());
+                openReplicator.online(new TungstenProperties());
             }
             catch (Throwable e)
             {
@@ -3024,6 +3130,34 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         propertiesManager.loadProperties();
 
         return propertiesManager.getProperties();
+
+    }
+
+    public void provisionOnline(Map<String, String> controlParams)
+            throws Exception
+    {
+        TungstenProperties params = new TungstenProperties(controlParams);
+        GoOnlineEventProvisioning goOnlineProvisioningEvent = new GoOnlineEventProvisioning(
+                params);
+
+        try
+        {
+            handleEventSynchronous(goOnlineProvisioningEvent);
+        }
+        catch (ReplicatorException e)
+        {
+            String message = "Online operation failed";
+
+            logger.error(message, e);
+            if (e.getOriginalErrorMessage() != null)
+            {
+                message += " (" + e.getOriginalErrorMessage() + ")";
+            }
+            else
+                message += " (" + e.getMessage() + ")";
+            throw new Exception(message);
+            // throw new Exception("Online operation failed", e);
+        }
 
     }
 }

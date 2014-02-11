@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s): Alex Yurchenko, Robert Hodges, Seppo Jaakola
+ * Contributor(s): Alex Yurchenko, Robert Hodges, Seppo Jaakola, Stephane Giron
  */
 
 package com.continuent.tungsten.replicator.management;
@@ -162,7 +162,7 @@ public interface OpenReplicatorManagerMBean
 
     /**
      * Puts the replicator into the online state. This call returns when the
-     * request to go online has been accepted. The replicator must be in thstope
+     * request to go online has been accepted. The replicator must be in the
      * OFFLINE state for this call to be processed.
      * <p/>
      * The online operation accepts name-value control parameters that allow
@@ -537,4 +537,12 @@ public interface OpenReplicatorManagerMBean
      * Gets the replicator capabilities.
      */
     public Map<String, String> capabilities() throws Exception;
+
+    /**
+     * This makes the replicator go into the provisioning state before going
+     * online.
+     * 
+     * @see OpenReplicatorManager#online2(Map)
+     */
+    public void provisionOnline(Map<String, String> map) throws Exception;
 }

@@ -88,6 +88,11 @@ public interface PluginContext
      */
     public abstract boolean isDoChecksum();
 
+    /**
+     * Are we provisioning first before coming online ?
+     */
+    public abstract boolean isProvisioning();
+
     /** Source ID for this replicator. */
     public abstract String getSourceId();
 
