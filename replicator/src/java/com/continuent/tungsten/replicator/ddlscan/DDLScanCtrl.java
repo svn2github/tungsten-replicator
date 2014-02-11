@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,7 @@ package com.continuent.tungsten.replicator.ddlscan;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -33,6 +34,8 @@ import java.io.Writer;
 import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Properties;
+
+import au.com.bytecode.opencsv.CSVReader;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.exec.ArgvIterator;
@@ -73,6 +76,7 @@ public class DDLScanCtrl
     private String                pass              = null;
 
     private String                tables            = null;
+    private String                tableFile         = null;
 
     private String                renameDefinitions = null;
 
@@ -91,8 +95,8 @@ public class DDLScanCtrl
      * @throws Exception
      */
     public DDLScanCtrl(String url, String user, String pass, String db,
-            String tables, String templateFile, String outFile,
-            String renameDefinitions,
+            String tables, String tableFile, String templateFile,
+            String outFile, String renameDefinitions,
             Hashtable<String, String> templateOptions, String additionalPath)
             throws Exception
     {
@@ -104,6 +108,7 @@ public class DDLScanCtrl
         // Tables to extract.
         this.db = db;
         this.tables = tables;
+        this.tableFile = tableFile;
 
         // Template, options and output file.
         this.templateFile = templateFile;
@@ -183,11 +188,17 @@ public class DDLScanCtrl
                 return false;
             }
         }
+        
+        if (tableFile != null)
+            tables = tableFileToRegex(tableFile);
 
         if (outFile == null)
             writer = new StringWriter();
         else
             writer = new BufferedWriter(new FileWriter(new File(outFile)));
+
+        if (tables != null)
+            println("tables = " + tables);
 
         scanner.scan(tables, templateOptions, writer);
 
@@ -201,6 +212,58 @@ public class DDLScanCtrl
             println("rendered to = " + outFile);
 
         return true;
+    }
+
+    private String tableFileToRegex(String tableFile) throws IOException
+    {
+        return tableFileToRegex(db, tableFile);
+    }
+
+    /**
+     * Converts a new-line seperated text file containing table names into a
+     * format searchable by regular expression matcher:
+     * SCHEMA.TABLE,SCHEMA.TABLE,...
+     * 
+     * @param schema Prefix to add before each table name. If null - not added.
+     * @param tableFile Table file like tungsten.tables used by Oracle
+     *            setupCDC.sh.
+     * @return Comma-separated regex searchable list of tables.
+     * @throws IOException Exception is thrown if file is not found or similar
+     *             error occurs.
+     */
+    public static String tableFileToRegex(String schema, String tableFile)
+            throws IOException
+    {
+        StringBuilder tables = new StringBuilder();
+        CSVReader reader = new CSVReader(new FileReader(tableFile));
+        String[] cols;
+        boolean first = true;
+        while ((cols = reader.readNext()) != null)
+        {
+            if (cols.length == 1 && cols[0].length() == 0)
+            {
+                // Empty line.
+            }
+            else if (cols.length > 0 && cols[0].length() > 0
+                    && cols[0].charAt(0) == '#')
+            {
+                // Comment line.
+            }
+            else
+            {
+                if (!first)
+                    tables.append(",");
+                if (schema != null)
+                {
+                    tables.append(schema);
+                    tables.append(".");
+                }
+                tables.append(cols[0]);
+            }
+            first = false;
+        }
+        reader.close();
+        return tables.toString();
     }
 
     public void release()
@@ -259,6 +322,7 @@ public class DDLScanCtrl
             String pass = null;
             String url = null;
             String tables = null;
+            String tableFile = null;
             String db = null;
             String outFile = null;
             String renameDefinitions = null;
@@ -306,6 +370,11 @@ public class DDLScanCtrl
                 {
                     if (argvIterator.hasNext())
                         tables = argvIterator.next();
+                }
+                else if ("-tableFile".equals(curArg))
+                {
+                    if (argvIterator.hasNext())
+                        tableFile = argvIterator.next();
                 }
                 else if ("-template".equals(curArg))
                 {
@@ -434,10 +503,10 @@ public class DDLScanCtrl
 
             // Construct DDLScanCtrl from JDBC URL credentials.
             DDLScanCtrl ddlScanManager = new DDLScanCtrl(url, user, pass, db,
-                    tables, templateFile, outFile, renameDefinitions,
-                    templateOptions, additionalPath);
+                    tables, tableFile, templateFile, outFile,
+                    renameDefinitions, templateOptions, additionalPath);
 
-            if (tables == null && outFile != null)
+            if (tables == null && tableFile == null && outFile != null)
                 println("Tables not specified - extracting everything!");
 
             ddlScanManager.prepare();
@@ -503,24 +572,25 @@ public class DDLScanCtrl
         println("DDLScan Utility");
         println("Syntax: ddlscan [conf|conn] [scan-spec] -db <db> -template <file> [template-options] [out]");
         println("Conf options:");
-        println("  -conf path     - Path to a static-<svc>.properties file to read JDBC");
-        println("     OR            connection address and credentials");
-        println("  -service name  - Name of a replication service instead of path to config");
+        println("  -conf path       - Path to a static-<svc>.properties file to read JDBC");
+        println("     OR              connection address and credentials");
+        println("  -service name    - Name of a replication service instead of path to config");
         println("OR connection options:");
-        println("  -user user     - JDBC username");
-        println("  -pass secret   - JDBC password");
-        println("  -url jdbcUrl   - JDBC connection string (use single quotes to escape)");
+        println("  -user user       - JDBC username");
+        println("  -pass secret     - JDBC password");
+        println("  -url jdbcUrl     - JDBC connection string (use single quotes to escape)");
         println("Schema scan specification:");
-        println(" [-tables regex] - Regular expression enabled list defining tables to find");
-        println(" [-rename file]  - Definitions file for renaming schemas, tables and columns");
+        println(" [-tables regex]   - Regular expression enabled list defining tables to find");
+        println(" [-tableFile file] - New-line seperated definitions file of tables to find");
+        println(" [-rename file]    - Definitions file for renaming schemas, tables and columns");
         println("Global options:");
-        println("  -db db         - Database to use (will substitute "
+        println("  -db db           - Database to use (will substitute "
                 + DBNAME_VAR + " in the URL, if needed)");
-        println("  -template file - Specify template file to render");
-        println("  -path path     - Add additional search path for loading Velocity templates");
-        println(" [-opt opt val]  - Option(s) to pass to template, try: -opt help me");
-        println(" [-out file]     - Render to file (print to stdout if not specified)");
-        println("  -help          - Print this help display");
+        println("  -template file   - Specify template file to render");
+        println("  -path path       - Add additional search path for loading Velocity templates");
+        println(" [-opt opt val]    - Option(s) to pass to template, try: -opt help me");
+        println(" [-out file]       - Render to file (print to stdout if not specified)");
+        println("  -help            - Print this help display");
     }
 
     /**
