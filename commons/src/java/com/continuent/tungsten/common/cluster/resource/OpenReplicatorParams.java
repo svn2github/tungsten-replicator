@@ -60,6 +60,12 @@ public class OpenReplicatorParams
     /** Whether to allow checksums while online (set to false to disable). */
     public static final String DO_CHECKSUM           = "do_checksum";
 
+    /**
+     * Whether to start provisioning pipeline at startup (set to true to
+     * enable).
+     */
+    public static final String DO_PROVISION          = "do_provision";
+
     // Parameters for offlineDeferred() JMX call.
 
     /** Go offline safely after next transactional boundary. */
