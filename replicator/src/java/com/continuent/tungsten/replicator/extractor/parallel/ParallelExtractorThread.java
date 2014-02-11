@@ -66,12 +66,14 @@ public class ParallelExtractorThread extends Thread
     private Database                      connection = null;
     private boolean                       cancelled  = false;
     private ArrayBlockingQueue<DBMSEvent> queue;
-    private ArrayBlockingQueue<NumericChunk>     chunks;
+    private ArrayBlockingQueue<Chunk>     chunks;
 
+    // TODO : do we need 2 different notions for chunk size (the size of the
+    // select) and rowcount (the maximum number of rows of the event) ?
     private int                           rowCount   = 10000;
 
     public ParallelExtractorThread(String url, String user, String password,
-            ArrayBlockingQueue<NumericChunk> chunks,
+            ArrayBlockingQueue<Chunk> chunks,
             ArrayBlockingQueue<DBMSEvent> queue)
     {
         this.user = user;
@@ -139,7 +141,7 @@ public class ParallelExtractorThread extends Thread
         while (!cancelled)
         {
             // 1. get a table to process
-            NumericChunk chunk;
+            Chunk chunk;
             try
             {
                 chunk = chunks.take();
@@ -384,15 +386,12 @@ public class ParallelExtractorThread extends Thread
         }
     }
 
-    /**
-     * TODO: buildSQLStatement definition.
-     * 
-     * @param chunk
-     * @param allColumns
-     * @return
-     */
-    protected String buildSQLStatement(NumericChunk chunk)
+    private String buildSQLStatement(Chunk chunk)
     {
+        if (logger.isDebugEnabled())
+            logger.debug("Got chunk for " + chunk.getTable() + " from "
+                    + chunk.getFrom() + " to " + chunk.getTo());
+
         StringBuffer sql = new StringBuffer();
 
         List<String> columns = chunk.getColumns();
@@ -429,10 +428,12 @@ public class ParallelExtractorThread extends Thread
                 .getSchema()));
         sql.append('.');
         sql.append(connection.getDatabaseObjectName(chunk.getTable().getName()));
-        if (chunk.getFrom() > 0)
+
+        String pkName = chunk.getTable().getPrimaryKey().getColumns().get(0)
+                .getName();
+
+        if (chunk instanceof NumericChunk && ((Long) chunk.getFrom()) > 0)
         {
-            String pkName = chunk.getTable().getPrimaryKey().getColumns()
-                    .get(0).getName();
 
             sql.append(" WHERE ");
             sql.append(pkName);
@@ -442,6 +443,19 @@ public class ParallelExtractorThread extends Thread
             sql.append(pkName);
             sql.append(" <= ");
             sql.append(chunk.getTo());
+        }
+        else if (chunk instanceof StringChunk
+                && ((String) chunk.getFrom()).length() > 0)
+        {
+            sql.append(" WHERE ");
+            sql.append(pkName);
+            sql.append(" >= '");
+            sql.append(chunk.getFrom());
+            sql.append("' AND ");
+            sql.append(pkName);
+            sql.append(" <= '");
+            sql.append(chunk.getTo());
+            sql.append("'");
         }
 
         return sql.toString();

@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -110,7 +111,7 @@ public class ChunksGeneratorThread extends Thread
     private String               user;
     private String               url;
     private String               password;
-    private BlockingQueue<NumericChunk> chunks;
+    private BlockingQueue<Chunk> chunks;
     private String               chunkDefFile;
     private ChunkDefinitions     chunkDefinition;
     private int                  extractChannels;
@@ -126,7 +127,7 @@ public class ChunksGeneratorThread extends Thread
      * @param chunkDefinitionFile
      */
     public ChunksGeneratorThread(String user, String url, String password,
-            int extractChannels, BlockingQueue<NumericChunk> chunks,
+            int extractChannels, BlockingQueue<Chunk> chunks,
             String chunkDefinitionFile)
     {
         this.setName("ChunkGeneratorThread");
@@ -322,18 +323,29 @@ public class ChunksGeneratorThread extends Thread
     private void generateChunksForTable(Table table, long tableChunkSize,
             String[] columns) throws ReplicatorException, InterruptedException
     {
-
         long chunkSize;
-        if (tableChunkSize < 0)
+
+        Integer pkType = getPKType(table);
+
+        if (pkType == null)
         {
-            // Use default chunk size
-            chunkSize = CHUNK_SIZE;
+            chunks.put(new NumericChunk(table, columns));
+            return;
         }
         else if (tableChunkSize == 0)
         {
             // No chunks for this table (all table at once)
-            chunks.put(new NumericChunk(table, columns));
+            if (pkType == Types.NUMERIC)
+                chunks.put(new NumericChunk(table, columns));
+            else
+                chunks.put(new StringChunk(table, null, null));
+
             return;
+        }
+        else if (tableChunkSize < 0)
+        {
+            // Use default chunk size
+            chunkSize = CHUNK_SIZE;
         }
         else
         {
@@ -344,6 +356,25 @@ public class ChunksGeneratorThread extends Thread
         logger.info("Processing table " + table.getSchema() + "."
                 + table.getName());
 
+        if (pkType == Types.NUMERIC)
+            chunkNumericPK(table, columns, chunkSize);
+        else if (pkType == Types.VARCHAR)
+            chunkVarcharPK(table, null, null);
+
+    }
+
+    /**
+     * TODO: chunkNumericPK definition.
+     * 
+     * @param table
+     * @param columns
+     * @param chunkSize
+     * @throws ReplicatorException
+     * @throws InterruptedException
+     */
+    private void chunkNumericPK(Table table, String[] columns, long chunkSize)
+            throws ReplicatorException, InterruptedException
+    {
         // Retrieve PK range
         MinMax minmax = retrieveMinMaxCountPK(connection, table);
 
@@ -376,8 +407,8 @@ public class ChunksGeneratorThread extends Thread
                         end = start + blockSize;
                         if (end > (Long) minmax.getMax())
                             end = (Long) minmax.getMax();
-                        NumericChunk e = new NumericChunk(table, start, end, columns,
-                                nbBlocks);
+                        NumericChunk e = new NumericChunk(table, start, end,
+                                columns, nbBlocks);
                         chunks.put(e);
                         start = end;
                     }
@@ -408,8 +439,9 @@ public class ChunksGeneratorThread extends Thread
 
                         end = end.setScale(0, RoundingMode.CEILING);
 
-                        NumericChunk e = new NumericChunk(table, start.toBigInteger(),
-                                end.toBigInteger(), columns, nbBlocks);
+                        NumericChunk e = new NumericChunk(table,
+                                start.toBigInteger(), end.toBigInteger(),
+                                columns, nbBlocks);
                         chunks.put(e);
                         start = end;
                     }
@@ -436,30 +468,6 @@ public class ChunksGeneratorThread extends Thread
     private MinMax retrieveMinMaxCountPK(Database conn, Table table)
             throws ReplicatorException
     {
-        if (table.getPrimaryKey() == null)
-        {
-            logger.warn(table.getName() + " has no PK");
-            return null;
-        }
-        else if (table.getPrimaryKey().getColumns().size() != 1)
-        {
-            logger.warn(table.getName() + " - PK is not a single-column one "
-                    + table.getPrimaryKey().getColumns());
-            return null;
-        }
-        else
-        {
-            // Check whether primary key is INTEGER based
-            int type = table.getPrimaryKey().getColumns().get(0).getType();
-
-            if (!(type == Types.BIGINT || type == Types.INTEGER
-                    || type == Types.SMALLINT || type == Types.DECIMAL))
-            {
-                logger.warn(table.getName()
-                        + " - PK is not a supported numeric datatype ");
-                return null;
-            }
-        }
 
         String pkName = table.getPrimaryKey().getColumns().get(0).getName();
         String query = String.format(
@@ -522,5 +530,197 @@ public class ChunksGeneratorThread extends Thread
             }
         }
         return null;
+    }
+
+    /**
+     * TODO: getPKType definition.
+     * 
+     * @param table
+     */
+    private Integer getPKType(Table table)
+    {
+        if (table.getPrimaryKey() == null)
+        {
+            logger.warn(table.getName() + " has no PK");
+            return null;
+        }
+        else if (table.getPrimaryKey().getColumns().size() != 1)
+        {
+            logger.warn(table.getName() + " - PK is not a single-column one "
+                    + table.getPrimaryKey().getColumns());
+            return null;
+        }
+        else
+        {
+            // Check whether primary key is NUMBER based
+            int type = table.getPrimaryKey().getColumns().get(0).getType();
+
+            if (type == Types.VARCHAR
+                    || (type == Types.OTHER && table.getPrimaryKey()
+                            .getColumns().get(0).getTypeDescription()
+                            .contains("VARCHAR")))
+            {
+                return Types.VARCHAR;
+            }
+            else if ((type == Types.BIGINT || type == Types.INTEGER
+                    || type == Types.SMALLINT || type == Types.DECIMAL))
+            {
+                return Types.NUMERIC;
+            }
+            else
+            {
+                logger.warn(table.getName()
+                        + " - PK is not a supported chunking datatype ");
+                return null;
+            }
+        }
+    }
+
+    private void chunkVarcharPK(Table table, Long min, Long max)
+            throws InterruptedException
+    {
+        String pkName = table.getPrimaryKey().getColumns().get(0).getName();
+        String fqnTable = connection.getDatabaseObjectName(table.getSchema())
+                + '.' + connection.getDatabaseObjectName(table.getName());
+        // Get Count
+        String sql = String
+                .format("SELECT MIN(%s) as min, MAX(%s) as max, COUNT(%s) as cnt FROM %s",
+                        pkName, pkName, pkName, fqnTable);
+
+        // if count <= Chunk size, we are done
+        long count = 0;
+        String minDB = null, maxDB = null;
+        Statement st = null;
+        ResultSet rs = null;
+        try
+        {
+            st = connection.createStatement();
+            rs = st.executeQuery(sql);
+            if (rs.next())
+            {
+                count = rs.getLong(3);
+                minDB = rs.getString(1);
+                maxDB = rs.getString(2);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.warn("Failed to retrieve min, max and count values for PK "
+                    + pkName + " in table " + fqnTable, e);
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try
+                {
+                    rs.close();
+                }
+                catch (SQLException e)
+                {
+                }
+            }
+            if (st != null)
+            {
+                try
+                {
+                    st.close();
+                }
+                catch (SQLException e)
+                {
+                }
+            }
+        }
+
+        if (count == 0)
+            return;
+
+        if (count <= CHUNK_SIZE)
+        {
+            chunks.put(new StringChunk(table, minDB, maxDB, 1));
+            return;
+        }
+
+        // Else (count > CHUNK_SIZE) : chunk again in smaller parts
+        long nbBlocks = count / CHUNK_SIZE;
+
+        if (count % CHUNK_SIZE > 0)
+            nbBlocks++;
+
+        long blockSize = count / nbBlocks;
+
+        PreparedStatement pstmt = null;
+
+        StringBuffer sqlBuf = new StringBuffer("SELECT MIN(");
+        sqlBuf.append(pkName);
+        sqlBuf.append(") as min, MAX(");
+        sqlBuf.append(pkName);
+        sqlBuf.append(") as max, COUNT(");
+        sqlBuf.append(pkName);
+        sqlBuf.append(") as cnt FROM ( select sub.*, ROWNUM rnum from ( SELECT ");
+        sqlBuf.append(pkName);
+        sqlBuf.append(" FROM ");
+        sqlBuf.append(fqnTable);
+        sqlBuf.append(" ORDER BY ");
+        sqlBuf.append(pkName);
+        sqlBuf.append(") sub where ROWNUM <= ? ) where rnum >= ?");
+
+        sql = sqlBuf.toString();
+        try
+        {
+            pstmt = connection.prepareStatement(sql);
+        }
+        catch (SQLException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        try
+        {
+            for (long i = 0; i < count; i += blockSize + 1)
+            {
+                try
+                {
+                    pstmt.setLong(1, i + blockSize);
+                    pstmt.setLong(2, i);
+                    rs = pstmt.executeQuery();
+
+                    if (rs.next())
+                        chunks.put(new StringChunk(table, rs.getString("min"),
+                                rs.getString("max"), nbBlocks));
+
+                }
+                catch (SQLException e)
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                finally
+                {
+                    try
+                    {
+                        rs.close();
+                    }
+                    catch (SQLException e)
+                    {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        finally
+        {
+            try
+            {
+                pstmt.close();
+            }
+            catch (SQLException e)
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
     }
 }

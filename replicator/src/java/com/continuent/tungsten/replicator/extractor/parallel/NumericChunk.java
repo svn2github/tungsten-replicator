@@ -31,7 +31,7 @@ import com.continuent.tungsten.replicator.database.Table;
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
-public class NumericChunk
+public class NumericChunk implements Chunk
 {
     private Number       from;
 
@@ -74,54 +74,58 @@ public class NumericChunk
     }
 
     /**
-     * Returns the columns value.
-     * 
-     * @return Returns the columns.
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getColumns()
      */
-    protected List<String> getColumns()
+    @Override
+    public List<String> getColumns()
     {
         return columns;
     }
 
     /**
-     * Returns the from value.
-     * 
-     * @return Returns the from.
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getFrom()
      */
-    protected long getFrom()
+    @Override
+    public Long getFrom()
     {
         return from.longValue();
     }
 
     /**
-     * Returns the nbBlocks value.
-     * 
-     * @return Returns the nbBlocks.
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getNbBlocks()
      */
-    protected long getNbBlocks()
+    @Override
+    public long getNbBlocks()
     {
         return nbBlocks;
     }
 
+    /**
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getTable()
+     */
+    @Override
     public Table getTable()
     {
         return table;
     }
 
     /**
-     * Returns the to value.
-     * 
-     * @return Returns the to.
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getTo()
      */
-    protected long getTo()
+    @Override
+    public Long getTo()
     {
         return to.longValue();
     }
 
     /**
      * {@inheritDoc}
-     * 
-     * @see java.lang.Object#toString()
+     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#toString()
      */
     @Override
     public String toString()
