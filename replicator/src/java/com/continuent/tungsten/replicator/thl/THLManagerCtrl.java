@@ -43,6 +43,7 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.exec.ArgvIterator;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
+import com.continuent.tungsten.replicator.datatypes.SQLTypes;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileFragment;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
@@ -70,6 +71,7 @@ import com.continuent.tungsten.replicator.thl.log.LogEventReplReader;
 public class THLManagerCtrl
 {
     private static Logger                 logger             = Logger.getLogger(THLManagerCtrl.class);
+    
     /**
      * Default path to replicator.properties if user not specified other.
      */
@@ -93,6 +95,8 @@ public class THLManagerCtrl
     private boolean                       doChecksum;
     private String                        logDir;
     private DiskLog                       diskLog;
+
+    protected static SQLTypes             sqlTypes           = new SQLTypes();
 
     /**
      * Creates a new <code>THLManagerCtrl</code> object.
@@ -220,7 +224,7 @@ public class THLManagerCtrl
         return new InfoHolder(logDirName, minSeqno, maxSeqno, maxSeqno
                 - minSeqno, -1, logFiles, oldestFile, newestFile, logsSize);
     }
-
+    
     /**
      * Formats column and column value for printing.
      * 
@@ -240,6 +244,7 @@ public class THLManagerCtrl
                 log += "index=" + colSpec.getIndex();
                 log += " name=" + colSpec.getName();
                 log += " type=" + colSpec.getType();
+                log += " [" + sqlTypes.sqlTypeToString(colSpec.getType()) + "]";
                 log += " length=" + colSpec.getLength();
                 log += " unsigned=" + colSpec.isUnsigned();
                 log += " blob=" + colSpec.isBlob();
