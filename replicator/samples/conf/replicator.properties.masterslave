@@ -363,19 +363,19 @@ replicator.extractor.parallel-extractor.url=@{EXTRACTOR.REPL_DBJDBCURL}
 
 # Path to the chunk definition file. If the file is not provided or is not
 # present, all information will be extracted.
-# replicator.extractor.parallel-extractor.ChunkDefinitionFile=${replicator.home.dir}/conf/chunks.csv
+replicator.extractor.parallel-extractor.ChunkDefinitionFile=${replicator.home.dir}/conf/chunks.csv
 
 # How many rows should be handle in one chunk
-# replicator.extractor.parallel-extractor.chunk_size=2000
+replicator.extractor.parallel-extractor.chunk_size=2000
 
 # Should a truncate table statement be added with the first event of the table
-# replicator.extractor.parallel-extractor.add_truncate_table=true
+replicator.extractor.parallel-extractor.add_truncate_table=true
 
 # Number of parallel threads to use for extracting from database
-# replicator.extractor.parallel-extractor.extract_channels=10
+replicator.extractor.parallel-extractor.extract_channels=10
 
 # Number of events that can be buffered inside the parallel extractor
-# replicator.extractor.parallel-extractor.queue_size=20
+replicator.extractor.parallel-extractor.queue_size=20
 
 # Local THL extractor. 
 replicator.extractor.thl-extractor=com.continuent.tungsten.replicator.thl.THLStoreExtractor
