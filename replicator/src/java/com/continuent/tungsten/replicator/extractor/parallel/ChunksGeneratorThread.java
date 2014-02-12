@@ -50,14 +50,32 @@ import com.continuent.tungsten.replicator.extractor.parallel.ChunkDefinitions.Ch
  */
 public class ChunksGeneratorThread extends Thread
 {
-    // this is the default value
-    // TODO : add a setting to override it
-    private static final long CHUNK_SIZE = 1000;
 
     private class MinMax
     {
 
+        private long   count;
+
         private Number min;
+
+        private Number max;
+
+        public MinMax(Number min, Number max, long count)
+        {
+            this.min = min;
+            this.max = max;
+            this.count = count;
+        }
+
+        /**
+         * Returns the count value.
+         * 
+         * @return Returns the count.
+         */
+        protected long getCount()
+        {
+            return count;
+        }
 
         /**
          * Returns the min value.
@@ -79,34 +97,14 @@ public class ChunksGeneratorThread extends Thread
             return max;
         }
 
-        private Number max;
-        private long   count;
-
-        /**
-         * Returns the count value.
-         * 
-         * @return Returns the count.
-         */
-        protected long getCount()
-        {
-            return count;
-        }
-
-        public MinMax(Number min, Number max, long count)
-        {
-            this.min = min;
-            this.max = max;
-            this.count = count;
-        }
-
-        public boolean isDecimal()
+        protected boolean isDecimal()
         {
             return !(this.min instanceof Long);
         }
 
     }
 
-    private static Logger        logger = Logger.getLogger(ChunksGeneratorThread.class);
+    private static Logger        logger    = Logger.getLogger(ChunksGeneratorThread.class);
     private Database             connection;
     private String               user;
     private String               url;
@@ -115,6 +113,7 @@ public class ChunksGeneratorThread extends Thread
     private String               chunkDefFile;
     private ChunkDefinitions     chunkDefinition;
     private int                  extractChannels;
+    private long                 chunkSize = 1000;
 
     /**
      * Creates a new <code>TableGeneratorThread</code> object
@@ -125,10 +124,11 @@ public class ChunksGeneratorThread extends Thread
      * @param extractChannels
      * @param chunks
      * @param chunkDefinitionFile
+     * @param chunkSize
      */
     public ChunksGeneratorThread(String user, String url, String password,
             int extractChannels, BlockingQueue<Chunk> chunks,
-            String chunkDefinitionFile)
+            String chunkDefinitionFile, long chunkSize)
     {
         this.setName("ChunkGeneratorThread");
         this.user = user;
@@ -137,6 +137,8 @@ public class ChunksGeneratorThread extends Thread
         this.chunks = chunks;
         this.chunkDefFile = chunkDefinitionFile;
         this.extractChannels = extractChannels;
+        if (chunkSize > 0)
+            this.chunkSize = chunkSize;
     }
 
     public void run()
@@ -345,7 +347,7 @@ public class ChunksGeneratorThread extends Thread
         else if (tableChunkSize < 0)
         {
             // Use default chunk size
-            chunkSize = CHUNK_SIZE;
+            chunkSize = this.chunkSize;
         }
         else
         {
@@ -635,16 +637,16 @@ public class ChunksGeneratorThread extends Thread
         if (count == 0)
             return;
 
-        if (count <= CHUNK_SIZE)
+        if (count <= chunkSize)
         {
             chunks.put(new StringChunk(table, minDB, maxDB, 1));
             return;
         }
 
         // Else (count > CHUNK_SIZE) : chunk again in smaller parts
-        long nbBlocks = count / CHUNK_SIZE;
+        long nbBlocks = count / chunkSize;
 
-        if (count % CHUNK_SIZE > 0)
+        if (count % chunkSize > 0)
             nbBlocks++;
 
         long blockSize = count / nbBlocks;

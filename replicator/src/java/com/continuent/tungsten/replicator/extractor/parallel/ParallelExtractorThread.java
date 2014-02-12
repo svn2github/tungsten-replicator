@@ -429,11 +429,12 @@ public class ParallelExtractorThread extends Thread
         sql.append('.');
         sql.append(connection.getDatabaseObjectName(chunk.getTable().getName()));
 
-        String pkName = chunk.getTable().getPrimaryKey().getColumns().get(0)
-                .getName();
+        String pkName = null;
 
         if (chunk instanceof NumericChunk && ((Long) chunk.getFrom()) > 0)
         {
+            pkName = chunk.getTable().getPrimaryKey().getColumns().get(0)
+                    .getName();
 
             sql.append(" WHERE ");
             sql.append(pkName);
@@ -447,6 +448,9 @@ public class ParallelExtractorThread extends Thread
         else if (chunk instanceof StringChunk
                 && ((String) chunk.getFrom()).length() > 0)
         {
+            pkName = chunk.getTable().getPrimaryKey().getColumns().get(0)
+                    .getName();
+
             sql.append(" WHERE ");
             sql.append(pkName);
             sql.append(" >= '");

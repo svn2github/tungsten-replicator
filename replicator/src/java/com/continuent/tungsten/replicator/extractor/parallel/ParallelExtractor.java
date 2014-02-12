@@ -50,10 +50,15 @@ public class ParallelExtractor implements RawExtractor
     private String                        user                  = "root";
     private String                        password              = "rootpass";
 
-    private int                           extractChannels       = 5;
-    private List<ParallelExtractorThread> threads;
+    private boolean                       addTruncateTable      = false;
+    private long                          chunkSize             = -1;
+
+    private int                           extractChannels       = 1;
+    
+    // Default queue size is set to 20.
     private int                           queueSize             = 20;
 
+    private List<ParallelExtractorThread> threads;
     private ArrayBlockingQueue<DBMSEvent> queue;
     private ArrayBlockingQueue<Chunk>     chunks;
 
@@ -65,6 +70,46 @@ public class ParallelExtractor implements RawExtractor
     private String                        chunkDefinitionFile   = null;
 
     private Hashtable<String, Long>       tableBlocks;
+
+    /**
+     * Sets the addTruncateTable value.
+     * 
+     * @param addTruncateTable The addTruncateTable to set.
+     */
+    public void setAddTruncateTable(boolean addTruncateTable)
+    {
+        this.addTruncateTable = addTruncateTable;
+    }
+
+    /**
+     * Sets the chunkSize value.
+     * 
+     * @param chunkSize The chunkSize to set.
+     */
+    public void setChunkSize(long chunkSize)
+    {
+        this.chunkSize = chunkSize;
+    }
+
+    /**
+     * Sets the extractChannels value.
+     * 
+     * @param extractChannels The extractChannels to set.
+     */
+    public void setExtractChannels(int extractChannels)
+    {
+        this.extractChannels = extractChannels;
+    }
+
+    /**
+     * Sets the queueSize value.
+     * 
+     * @param queueSize The queueSize to set.
+     */
+    public void setQueueSize(int queueSize)
+    {
+        this.queueSize = queueSize;
+    }
 
     public void setUrl(String url)
     {
@@ -111,7 +156,7 @@ public class ParallelExtractor implements RawExtractor
         queue = new ArrayBlockingQueue<DBMSEvent>(queueSize);
 
         chunksGeneratorThread = new ChunksGeneratorThread(user, url, password,
-                extractChannels, chunks, chunkDefinitionFile);
+                extractChannels, chunks, chunkDefinitionFile, chunkSize);
 
         tableBlocks = new Hashtable<String, Long>();
 
@@ -182,33 +227,36 @@ public class ParallelExtractor implements RawExtractor
             return null;
         }
         else
-        // TODO : this should be done only if addTruncateTable setting is set.
         {
-            // Check metadata of the event
-            String entry = event.getMetadataOptionValue("schema") + "."
-                    + event.getMetadataOptionValue("table");
-
-            Long blk = tableBlocks.remove(entry);
-            if (blk != null)
+            if (addTruncateTable)
             {
-                // Table already in there... no need to add TRUNCATE, but
-                // decrement number of remaining blocks
-                if (blk > 1)
-                    // If the number reaches 0, table was fully processed : no
-                    // need to put tables back in there
-                    tableBlocks.put(entry, blk - 1);
-            }
-            else
-            {
-                event.getData().add(0,
-                        new StatementData("TRUNCATE TABLE " + entry));
+                // Check metadata of the event
+                String entry = event.getMetadataOptionValue("schema") + "."
+                        + event.getMetadataOptionValue("table");
 
-                blk = Long.valueOf(event.getMetadataOptionValue("nbBlocks"));
-                if (blk > 1)
+                Long blk = tableBlocks.remove(entry);
+                if (blk != null)
                 {
-                    tableBlocks.put(entry, blk - 1);
+                    // Table already in there... no need to add TRUNCATE, but
+                    // decrement number of remaining blocks
+                    if (blk > 1)
+                        // If the number reaches 0, table was fully processed :
+                        // no
+                        // need to put tables back in there
+                        tableBlocks.put(entry, blk - 1);
                 }
+                else
+                {
+                    event.getData().add(0,
+                            new StatementData("TRUNCATE TABLE " + entry));
 
+                    blk = Long
+                            .valueOf(event.getMetadataOptionValue("nbBlocks"));
+                    if (blk > 1)
+                    {
+                        tableBlocks.put(entry, blk - 1);
+                    }
+                }
             }
         }
 
