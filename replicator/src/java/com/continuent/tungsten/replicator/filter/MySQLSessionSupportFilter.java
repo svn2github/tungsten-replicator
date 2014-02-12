@@ -68,7 +68,7 @@ public class MySQLSessionSupportFilter implements Filter
             logger.debug(String.format("Found null sessionId for eventId=%s",
                     eventId));
 
-        if (sessionId.equals("-1"))
+        if (sessionId != null && sessionId.equals("-1"))
             sessionId = BLANK_THREAD;
 
         if (sessionId != null && !sessionId.equals(lastSessionId))
