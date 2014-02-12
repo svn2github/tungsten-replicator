@@ -118,4 +118,25 @@ public class StringChunk implements Chunk
         return nbBlocks;
     }
 
+    @Override
+    public String getWhereClause()
+    {
+        if (getFrom() != null)
+        {
+            StringBuffer sql = new StringBuffer(" WHERE ");
+            String pkName = getTable().getPrimaryKey().getColumns().get(0)
+                    .getName();
+
+            sql.append(pkName);
+            sql.append(" >= '");
+            sql.append(getFrom());
+            sql.append("' AND ");
+            sql.append(pkName);
+            sql.append(" <= '");
+            sql.append(getTo());
+            sql.append("'");
+        }
+        return null;
+    }
+
 }

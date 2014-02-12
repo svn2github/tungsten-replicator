@@ -70,4 +70,6 @@ public interface Chunk
      */
     @Override
     public String toString();
+
+    public String getWhereClause();
 }

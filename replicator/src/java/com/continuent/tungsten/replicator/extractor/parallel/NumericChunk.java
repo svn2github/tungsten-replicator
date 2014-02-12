@@ -63,7 +63,7 @@ public class NumericChunk implements Chunk
 
     public NumericChunk(Table table, String[] columns)
     {
-        this(table, -1, -1, columns);
+        this(table, null, null, columns);
         this.nbBlocks = 1;
     }
 
@@ -75,6 +75,7 @@ public class NumericChunk implements Chunk
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getColumns()
      */
     @Override
@@ -85,16 +86,20 @@ public class NumericChunk implements Chunk
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getFrom()
      */
     @Override
     public Long getFrom()
     {
+        if (from == null)
+            return null;
         return from.longValue();
     }
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getNbBlocks()
      */
     @Override
@@ -105,6 +110,7 @@ public class NumericChunk implements Chunk
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getTable()
      */
     @Override
@@ -115,16 +121,20 @@ public class NumericChunk implements Chunk
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getTo()
      */
     @Override
     public Long getTo()
     {
+        if (to == null)
+            return null;
         return to.longValue();
     }
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#toString()
      */
     @Override
@@ -135,4 +145,24 @@ public class NumericChunk implements Chunk
                 + " from " + from + " to " + to;
     }
 
+    @Override
+    public String getWhereClause()
+    {
+        if (getFrom() != null)
+        {
+            StringBuffer sql = new StringBuffer(" WHERE ");
+            String pkName = getTable().getPrimaryKey().getColumns().get(0)
+                    .getName();
+
+            sql.append(pkName);
+            sql.append(" > ");
+            sql.append(getFrom());
+            sql.append(" AND ");
+            sql.append(pkName);
+            sql.append(" <= ");
+            sql.append(getTo());
+            return sql.toString();
+        }
+        return null;
+    }
 }

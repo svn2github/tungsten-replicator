@@ -166,6 +166,8 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (SQLException e)
         {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
 
         try
@@ -174,7 +176,8 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (SQLException e)
         {
-            // throw new ReplicatorException("Unable to connect to Oracle", e);
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
 
         // Check whether we have to use a chunk definition file
@@ -310,6 +313,8 @@ public class ChunksGeneratorThread extends Thread
         catch (Exception e)
         {
             // TODO: handle exception
+            e.printStackTrace();
+
         }
     }
 
@@ -518,6 +523,8 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
                 }
             }
             if (st != null)
@@ -528,6 +535,8 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
                 }
             }
         }
@@ -620,6 +629,8 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
                 }
             }
             if (st != null)
@@ -630,6 +641,8 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
                 }
             }
         }
@@ -639,7 +652,7 @@ public class ChunksGeneratorThread extends Thread
 
         if (count <= chunkSize)
         {
-            chunks.put(new StringChunk(table, minDB, maxDB, 1));
+            chunks.put(new StringChunk(table, null, null));
             return;
         }
 
