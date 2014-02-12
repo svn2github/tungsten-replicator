@@ -387,22 +387,27 @@ module ConfigureDeploymentStepServices
       }
     end
 
-    is_first = true
-    services.each{
-      |svc|
-      args = []
-      args << "--source=#{source}"
-      args << "--service=#{svc}"
+    begin
+      is_first = true
+      services.each{
+        |svc|
+        args = []
+        args << "--source=#{source}"
+        args << "--service=#{svc}"
       
-      if is_first == false
-        # Do not add this argument until it is supported and we properly support multi-master topologies
-        # args << "--logical"
-      end
+        if is_first == false
+          # Do not add this argument until it is supported and we properly support multi-master topologies
+          # args << "--logical"
+        end
       
-      info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/scripts/tungsten_provision_slave #{args.join(' ')}"))
-      is_first = false
-    }
+        notice("Provision the #{svc} replication service on #{@config.getProperty(HOST)}")
+        info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/scripts/tungsten_provision_slave #{args.join(' ')}"))
+        is_first = false
+      }
     
-    online_replication_services()
+      online_replication_services()
+    rescue CommandError => ce
+      error("There was a problem running #{ce.command}\n#{ce.result}\nResolve the issue and run the tungsten_provision_slave script on #{@config.getProperty(HOST)}")
+    end
   end
 end

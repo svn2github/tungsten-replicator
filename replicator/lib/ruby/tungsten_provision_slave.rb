@@ -176,6 +176,7 @@ class TungstenReplicatorProvisionSlave
     # All replication must be OFFLINE
     unless TI.is_replicator?()
       TU.error("This server is not configured for replication")
+      return
     end
     
     if opt(:source) == AUTODETECT
@@ -222,7 +223,7 @@ class TungstenReplicatorProvisionSlave
         end
         
         if opt(:source) == nil
-          TU.error("Unable to autodetect a value for --source")
+          TU.error("Unable to autodetect a value for --source. Make sure that the replicator is running on all other datasources for the #{opt(:service)} replication service.")
         end
       end
     end
@@ -242,7 +243,7 @@ class TungstenReplicatorProvisionSlave
     # Inspect the default value for the replication service to identify the 
     # preferred method
     if opt(:mysqldump) == nil && opt(:xtrabackup) == nil
-      if TI.trepctl_property(opt(:service), "replicator.backup.default") == "mysqldump"
+      if TI.setting("repl_services.#{opt(:service)}.repl_backup_method") == "mysqldump"
         opt(:mysqldump, true)
       else
         opt(:mysqldump, false)

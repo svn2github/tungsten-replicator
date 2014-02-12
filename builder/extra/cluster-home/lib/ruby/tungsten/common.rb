@@ -177,7 +177,7 @@ module JSON
             result << state.indent * depth if indent
             result << ']'
     
-            if valid_keys == 0
+            if valid_keys == 0 && depth != 0
               return ""
             end
     
