@@ -799,6 +799,7 @@ public class ProtobufSerializer implements Serializer
                 break;
             case Types.CHAR :
             case Types.VARCHAR :
+            case Types.NVARCHAR :
                 if (value instanceof String)
                 {
                     valueBuilder.setStringValue((String) value);
