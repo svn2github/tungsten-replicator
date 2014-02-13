@@ -200,7 +200,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         Action deferredOfflineAction = new DeferredOfflineAction();
         Action offlineToSynchronizingAction = new OfflineToSynchronizingAction();
         Action offlineToProvisioningAction = new OfflineToProvisioningAction();
-
         Action clearDynamicPropertiesAction = new ClearDynamicPropertiesAction();
         Action configureAction = new ConfigureAction();
         Action errorClearAction = new ErrorClearAction();
@@ -1378,6 +1377,9 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         {
             try
             {
+                // Force the pipeline to flush all pending events into THL
+                openReplicator.getReplicatorRuntime().getPipeline()
+                        .shutdown(false);
                 openReplicator.offline(new TungstenProperties());
                 openReplicator.online(new TungstenProperties());
             }
