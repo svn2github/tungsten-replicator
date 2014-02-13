@@ -31,8 +31,6 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import oracle.sql.TIMESTAMPTZ;
@@ -392,48 +390,7 @@ public class ParallelExtractorThread extends Thread
             logger.debug("Got chunk for " + chunk.getTable() + " from "
                     + chunk.getFrom() + " to " + chunk.getTo());
 
-        StringBuffer sql = new StringBuffer();
-
-        List<String> columns = chunk.getColumns();
-        if (columns == null)
-            for (Column column : chunk.getTable().getAllColumns())
-            {
-                if (sql.length() == 0)
-                {
-                    sql.append("SELECT ");
-                }
-                else
-                {
-                    sql.append(", ");
-                }
-                sql.append(column.getName());
-            }
-        else
-            for (Iterator<String> iterator = columns.iterator(); iterator
-                    .hasNext();)
-            {
-                if (sql.length() == 0)
-                {
-                    sql.append("SELECT ");
-                }
-                else
-                {
-                    sql.append(", ");
-                }
-                sql.append(iterator.next());
-            }
-
-        sql.append(" FROM ");
-        sql.append(connection.getDatabaseObjectName(chunk.getTable()
-                .getSchema()));
-        sql.append('.');
-        sql.append(connection.getDatabaseObjectName(chunk.getTable().getName()));
-
-        String where = chunk.getWhereClause();
-        if (where != null)
-            sql.append(where);
-
-        return sql.toString();
+        return chunk.getQuery(connection);
     }
 
     private void setTypeFromDatabase(Column column, ColumnSpec spec,

@@ -30,7 +30,7 @@ import com.continuent.tungsten.replicator.database.Table;
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
-public class StringChunk implements Chunk
+public class StringChunk extends AbstractChunk implements Chunk
 {
 
     private Table  table;

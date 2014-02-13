@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.extractor.parallel;
 
 import java.util.List;
 
+import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.Table;
 
 /**
@@ -71,5 +72,6 @@ public interface Chunk
     @Override
     public String toString();
 
-    public String getWhereClause();
+
+    public String getQuery(Database connection);
 }

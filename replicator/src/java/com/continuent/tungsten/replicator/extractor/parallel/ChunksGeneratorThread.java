@@ -334,12 +334,7 @@ public class ChunksGeneratorThread extends Thread
 
         Integer pkType = getPKType(table);
 
-        if (pkType == null)
-        {
-            chunks.put(new NumericChunk(table, columns));
-            return;
-        }
-        else if (tableChunkSize == 0)
+        if (pkType != null && tableChunkSize == 0)
         {
             // No chunks for this table (all table at once)
             if (pkType == Types.NUMERIC)
@@ -363,11 +358,12 @@ public class ChunksGeneratorThread extends Thread
         logger.info("Processing table " + table.getSchema() + "."
                 + table.getName());
 
-        if (pkType == Types.NUMERIC)
+        if (pkType == null)
+            chunkLimit(table);
+        else if (pkType == Types.NUMERIC)
             chunkNumericPK(table, columns, chunkSize);
         else if (pkType == Types.VARCHAR)
-            chunkVarcharPK(table, null, null);
-
+            chunkVarcharPK(table);
     }
 
     /**
@@ -587,20 +583,17 @@ public class ChunksGeneratorThread extends Thread
         }
     }
 
-    private void chunkVarcharPK(Table table, Long min, Long max)
-            throws InterruptedException
+    private void chunkVarcharPK(Table table) throws InterruptedException
     {
         String pkName = table.getPrimaryKey().getColumns().get(0).getName();
         String fqnTable = connection.getDatabaseObjectName(table.getSchema())
                 + '.' + connection.getDatabaseObjectName(table.getName());
         // Get Count
-        String sql = String
-                .format("SELECT MIN(%s) as min, MAX(%s) as max, COUNT(%s) as cnt FROM %s",
-                        pkName, pkName, pkName, fqnTable);
+        String sql = String.format("SELECT COUNT(%s) as cnt FROM %s", pkName,
+                fqnTable);
 
         // if count <= Chunk size, we are done
         long count = 0;
-        String minDB = null, maxDB = null;
         Statement st = null;
         ResultSet rs = null;
         try
@@ -610,8 +603,6 @@ public class ChunksGeneratorThread extends Thread
             if (rs.next())
             {
                 count = rs.getLong(3);
-                minDB = rs.getString(1);
-                maxDB = rs.getString(2);
             }
         }
         catch (Exception e)
@@ -737,5 +728,82 @@ public class ChunksGeneratorThread extends Thread
                 e.printStackTrace();
             }
         }
+    }
+
+    private void chunkLimit(Table table) throws InterruptedException
+    {
+        // Table does not have a primary key. Let's chunk using limit.
+        String fqnTable = connection.getDatabaseObjectName(table.getSchema())
+                + '.' + connection.getDatabaseObjectName(table.getName());
+
+        // Get Count
+        String sql = String.format("SELECT COUNT(*) as cnt FROM %s", fqnTable);
+
+        long count = 0;
+        Statement st = null;
+        ResultSet rs = null;
+        try
+        {
+            st = connection.createStatement();
+            rs = st.executeQuery(sql);
+            if (rs.next())
+            {
+                count = rs.getLong("cnt");
+            }
+        }
+        catch (Exception e)
+        {
+            logger.warn("Failed to retrieve row count values for table "
+                    + fqnTable, e);
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try
+                {
+                    rs.close();
+                }
+                catch (SQLException e)
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            if (st != null)
+            {
+                try
+                {
+                    st.close();
+                }
+                catch (SQLException e)
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        }
+        if (count == 0)
+            return;
+
+        if (count <= chunkSize)
+        {
+            chunks.put(new LimitChunk(table));
+            return;
+        }
+
+        // Else (count > CHUNK_SIZE) : chunk again in smaller parts
+        long nbBlocks = count / chunkSize;
+
+        if (count % chunkSize > 0)
+            nbBlocks++;
+
+        long blockSize = (long) Math.ceil((double) count / (double) nbBlocks);
+
+        for (long i = 0; i < count; i += blockSize + 1)
+        {
+            chunks.put(new LimitChunk(table, i, i + blockSize, nbBlocks));
+        }
+
     }
 }

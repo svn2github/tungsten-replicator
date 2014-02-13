@@ -31,7 +31,7 @@ import com.continuent.tungsten.replicator.database.Table;
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
-public class NumericChunk implements Chunk
+public class NumericChunk extends AbstractChunk implements Chunk
 {
     private Number       from;
 
