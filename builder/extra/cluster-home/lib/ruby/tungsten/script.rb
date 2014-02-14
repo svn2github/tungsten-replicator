@@ -7,6 +7,8 @@ module TungstenScript
     begin
       prepare()
       main()
+    rescue CommandError => e
+      TU.debug(e)
     rescue => e
       TU.exception(e)
     end

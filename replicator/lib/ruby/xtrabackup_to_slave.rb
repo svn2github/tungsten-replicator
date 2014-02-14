@@ -6,9 +6,20 @@ class TungstenXtrabackupToSlaveScript < TungstenBackupScript
   MASTER_BACKUP_POSITION_SQL = "xtrabackup_tungsten_master_backup_position.sql"
   
   def backup
+    @lock_file_created = false
+    lock_file = TI.setting("temp_directory") + "/xtrabackup_to_slave.lck"
+    
     begin
       @binlog_file = nil
       @binlog_position = nil
+      
+      if File.exist?(lock_file)
+        contents = TU.cmd_result("cat #{lock_file}")
+        raise("Unable to provision from #{TI.hostname()} using xtrabackup because it is provisioning #{contents}. Watch for completion on that server and retry. If you are sure that no other server is provisioning from #{TI.hostname()} remove the #{lock_file} file on #{TI.hostname()} and retry the command.")
+      end
+      
+      @lock_file_created = true
+      TU.cmd_result("echo '#{@options[:target]}' > #{lock_file}")
       
       staging_dir = TI.setting("temp_directory") + "/" + build_timestamp_id("backup")
       TU.mkdir_if_absent(staging_dir)
@@ -38,20 +49,22 @@ class TungstenXtrabackupToSlaveScript < TungstenBackupScript
       }
       TU.forward_cmd_results?(false)
       
+      if @lock_file_created && File.exist?(lock_file)
+        TU.cmd_result("rm -f #{lock_file}")
+      end
+      
       # There are extra files that some versions of Xtrabackup leave out of 
       # the tar stream. We need to transfer those across
       TU.notice("Transfer extra files to #{@options[:target]}:#{@options[:storage_directory]}")
       TU.cmd_result("rsync -aze \"ssh #{TU.get_ssh_command_options()}\" #{staging_dir}/ #{@options[:target]}:#{@options[:storage_directory]}")
-      
-      if File.exist?(staging_dir)
-        TU.cmd_result("#{sudo_prefix()}rm -rf #{staging_dir}")
-      end
-    rescue => e
+    ensure
       if staging_dir && File.exist?(staging_dir)
         TU.cmd_result("#{sudo_prefix()}rm -rf #{staging_dir}")
       end
       
-      raise e
+      if @lock_file_created && File.exist?(lock_file)
+        TU.cmd_result("rm -f #{lock_file}")
+      end
     end
   end
   

@@ -105,12 +105,7 @@ class TungstenReplicatorProvisionSlave
       end
       
       TU.notice("Backup and restore complete")
-
-      if @options[:direct] == false && staging_dir != "" && File.exists?(staging_dir)
-        TU.debug("Cleanup #{staging_dir}")
-        TU.cmd_result("rm -r #{staging_dir}")
-      end
-    rescue => e
+    ensure
       if @options[:direct] == false && staging_dir != "" && File.exists?(staging_dir)
         TU.debug("Remove #{staging_dir} due to the error")
         TU.cmd_result("rm -r #{staging_dir}")
@@ -121,8 +116,6 @@ class TungstenReplicatorProvisionSlave
       if @options[:direct] == true
         TU.cmd_result("#{sudo_prefix()}chown -R #{@options[:mysqluser]}: #{staging_dir}")
       end
-
-      raise e
     end
   end
   
@@ -157,18 +150,11 @@ class TungstenReplicatorProvisionSlave
       rescue CommandError => ce
         raise MessageError.new("Unable to load the mysqldump file: #{ce.errors}")
       end
-      
-      if staging_dir != "" && File.exists?(staging_dir)
-        TU.debug("Remove #{staging_dir}")
-        TU.cmd_result("rm -r #{staging_dir}")
-      end
-    rescue => e
+    ensure
       if staging_dir != "" && File.exists?(staging_dir)
         TU.debug("Remove #{staging_dir} due to the error")
         TU.cmd_result("rm -r #{staging_dir}")
       end
-      
-      raise e
     end
   end
   
@@ -199,7 +185,7 @@ class TungstenReplicatorProvisionSlave
             next
           end
           
-          if ["ONLINE", "OFFLINE:NORMAL"].include?(svc["state"])
+          if svc["state"] == "ONLINE"
             opt(:source, svc["host"])
           end
         }
