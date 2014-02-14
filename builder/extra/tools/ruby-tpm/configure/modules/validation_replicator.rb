@@ -252,7 +252,30 @@ class THLStorageCheck < ConfigureValidationCheck
       error(e.message)
     end
   end
+  
+  def enabled?
+    super() && (get_topology().is_a?(ClusterSlaveTopology) != true)
+  end
 end
+
+class RowBasedBinaryLoggingCheck < ConfigureValidationCheck
+  include ReplicationServiceValidationCheck
+
+  def set_vars
+    @title = "Row Based Binary Logging Check"
+  end
+  
+  def validate
+    if get_extractor_datasource.get_value("show variables like 'binlog_format'", "Value") !="ROW"
+      error("The MySQL datasource binlog_format must be set to 'ROW' for heterogenous replication.")
+    end
+  end
+
+  def enabled?
+    (get_extractor_datasource().class == MySQLDatabasePlatform && @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER))  == "true")
+  end
+end
+
 
 class ServiceTransferredLogStorageCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck
