@@ -219,7 +219,8 @@ public class Encryptor
         catch (Exception e)
         {
             String msg = MessageFormat.format(
-                    "Cannot decrypt message. Error= {0}", e.getMessage());
+                    "Cannot decrypt message. Error= {0}",e);
+            logger.error(msg);
             throw new ConfigurationException(msg);
         }
         return clearMessage;
