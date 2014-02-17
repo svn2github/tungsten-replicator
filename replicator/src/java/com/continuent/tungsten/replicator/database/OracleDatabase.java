@@ -631,6 +631,13 @@ public class OracleDatabase extends AbstractDatabase
         return md.getPrimaryKeys(null, schemaName, tableName);
     }
 
+    protected ResultSet getIndexResultSet(DatabaseMetaData md,
+            String schemaName, String tableName, boolean unique)
+            throws SQLException
+    {
+        return md.getIndexInfo(null, schemaName, tableName, unique, true);
+    }
+
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {

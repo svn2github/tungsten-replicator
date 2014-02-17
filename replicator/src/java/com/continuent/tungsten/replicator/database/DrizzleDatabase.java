@@ -382,6 +382,13 @@ public class DrizzleDatabase extends AbstractDatabase
         return md.getPrimaryKeys(schemaName, null, tableName);
     }
 
+    protected ResultSet getIndexResultSet(DatabaseMetaData md,
+            String schemaName, String tableName, boolean unique)
+            throws SQLException
+    {
+        return md.getIndexInfo(schemaName, null, tableName, unique, true);
+    }
+
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {

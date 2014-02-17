@@ -63,6 +63,7 @@ TIMESTAMP /* $col.getTypeDescription() */##
 VARBINARY($col.getLength()) /* $col.getTypeDescription()($col.getLength()) */##
 #else
 $col.getTypeDescription() /* ERROR: unrecognized (type=$col.getType(), length=$col.getLength()) */#end##
+#if ( $col.isNotNull() ) NOT NULL#end##
 #if( $colReserved ) /* WARN: changed column name because of reserved word ($col.getName()) */#end##
 #if( $foreach.hasNext ),
 #end

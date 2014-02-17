@@ -63,6 +63,7 @@ VARCHAR2(4000) /* $col.getTypeDescription() */##
 NUMBER(1) /* $col.getTypeDescription() - no constraints for 0 or 1 */##
 #else
 $col.getTypeDescription() /* ERROR: unrecognized (type=$col.getType(), length=$col.getLength()) */#end##
+#if ( $col.isNotNull() ) NOT NULL#end##
 #if( $colTruncated ) /* WARN: truncated column name exceeding 30 characters ($col.getName()) */#end##
 #if( $colReserved ) /* WARN: changed column name because of reserved word ($col.getName()) */#end##
 #if ( $col.getName().substring(0, 1).matches("[0-9]") ) /* ERROR: column starts with a number, use rename option and a filter */#end

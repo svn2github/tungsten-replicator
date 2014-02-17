@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.database;
 
 import java.sql.PreparedStatement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +42,7 @@ public class Table
     ArrayList<Column>       allColumns      = null;
     ArrayList<Column>       nonKeyColumns   = null;
     ArrayList<Key>          keys            = null;
+    ArrayList<Key>          uniqueKeys      = null;
     Key                     primaryKey      = null;
     PreparedStatement       statements[];
     // Cache of prepared statements
@@ -72,6 +74,7 @@ public class Table
         this.allColumns = new ArrayList<Column>();
         this.nonKeyColumns = new ArrayList<Column>();
         this.keys = new ArrayList<Key>();
+        this.uniqueKeys = new ArrayList<Key>();
         this.scn = null;
         this.tableId = -1;
         this.statements = new PreparedStatement[Table.NPREPPED];
@@ -127,7 +130,7 @@ public class Table
 
     /**
      * Adds a key definition to the table. This method maintains non-key columns
-     * automatically.
+     * automatically, as well as unique keys.
      */
     public void AddKey(Key key)
     {
@@ -137,12 +140,17 @@ public class Table
             primaryKey = key;
             purge(key.getColumns(), nonKeyColumns);
         }
+        else if (key.getType() == Key.Unique)
+        {
+            uniqueKeys.add(key);
+        }
     }
 
-    /** Reset keys, which also resets non-key columns. */
+    /** Reset keys, which also resets non-key columns and unique keys. */
     public void clearKeys()
     {
         keys.clear();
+        uniqueKeys.clear();
         nonKeyColumns.clear();
         nonKeyColumns.addAll(this.allColumns);
     }
@@ -195,6 +203,53 @@ public class Table
     public ArrayList<Key> getKeys()
     {
         return keys;
+    }
+
+    public ArrayList<Key> getUniqueIndexes()
+    {
+        return uniqueKeys;
+    }
+
+    /**
+     * Choose unique index which is best suitable as an alternative primary key.
+     * The following criteria are weighed:<br/>
+     * 1. All columns are NOT NULL.<br/>
+     * 2. There are no floating-point type columns.<br/>
+     * 3. Consists of least amount of columns.<br/>
+     * 
+     * @return null, if no suitable unique index found, primary candidate key
+     *         otherwise.
+     */
+    public Key getPKFromUniqueIndex()
+    {
+        Key candidate = null;
+        for (Key uIdx : getUniqueIndexes())
+        {
+            if (candidate == null
+                    || uIdx.getColumns().size() <= candidate.getColumns()
+                            .size())
+            {
+                boolean valid = true;
+                for (Column col : uIdx.getColumns())
+                {
+                    if (!col.isNotNull())
+                    {
+                        valid = false;
+                        break;
+                    }
+                    else if (col.getType() == Types.FLOAT
+                            || col.getType() == Types.DOUBLE
+                            || col.getType() == Types.REAL)
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid)
+                    candidate = uIdx;
+            }
+        }
+        return candidate;
     }
 
     public Key getPrimaryKey()

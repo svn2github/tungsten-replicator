@@ -40,8 +40,20 @@ $key.getName()##
 #include($tryPkInclude)
   /* END OF $tryPkInclude */##
 #else
+## Is there a unique index suitable for PK?
+#set ( $uIndex = $table.getPKFromUniqueIndex() )
+#if ( $uIndex )
+,
+  PRIMARY KEY (##
+#foreach ( $uCol in $uIndex.getColumns() )
+$uCol.getName()##
+#if( $foreach.hasNext ), #else)#end
+#end
+ /* WARN: no PK found, using suitable unique index instead: $uIndex.getName() */##
+#else
 
   /* ERROR: table must have a primary key! */##
+#end
 #end
 #set ( $tryInclude = "${table.getSchema()}.${table.getName()}.ddl" )
 #if ( $velocity.resourceExists($tryInclude) )

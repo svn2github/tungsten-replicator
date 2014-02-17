@@ -125,6 +125,13 @@ public class DerbyDatabase extends AbstractDatabase
         throw new UnsupportedOperationException("Not implemented.");
     }
 
+    protected ResultSet getIndexResultSet(DatabaseMetaData md,
+            String schemaName, String tableName, boolean unique)
+            throws SQLException
+    {
+        throw new UnsupportedOperationException("Not implemented.");
+    }
+
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
