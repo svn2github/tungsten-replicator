@@ -121,6 +121,9 @@ public class DDLScan
         velocity.setProperty(RuntimeConstants.FILE_RESOURCE_LOADER_PATH, ".,"
                 + ReplicatorRuntimeConf.locateReplicatorHomeDir()
                 + "/samples/extensions/velocity" + userPath);
+        // Must allow setting of null values in the RHS #set operator to be
+        // compatible with the way JAVA methods communicate.
+        velocity.setProperty(RuntimeConstants.SET_NULL_ALLOWED, true);
         velocity.init();
     }
 
