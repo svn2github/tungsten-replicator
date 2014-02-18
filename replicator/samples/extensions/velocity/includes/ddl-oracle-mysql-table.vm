@@ -1,6 +1,6 @@
 $table.setSchema( $table.getSchema().toLowerCase() )##
 $table.setTable( $table.getName().toLowerCase() )##
-DROP TABLE ${table.getSchema()}.${table.getName()};
+DROP TABLE IF EXISTS ${table.getSchema()}.${table.getName()};
 CREATE TABLE ##
 ${table.getSchema()}.${table.getName()}##
 #if ( $reservedWordsMySQL.contains($table.getName().toUpperCase()) ) /* ERROR: table name is a reserved word, use rename option and a filter */ #end
