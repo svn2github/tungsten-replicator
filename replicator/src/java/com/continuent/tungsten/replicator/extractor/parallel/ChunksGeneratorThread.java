@@ -602,13 +602,13 @@ public class ChunksGeneratorThread extends Thread
             rs = st.executeQuery(sql);
             if (rs.next())
             {
-                count = rs.getLong(3);
+                count = rs.getLong("cnt");
             }
         }
         catch (Exception e)
         {
-            logger.warn("Failed to retrieve min, max and count values for PK "
-                    + pkName + " in table " + fqnTable, e);
+            logger.warn("Failed to retrieve count value for PK " + pkName
+                    + " in table " + fqnTable, e);
         }
         finally
         {
