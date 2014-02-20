@@ -92,6 +92,10 @@ class TungstenReplicatorProvisionSlave
         @options[:mysqliblogdir]
       ].uniq().each{
         |dir|
+        if dir.to_s() == ""
+          next
+        end
+        
         TU.cmd_result("#{sudo_prefix()}chown -RL #{@options[:mysqluser]}: #{dir}")
       }
 
