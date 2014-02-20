@@ -16,6 +16,12 @@
 #else
 #parse("includes/ddl-header.vm")
 #end
+## Set engine type once.
+#if ( !$engine )
+#set ( $engine = "InnoDB" )
+#elseif( $engine.equalsIgnoreCase("MyISAM") )
+/* WARN: using a non crash-safe $engine engine type! */
+#end
 #end
 ## Stop processing if help requested.
 #if( $help )
@@ -63,4 +69,4 @@ $uCol.getName()##
   /* END OF $tryInclude */##
 #end
 
-) ENGINE=InnoDB;
+) ENGINE=$engine;

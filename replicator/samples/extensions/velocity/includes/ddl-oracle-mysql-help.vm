@@ -1,6 +1,13 @@
 Transforms Oracle table definition (DDL) to MySQL dialect. Reports errors
 (ERROR) and warnings (WARN). Schema and table names are converted to lower
 case.
+
+Optional parameters:
+
+  -opt engine <engine> - override the default MySQL engine type for the tables
+                   generated. WARNING: might cause crash safety and other
+                   serious issues - use only with full understanding of the
+                   risks.
                     
 Optional includes:
 
