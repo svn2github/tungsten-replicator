@@ -86,15 +86,14 @@ class TungstenReplicatorProvisionSlave
       end
 
       # Fix the permissions and restart the service
-      TU.cmd_result("#{sudo_prefix()}chown -RL #{@options[:mysqluser]}: #{@options[:mysqldatadir]}")
-
-      if @options[:mysqlibdatadir].to_s() != ""
-        TU.cmd_result("#{sudo_prefix()}chown -RL #{@options[:mysqluser]}: #{@options[:mysqlibdatadir]}")
-      end
-
-      if @options[:mysqliblogdir].to_s() != ""
-        TU.cmd_result("chown -RL #{@options[:mysqluser]}: #{@options[:mysqliblogdir]}")
-      end
+      [
+        @options[:mysqldatadir],
+        @options[:mysqlibdatadir],
+        @options[:mysqliblogdir]
+      ].uniq().each{
+        |dir|
+        TU.cmd_result("#{sudo_prefix()}chown -RL #{@options[:mysqluser]}: #{dir}")
+      }
 
       start_mysql_server()
       
