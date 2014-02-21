@@ -59,7 +59,9 @@ public class OracleCDCReaderExtractor implements RawExtractor
 
     private int                            transactionFragSize   = 0;
 
+    private int                            minSleepTimeInSeconds = 1;
     private int                            maxSleepTimeInSeconds = 1;
+    private int                            sleepAddition         = 0;
 
     private int                            queueSize             = 100;
 
@@ -100,6 +102,26 @@ public class OracleCDCReaderExtractor implements RawExtractor
     public void setMaxSleepTime(int maxSleepTime)
     {
         this.maxSleepTimeInSeconds = maxSleepTime;
+    }
+
+    /**
+     * Sets the minSleepTimeInSeconds value.
+     * 
+     * @param minSleepTimeInSeconds The minSleepTimeInSeconds to set.
+     */
+    public void setMinSleepTime(int minSleepTimeInSeconds)
+    {
+        this.minSleepTimeInSeconds = minSleepTimeInSeconds;
+    }
+
+    /**
+     * Sets the sleepAddition value.
+     * 
+     * @param sleepAddition The sleepAddition to set.
+     */
+    public void setSleepAddition(int sleepAddition)
+    {
+        this.sleepAddition = sleepAddition;
     }
 
     /**
@@ -180,8 +202,8 @@ public class OracleCDCReaderExtractor implements RawExtractor
     {
         queue = new ArrayBlockingQueue<CDCMessage>(queueSize);
         readerThread = new OracleCDCReaderThread(url, user, password, queue,
-                lastSCN, maxSleepTimeInSeconds, maxRowsByBlock,
-                reconnectTimeout, serviceName);
+                lastSCN, minSleepTimeInSeconds, maxSleepTimeInSeconds,
+                sleepAddition, maxRowsByBlock, reconnectTimeout, serviceName);
         readerThread.prepare();
     }
 

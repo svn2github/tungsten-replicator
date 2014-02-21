@@ -84,24 +84,36 @@ public class OracleCDCReaderThread extends Thread
 
     private String                       serviceName;
 
+    private int                          minSleepTimeInMs;
+
+    private int                          sleepAdditionInMs;
+
     public OracleCDCReaderThread(String url, String user, String password,
             BlockingQueue<CDCMessage> queue, String lastSCN,
-            int maxSleepTimeInSeconds, int maxRowsByBlock,
-            long reconnectTimeout, String serviceName)
+            int minSleepTimeInSeconds, int maxSleepTimeInSeconds,
+            int sleepAddition, int maxRowsByBlock, long reconnectTimeout,
+            String serviceName)
     {
-        super("Oracle Change Data Capture Reader Thread");
+        super("Oracle CDC Reader Thread for service " + serviceName);
         this.queue = queue;
         this.url = url;
         this.user = user;
         this.password = password;
+        this.minSleepTimeInMs = 1000 * minSleepTimeInSeconds;
         this.maxSleepTimeInMs = 1000 * maxSleepTimeInSeconds;
+        this.sleepAdditionInMs = 1000 * sleepAddition;
+
         this.maxRowsByBlock = maxRowsByBlock;
         this.reconnectTimeout = reconnectTimeout;
-		// Oracle doesn't understand lower case objects:
-		this.serviceName = serviceName.toUpperCase();
-        logger.info("Oracle extraction thread starting using : maxSleepTime = "
+        // Oracle doesn't understand lower case objects:
+        this.serviceName = serviceName.toUpperCase();
+        logger.info("Oracle extraction thread starting using : minSleepTime = "
+                + minSleepTimeInMs
+                + " ms - maxSleepTime = "
                 + maxSleepTimeInMs
-                + " ms - maxRowsByBlock "
+                + " ms - sleepTimeIncrement = "
+                + sleepAdditionInMs
+                + "ms - maxRowsByBlock "
                 + maxRowsByBlock
                 + " - "
                 + (reconnectTimeout > 0 ? "Reconnecting after "
@@ -424,7 +436,7 @@ public class OracleCDCReaderThread extends Thread
 
     private void runTask()
     {
-        int currentSleepTime = 1000;
+        int currentSleepTime = minSleepTimeInMs;
         String operation;
         long currentSCN = -1;
         RowChangeData rowData = null;
@@ -517,7 +529,7 @@ public class OracleCDCReaderThread extends Thread
                         }
 
                         // Reset sleep time
-                        currentSleepTime = 1000;
+                        currentSleepTime = minSleepTimeInMs;
 
                         buffer = new StringBuffer();
 
@@ -664,8 +676,8 @@ public class OracleCDCReaderThread extends Thread
 
                     // Set sleep time to the next value : either double of
                     // current or the maximum sleep time if reached.
-                    currentSleepTime = Math.min(currentSleepTime * 2,
-                            maxSleepTimeInMs);
+                    currentSleepTime = Math.min(currentSleepTime
+                            + sleepAdditionInMs, maxSleepTimeInMs);
                 }
                 else
                 {
