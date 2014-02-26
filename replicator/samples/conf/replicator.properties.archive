@@ -276,6 +276,10 @@ replicator.extractor.failure_policy=stop
 # How to react on applier failure. Possible values are 'stop' or 'warn'. 
 replicator.applier.failure_policy=stop
 
+# How applier should react when detecting a row update that did not change anything.
+# Possible values are 'stop', 'warn' or 'ignore'. 
+replicator.applier.failOnZeroRowUpdate=@{REPL_SVC_FAIL_ON_ZERO_ROW_UPDATE}
+
 # How to react on consistency check failure.  Possible values are 'stop' or 
 # 'warn'. 
 replicator.applier.consistency_policy=@{REPL_CONSISTENCY_POLICY}

@@ -1392,6 +1392,24 @@ class ReplicationServiceRepositionOnSourceIDChange < ConfigurePrompt
   end
 end
 
+class ReplicationServiceFailOnZeroRowUpdate < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    pv = PropertyValidator.new("^stop|warn|ignore$", 
+      "Value must be stop, warn, or ignore")
+    super(REPL_SVC_FAIL_ON_ZERO_ROW_UPDATE, "How should the replicator behave when a Row-Based Replication UPDATE does not affect any rows.", pv, "warn")
+  end
+  
+  def load_default_value
+    super()
+    
+    if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SLAVE)) == "true"
+      @default = "stop"
+    end
+  end
+end
+
 class ReplicationServiceGlobalProperties < ConfigurePrompt
   include ReplicationServicePrompt
   include ConstantValueModule
