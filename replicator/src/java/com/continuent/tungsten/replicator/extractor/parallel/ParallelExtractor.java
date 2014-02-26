@@ -54,7 +54,7 @@ public class ParallelExtractor implements RawExtractor
     private long                          chunkSize             = -1;
 
     private int                           extractChannels       = 1;
-    
+
     // Default queue size is set to 20.
     private int                           queueSize             = 20;
 
@@ -70,6 +70,8 @@ public class ParallelExtractor implements RawExtractor
     private String                        chunkDefinitionFile   = null;
 
     private Hashtable<String, Long>       tableBlocks;
+
+    protected String                      eventId               = null;
 
     /**
      * Sets the addTruncateTable value.
@@ -191,6 +193,12 @@ public class ParallelExtractor implements RawExtractor
     @Override
     public void setLastEventId(String eventId) throws ReplicatorException
     {
+        this.eventId = eventId;
+        chunksGeneratorThread.setEventId(eventId);
+        for (int i = 0; i < extractChannels; i++)
+        {
+            threads.get(i).setEventId(eventId);
+        }
     }
 
     /**

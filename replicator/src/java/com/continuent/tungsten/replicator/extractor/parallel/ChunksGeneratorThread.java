@@ -114,6 +114,7 @@ public class ChunksGeneratorThread extends Thread
     private ChunkDefinitions     chunkDefinition;
     private int                  extractChannels;
     private long                 chunkSize = 1000;
+    private String               eventId   = null;
 
     /**
      * Creates a new <code>TableGeneratorThread</code> object
@@ -473,17 +474,22 @@ public class ChunksGeneratorThread extends Thread
     {
 
         String pkName = table.getPrimaryKey().getColumns().get(0).getName();
-        String query = String.format(
-                "SELECT MIN(%s),MAX(%s), COUNT(%s) FROM %s", pkName, pkName,
-                pkName, conn.getDatabaseObjectName(table.getSchema()) + '.'
+        String sql = String.format(
+                "SELECT MIN(%s),MAX(%s), COUNT(%s) FROM %s",
+                pkName,
+                pkName,
+                pkName,
+                conn.getDatabaseObjectName(table.getSchema()) + '.'
                         + conn.getDatabaseObjectName(table.getName()));
+        if (eventId != null)
+            sql += " AS OF SCN " + eventId;
 
         Statement st = null;
         ResultSet rs = null;
         try
         {
             st = conn.createStatement();
-            rs = st.executeQuery(query);
+            rs = st.executeQuery(sql);
             if (rs.next())
             {
                 Object min = rs.getObject(1);
@@ -591,6 +597,8 @@ public class ChunksGeneratorThread extends Thread
         // Get Count
         String sql = String.format("SELECT COUNT(%s) as cnt FROM %s", pkName,
                 fqnTable);
+        if (eventId != null)
+            sql += " AS OF SCN " + eventId;
 
         // if count <= Chunk size, we are done
         long count = 0;
@@ -669,9 +677,17 @@ public class ChunksGeneratorThread extends Thread
         sqlBuf.append(fqnTable);
         sqlBuf.append(" ORDER BY ");
         sqlBuf.append(pkName);
+
+        if (eventId != null)
+        {
+            sqlBuf.append(" AS OF SCN ");
+            sqlBuf.append(eventId);
+        }
+
         sqlBuf.append(") sub where ROWNUM <= ? ) where rnum >= ?");
 
         sql = sqlBuf.toString();
+
         try
         {
             pstmt = connection.prepareStatement(sql);
@@ -738,6 +754,8 @@ public class ChunksGeneratorThread extends Thread
 
         // Get Count
         String sql = String.format("SELECT COUNT(*) as cnt FROM %s", fqnTable);
+        if (eventId != null)
+            sql += " AS OF SCN " + eventId;
 
         long count = 0;
         Statement st = null;
@@ -805,5 +823,10 @@ public class ChunksGeneratorThread extends Thread
             chunks.put(new LimitChunk(table, i, i + blockSize, nbBlocks));
         }
 
+    }
+
+    public void setEventId(String eventId)
+    {
+        this.eventId = eventId;
     }
 }

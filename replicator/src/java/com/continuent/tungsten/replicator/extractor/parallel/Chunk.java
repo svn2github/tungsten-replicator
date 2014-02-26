@@ -73,5 +73,5 @@ public interface Chunk
     public String toString();
 
 
-    public String getQuery(Database connection);
+    public String getQuery(Database connection, String eventId);
 }

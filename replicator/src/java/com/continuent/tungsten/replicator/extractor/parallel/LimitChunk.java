@@ -120,7 +120,7 @@ public class LimitChunk extends AbstractChunk implements Chunk
      * @see com.continuent.tungsten.replicator.extractor.parallel.AbstractChunk#getQuery(com.continuent.tungsten.replicator.database.Database)
      */
     @Override
-    public String getQuery(Database connection)
+    public String getQuery(Database connection, String eventId)
     {
         String fqnTable = connection.getDatabaseObjectName(table.getSchema())
                 + '.' + connection.getDatabaseObjectName(table.getName());
@@ -154,6 +154,11 @@ public class LimitChunk extends AbstractChunk implements Chunk
         sql.append(colsList);
         sql.append(" FROM ");
         sql.append(fqnTable);
+        if (eventId != null)
+        {
+            sql.append(" AS OF SCN ");
+            sql.append(eventId);
+        }
         sql.append(" ORDER BY ");
         sql.append(colsList);
         sql.append(") subQuery where ROWNUM <= ");

@@ -89,7 +89,7 @@ public abstract class AbstractChunk implements Chunk
      * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getQuery()
      */
     @Override
-    public String getQuery(Database connection)
+    public String getQuery(Database connection, String eventId)
     {
         StringBuffer sql = new StringBuffer();
 
@@ -126,6 +126,12 @@ public abstract class AbstractChunk implements Chunk
         sql.append(connection.getDatabaseObjectName(getTable().getSchema()));
         sql.append('.');
         sql.append(connection.getDatabaseObjectName(getTable().getName()));
+
+        if (eventId != null)
+        {
+            sql.append(" AS OF SCN ");
+            sql.append(eventId);
+        }
 
         String where = getWhereClause();
         if (where != null)

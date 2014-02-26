@@ -70,6 +70,8 @@ public class ParallelExtractorThread extends Thread
     // select) and rowcount (the maximum number of rows of the event) ?
     private int                           rowCount   = 10000;
 
+    private String                        eventId    = null;
+
     public ParallelExtractorThread(String url, String user, String password,
             ArrayBlockingQueue<Chunk> chunks,
             ArrayBlockingQueue<DBMSEvent> queue)
@@ -116,7 +118,7 @@ public class ParallelExtractorThread extends Thread
 
     private void runTask()
     {
-        String sqlString = null;
+        String sql = null;
         try
         {
             connection.connect();
@@ -165,7 +167,7 @@ public class ParallelExtractorThread extends Thread
             }
 
             // 2.1. Build the statement
-            sqlString = buildSQLStatement(chunk);
+            sql = buildSQLStatement(chunk);
 
             ArrayList<Column> allColumns = chunk.getTable().getAllColumns();
             ArrayList<DBMSData> dataArray = new ArrayList<DBMSData>();
@@ -175,8 +177,8 @@ public class ParallelExtractorThread extends Thread
             {
                 if (logger.isDebugEnabled())
                     logger.debug("Thread " + this.getName() + " running : "
-                            + sqlString);
-                rs = stmt.executeQuery(sqlString);
+                            + sql);
+                rs = stmt.executeQuery(sql);
                 if (rs != null)
                 {
                     boolean eventSent;
@@ -305,8 +307,8 @@ public class ParallelExtractorThread extends Thread
                                 eventSent = true;
                                 try
                                 {
-                                    DBMSEvent ev = new DBMSEvent(
-                                            "PROVISIONNING", dataArray,
+                                    DBMSEvent ev = new DBMSEvent("ora:"
+                                            + eventId, dataArray,
                                             new Timestamp(
                                                     System.currentTimeMillis()));
                                     ev.addMetadataOption("schema", chunk
@@ -339,7 +341,7 @@ public class ParallelExtractorThread extends Thread
 
                             {
                                 // TODO: what should be the event id ?
-                                DBMSEvent ev = new DBMSEvent("PROVISIONNING",
+                                DBMSEvent ev = new DBMSEvent("ora:" + eventId,
                                         dataArray, new Timestamp(
                                                 System.currentTimeMillis()));
                                 ev.addMetadataOption("schema", chunk.getTable()
@@ -365,7 +367,7 @@ public class ParallelExtractorThread extends Thread
             }
             catch (SQLException e)
             {
-                logger.error("SQL failed : " + sqlString, e);
+                logger.error("SQL failed : " + sql, e);
             }
             finally
             {
@@ -390,7 +392,7 @@ public class ParallelExtractorThread extends Thread
             logger.debug("Got chunk for " + chunk.getTable() + " from "
                     + chunk.getFrom() + " to " + chunk.getTo());
 
-        return chunk.getQuery(connection);
+        return chunk.getQuery(connection, eventId);
     }
 
     private void setTypeFromDatabase(Column column, ColumnSpec spec,
@@ -451,6 +453,11 @@ public class ParallelExtractorThread extends Thread
             connection = null;
         }
 
+    }
+
+    public void setEventId(String eventId)
+    {
+        this.eventId = eventId;
     }
 
 }
