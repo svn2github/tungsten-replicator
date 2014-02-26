@@ -179,6 +179,7 @@ class QueryCommand
   end
   
   def output_values
+    @config.setProperty([SYSTEM], nil)
     build_topologies(@config)
     values_matches = {}
     @values_arguments.each{

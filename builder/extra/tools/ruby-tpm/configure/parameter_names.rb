@@ -10,6 +10,7 @@
 # Generic parameters that control the entire installation.
 DEPLOYMENT_COMMAND = "deployment_command"
 DEPLOYMENT_DATASERVICE = "deployment_dataservice"
+DEPLOYMENT_DATASERVICE_ALIASES = "deployment_dataservice_aliases"
 DEPLOYMENT_HOST = "deployment_host"
 DEPLOYMENT_SERVICE = "service_name"
 HOST = "host_name"

@@ -846,6 +846,68 @@ class HostDefaultDataserviceName < ConfigurePrompt
   end
 end
 
+class HostDataserviceAliases < ConfigurePrompt
+  include ClusterHostPrompt
+  include HiddenValueModule
+  include NoSystemDefault
+  
+  def initialize
+    super(DEPLOYMENT_DATASERVICE_ALIASES, "Aliases for all dataservices on this host", PV_ANY)
+  end
+  
+  def allow_group_default
+    false
+  end
+  
+  def load_default_value
+    @default = {}
+    
+    @config.getNestedPropertyOr([REPL_SERVICES], {}).each_key{
+      |rs_alias|
+      if rs_alias == DEFAULTS
+        next
+      end
+      
+      if @config.getNestedProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_HOST]) == get_member()
+        ds_alias = @config.getNestedProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_DATASERVICE])
+        service_name = @config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
+        @default[service_name] = ds_alias
+      end
+    }
+    
+    @config.getNestedPropertyOr([MANAGERS], {}).each_key{
+      |m_alias|
+      if m_alias == DEFAULTS
+        next
+      end
+      
+      if @config.getNestedProperty([MANAGERS, m_alias, DEPLOYMENT_HOST]) == get_member()
+        ds_alias = @config.getNestedProperty([MANAGERS, m_alias, DEPLOYMENT_DATASERVICE])
+        service_name = @config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
+        @default[service_name] = ds_alias
+      end
+    }
+    
+    @config.getNestedPropertyOr([CONNECTORS], {}).each_key{
+      |h_alias|
+      if h_alias == DEFAULTS
+        next
+      end
+      
+      if @config.getNestedProperty([CONNECTORS, h_alias, DEPLOYMENT_HOST]) == get_member()
+        ds_aliases = @config.getNestedProperty([CONNECTORS, h_alias, DEPLOYMENT_DATASERVICE])
+        if ! ds_aliases.kind_of?(Array)
+           ds_aliases=Array(ds_aliases);
+        end
+        ds_aliases.each{|ds_alias|
+          service_name = @config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
+          @default[service_name] = ds_alias
+        }
+      end
+    }
+  end
+end
+
 class DatasourceDBType < ConfigurePrompt
   include DatasourcePrompt
   

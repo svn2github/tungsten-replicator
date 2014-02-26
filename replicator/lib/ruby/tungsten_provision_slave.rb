@@ -34,7 +34,7 @@ class TungstenReplicatorProvisionSlave
 
         staging_dir = @options[:mysqldatadir]
       else
-        staging_dir = TI.setting("repl_services.#{@options[:service]}.repl_backup_directory") + "/" + id
+        staging_dir = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_backup_directory")) + "/" + id
       end
       FileUtils.mkdir_p(staging_dir)
       TU.cmd_result("#{sudo_prefix()}chown -R #{TI.user()} #{staging_dir}")
@@ -126,7 +126,7 @@ class TungstenReplicatorProvisionSlave
     begin
       # Create a directory to hold the mysqldump output
       id = build_timestamp_id("provision_mysqldump_")
-      staging_dir = TI.setting("repl_services.#{@options[:service]}.repl_backup_directory") + "/" + id
+      staging_dir = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_backup_directory")) + "/" + id
       FileUtils.mkdir_p(staging_dir)
       
       # SSH to the source server and run the backup. It will place the output
@@ -232,7 +232,7 @@ class TungstenReplicatorProvisionSlave
     # Inspect the default value for the replication service to identify the 
     # preferred method
     if opt(:mysqldump) == nil && opt(:xtrabackup) == nil
-      if TI.setting("repl_services.#{opt(:service)}.repl_backup_method") == "mysqldump"
+      if TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_backup_method")) == "mysqldump"
         opt(:mysqldump, true)
       else
         opt(:mysqldump, false)
@@ -245,6 +245,12 @@ class TungstenReplicatorProvisionSlave
     
     unless TU.is_valid?()
       return
+    end
+    
+    if TI && TI.setting(TI.setting_key(DATASERVICES, opt(:service), "dataservice_topology")) == "clustered"
+      opt(:is_clustered, true)
+    else
+      opt(:is_clustered, false)
     end
     
     if @options[:mysqldump] == false
@@ -273,8 +279,8 @@ class TungstenReplicatorProvisionSlave
     
       @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
       @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")
-      @options[:mysqllogdir] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_log_directory")
-      @options[:mysqllogpattern] = TI.setting("repl_services.#{@options[:service]}.repl_datasource_log_pattern")
+      @options[:mysqllogdir] = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_datasource_log_directory"))
+      @options[:mysqllogpattern] = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_datasource_log_pattern"))
 
       if @options[:mysqldatadir].to_s() == ""
         TU.error "The configuration file at #{@options[:my_cnf]} does not define a datadir value."
@@ -365,12 +371,6 @@ class TungstenReplicatorProvisionSlave
     set_option_default(:clear_logs, true)
     set_option_default(:offline, true)
     set_option_default(:online, true)
-    
-    if TI && TI.setting("dataservices.#{opt(:service)}.dataservice_topology") == "clustered"
-      opt(:is_clustered, true)
-    else
-      opt(:is_clustered, false)
-    end
   end
   
   def empty_mysql_directory
