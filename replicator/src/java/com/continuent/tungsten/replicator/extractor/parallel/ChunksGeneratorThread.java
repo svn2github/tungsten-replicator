@@ -212,9 +212,16 @@ public class ChunksGeneratorThread extends Thread
                         Table table = connection.findTable(
                                 chunkRequest.getSchema(),
                                 chunkRequest.getTable());
-                        generateChunksForTable(table,
-                                chunkRequest.getChunkSize(),
-                                chunkRequest.getColumns());
+
+                        if (table != null)
+                            generateChunksForTable(table,
+                                    chunkRequest.getChunkSize(),
+                                    chunkRequest.getColumns());
+                        else
+                            logger.warn("Failed while processing table "
+                                    + chunkRequest.getSchema() + "."
+                                    + chunkRequest.getTable()
+                                    + " : table not found.");
                     }
                     catch (SQLException e)
                     {
