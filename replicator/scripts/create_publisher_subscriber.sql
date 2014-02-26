@@ -1,3 +1,4 @@
+
 --For DEBUG purpose, comment the following 3 lines and uncomment the 4th one
 set feedback off
 set echo off
@@ -113,7 +114,7 @@ IF tableCount > 0 THEN
          END IF;
          
    
-         EXECUTE IMMEDIATE 'GRANT SELECT ON "'|| v_user || '"."' || v_table_name ||'" TO '||v_tungsten_user;
+         EXECUTE IMMEDIATE 'GRANT SELECT,FLASHBACK ON "'|| v_user || '"."' || v_table_name ||'" TO '||v_tungsten_user;
 
       END LOOP;
       CLOSE C;
@@ -141,7 +142,7 @@ ELSE
             DBMS_OUTPUT.PUT_LINE ('Preparing table instanciation');
             DBMS_CAPTURE_ADM.PREPARE_TABLE_INSTANTIATION(TABLE_NAME => v_user || '.' || v_table_name );
          END IF;
-         EXECUTE IMMEDIATE 'GRANT SELECT ON "'|| v_user || '"."' || v_table_name ||'" TO '||v_tungsten_user;
+         EXECUTE IMMEDIATE 'GRANT SELECT,FLASHBACK ON "'|| v_user || '"."' || v_table_name ||'" TO '||v_tungsten_user;
       END LOOP;
       CLOSE C;
    END;
