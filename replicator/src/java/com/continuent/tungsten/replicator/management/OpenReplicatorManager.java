@@ -1378,8 +1378,13 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             try
             {
                 // Force the pipeline to flush all pending events into THL
-                openReplicator.getReplicatorRuntime().getPipeline()
-                        .shutdown(false);
+                String waitedEvent = String.valueOf(openReplicator
+                        .getReplicatorRuntime().getPipeline()
+                        .getLastExtractedSeqno());
+
+                long timeout = 0;
+                openReplicator.waitForAppliedEvent(waitedEvent, timeout);
+
                 openReplicator.offline(new TungstenProperties());
                 openReplicator.online(new TungstenProperties());
             }
