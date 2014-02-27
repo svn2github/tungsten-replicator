@@ -590,6 +590,11 @@ class ClusterRelaySource < ConfigurePrompt
       return
     end
     
+    if to_identifier(value) == get_member()
+      error "Unable to configure a service to use itself as a source"
+      return
+    end
+    
     found_composite_datasource = false
     
     topology = Topology.build(get_member(), @config)

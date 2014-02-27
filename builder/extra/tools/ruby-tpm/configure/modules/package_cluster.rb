@@ -1380,24 +1380,33 @@ module ClusterCommandModule
         }
       end
     }
+    ds_list.uniq!()
     
     ds_list.each{
       |ds_alias|
       config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_RELAY_SOURCE], "").split(",").each{
         |rds_alias|
-        ds_list << rds_alias
+        unless ds_list.include?(rds_alias)
+          ds_list << rds_alias
+        end
       }
       config_obj.getPropertyOr([DATASERVICES, ds_alias, TARGET_DATASERVICE], "").split(",").each{
         |tds_alias|
-        ds_list << tds_alias
+        unless ds_list.include?(tds_alias)
+          ds_list << tds_alias
+        end
       }
       config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MASTER_SERVICES], "").split(",").each{
         |mds_alias|
-        ds_list << mds_alias
+        unless ds_list.include?(mds_alias)
+          ds_list << mds_alias
+        end
       }
       config_obj.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_HUB_SERVICE], "").split(",").each{
         |hds_alias|
-        ds_list << hds_alias
+        unless ds_list.include?(hds_alias)
+          ds_list << hds_alias
+        end
       }
     }
     
