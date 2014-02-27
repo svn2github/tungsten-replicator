@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -914,7 +914,7 @@ public abstract class AbstractDatabase implements Database
      */
     protected abstract ResultSet getPrimaryKeyResultSet(DatabaseMetaData md,
             String schemaName, String tableName) throws SQLException;
-    
+
     /**
      * This function should be implemented in concrete class.
      * 
@@ -992,7 +992,8 @@ public abstract class AbstractDatabase implements Database
                 {
                     String colName = rsk.getString("COLUMN_NAME");
                     Column column = cm.get(colName);
-                    pKey.AddColumn(column);
+                    // Adding columns in the primary key order
+                    pKey.AddColumn(column, rsk.getShort("KEY_SEQ"));
                 }
                 table.AddKey(pKey);
             }
@@ -1028,7 +1029,7 @@ public abstract class AbstractDatabase implements Database
                     short idxType = rsi.getShort("TYPE");
                     if (idxType != DatabaseMetaData.tableIndexStatistic)
                     {
-                        // Reults are ordered by NON_UNIQUE, TYPE,
+                        // Results are ordered by NON_UNIQUE, TYPE,
                         // INDEX_NAME, and ORDINAL_POSITION.
                         String idxName = rsi.getString("INDEX_NAME");
                         if (!idxName.equals(lastIdxName))
@@ -1376,6 +1377,7 @@ public abstract class AbstractDatabase implements Database
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.database.Database#isSystemSchema(java.lang.String)
      */
     @Override
@@ -1385,5 +1387,4 @@ public abstract class AbstractDatabase implements Database
         return false;
     }
 
-    
 }
