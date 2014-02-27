@@ -252,6 +252,7 @@ module ClusterCommandModule
   def get_external_option_arguments
     external_arguments = []
     hostname = Configurator.instance.hostname()
+    natural_order = 0
     
     if @config_ini_path != nil
       debug("Load external configuration from #{@config_ini_path}")
@@ -260,6 +261,8 @@ module ClusterCommandModule
       ini.each{
         |section|
         key = section.key
+        is_modification = false
+        
         if section.key == "defaults"
           key = DEFAULTS
         elsif section.key == "defaults.replicator"
@@ -278,6 +281,10 @@ module ClusterCommandModule
               else
                 key = match[1]
               end
+              
+              # Include this in the section definition so this section
+              # may be evaluated after the standard section with the same name
+              is_modification = true
             else
               debug("Bypassing the #{section.key} section because it does not apply to this host")
               next
@@ -310,13 +317,58 @@ module ClusterCommandModule
           }
         }
         
+        # Provide metadata about the arguments for this section
+        is_composite = false
+        has_relay_source = false
+        args.each{
+          |arg|
+          if arg =~ /^--composite-datasources=|--dataservice-composite-datasources=/
+            is_composite = true
+            break
+          end
+          if arg =~ /^--relay-source=|--master-dataservice=|--dataservice-relay-source=/
+            has_relay_source = true
+            break
+          end
+        }
+        
+        # Calculate a weight for this section so we can sort on it
+        # DEFAULTS
+        # Services
+        # Services that reference a relay source
+        # Composite services
+        # Sections that modify the above specifically for this host
+        weight = 0
+        if is_modification == true
+          weight = 10**12
+        elsif is_composite == true
+          weight = 10**10
+        elsif has_relay_source == true
+          weight = 10**8
+        elsif key == DEFAULTS
+          weight = 10**4
+        else
+          weight = 10**6
+        end
+        
+        # Add the order from the file as a tie breaker
+        weight = weight + natural_order
+        
         external_arguments << {
           :key => key,
-          :arguments => args
+          :arguments => args,
+          :weight => weight
         }
+        
+        natural_order = natural_order+1
       }
     end
     
+    external_arguments.sort!{
+      |a,b|
+      
+      (a[:weight] <=> b[:weight])
+    }
     external_arguments
   end
   
