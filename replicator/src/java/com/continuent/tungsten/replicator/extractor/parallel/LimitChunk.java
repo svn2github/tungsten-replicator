@@ -22,11 +22,13 @@
 
 package com.continuent.tungsten.replicator.extractor.parallel;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
+import com.continuent.tungsten.replicator.database.Key;
 import com.continuent.tungsten.replicator.database.Table;
 
 /**
@@ -127,8 +129,21 @@ public class LimitChunk extends AbstractChunk implements Chunk
 
         StringBuilder sql = new StringBuilder();
 
-        StringBuilder colsList = new StringBuilder();
+        StringBuilder colsList = new StringBuilder(), keysList = new StringBuilder();
         List<String> columns = getColumns();
+
+        ArrayList<Column> pkColumns = null;
+        if (table.getPrimaryKey() != null)
+        {
+            pkColumns = table.getPrimaryKey().getColumns();
+        }
+        else
+        {
+            Key candidatePK = table.getPKFromUniqueIndex();
+            if (candidatePK != null)
+                pkColumns = candidatePK.getColumns();
+        }
+
         if (columns == null)
             for (Column column : getTable().getAllColumns())
             {
@@ -149,6 +164,17 @@ public class LimitChunk extends AbstractChunk implements Chunk
                 colsList.append(iterator.next());
             }
 
+        if (pkColumns != null)
+            for (Iterator<Column> iterator = pkColumns.iterator(); iterator
+                    .hasNext();)
+            {
+                if (keysList.length() > 0)
+                {
+                    keysList.append(", ");
+                }
+                keysList.append(iterator.next().getName());
+            }
+
         sql.append("SELECT * FROM ");
         sql.append("( SELECT subQuery.*, ROWNUM rnum from ( SELECT ");
         sql.append(colsList);
@@ -160,7 +186,10 @@ public class LimitChunk extends AbstractChunk implements Chunk
             sql.append(eventId);
         }
         sql.append(" ORDER BY ");
-        sql.append(colsList);
+        if (keysList.length() > 0)
+            sql.append(keysList);
+        else
+            sql.append(colsList);
         sql.append(") subQuery where ROWNUM <= ");
         sql.append(this.to);
         sql.append(" ) where rnum >= ");
