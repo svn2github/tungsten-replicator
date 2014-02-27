@@ -1376,3 +1376,13 @@ class ReplicationServiceRepositionOnSourceIDChange < ConfigurePrompt
     super(REPL_SVC_REPOSITION_ON_SOURCE_ID_CHANGE, "The master will come ONLINE from the current position if the stored source_id does not match the value in the static properties.", PV_BOOLEAN, "true")
   end
 end
+
+class ReplicationServiceFailOnZeroRowUpdate < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    pv = PropertyValidator.new("^stop|warn|ignore$", 
+      "Value must be stop, warn, or ignore")
+    super(REPL_SVC_FAIL_ON_ZERO_ROW_UPDATE, "How should the replicator behave when a Row-Based Replication UPDATE does not affect any rows.", pv, "warn")
+  end
+end
