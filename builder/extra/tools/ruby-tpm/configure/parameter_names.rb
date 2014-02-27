@@ -72,6 +72,7 @@ BUILD_SECURITY_FILES = "build_security_files"
 SSL_CA = "ssl_ca"
 SSL_CERT = "ssl_cert"
 SSL_KEY = "ssl_key"
+PROTECT_CONFIGURATION_FILES = "protect_configuration_files"
 
 ENABLE_HETEROGENOUS_SERVICE = "enable_heterogenous_service"
 ENABLE_HETEROGENOUS_MASTER = "enable_heterogenous_master"

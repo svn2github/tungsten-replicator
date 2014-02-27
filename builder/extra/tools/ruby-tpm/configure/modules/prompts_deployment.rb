@@ -1736,6 +1736,14 @@ class HostSSLKey < ConfigurePrompt
   end
 end
 
+class HostProtectConfigurationFiles < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(PROTECT_CONFIGURATION_FILES, "Make configuration files readable by only the system user", PV_BOOLEAN, "true")
+  end
+end
+
 class HostPortsForUsers < ConfigurePrompt
   include ClusterHostPrompt
   include ConstantValueModule

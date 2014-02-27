@@ -428,8 +428,10 @@ host=#{ds_alias}"
     FileUtils.touch(target_dir)
     
     FileUtils.cp(current_release_directory + '/' + Configurator::HOST_CONFIG, current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig')
-    cmd_result("chmod o-rwx #{current_release_directory + '/' + Configurator::HOST_CONFIG}")
-    cmd_result("chmod o-rwx #{current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig'}")
+    if @config.getProperty(PROTECT_CONFIGURATION_FILES) == "true"
+      cmd_result("chmod o-rwx #{current_release_directory + '/' + Configurator::HOST_CONFIG}")
+      cmd_result("chmod o-rwx #{current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig'}")
+    end
     
     if is_manager?() || is_connector?()
       write_dataservices_properties()

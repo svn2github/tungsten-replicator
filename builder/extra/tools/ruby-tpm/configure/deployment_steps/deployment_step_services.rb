@@ -45,8 +45,10 @@ module ConfigureDeploymentStepServices
       end
       out.puts file_to_watch
       
-      cmd_result("chmod o-rwx #{file}")
-      cmd_result("chmod o-rwx #{get_original_watch_file(file)}")
+      if @config.getProperty(PROTECT_CONFIGURATION_FILES) == "true"
+        cmd_result("chmod o-rwx #{file}")
+        cmd_result("chmod o-rwx #{get_original_watch_file(file)}")
+      end
     }
     out.close
   end
