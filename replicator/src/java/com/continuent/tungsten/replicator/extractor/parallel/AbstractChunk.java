@@ -137,7 +137,15 @@ public abstract class AbstractChunk implements Chunk
         if (where != null)
             sql.append(where);
 
+        String orderby = getOrderByClause();
+        if (orderby != null)
+            sql.append(orderby);
+
         return sql.toString();
     }
 
+    protected String getOrderByClause()
+    {
+        return null;
+    }
 }

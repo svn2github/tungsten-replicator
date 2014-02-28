@@ -139,4 +139,10 @@ public class StringChunk extends AbstractChunk implements Chunk
         return null;
     }
 
+    protected String getOrderByClause()
+    {
+        return "ORDER BY "
+                + getTable().getPrimaryKey().getColumns().get(0).getName();
+    }
+
 }

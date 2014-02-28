@@ -424,40 +424,50 @@ public class ChunksGeneratorThread extends Thread
                         start = end;
                     }
                     while (start < (Long) minmax.getMax());
-
                 }
                 else
                 {
-                    BigInteger gap = (((BigDecimal) minmax.getMax())
-                            .subtract((BigDecimal) minmax.getMin())).setScale(
-                            0, RoundingMode.CEILING).toBigInteger();
+                    BigInteger start = ((BigDecimal) minmax.getMin())
+                            .setScale(0, RoundingMode.FLOOR).toBigInteger()
+                            .subtract(BigInteger.valueOf(1));
+
+                    BigInteger max = ((BigDecimal) minmax.getMax()).setScale(0,
+                            RoundingMode.CEILING).toBigInteger();
+
+                    BigInteger gap = max.subtract(start);
 
                     BigInteger blockSize = gap.multiply(
                             BigInteger.valueOf(chunkSize)).divide(
                             BigInteger.valueOf(minmax.getCount()));
-                    long nbBlocks = gap.divide(blockSize).longValue();
-                    if (!gap.remainder(blockSize).equals(BigInteger.ZERO))
-                        nbBlocks++;
 
-                    BigDecimal start = ((BigDecimal) minmax.getMin()).setScale(
-                            0, RoundingMode.FLOOR);
-                    BigDecimal end;
+                    long nbBlocks = gap.divide(blockSize).longValue();
+
+                    if (!gap.remainder(blockSize).equals(BigInteger.ZERO))
+                    {
+                        nbBlocks++;
+                        blockSize = gap.divide(BigInteger.valueOf(nbBlocks))
+                                .add(gap.remainder(blockSize).equals(
+                                        BigInteger.ZERO)
+                                        ? BigInteger.ZERO
+                                        : BigInteger.ONE);
+                    }
+                    BigInteger end;
                     do
                     {
-                        end = start.add(new BigDecimal(blockSize));
-                        if (end.compareTo((BigDecimal) minmax.getMax()) == 1)
-                            end = (BigDecimal) minmax.getMax();
+                        end = start.add(blockSize);
+                        if (end.compareTo((((BigDecimal) minmax.getMax())
+                                .setScale(0, RoundingMode.CEILING))
+                                .toBigInteger()) == 1)
+                            end = (((BigDecimal) minmax.getMax()).setScale(0,
+                                    RoundingMode.CEILING)).toBigInteger();
 
-                        end = end.setScale(0, RoundingMode.CEILING);
-
-                        NumericChunk e = new NumericChunk(table,
-                                start.toBigInteger(), end.toBigInteger(),
+                        NumericChunk e = new NumericChunk(table, start, end,
                                 columns, nbBlocks);
                         chunks.put(e);
                         start = end;
                     }
-                    while (start.compareTo(((BigDecimal) minmax.getMax())
-                            .setScale(0, RoundingMode.CEILING)) == -1);
+                    while (start.compareTo((((BigDecimal) minmax.getMax())
+                            .setScale(0, RoundingMode.CEILING)).toBigInteger()) == -1);
 
                 }
 
