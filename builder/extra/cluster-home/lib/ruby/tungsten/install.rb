@@ -52,8 +52,15 @@ class TungstenInstall
     end
   end
   
+  # Path to the install directory for Continuent Tungsten. This will include 
+  # all previous releases and a symlink to the current running version.
   def root
     @root
+  end
+  
+  # Path to the current running version of Continuent Tungsten.
+  def base_path
+    "#{@root}/#{CURRENT_RELEASE_DIRECTORY}"
   end
   
   def hostname
