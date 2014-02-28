@@ -320,6 +320,7 @@ public class SecurityHelper
             String propertiesFileLocation) throws ConfigurationException
     {
         TungstenProperties securityProps = null;
+        FileInputStream securityConfigurationFileInputStream = null;
 
         // --- Get Configuration file ---
         if (propertiesFileLocation == null
@@ -349,8 +350,11 @@ public class SecurityHelper
         try
         {
             securityProps = new TungstenProperties();
-            securityProps.load(new FileInputStream(securityPropertiesFile),
+            securityConfigurationFileInputStream = new FileInputStream(
+                    securityPropertiesFile);
+            securityProps.load(securityConfigurationFileInputStream,
                     true);
+            closeSecurityConfigurationFileInputStream(securityConfigurationFileInputStream);
         }
         catch (FileNotFoundException e)
         {
@@ -368,6 +372,10 @@ public class SecurityHelper
             logger.debug(msg, e);
             throw new ConfigurationException(msg);
         }
+        finally
+        {
+            closeSecurityConfigurationFileInputStream(securityConfigurationFileInputStream);
+        }
 
         if (logger.isDebugEnabled())
         {
@@ -381,6 +389,27 @@ public class SecurityHelper
                 securityPropertiesFile.getAbsolutePath());
 
         return securityProps;
+    }
+    
+    /**
+     * Close the security.properties input stream once it's been used.
+     * Best effort
+     * 
+     * @param fis
+     */
+    private static void closeSecurityConfigurationFileInputStream(FileInputStream fis)
+    {
+        // TUC-2065 Close input stream once it's used
+        if (fis != null)
+        {
+            try
+            {
+                fis.close();
+            }
+            catch (Exception ignoreMe)
+            {
+            }
+        }
     }
 
 }
