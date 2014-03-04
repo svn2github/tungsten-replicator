@@ -243,8 +243,6 @@ else
   doSvnCheckout commons ${TCOM_SVN_URL} $source_commons
   doSvnCheckout replicator ${TREP_SVN_URL} $source_replicator
   #doSvnCheckout replicator-extra ${TREP_EXT_SVN_URL} $source_replicator_extra
-  # workaround for a problem that only appears in jenkins
-  \rm -rf $source_bristlecone
   doSvnCheckout bristlecone ${BRI_SVN_URL} $source_bristlecone
   doSvnCheckout cookbook ${COOK_SVN_URL} $source_cookbook
 fi
