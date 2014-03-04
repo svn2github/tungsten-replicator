@@ -312,10 +312,8 @@ public class ConnectorHandler implements ReplicatorPlugin, Runnable
         }
         catch (SSLHandshakeException e)
         {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Received SSL handshake exception", e);
-            }
+            // Issue 727 : Add debug info
+            logger.error("Received SSL handshake exception", e);
             logger.error("SSL handshake failed; ensure client replicator has SSL enabled: host="
                     + socket.getSocket().getInetAddress().toString());
             return;
