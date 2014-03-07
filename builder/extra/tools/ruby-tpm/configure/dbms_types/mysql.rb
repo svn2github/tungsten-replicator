@@ -1712,7 +1712,7 @@ class MySQLConnectorPermissionsCheck < ConfigureValidationCheck
         end
         
         if get_applier_datasource.get_value("select 'OK' from mysql.user where user='#{connuser}' and host='#{host}' and  password=password('#{connpassword}')")  != 'OK'
-          error("Password specifed for #{connuser}@#{host} does not match the running instance on #{get_applier_datasource.get_connection_summary()}. This may indicate that the user has a password using the old format.")
+          error("Password specified for #{connuser}@#{host} does not match the running instance on #{get_applier_datasource.get_connection_summary()}. This may indicate that the user has a password using the old format.")
         end
         
         if @config.getProperty('connector_smartscale') == 'true'
