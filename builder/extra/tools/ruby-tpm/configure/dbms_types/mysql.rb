@@ -1710,10 +1710,15 @@ class MySQLConnectorPermissionsCheck < ConfigureValidationCheck
           error("The user specified in --application-user (#{connuser}@#{host}) has super privileges and can not be safely used as a application-user")
           help("The user #{connuser} has the SUPER privilege. This is not safe as it allows the application to write to READ_ONLY slave.Revoke this privilege using REVOKE SUPER on *.* from '#{connuser}'@'#{host}' ")
         end
-        
-        if get_applier_datasource.get_value("select 'OK' from mysql.user where user='#{connuser}' and host='#{host}' and  password=password('#{connpassword}')")  != 'OK'
-          error("Password specified for #{connuser}@#{host} does not match the running instance on #{get_applier_datasource.get_connection_summary()}. This may indicate that the user has a password using the old format.")
-        end
+
+        # Check MySQL password() returns 
+        if get_applier_datasource.get_value("select password('#{connpassword}')")  == nil
+          error("Password specified for #{connuser}@#{host} is not acceptable to MySQL password function on #{get_applier_datasource.get_connection_summary()}. This may indicate that the password contravenes settings for the MySQL Password Validation Plugin.")
+        else
+          if get_applier_datasource.get_value("select 'OK' from mysql.user where user='#{connuser}' and host='#{host}' and  password=password('#{connpassword}')")  != 'OK'
+            error("Password specified for #{connuser}@#{host} does not match the running instance on #{get_applier_datasource.get_connection_summary()}. This may indicate that the user has a password using the old format.")
+          end
+        end        
         
         if @config.getProperty('connector_smartscale') == 'true'
           if get_applier_datasource.get_value("select Repl_client_priv from mysql.user where user='#{connuser}' and host='#{host}'") == 'N'
