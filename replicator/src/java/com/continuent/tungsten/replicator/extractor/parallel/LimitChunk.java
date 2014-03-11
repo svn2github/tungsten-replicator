@@ -38,22 +38,33 @@ import com.continuent.tungsten.replicator.database.Table;
 public class LimitChunk extends AbstractChunk implements Chunk
 {
 
-    private Table table;
-    private long  from;
-    private long  to;
-    private long  nbBlocks = 0;
+    private Table    table;
+    private long     from;
+    private long     nbBlocks   = 0;
+    private Object[] fromValues = null;
+    private Object[] toValues;
 
     public LimitChunk(Table table)
     {
         this.table = table;
     }
 
-    public LimitChunk(Table table, long from, long to, long nbBlocks)
+    private LimitChunk(Table table, long from, long to, long nbBlocks)
     {
         this(table);
         this.from = from;
-        this.to = to;
         this.nbBlocks = nbBlocks;
+    }
+
+    // TODO : clean up useless parameters from here (from, to, whereclause,
+    // chunksize)
+    public LimitChunk(Table table, long from, long to, long nbBlocks,
+            Object[] fromValues, Object[] toValues, String whereClause,
+            long chunkSize)
+    {
+        this(table, from, to, nbBlocks);
+        this.fromValues = fromValues;
+        this.toValues = toValues;
     }
 
     /**
@@ -175,61 +186,80 @@ public class LimitChunk extends AbstractChunk implements Chunk
                 keysList.append(iterator.next().getName());
             }
 
-        sql.append("SELECT * FROM ");
-        sql.append("( SELECT subQuery.*, ROWNUM rnum from ( SELECT ");
-        sql.append(colsList);
+        sql.append("SELECT * ");
         sql.append(" FROM ");
         sql.append(fqnTable);
+
         if (eventId != null)
         {
             sql.append(" AS OF SCN ");
             sql.append(eventId);
         }
-        sql.append(" ORDER BY ");
-        if (keysList.length() > 0)
-            sql.append(keysList);
-        else
-            sql.append(colsList);
-        sql.append(") subQuery where ROWNUM <= ");
-        sql.append(this.to);
-        sql.append(" ) where rnum >= ");
-        sql.append(this.from);
+
+        if (fromValues != null || toValues != null)
+        {
+            sql.append(" WHERE ");
+        }
+
+        if (fromValues != null)
+        {
+            sql.append("(");
+            sql.append(buildFromWhereClause(pkColumns.toArray(), 0));
+            sql.append(")");
+        }
+
+        if (toValues != null)
+        {
+            if (fromValues != null)
+                sql.append(" AND ");
+            sql.append("(");
+            sql.append(buildToWhereClause(pkColumns.toArray(), 0));
+            sql.append(")");
+        }
 
         return sql.toString();
+    }
+
+    private String buildFromWhereClause(Object[] columns, int index)
+    {
+        if (index == columns.length - 1)
+        {
+            return ((Column) columns[index]).getName() + " > ? ";
+        }
+        else
+            return ((Column) columns[index]).getName() + " > ? OR ("
+                    + ((Column) columns[index]).getName() + " = ? AND ("
+                    + buildFromWhereClause(columns, index + 1) + "))";
+    }
+
+    private String buildToWhereClause(Object[] columns, int index)
+    {
+        if (index == columns.length - 1)
+        {
+            return ((Column) columns[index]).getName() + " <= ? ";
+        }
+        else
+            return ((Column) columns[index]).getName() + " < ? OR ("
+                    + ((Column) columns[index]).getName() + " = ? AND ("
+                    + buildToWhereClause(columns, index + 1) + "))";
     }
 
     @Override
     protected String getWhereClause()
     {
-        // StringBuilder sql = new StringBuilder();
-        // ArrayList<Column> allColumns = table.getAllColumns();
-        // String[] colList = new String[allColumns.size()];
-        //
-        // for (Column column : allColumns)
-        // {
-        // colList[column.getPosition()] = column.getName();
-        // }
-        //
-        // for (int i = 0; i < colList.length; i++)
-        // {
-        // if (sql.length() == 0)
-        // sql.append(" ORDER BY ");
-        // else
-        // sql.append(", ");
-        // sql.append(colList[i]);
-        //
-        // }
-        //
-        //
-        // StringBuffer sqlBuf = new StringBuffer("SELECT MIN(");
-        // sqlBuf.append(pkName);
-        // sqlBuf.append(") as min, MAX(");
-        // sqlBuf.append(pkName);
-        // sqlBuf.append(") as max, COUNT(");
-        // sqlBuf.append(pkName);
-        // sqlBuf.append(") as cnt FROM
-        //
-        // return sql.toString();
         return null;
     }
+
+    @Override
+    public Object[] getFromValues()
+    {
+        return fromValues;
+    }
+
+    @Override
+    public Object[] getToValues()
+    {
+        return toValues;
+    }
+
 }

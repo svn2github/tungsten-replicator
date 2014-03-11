@@ -148,4 +148,16 @@ public abstract class AbstractChunk implements Chunk
     {
         return null;
     }
+
+    @Override
+    public Object[] getFromValues()
+    {
+        return null;
+    }
+
+    @Override
+    public Object[] getToValues()
+    {
+        return null;
+    }
 }

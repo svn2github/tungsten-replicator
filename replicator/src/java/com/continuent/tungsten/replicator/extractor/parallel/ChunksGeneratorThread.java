@@ -39,8 +39,10 @@ import java.util.concurrent.BlockingQueue;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
+import com.continuent.tungsten.replicator.database.Key;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.extractor.parallel.ChunkDefinitions.ChunkRequest;
 
@@ -115,6 +117,8 @@ public class ChunksGeneratorThread extends Thread
     private int                  extractChannels;
     private long                 chunkSize = 1000;
     private String               eventId   = null;
+    private PreparedStatement    pStmt;
+    private String               whereClause;
 
     /**
      * Creates a new <code>TableGeneratorThread</code> object
@@ -342,13 +346,14 @@ public class ChunksGeneratorThread extends Thread
 
         Integer pkType = getPKType(table);
 
-        if (pkType != null && tableChunkSize == 0)
+        if (tableChunkSize == 0)
         {
+            chunks.put(new NoChunk(table, columns));
             // No chunks for this table (all table at once)
-            if (pkType == Types.NUMERIC)
-                chunks.put(new NumericChunk(table, columns));
-            else
-                chunks.put(new StringChunk(table, null, null));
+            // if (pkType == Types.NUMERIC)
+            // chunks.put(new NumericChunk(table, columns));
+            // else
+            // chunks.put(new StringChunk(table, null, null));
 
             return;
         }
@@ -362,9 +367,9 @@ public class ChunksGeneratorThread extends Thread
             chunkSize = tableChunkSize;
         }
 
-        // if (logger.isDebugEnabled())
-        logger.info("Processing table " + table.getSchema() + "."
-                + table.getName());
+        if (logger.isDebugEnabled())
+            logger.debug("Processing table " + table.getSchema() + "."
+                    + table.getName());
 
         if (pkType == null)
             chunkLimit(table);
@@ -391,9 +396,9 @@ public class ChunksGeneratorThread extends Thread
 
         if (minmax != null)
         {
-            // if (logger.isDebugEnabled())
-            logger.info("Min = " + minmax.getMin() + " -- Max = "
-                    + minmax.getMax() + " -- Count = " + minmax.getCount());
+            if (logger.isDebugEnabled())
+                logger.debug("Min = " + minmax.getMin() + " -- Max = "
+                        + minmax.getMax() + " -- Count = " + minmax.getCount());
 
             if (minmax.getCount() <= chunkSize)
                 // Get the whole table at once
@@ -835,10 +840,152 @@ public class ChunksGeneratorThread extends Thread
 
         long blockSize = (long) Math.ceil((double) count / (double) nbBlocks);
 
-        for (long i = 0; i < count; i += blockSize + 1)
+        try
         {
-            chunks.put(new LimitChunk(table, i, i + blockSize, nbBlocks));
+            generateChunkingPreparedStatement(table, blockSize);
         }
+        catch (SQLException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        Object[] fromValues = null, toValues = null;
+
+        ResultSet result = null;
+        try
+        {
+            result = pStmt.executeQuery();
+
+            long chunkSize = 0;
+            while (result.next())
+            {
+                chunkSize++;
+                if (chunkSize == blockSize)
+                {
+                    toValues = new Object[result.getMetaData().getColumnCount()];
+                    for (int j = 0; j < toValues.length; j++)
+                    {
+                        toValues[j] = result.getObject(j + 1);
+                    }
+
+                    chunks.put(new LimitChunk(table, 0, 0 + blockSize,
+                            nbBlocks, fromValues, toValues, whereClause,
+                            blockSize));
+
+                    fromValues = toValues;
+                    chunkSize = 0;
+                }
+                else if (chunkSize >= count)
+                {
+                    // Last chunk
+                    chunks.put(new LimitChunk(table, 0, 0 + blockSize,
+                            nbBlocks, fromValues, null, whereClause, blockSize));
+                }
+            }
+        }
+        catch (SQLException e1)
+        {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        try
+        {
+            result.close();
+            pStmt.close();
+        }
+        catch (SQLException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    private void generateChunkingPreparedStatement(Table table, long blockSize)
+            throws SQLException
+    {
+        String fqnTable = connection.getDatabaseObjectName(table.getSchema())
+                + '.' + connection.getDatabaseObjectName(table.getName());
+
+        StringBuffer sqlBuffer = new StringBuffer("SELECT ");
+        StringBuffer colBuf = new StringBuffer();
+        whereClause = new String();
+
+        if (table.getPrimaryKey() != null)
+        {
+            // TODO
+            // No dedicated chunking algorithm for this type of pk (either
+            // composite or datatype not handled)
+        }
+        else
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("Handling table " + table.toExtendedString());
+            // This is a unique key that can be used
+            Key key = table.getPKFromUniqueIndex();
+
+            if (key == null)
+            {
+                logger.info("getPKFromUniqueIndex returned null key");
+
+            }
+            ArrayList<Column> colsList = key.getColumns();
+
+            if (logger.isDebugEnabled())
+                logger.debug("colsList = " + colsList);
+
+            Column[] columns = new Column[colsList.size()];
+            int i = 0;
+            for (Column column : colsList)
+            {
+                columns[i] = column;
+                i++;
+            }
+
+            whereClause = buildWhereClause(columns, 0);
+
+            for (int j = 0; j < columns.length; j++)
+            {
+                if (j > 0)
+                {
+                    colBuf.append(", ");
+                }
+                colBuf.append(columns[j].getName());
+            }
+            sqlBuffer.append(colBuf);
+        }
+
+        sqlBuffer.append(" FROM ");
+        sqlBuffer.append(fqnTable);
+        if (eventId != null)
+        {
+            sqlBuffer.append(" AS OF SCN ");
+            sqlBuffer.append(eventId);
+
+        }
+
+        sqlBuffer.append(" ORDER BY ");
+        sqlBuffer.append(colBuf);
+
+        if (logger.isDebugEnabled())
+            logger.debug("Generated statement :" + sqlBuffer.toString());
+        pStmt = connection.prepareStatement(sqlBuffer.toString());
+
+        // TODO : have a setting ?
+        pStmt.setFetchSize(100);
+    }
+
+    private String buildWhereClause(Column[] columns, int index)
+    {
+        if (index == columns.length - 1)
+        {
+            return columns[index].getName() + " > ? ";
+        }
+        else
+            return columns[index].getName() + " > ? OR ("
+                    + columns[index].getName() + " = ? AND "
+                    + buildWhereClause(columns, index + 1) + ")";
 
     }
 
@@ -846,4 +993,5 @@ public class ChunksGeneratorThread extends Thread
     {
         this.eventId = eventId;
     }
+
 }

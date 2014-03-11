@@ -72,6 +72,9 @@ public interface Chunk
     @Override
     public String toString();
 
-
     public String getQuery(Database connection, String eventId);
+
+    public Object[] getFromValues();
+
+    public Object[] getToValues();
 }

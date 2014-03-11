@@ -24,10 +24,10 @@ package com.continuent.tungsten.replicator.extractor.parallel;
 
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -119,6 +119,7 @@ public class ParallelExtractorThread extends Thread
     private void runTask()
     {
         String sql = null;
+        PreparedStatement pstmt = null;
         try
         {
             connection.connect();
@@ -128,16 +129,6 @@ public class ParallelExtractorThread extends Thread
             // throw new ReplicatorException("Unable to connect to Oracle", e);
         }
 
-        Statement stmt = null;
-        try
-        {
-            stmt = connection.createStatement();
-        }
-        catch (SQLException e1)
-        {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
         while (!cancelled)
         {
             // 1. get a table to process
@@ -175,10 +166,57 @@ public class ParallelExtractorThread extends Thread
             ResultSet rs = null;
             try
             {
+                pstmt = connection.prepareStatement(sql);
+                int startValue = 1;
+                StringBuilder str = new StringBuilder();
+
+                if (chunk.getFromValues() != null)
+                {
+                    if (logger.isDebugEnabled())
+                    {
+                        for (int i = 0; i < chunk.getFromValues().length; i++)
+                        {
+                            if (str.length() > 0)
+                                str.append(" / ");
+                            str.append(chunk.getFromValues()[i]);
+                        }
+                    }
+                    startValue = setValues(pstmt, chunk.getFromValues(),
+                            startValue);
+                }
+
+                if (chunk.getToValues() != null)
+                {
+                    if (logger.isDebugEnabled())
+                    {
+                        for (int i = 0; i < chunk.getToValues().length; i++)
+                        {
+                            if (str.length() > 0)
+                                str.append(" / ");
+                            str.append(chunk.getToValues()[i]);
+                        }
+                    }
+                    setValues(pstmt, chunk.getToValues(), startValue);
+                }
+
                 if (logger.isDebugEnabled())
-                    logger.debug("Thread " + this.getName() + " running : "
-                            + sql);
-                rs = stmt.executeQuery(sql);
+                    if (str.length() > 0)
+                        logger.debug("Thread " + this.getName() + " running : "
+                                + sql + " with parameters " + str.toString());
+                    else
+                        logger.debug("Thread " + this.getName() + " running : "
+                                + sql);
+
+                long start = System.currentTimeMillis();
+                rs = pstmt.executeQuery();
+
+                if (logger.isDebugEnabled())
+                    logger.debug("Thread " + this.getName()
+                            + " executed query in "
+                            + (System.currentTimeMillis() - start) + " ms.");
+
+                start = System.currentTimeMillis();
+
                 if (rs != null)
                 {
                     boolean eventSent;
@@ -358,6 +396,12 @@ public class ParallelExtractorThread extends Thread
                                 e.printStackTrace();
                             }
                         }
+                        if (logger.isDebugEnabled())
+                            logger.debug("Thread " + this.getName()
+                                    + " processed resultset in  "
+                                    + (System.currentTimeMillis() - start)
+                                    + " ms.");
+
                     }
                     else
                     // nothing more
@@ -381,9 +425,42 @@ public class ParallelExtractorThread extends Thread
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
+                if (pstmt != null)
+                    try
+                    {
+                        pstmt.close();
+                        pstmt = null;
+                    }
+                    catch (SQLException e)
+                    {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
             }
             // 3. Get to next available table, if any
         }
+    }
+
+    private int setValues(PreparedStatement pstmt, Object[] values,
+            int startValue) throws SQLException
+    {
+        int j = startValue;
+        for (int i = 0; i < values.length; i++)
+        {
+            if (i == values.length - 1)
+                pstmt.setObject(j, values[i]);
+
+            else
+            {
+                pstmt.setObject(j, values[i]);
+                j++;
+                pstmt.setObject(j, values[i]);
+            }
+            j++;
+        }
+
+        return j;
+
     }
 
     private String buildSQLStatement(Chunk chunk)
