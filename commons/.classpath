@@ -28,8 +28,5 @@
 	<classpathentry kind="lib" path="lib/commons-logging-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections-3.2.1.jar"/>
 	<classpathentry kind="lib" path="lib/jsr311-api-1.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/hedera-commons-2.0.1.jar"/>
-	<classpathentry kind="lib" path="lib/hedera-jgroups-2.0.1.jar"/>
-	<classpathentry kind="lib" path="lib/jgroups-all.jar"/>
 	<classpathentry kind="output" path="build/java/classes"/>
 </classpath>
