@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -64,6 +64,24 @@ public class ReplicatorConf
     /** Whether to go online automatically at startup time. */
     static public final String   AUTO_ENABLE                           = "replicator.auto_enable";
     static public final String   AUTO_ENABLE_DEFAULT                   = "false";
+
+    /** How many times to attempt to go online automatically after an error. */
+    static public final String   AUTO_RECOVERY_MAX_ATTEMPTS            = "replicator.autoRecoveryMaxAttempts";
+    static public final String   AUTO_RECOVERY_MAX_ATTEMPTS_DEFAULT    = "0";
+
+    /**
+     * How long to delay when processing an online request initiated by
+     * auto-recovery.
+     */
+    static public final String   AUTO_RECOVERY_DELAY_INTERVAL          = "replicator.autoRecoveryDelayInterval";
+    static public final String   AUTO_RECOVERY_DELAY_INTERVAL_DEFAULT  = "300s";
+
+    /**
+     * How long a replicator must be online to reset the count of recovery
+     * attempts.
+     */
+    static public final String   AUTO_RECOVERY_RESET_INTERVAL          = "replicator.autoRecoveryResetInterval";
+    static public final String   AUTO_RECOVERY_RESET_INTERVAL_DEFAULT  = "300s";
 
     /**
      * Whether to reposition data extraction automatically on a master when the

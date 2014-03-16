@@ -39,6 +39,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 
 import javax.management.Notification;
@@ -153,6 +154,15 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     private long                    pendingErrorSeqno       = -1;
     private String                  pendingErrorEventId     = null;
 
+    // Auto-enable and auto-recovery settings. We set reasonable
+    // defaults just in case there's a bug in configuration as missing
+    // values could cause the replicator service to go off the rails.
+    private int                     autoRecoveryMaxAttempts = 0;
+    private long                    autoRecoveryDelayMillis = 0;
+    private long                    autoRecoveryResetMillis = Long.MAX_VALUE;
+    private int                     autoRecoveryCount       = 0;
+    private AtomicLong              autoRecoveryTotal       = new AtomicLong(0);
+
     // Monitoring and management
     private static Logger           logger                  = Logger.getLogger(OpenReplicatorManager.class);
     private static Logger           endUserLog              = Logger.getLogger("tungsten.userLog");
@@ -211,6 +221,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         Action provisionAction = new ProvisionAction();
         Action setRoleAction = new SetRoleAction();
         Action extendedAction = new ExtendedAction();
+        Action leaveOnlineAction = new LeaveOnlineAction();
 
         // Define replicator states.
         stmap = new StateTransitionMap();
@@ -238,7 +249,8 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         State goingoffline = new State("GOING-OFFLINE", StateType.ACTIVE);
 
         // online states
-        State online = new State("ONLINE", StateType.ACTIVE);
+        State online = new State("ONLINE", StateType.ACTIVE, null, null,
+                leaveOnlineAction);
 
         State end = new State("END", StateType.END, stopAction, null);
 
@@ -977,7 +989,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     class ErrorRecordingAction implements Action
     {
         public void doAction(Event event, Entity entity, Transition transition,
-                int actionType)
+                int actionType) throws InterruptedException
         {
             // Log the error condition.
             ErrorNotification en = (ErrorNotification) event;
@@ -1006,8 +1018,64 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             }
             pendingErrorSeqno = en.getSeqno();
             pendingErrorEventId = en.getEventId();
-        }
 
+            // Now see if we want to try to go online again, which we do by
+            // automatically posting a GoOnlineEvent. Such auto-recovery
+            // makes sense only under specific conditions, so we first weed
+            // out non-qualifying situations.
+            if (autoRecoveryMaxAttempts > 0)
+            {
+                // Auto-recovery is enabled. Find our previous state, which
+                // will be available if we are executing in a transition.
+                String oldState = sm.getState().getBaseName();
+
+                if (!"ONLINE".equals(oldState)
+                        && !"SYNCHRONIZING".equals(oldState))
+                {
+                    // Auto-recovery only makes sense if we were previously
+                    // online.
+                    logger.info("No auto-recovery as previous state not ONLINE or SYNCHRONIZING: previous state="
+                            + oldState);
+                }
+                else if (autoRecoveryCount >= autoRecoveryMaxAttempts)
+                {
+                    // After the max retries are exceeded we just log an error.
+                    logger.info("No auto-recovery as max retry attempts have been exceeded");
+                }
+                else
+                {
+                    // We have not exhausted the number of retries, so
+                    // enqueue an online request with an optional delay.
+                    TungstenProperties params = new TungstenProperties();
+                    params.setBoolean(OpenReplicatorParams.AUTO_RECOVERY, true);
+                    if (autoRecoveryDelayMillis > 0)
+                    {
+                        params.setLong(
+                                OpenReplicatorParams.ONLINE_DELAY_MILLIS,
+                                autoRecoveryDelayMillis);
+                    }
+                    GoOnlineEvent goOnlineEvent = new GoOnlineEvent(params);
+                    try
+                    {
+                        eventDispatcher.put(goOnlineEvent);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        // Not much we can do here in the unlikely event of an
+                        // interruption. Throwing an exception does not help,
+                        // because we are already deep in error handling and
+                        // should just continue.
+                        logger.warn("Ignored interrupted exception while enqueuing auto-recovery online event");
+                    }
+
+                    // Explain what we are doing and update total number of
+                    // times we have done auto recovery since starting.
+                    logger.info("Scheduled auto-recovery as retry attempts are not exceeded: currrent count="
+                            + autoRecoveryCount);
+                    autoRecoveryTotal.incrementAndGet();
+                }
+            }
+        }
     }
 
     private void displayErrorMessages(ErrorNotification event)
@@ -1022,7 +1090,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             {
                 endUserLog.error(line);
             }
-
         }
     }
 
@@ -1077,7 +1144,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 logger.error(
                         "Service shutdown failed...Services may be active", e);
             }
-
             logger.info("All internal services are shut down; replicator ready for recovery");
         }
     }
@@ -1264,7 +1330,7 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     {
         public void doAction(Event event, Entity entity, Transition transition,
                 int actionType) throws TransitionRollbackException,
-                TransitionFailureException
+                TransitionFailureException, InterruptedException
         {
             try
             {
@@ -1277,6 +1343,36 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 else
                     params = new TungstenProperties();
 
+                // If this is an auto-recovery operation, increment the retry
+                // count.
+                if (params.getBoolean(OpenReplicatorParams.AUTO_RECOVERY))
+                {
+                    autoRecoveryCount++;
+                    if (logger.isDebugEnabled())
+                        logger.debug("Processing online due to auto-recovery: count="
+                                + autoRecoveryCount);
+                }
+                else if (autoRecoveryCount > 0)
+                {
+                    logger.info("Clearing auto-recovery count: count="
+                            + autoRecoveryCount);
+                    autoRecoveryCount = 0;
+                }
+
+                // If we are being asked to delay, do so now.
+                if (params.get(OpenReplicatorParams.ONLINE_DELAY_MILLIS) != null)
+                {
+                    long onlineDelayMillis = params
+                            .getInt(OpenReplicatorParams.ONLINE_DELAY_MILLIS);
+                    if (onlineDelayMillis > 0)
+                    {
+                        logger.info("Delaying online operation on request: delay="
+                                + ((double) onlineDelayMillis / 1000) + "s");
+                        Thread.sleep(onlineDelayMillis);
+                    }
+                }
+
+                // Issue the online operation.
                 openReplicator.online(params);
             }
             catch (ReplicatorException e)
@@ -1288,6 +1384,10 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                     logger.debug(pendingError, e);
                 throw new TransitionFailureException(pendingError, event,
                         entity, transition, actionType, e);
+            }
+            catch (InterruptedException e)
+            {
+                throw e;
             }
             catch (Throwable e)
             {
@@ -1423,6 +1523,35 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             }
         }
     }
+
+    /*
+     * Action to run when leaving online state.
+     */
+    class LeaveOnlineAction implements Action
+    {
+        public void doAction(Event event, Entity entity, Transition transition,
+                int actionType) throws TransitionRollbackException,
+                TransitionFailureException
+        {
+            // See if we want to reset the auto-recovery count.
+            if (autoRecoveryMaxAttempts > 0 && autoRecoveryCount > 0)
+            {
+                // If we have been online longer than the recover interval,
+                // we can reset the count.
+                double timeInStateSecs = getTimeInStateSeconds();
+                double resetTimeSecs = ((double) autoRecoveryResetMillis) / 1000.0;
+
+                if (timeInStateSecs > resetTimeSecs)
+                {
+                    logger.info("Resetting auto-recovery count: count="
+                            + autoRecoveryCount + " autoRecoveryResetInterval="
+                            + resetTimeSecs + "s timeInStateSecs="
+                            + timeInStateSecs + "s");
+                    autoRecoveryCount = 0;
+                }
+            }
+        }
+    };
 
     /*
      * Action to stop the replicator normally.
@@ -2095,6 +2224,10 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                             ReplicatorConf.RESOURCE_PRECEDENCE_DEFAULT, true));
             pluginStatus.put(Replicator.CURRENT_TIME_MILLIS,
                     Long.toString(System.currentTimeMillis()));
+            pluginStatus.put(Replicator.AUTO_RECOVERY_TOTAL,
+                    autoRecoveryTotal.toString());
+            pluginStatus.put(Replicator.AUTO_RECOVERY_ENABLED, new Boolean(
+                    autoRecoveryMaxAttempts > 0).toString());
 
             if (logger.isDebugEnabled())
                 logger.debug("plugin status: " + pluginStatus.toString());
@@ -2882,6 +3015,28 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         // Ensure auto-enable property is valid.
         assertPropertyDefault(ReplicatorConf.AUTO_ENABLE,
                 ReplicatorConf.AUTO_ENABLE_DEFAULT);
+
+        // Check for auto-recovery and add delay/reset intervales if set.
+        assertPropertyDefault(ReplicatorConf.AUTO_RECOVERY_MAX_ATTEMPTS,
+                ReplicatorConf.AUTO_RECOVERY_MAX_ATTEMPTS_DEFAULT);
+        autoRecoveryMaxAttempts = properties
+                .getInt(ReplicatorConf.AUTO_RECOVERY_MAX_ATTEMPTS);
+
+        if (autoRecoveryMaxAttempts > 0)
+        {
+            // Check the delay for automatic recovery.
+            assertPropertyDefault(ReplicatorConf.AUTO_RECOVERY_DELAY_INTERVAL,
+                    ReplicatorConf.AUTO_RECOVERY_DELAY_INTERVAL_DEFAULT);
+            this.autoRecoveryDelayMillis = properties.getInterval(
+                    ReplicatorConf.AUTO_RECOVERY_DELAY_INTERVAL).longValue();
+
+            // Check the delay for resetting after being online for a
+            // sufficiently long period of time.
+            assertPropertyDefault(ReplicatorConf.AUTO_RECOVERY_RESET_INTERVAL,
+                    ReplicatorConf.AUTO_RECOVERY_RESET_INTERVAL_DEFAULT);
+            this.autoRecoveryResetMillis = properties.getInterval(
+                    ReplicatorConf.AUTO_RECOVERY_RESET_INTERVAL).longValue();
+        }
 
         // Ensure source ID is available.
         assertPropertyDefault(ReplicatorConf.SOURCE_ID,

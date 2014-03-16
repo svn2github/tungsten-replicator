@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -59,6 +59,16 @@ public class OpenReplicatorParams
 
     /** Whether to allow checksums while online (set to false to disable). */
     public static final String DO_CHECKSUM           = "do_checksum";
+
+    /** If set this online operation is due to auto recovery. */
+    public static final String AUTO_RECOVERY         = "auto_recovery";
+
+    /**
+     * Number of milliseconds to delay while processing an online operation.
+     * This is intended to allow time for clean-up during auto-recovery but
+     * could have other uses as well.
+     */
+    public static final String ONLINE_DELAY_MILLIS   = "online_delay_millis";
 
     /**
      * Whether to start provisioning pipeline at startup (set to true to

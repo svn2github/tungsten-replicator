@@ -45,14 +45,25 @@ replicator.master.connect.uri=@{REPL_MASTER_URI}
 # use this as their connect URI.
 replicator.master.listen.uri=@{REPL_THL_PROTOCOL}://@{HOST.HOST}:@{REPL_SVC_THL_PORT}/
 
-# Replicator auto-enable.  If true, replicator automatically goes online 
-# at start-up time. 
+# Replicator auto-enable.  If true, replicator service automatically goes 
+# online at start-up time. 
 replicator.auto_enable=@{REPL_AUTOENABLE}
 
-# Determines whether replication service is started up
-# as a thread internal to the ReplicationServiceManager or
-# whether it runs in a separate, detached JVM.
-replicator.detached=false
+# Replicator auto-recovery.  If greater than 0, the replicator service 
+# attempts to go back online up to this number of times before failing. 
+replicator.autoRecoveryMaxAttempts=@{REPL_AUTO_RECOVERY_MAX_ATTEMPTS}
+
+# Replicator auto-recovery delay.  How long to wait before going online. 
+# Settings are milliseconds by default.  You can also apply settings in 
+# seconds, minutes, hours, and days, as in 10s, 30m, 2h, etc. This 
+# setting allows time for resources to clean up or recover after a failure. 
+replicator.autoRecoveryDelayInterval=@{REPL_AUTO_RECOVERY_DELAY_INTERVAL}
+
+# Replicator auto-recover reset interval.  If the replicator is online for 
+# this amount of time, reset the count of auto-recovery attempts.  This value
+# may need to be large for services that commit large blocks as apply errors
+# may take a while to show up after going online again. 
+replicator.autoRecoveryResetInterval=@{REPL_AUTO_RECOVERY_DELAY_INTERVAL}
 
 # Source ID.  Identifies the replication event source.  It must be 
 # unique for each replicator node and normally is the host name.

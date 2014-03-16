@@ -96,9 +96,9 @@ public class Replicator
 
     /** URI that slaves should use when connecting to this master. */
     public static final String MASTER_LISTEN_URI           = "masterListenUri";
-    
+
     /** Indicates if SSL connection is used. */
-    public static final String USE_SSL_CONNECTION         = "useSSLConnection";
+    public static final String USE_SSL_CONNECTION          = "useSSLConnection";
 
     /** Name of the site to which this replicator belongs. */
     public static final String SITENAME                    = "siteName";
@@ -158,6 +158,12 @@ public class Replicator
 
     /** Current failed event ID or null if there is none. */
     public static final String PENDING_ERROR_EVENTID       = "pendingErrorEventId";
+
+    /** Total number of automatic recovery attempts following errors. */
+    public static final String AUTO_RECOVERY_TOTAL         = "autoRecoveryTotal";
+
+    /** Set to true if auto-recovery is enabled. */
+    public static final String AUTO_RECOVERY_ENABLED       = "autoRecoveryEnabled";
 
     /** Pending offline requests in text form. */
     public static final String OFFLINE_REQUESTS            = "offlineRequests";
