@@ -470,6 +470,39 @@ class ReplicationServiceAutoEnable < ConfigurePrompt
   end
 end
 
+class AutoRecoveryMaxAttempts < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_AUTO_RECOVERY_MAX_ATTEMPTS, 
+      "Number of times to auto-recover after online error",
+      PV_INTEGER, 0)
+  end
+end
+
+class AutoRecoveryResetInterval < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_AUTO_RECOVERY_RESET_INTERVAL,
+      "Length of time online to reset auto-recover count to 0",
+      PV_ANY, "300s")
+  end
+end
+
+class AutoRecoveryDelayInterval < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(REPL_AUTO_RECOVERY_DELAY_INTERVAL,
+      "Length of delay before auto-recovering",
+      PV_ANY, "5s")
+  end
+end
+
 class MasterPreferredRole < ConfigurePrompt
   include ReplicationServicePrompt
 
