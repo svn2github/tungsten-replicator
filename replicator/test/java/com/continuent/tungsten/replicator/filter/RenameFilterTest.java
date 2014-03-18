@@ -36,6 +36,7 @@ import org.junit.Before;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
+import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.EventGenerationHelper;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 
@@ -129,6 +130,34 @@ public class RenameFilterTest extends TestCase
         assertSchemaTableChanged("schemax", "tablew", "schemax", "tablew");
         assertSchemaTableChanged("schemax", "tablee", "schemax", "tablee");
         assertSchemaTableChanged("schemax", "tableq", "schemax", "tableq");
+
+        // All done.
+        filterHelper.done();
+    }
+
+    public void testRenameSBRSchema() throws IOException, ReplicatorException,
+            InterruptedException
+    {
+        // Prepare rename definitions file.
+        PrintWriter out = new PrintWriter(new FileWriter(definitionsFile));
+        out.println("schemaz,*,*,schemaz2,-,- # Schema renamed for all tables. Least priority.");
+        out.println("schemaz,tablew,*,schemaz1,-,- # This table moved to a different schema.");
+        out.println("schemaz,tablee,*,schemazz1,tableee,- # This table renamed and moved to a different schema.");
+        out.println("schemaz,tableq,*,-,tableq1,- # Just table renamed.");
+        out.close();
+
+        // Instantiate the filter.
+        RenameFilter rf = new RenameFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setDefinitionsFile(definitionsFile);
+        filterHelper.setFilter(rf);
+
+        // True positives - renames should happen.
+        assertSBRSchemaChanged("schemaz", "schemaz2");
+
+        // True negatives - no renames should happen.
+        assertSBRSchemaChanged("schemaa", "schemaa");
+        assertSBRSchemaChanged(null, null);
 
         // All done.
         filterHelper.done();
@@ -265,6 +294,25 @@ public class RenameFilterTest extends TestCase
         assertColumnChanged("schemam", "anytable", new String[]{"id", "colk",
                 "colj"}, "schemam2", "anytable", new String[]{"id", "colk",
                 "colj"});
+    }
+
+    private void assertSBRSchemaChanged(String originalSchema,
+            String expectedSchema) throws ReplicatorException,
+            InterruptedException
+    {
+        // Create StatementData event.
+        ReplDBMSEvent e = eventHelper.eventFromStatement(1, originalSchema,
+                "TRUNCATE TABLE test");
+
+        // Transform.
+        ReplDBMSEvent e2 = filterHelper.filter(e);
+
+        // Confirm results are correct.
+        StatementData sdata = (StatementData) e2.getDBMSEvent().getData()
+                .get(0);
+
+        assertEquals("Wrong schema name after filtering", expectedSchema,
+                sdata.getDefaultSchema());
     }
 
     /**

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Stephane Giron
- * Contributor(s):
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.extractor.parallel;
@@ -255,8 +255,12 @@ public class ParallelExtractor implements RawExtractor
                 }
                 else
                 {
-                    event.getData().add(0,
-                            new StatementData("TRUNCATE TABLE " + entry));
+                    // Issue 842 - do not hardcode schema name in SQL text.
+                    // Instead, set it as default schema parameter.
+                    StatementData sd = new StatementData("TRUNCATE TABLE "
+                            + event.getMetadataOptionValue("table"), null,
+                            event.getMetadataOptionValue("schema"));
+                    event.getData().add(0, sd);
 
                     blk = Long
                             .valueOf(event.getMetadataOptionValue("nbBlocks"));
