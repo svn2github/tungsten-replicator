@@ -1,5 +1,5 @@
                        TUNGSTEN REPLICATOR README
-                   Copyright (C) 2011-2013 Continuent, Inc. 
+                   Copyright (C) 2011-2014 Continuent, Inc. 
                              September 2, 2011
                             Updated June 13, 2013
 
@@ -17,7 +17,7 @@ README.LICENSE.
 Documentation for Tungsten Replicator is located on the Continuent website 
 at the following URL: 
 
-  https://docs.continuent.com/wiki/display/TEDOC/Tungsten+Replicator+2.0
+  https://docs.continuent.com/tungsten-replicator-2.2/index.html
 
 You can also find more information through the wiki, issues list, and mailing
 lists accessible at the Tungsten Replicator project website, which is located
@@ -32,9 +32,9 @@ To install the replicator follow the steps shown below.
   1.) Review the installation instructions in the Tungsten 
   Replicator Installation Guide.  
 
-  2.) Run the 'tungsten-installer' script in the tools directory
+  2.) Run the 'tpm' command in the tools directory
   to configure and start Tungsten services for standard replication
-  topologies.  
+  topologies. The manual has examples for many of them.
 
 The Installation Guide provides additional information on installation
 procedures. 
@@ -58,7 +58,7 @@ If you are using the cookbook, you can run an upgrade using
   ./cookbook/upgrade
 This command will ask for your current topology and then show all the commands that you should
 run to perform the upgrade, including adapt the cookbook scripts to use the new deployment.
-Be aware that the cookbook has evolved a lot from version 2.0.7 to 2.1.0. Many commands were
+Be aware that the cookbook has evolved a lot from version 2.0.7 to 2.2.0. Many commands were
 deprecated and many were altered (simplified). For a complete list of the commands and some
 operational notes, run
   ./cookbook/readme
