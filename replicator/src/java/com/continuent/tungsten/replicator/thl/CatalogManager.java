@@ -65,6 +65,8 @@ public class CatalogManager
     // operating as a master.
     private int               taskId = 0;
 
+    private String            initScript = null;
+
     /**
      * Creates a new Catalog manager.
      * 
@@ -91,7 +93,8 @@ public class CatalogManager
      * @throws ReplicatorException
      */
     public void connect(String url, String user, String password,
-            String metadataSchema, String vendor) throws ReplicatorException
+            String metadataSchema, String vendor, String initScript)
+            throws ReplicatorException
     {
         this.url = url;
         this.user = user;
@@ -100,6 +103,7 @@ public class CatalogManager
         this.vendor = vendor;
         this.privileged = runtime.isMaster()
                 || runtime.isPrivilegedSlaveUpdate();
+        this.initScript = initScript;
     }
 
     /**
@@ -114,6 +118,7 @@ public class CatalogManager
             // Connect and log updates only if requested.
             Database conn = DatabaseFactory.createDatabase(url, user, password,
                     privileged, vendor);
+            conn.setInitScript(initScript);
             conn.connect(runtime.logReplicatorUpdates());
             return conn;
         }

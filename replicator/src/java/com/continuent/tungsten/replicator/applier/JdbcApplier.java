@@ -140,6 +140,8 @@ public class JdbcApplier implements RawApplier
 
     private boolean                   getColumnInformationFromDB = true;
 
+    private String                    initScript                 = null;
+
     // Setters.
 
     /**
@@ -187,6 +189,11 @@ public class JdbcApplier implements RawApplier
     public void setGetColumnMetadataFromDB(boolean getColumnInformationFromDB)
     {
         this.getColumnInformationFromDB = getColumnInformationFromDB;
+    }
+
+    public void setInitScript(String file)
+    {
+        this.initScript = file;
     }
 
     /**
@@ -1770,6 +1777,7 @@ public class JdbcApplier implements RawApplier
             }
             conn = DatabaseFactory.createDatabase(url, user, password,
                     context.isPrivilegedSlaveUpdate());
+            conn.setInitScript(initScript);
             conn.connect(false);
             statement = conn.createStatement();
 

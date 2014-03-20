@@ -570,11 +570,16 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                 TungstenProperties props = new TungstenProperties();
                 props.setString(OpenReplicatorParams.HEARTBEAT_NAME,
                         "MASTER_ONLINE");
+                String initScript = runtime.getReplicatorProperties()
+                        .getString(ReplicatorConf.RESOURCE_JDBC_INIT_SCRIPT);
+                if (initScript != null)
+                    props.setString(ReplicatorConf.RESOURCE_JDBC_INIT_SCRIPT,
+                            initScript);
                 heartbeat(props);
             }
-            
+
             // If we got this far, write the current role to help with recovery
-            // later on. 
+            // later on.
             runtime.setLastOnlineRoleName(runtime.getRoleName());
         }
         catch (ReplicatorException e)
@@ -722,7 +727,8 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                 HeartbeatTable htTable = new HeartbeatTable(
                         runtime.getReplicatorSchemaName(),
                         runtime.getTungstenTableType());
-                htTable.startHeartbeat(url, user, password, name);
+                htTable.startHeartbeat(url, user, password, name, params
+                        .getString(ReplicatorConf.RESOURCE_JDBC_INIT_SCRIPT));
                 return true;
             }
             catch (SQLException e)
@@ -748,6 +754,13 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         // that we can wait for.
         TungstenProperties props = new TungstenProperties();
         props.setString(OpenReplicatorParams.HEARTBEAT_NAME, "FLUSH");
+
+        String initScript = runtime.getReplicatorProperties().getString(
+                ReplicatorConf.RESOURCE_JDBC_INIT_SCRIPT);
+        if (initScript != null)
+            props.setString(ReplicatorConf.RESOURCE_JDBC_INIT_SCRIPT,
+                    initScript);
+
         heartbeat(props);
 
         // Wait for the event we were seeking to show up.

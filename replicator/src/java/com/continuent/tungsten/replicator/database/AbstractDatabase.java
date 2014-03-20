@@ -72,6 +72,8 @@ public abstract class AbstractDatabase implements Database
     protected static Map<String, Class<?>> drivers       = new HashMap<String, Class<?>>();
     protected boolean                      connected     = false;
 
+    protected String                         initScript    = null;
+
     /**
      * Create a new database instance. To use the database instance you must at
      * minimum set the url, host, and password properties.
@@ -769,6 +771,17 @@ public abstract class AbstractDatabase implements Database
             logger.debug("setAutoCommit = " + autoCommit);
         if (dbConn.getAutoCommit() != autoCommit)
             dbConn.setAutoCommit(autoCommit);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#setInitScript(java.lang.String)
+     */
+    @Override
+    public void setInitScript(String pathToScript)
+    {
+        this.initScript = pathToScript;
     }
 
     /**

@@ -22,7 +22,12 @@
 
 package com.continuent.tungsten.replicator.database;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -184,6 +189,49 @@ public class MySQLDatabase extends AbstractDatabase
             {
                 logger.debug("Unable to set wait_timeout to maximum value of 2147483");
                 logger.debug("Please consider using an explicit JDBC URL setting to avoid connection timeouts");
+            }
+        }
+
+        if (initScript != null)
+        {
+            // Load the file : one sql statement per line
+            File file = new File(initScript);
+            FileReader reader;
+            try
+            {
+                reader = new FileReader(file);
+            }
+            catch (FileNotFoundException e)
+            {
+                throw new SQLException("Init script not found", e);
+            }
+
+            BufferedReader br = new BufferedReader(reader);
+
+            String sql = null;
+            Statement stmt = dbConn.createStatement();
+
+            try
+            {
+                while ((sql = br.readLine()) != null)
+                {
+                    sql = sql.trim();
+                    if (sql.startsWith("#") || sql.length() == 0)
+                        continue;
+
+                    // TODO : For now, we don't care for the results
+                    stmt.execute(sql);
+                }
+            }
+            catch (IOException e)
+            {
+                throw new SQLException("Failed reading init script ("
+                        + initScript + ")", e);
+            }
+            finally
+            {
+                if (stmt != null)
+                    stmt.close();
             }
         }
     }

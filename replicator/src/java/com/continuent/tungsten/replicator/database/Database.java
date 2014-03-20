@@ -391,6 +391,11 @@ public interface Database
     public void setAutoCommit(boolean autoCommit) throws SQLException;
 
     /**
+     * Provides a script file to be executed when initializing connection.
+     */
+    public void setInitScript(String pathToScript);
+
+    /**
      * Return a place holder in a prepared statement for a column of type
      * ColumnSpec. Typically "?" as is INSERT INTO FOO VALUES(?)
      */

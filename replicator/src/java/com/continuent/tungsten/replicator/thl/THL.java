@@ -77,6 +77,7 @@ public class THL implements Store
     protected String           url;
     protected String           user;
     protected String           vendor               = null;
+    protected String           initScript           = null;
 
     /** Number of events between resets on stream. */
     private int                resetPeriod          = 1;
@@ -168,6 +169,11 @@ public class THL implements Store
     public void setVendor(String vendor)
     {
         this.vendor = vendor;
+    }
+
+    public void setInitScript(String initScript)
+    {
+        this.initScript = initScript;
     }
 
     public String getUser()
@@ -368,7 +374,8 @@ public class THL implements Store
             ReplicatorRuntime runtime = (ReplicatorRuntime) context;
             String metadataSchema = context.getReplicatorSchemaName();
             catalog = new CatalogManager(runtime);
-            catalog.connect(url, user, password, metadataSchema, vendor);
+            catalog.connect(url, user, password, metadataSchema, vendor,
+                    initScript);
             catalog.prepareSchema(context);
         }
         else

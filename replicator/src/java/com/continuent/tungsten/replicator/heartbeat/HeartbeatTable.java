@@ -214,12 +214,14 @@ public class HeartbeatTable
      * Wrapper for startHeartbeat() call.
      */
     public void startHeartbeat(String url, String user, String password,
-            String name) throws SQLException
+            String name, String initScript) throws SQLException
     {
         Database db = null;
         try
         {
             db = DatabaseFactory.createDatabase(url, user, password);
+            if (initScript != null)
+                db.setInitScript(initScript);
             db.connect(true);
             startHeartbeat(db, name);
         }

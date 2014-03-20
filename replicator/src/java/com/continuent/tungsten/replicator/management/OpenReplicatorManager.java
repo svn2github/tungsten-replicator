@@ -3168,6 +3168,11 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
      */
     protected boolean doHeartbeat(TungstenProperties props) throws Exception
     {
+        String initScript = properties
+                .getString(ReplicatorConf.RESOURCE_JDBC_INIT_SCRIPT);
+        if (initScript != null)
+            props.setString(ReplicatorConf.RESOURCE_JDBC_INIT_SCRIPT,
+                    initScript);
         return openReplicator.heartbeat(props);
     }
 

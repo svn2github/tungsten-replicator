@@ -244,9 +244,11 @@ public class ReplicatorConf
 
     /**
      * This information will be used by the sql router to create data sources
-     * dynamically
+     * dynamically. It is also used by Heartbeat on the master side.
      */
     static public final String   RESOURCE_JDBC_URL                     = "replicator.resourceJdbcUrl";
+    static public final String   RESOURCE_JDBC_INIT_SCRIPT             = "replicator.resourceJdbcInitScript";
+
     /** Default value provided to enable unit tests to run. */
     static public final String   RESOURCE_JDBC_URL_DEFAULT             = "jdbc:mysql://localhost/${DBNAME}";
     static public final String   RESOURCE_JDBC_DRIVER                  = "replicator.resourceJdbcDriver";
