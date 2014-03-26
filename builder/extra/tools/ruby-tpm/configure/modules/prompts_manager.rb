@@ -638,7 +638,7 @@ class ManagerJavaMemorySize < ConfigurePrompt
   
   def initialize
     super(MGR_JAVA_MEM_SIZE, "Manager Java heap memory size in Mb (min 128)",
-      PV_JAVA_MEM_SIZE, 256)
+      PV_INTEGER, 256)
   end
 end
 

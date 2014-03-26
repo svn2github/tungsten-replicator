@@ -597,7 +597,7 @@ class ConnectorJavaMemorySize < ConfigurePrompt
   
   def initialize
     super(CONN_JAVA_MEM_SIZE, "Connector Java heap memory size in Mb (min 128)",
-      PV_JAVA_MEM_SIZE, 256)
+      PV_INTEGER, 256)
   end
 end
 

@@ -238,19 +238,6 @@ class TungstenUtil
 
     return
   end
-  
-  # A wrapper for running another Tungsten script. This will automatically
-  # forward messages to the console and add any TungstenScript options to 
-  # the command.
-  def tungsten_cmd_result(command)
-    original_fwd_state = forward_cmd_results?()
-    begin
-      forward_cmd_results?(true)
-      return cmd_result("#{command} #{get_tungsten_command_options()}")
-    ensure
-      forward_cmd_results?(original_fwd_state)
-    end
-  end
 
   # Run a standard check to see if SSH connectivity to the host works
   def test_ssh(host, user)

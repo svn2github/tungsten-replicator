@@ -525,7 +525,7 @@ class JavaMemorySize < ConfigurePrompt
   
   def initialize
     super(REPL_JAVA_MEM_SIZE, "Replicator Java heap memory size in Mb (min 128)",
-      PV_JAVA_MEM_SIZE, 1024)
+      PV_INTEGER, 1024)
   end
 end
 
