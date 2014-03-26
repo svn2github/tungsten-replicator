@@ -304,8 +304,7 @@ public abstract class LogEvent
                         descriptionEvent, parseStatements, currentPosition);
                 break;
             case MysqlBinlog.INCIDENT_EVENT :
-                if (logger.isDebugEnabled())
-                    logger.warn("Skipping unsupported INCIDENT_EVENT");
+                logger.warn("Skipping unsupported INCIDENT_EVENT");
                 break;
             default :
                 logger.warn("Skipping unrecognized binlog event type "
