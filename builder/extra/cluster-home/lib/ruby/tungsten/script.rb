@@ -118,12 +118,6 @@ module TungstenScript
       :help => "Only run the script validation"
     })
     
-    add_option(:force, {
-      :on => "--force",
-      :default => false,
-      :help => "Continue operation even if script validation fails"
-    })
-    
     add_option(:autocomplete, {
       :on => "--autocomplete",
       :default => false,

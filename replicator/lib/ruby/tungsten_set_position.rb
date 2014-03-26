@@ -55,7 +55,7 @@ class TungstenReplicatorSetPosition
           TU.warning "Unable to check the '#{service_schema}.trep_commit_seqno' table. This may be an indication of problems with the database."
         end
         if cnt.to_i() > 1
-          if @options[:force] == true
+          if TU.force?() == true
             TU.warning("The '#{service_schema}.trep_commit_seqno' table contains more than 1 row. All rows will be replaced.")
           else
             raise "Unable to update '#{service_schema}.trep_commit_seqno' because it currrently has more than one row. Add '--force' to bypass this warning."

@@ -398,6 +398,11 @@ class TungstenUtil
       |k,v|
       opts << "--net-ssh-option=#{k.to_s()}=#{v}"
     }
+    
+    if @force == true
+      opts << "--force"
+    end
+    
     return opts.join(" ")
   end
   

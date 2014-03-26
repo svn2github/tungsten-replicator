@@ -10,6 +10,7 @@ class TungstenUtil
     @ssh_options = {}
     @display_help = false
     @num_errors = 0
+    @force = false
     @json_interface = false
     @json_message_cache = []
     
@@ -47,6 +48,7 @@ class TungstenUtil
       }
 
       opts=OptionParser.new
+      opts.on("-f", "--force")    {@force = true}
       opts.on("-i", "--info")     {@logger_threshold = Logger::INFO}
       opts.on("-n", "--notice")               {@logger_threshold = Logger::NOTICE}
       opts.on("-q", "--quiet")          {@logger_threshold = Logger::WARN}
@@ -155,8 +157,12 @@ class TungstenUtil
     @num_errors = 0
   end
   
+  def force?
+    @force
+  end
+  
   def is_valid?
-    (@num_errors == 0)
+    (@num_errors == 0 || @force == true)
   end
   
   def write(content="", level=Logger::INFO, hostname = nil, add_prefix = true)
@@ -168,10 +174,6 @@ class TungstenUtil
       return
     end
     
-    unless content == "" || level == nil || add_prefix == false
-      content = "#{get_log_level_prefix(level, hostname)}#{content}"
-    end
-    
     # Attempt to determine the level for this message based on it's content
     # If it is forwarded from another Tungsten script it will have a prefix
     # so we know to use stdout or stderr
@@ -181,6 +183,14 @@ class TungstenUtil
     
     if level == Logger::ERROR
       @num_errors = @num_errors + 1
+      
+      if force?()
+        level = Logger::WARN
+      end
+    end
+    
+    unless content == "" || level == nil || add_prefix == false
+      content = "#{get_log_level_prefix(level, hostname)}#{content}"
     end
     
     log(content)

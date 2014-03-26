@@ -71,8 +71,25 @@ class TungstenXtrabackupToSlaveScript < TungstenBackupScript
   def validate
     super()
     
-    unless TI.is_replicator?()
+    unless TU.is_valid?()
+      return
+    end
+    
+    if TI.is_replicator?()
+      if TI.is_running?("replicator")
+        state = TI.trepctl_value(opt(:service), "state")
+        unless ["ONLINE", "OFFLINE:NORMAL"].include?(state)
+          TU.error("The #{opt(:service)} replication service is not ONLINE or OFFLINE:NORMAL")
+        end
+      else
+        TU.error("The replicator process is not running")
+      end
+    else
       TU.error("This server is not configured for replication")
+    end
+    
+    unless TU.is_valid?()
+      return
     end
     
     if sudo_prefix() != ""
