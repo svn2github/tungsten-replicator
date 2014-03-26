@@ -58,7 +58,8 @@ module ProvisionNewSlavesPackageModule
     super()
     
     unless Configurator.instance.is_locked?()
-      output_usage_line("--provision-new-slaves", "Use the tungsten_provision_slave script to provision any new replication server")
+      # Hide this option until it is fully implemented
+      #output_usage_line("--provision-new-slaves", "Use the tungsten_provision_slave script to provision any new replication server")
     end
   end
   
