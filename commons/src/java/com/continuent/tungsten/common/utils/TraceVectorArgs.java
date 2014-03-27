@@ -63,4 +63,25 @@ public class TraceVectorArgs
         this.target = target;
     }
 
+    /**
+     * Provides a path representation of this instance
+     * 
+     * @return the string "<component>/<category>/<target>"
+     */
+    public String toVectorPath()
+    {
+        return toVectorPath(component, category, target);
+    }
+
+    /**
+     * Provides a path representation of the given trace vector elements
+     * 
+     * @return the string "<component>/<category>/<target>"
+     */
+    public static String toVectorPath(TraceVectorComponent component,
+            String category, int target)
+    {
+        return String
+                .format("%s/%s/%d", component.toString(), category, target);
+    }
 }
