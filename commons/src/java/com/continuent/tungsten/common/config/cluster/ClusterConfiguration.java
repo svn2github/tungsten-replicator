@@ -161,6 +161,8 @@ public class ClusterConfiguration
                     is = new FileInputStream(resourceConf);
                     resourceProps = new TungstenProperties();
                     resourceProps.load(is);
+                    is.close();
+                    is = null;
                 }
                 finally
                 {
