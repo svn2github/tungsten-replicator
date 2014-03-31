@@ -78,7 +78,7 @@ class ConnectorTerminalCommand
       return
     end
     
-    output_usage_line("Bash", "mysql -h#{hostname} -P#{port} -u#{username} -P#{password}")
+    output_usage_line("Bash", "mysql -h#{hostname} -P#{port} -u#{username} -p#{password}")
     output_usage_line("Perl::dbi", "$dbh=DBI->connecti('DBI:mysql:host=#{hostname};port=#{port}', '#{username}', '#{password}')")
     output_usage_line("PHP::mysqli", "$dbh = new mysqli('#{hostname}', '#{username}', '#{password}', 'schema', '#{port}');")
     output_usage_line("PHP::pdo", "$dbh = new PDO('mysql:host=#{hostname};port=#{port}', '#{username}', '#{password}');")
