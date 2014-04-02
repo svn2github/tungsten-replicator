@@ -186,6 +186,13 @@ public class TungstenProperties implements Serializable
         if (doSubstitutions)
             substituteSystemValues(props);
         load(props);
+
+        /*
+         * props ends up holding a reference to the InputStream. So even
+         * though the Properties instance should be eligible for collection on
+         * method exit, give GC a hand and null out the props here.
+         */
+        props = null;
     }
 
     /**
@@ -1669,7 +1676,7 @@ public class TungstenProperties implements Serializable
             JsonMappingException, IOException
     {
         String json = null;
-        ObjectMapper mapper = new ObjectMapper();                               // Setup Jackson
+        ObjectMapper mapper = new ObjectMapper(); // Setup Jackson
         mapper.configure(Feature.INDENT_OUTPUT, true);
         mapper.configure(Feature.SORT_PROPERTIES_ALPHABETICALLY, true);
 

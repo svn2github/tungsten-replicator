@@ -62,6 +62,8 @@ public class ClusterConfiguration
 
     private String            configFileNameInUse  = null;
 
+    private FileInputStream   loadStream           = null;
+
     public ClusterConfiguration(String clusterName)
     {
         this.clusterName = clusterName;
@@ -89,7 +91,7 @@ public class ClusterConfiguration
      * @param resourceType
      * @throws ConfigurationException
      */
-    public static synchronized Map<String, Map<String, TungstenProperties>> loadClusterConfiguration(
+    public synchronized Map<String, Map<String, TungstenProperties>> loadClusterConfiguration(
             ResourceType resourceType) throws ConfigurationException
     {
         if (getClusterHome() == null)
@@ -124,7 +126,7 @@ public class ClusterConfiguration
      * @param resourceType
      * @throws ConfigurationException
      */
-    public static synchronized Map<String, TungstenProperties> loadConfiguration(
+    public synchronized Map<String, TungstenProperties> loadConfiguration(
             String clusterName, ResourceType resourceType)
             throws ConfigurationException
     {
@@ -154,21 +156,30 @@ public class ClusterConfiguration
 
             for (File resourceConf : resources.listFiles(propFilter))
             {
-                InputStream is = null;
                 TungstenProperties resourceProps = null;
                 try
                 {
-                    is = new FileInputStream(resourceConf);
+                    loadStream = new FileInputStream(resourceConf);
                     resourceProps = new TungstenProperties();
-                    resourceProps.load(is);
-                    is.close();
-                    is = null;
+                    resourceProps.load(loadStream);
+                    try
+                    {
+                        loadStream.close();
+                    }
+                    catch (IOException closeException)
+                    {
+                        logger.warn(
+                                "Execption closing FileInputStream for properties: "
+                                        + closeException, closeException);
+                    }
+                    loadStream = null;
                 }
                 finally
                 {
-                    if (is != null)
+                    if (loadStream != null)
                     {
-                        is.close();
+                        loadStream.close();
+                        loadStream = null;
                     }
                 }
 

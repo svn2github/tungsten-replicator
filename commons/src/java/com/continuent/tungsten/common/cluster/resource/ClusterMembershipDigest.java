@@ -479,6 +479,7 @@ public class ClusterMembershipDigest
                             validated, simpleMajority));
             return true;
         }
+        
 
         /*
          * By the time we get here, 'validated' should be equal to 'viewMembers'
@@ -491,7 +492,7 @@ public class ClusterMembershipDigest
          * could end up with a partition in which one partition sees one witness
          * and the other partition sees another etc.
          */
-        if (validated == simpleMajority - 1)
+        if (validated >= simpleMajority - 1 || reachable >= simpleMajority - 1)
         {
             boolean witnessesOk = witnessSet.size() > 0
                     && (witnessSet.size() == reachableWitnessesCount);
@@ -565,6 +566,8 @@ public class ClusterMembershipDigest
             {
                 CLUtils.println("MEMBERSHIP IS VALID BASED ON VIEW/REACHABLE MEMBERS CONSISTENCY");
             }
+            
+            return true;
         }
 
         if (verbose)
