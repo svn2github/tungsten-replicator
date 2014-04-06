@@ -861,8 +861,10 @@ public class ChunksGeneratorThread extends Thread
             while (result.next())
             {
                 chunkSize++;
-                if (chunkSize == blockSize)
+                if (chunkSize % blockSize == 0)
                 {
+                    // We reached the desired chunk size : send the chunk
+                    // definition.
                     toValues = new Object[result.getMetaData().getColumnCount()];
                     for (int j = 0; j < toValues.length; j++)
                     {
@@ -874,11 +876,12 @@ public class ChunksGeneratorThread extends Thread
                             blockSize));
 
                     fromValues = toValues;
-                    chunkSize = 0;
                 }
                 else if (chunkSize >= count)
                 {
-                    // Last chunk
+                    // Last chunk : we eventually did not reach the chunk size,
+                    // but the table was fully processed : send the last chunk
+                    // definition.
                     chunks.put(new LimitChunk(table, 0, 0 + blockSize,
                             nbBlocks, fromValues, null, whereClause, blockSize));
                 }
