@@ -36,6 +36,8 @@ import java.io.IOException;
 
 public class TungstenFileInputStream extends FileInputStream
 {
+    private final boolean debug = false;
+
     public TungstenFileInputStream(File file) throws FileNotFoundException
     {
         super(file);
@@ -43,6 +45,12 @@ public class TungstenFileInputStream extends FileInputStream
 
     protected void finalize() throws IOException
     {
+        if (debug)
+        {
+            System.out.println(String.format("FINALIZE: %s : getFD()=%s", this
+                    .toString(),
+                    (getFD() == null ? "null" : getFD().toString())));
+        }
         try
         {
             if (getFD() != null)
