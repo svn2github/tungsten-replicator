@@ -1523,3 +1523,50 @@ class ReplicationServiceGlobalProperties < ConfigurePrompt
     end
   end
 end
+
+class ReplicationServiceConnectionInitScript < ConfigurePrompt
+  include ReplicationServicePrompt
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(REPL_SVC_CONNECTION_INIT_SCRIPT, "SQL commands to run when connecting to the datasource", PV_FILENAME)
+  end
+  
+  def get_template_value(transform_values_method)
+    v = get_value()
+    
+    if v.to_s() != ""
+      "#{@config.getProperty(get_host_key(HOME_DIRECTORY))}/share/#{File.basename(v)}"
+    else
+      ""
+    end
+  end
+  
+  def required?
+    false
+  end
+  
+  def validate_value(value)
+    super(value)
+    if is_valid?() && value != ""
+      unless File.exists?(value)
+        error("The file #{value} does not exist")
+      end
+    end
+    
+    is_valid?()
+  end
+  
+  DeploymentFiles.register(REPL_SVC_CONNECTION_INIT_SCRIPT, GLOBAL_REPL_SVC_CONNECTION_INIT_SCRIPT, REPL_SERVICES)
+end
+
+class GlobalReplicationServiceConnectionInitScript < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  include NoStoredServerConfigValue
+  
+  def initialize
+    super(GLOBAL_REPL_SVC_CONNECTION_INIT_SCRIPT, "Staging path to the connection init script", 
+      PV_FILENAME)
+  end
+end

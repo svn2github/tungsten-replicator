@@ -425,6 +425,9 @@ class TungstenXtrabackupScript < TungstenBackupScript
     
     if @options[:action] == ACTION_BACKUP
       if @master_backup == true && @options[:incremental] == "true"
+        # An incremental backup of the master does not provide the correct 
+        # binary log position. We can't allow this to run or else we will
+        # not be able to set trep_commit_seqno to the right value.
         TU.error("Unable to take an incremental backup of the master. Try running `trepctl -service #{@options[:service]} -backup xtrabackup-full")
       end
     end

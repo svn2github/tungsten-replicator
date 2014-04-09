@@ -132,6 +132,7 @@ replicator.shard.default.db=@{REPL_SVC_SHARD_DEFAULT_DB}
 # Used by manager to create datasources dynamically
 replicator.resourceJdbcUrl=@{APPLIER.REPL_DBJDBCURL}
 replicator.resourceJdbcDriver=@{APPLIER.REPL_DBJDBCDRIVER}
+@{#(APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT)}replicator.resourceJdbcInitScript=@{APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT}
 replicator.resourceVendor=@{APPLIER.REPL_DBJDBCVENDOR}
 replicator.resourcePrecedence=99
 replicator.vipInterface=eth0:0
@@ -225,6 +226,7 @@ replicator.store.thl=com.continuent.tungsten.replicator.thl.THL
 replicator.store.thl.url=@{APPLIER.REPL_DBTHLURL}
 replicator.store.thl.user=${replicator.global.db.user}
 replicator.store.thl.password=${replicator.global.db.password}
+@{#(APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT)}replicator.store.thl.initScript=@{APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT}
 
 # Uncomment the following properties to control disk log storage location
 # and size of files.  These are default values.  NOTE:  naming the logs by 

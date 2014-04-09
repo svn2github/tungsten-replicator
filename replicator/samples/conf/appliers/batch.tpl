@@ -3,6 +3,7 @@ replicator.applier.dbms=com.continuent.tungsten.replicator.applier.batch.SimpleB
 replicator.applier.dbms.url=@{APPLIER.REPL_DBTHLURL}
 replicator.applier.dbms.user=${replicator.global.db.user}
 replicator.applier.dbms.password=${replicator.global.db.password}
+@{#(APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT)}replicator.applier.dbms.initScript=@{APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT}
 
 # Template file to execute when connecting initially.  
 replicator.applier.dbms.startupScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-connect.sql

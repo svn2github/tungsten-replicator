@@ -59,6 +59,7 @@ service.name=@{SERVICE.DEPLOYMENT_SERVICE}
 # Used by manager to create datasources dynamically
 replicator.resourceJdbcUrl=@{APPLIER.REPL_DBJDBCURL}
 replicator.resourceJdbcDriver=@{APPLIER.REPL_DBJDBCDRIVER}
+@{#(APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT)}replicator.resourceJdbcInitScript=@{APPLIER.REPL_SVC_CONNECTION_INIT_SCRIPT}
 replicator.resourceVendor=@{APPLIER.REPL_DBJDBCVENDOR}
 replicator.resourcePrecedence=99
 
