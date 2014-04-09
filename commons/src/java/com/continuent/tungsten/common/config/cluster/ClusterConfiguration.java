@@ -38,6 +38,7 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.utils.TungstenFileInputStream;
 import com.continuent.tungsten.manager.router.gateway.RouterGatewayConstants;
 
 public class ClusterConfiguration
@@ -46,23 +47,23 @@ public class ClusterConfiguration
     /**
      * Logger
      */
-    private static Logger     logger               = Logger.getLogger(ClusterConfiguration.class);
+    private static Logger           logger               = Logger.getLogger(ClusterConfiguration.class);
 
-    public static String      clusterHomeName      = null;
+    public static String            clusterHomeName      = null;
 
-    private String            clusterName;
+    private String                  clusterName;
 
     /**
      * The source of the properties for this configuration. getClusterHome
      */
-    public TungstenProperties props                = null;
+    public TungstenProperties       props                = null;
 
-    private File              clusterConfigDir     = null;
-    private File              clusterConfigRootDir = null;
+    private File                    clusterConfigDir     = null;
+    private File                    clusterConfigRootDir = null;
 
-    private String            configFileNameInUse  = null;
+    private String                  configFileNameInUse  = null;
 
-    private FileInputStream   loadStream           = null;
+    private TungstenFileInputStream loadStream           = null;
 
     public ClusterConfiguration(String clusterName)
     {
@@ -159,7 +160,7 @@ public class ClusterConfiguration
                 TungstenProperties resourceProps = null;
                 try
                 {
-                    loadStream = new FileInputStream(resourceConf);
+                    loadStream = new TungstenFileInputStream(resourceConf);
                     resourceProps = new TungstenProperties();
                     resourceProps.load(loadStream);
                     try
