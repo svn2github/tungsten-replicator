@@ -136,6 +136,8 @@ PREFETCH_MAX_TIME_AHEAD = "prefetch_max_time_ahead"
 PREFETCH_MIN_TIME_AHEAD = "prefetch_min_time_ahead"
 PREFETCH_SLEEP_TIME = "prefetch_sleep_time"
 PREFETCH_SCHEMA = "prefetch_schema"
+REPL_SVC_CONNECTION_INIT_SCRIPT = "repl_svc_connection_init_script"
+GLOBAL_REPL_SVC_CONNECTION_INIT_SCRIPT = "global_repl_svc_connection_init_script"
 
 BATCH_ENABLED = "batch_enabled"
 BATCH_LOAD_TEMPLATE = "batch_load_template"
