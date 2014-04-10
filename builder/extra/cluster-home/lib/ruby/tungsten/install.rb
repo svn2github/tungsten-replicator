@@ -234,7 +234,7 @@ class TungstenInstall
   end
   
   def trepctl_value(service, key)
-    TU.cmd_result("#{trepctl(service)} status | grep #{key} | awk -F: '{print $2}' | tr -d ' '")
+    TU.cmd_result("#{trepctl(service)} status | grep #{key} | awk -F: '{ st = index($0,\":\");print substr($0,st+1)}' | tr -d ' '")
   end
   
   def trepctl_property(service, key)
