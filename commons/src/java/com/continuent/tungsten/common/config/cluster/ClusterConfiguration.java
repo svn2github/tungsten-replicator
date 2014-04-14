@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.common.config.cluster;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -30,6 +31,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +40,6 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
 import com.continuent.tungsten.common.config.TungstenProperties;
-import com.continuent.tungsten.common.utils.TungstenFileInputStream;
 import com.continuent.tungsten.manager.router.gateway.RouterGatewayConstants;
 
 public class ClusterConfiguration
@@ -47,23 +48,23 @@ public class ClusterConfiguration
     /**
      * Logger
      */
-    private static Logger           logger               = Logger.getLogger(ClusterConfiguration.class);
+    private static Logger                logger               = Logger.getLogger(ClusterConfiguration.class);
 
-    public static String            clusterHomeName      = null;
+    public static String                 clusterHomeName      = null;
 
-    private String                  clusterName;
+    private String                       clusterName;
 
     /**
      * The source of the properties for this configuration. getClusterHome
      */
-    public TungstenProperties       props                = null;
+    public TungstenProperties            props                = null;
 
-    private File                    clusterConfigDir     = null;
-    private File                    clusterConfigRootDir = null;
+    private File                         clusterConfigDir     = null;
+    private File                         clusterConfigRootDir = null;
 
-    private String                  configFileNameInUse  = null;
+    private String                       configFileNameInUse  = null;
 
-    private TungstenFileInputStream loadStream           = null;
+    private Map<String, FileInputStream> loadStreamMap        = new HashMap<String, FileInputStream>();
 
     public ClusterConfiguration(String clusterName)
     {
@@ -158,30 +159,50 @@ public class ClusterConfiguration
             for (File resourceConf : resources.listFiles(propFilter))
             {
                 TungstenProperties resourceProps = null;
+                RandomAccessFile resourceFile = null;
+                InputStream byteStream = null;
+
                 try
                 {
-                    loadStream = new TungstenFileInputStream(resourceConf);
+                    resourceFile = new RandomAccessFile(
+                            resourceConf.getAbsolutePath(), "r");
+
+                    resourceFile.seek(0);
+
+                    byte[] bytes = new byte[(int) resourceConf.length()];
+
+                    resourceFile.read(bytes);
+                    byteStream = new ByteArrayInputStream(bytes);
+                    resourceFile.close();
+                    resourceFile = null;
+
                     resourceProps = new TungstenProperties();
-                    resourceProps.load(loadStream);
-                    try
-                    {
-                        loadStream.close();
-                    }
-                    catch (IOException closeException)
-                    {
-                        logger.warn(
-                                "Execption closing FileInputStream for properties: "
-                                        + closeException, closeException);
-                    }
-                    loadStream = null;
+
+                    resourceProps.load(byteStream);
+                    byteStream.close();
+                    byteStream = null;
+
+                }
+                catch (IOException i)
+                {
+                    throw new ConfigurationException(String.format(
+                            "Unable to load resource %s\n%s",
+                            resourceConf.getAbsolutePath(), i.getMessage()));
                 }
                 finally
                 {
-                    if (loadStream != null)
+                    if (resourceFile != null)
                     {
-                        loadStream.close();
-                        loadStream = null;
+                        resourceFile.close();
+                        resourceFile = null;
                     }
+                    
+                    if (byteStream != null)
+                    {
+                        byteStream.close();
+                        byteStream = null;
+                    }
+                    
                 }
 
                 if (resourceProps.getString("name") == null)
