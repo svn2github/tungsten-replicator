@@ -394,8 +394,8 @@ public class PipelineFilterTest extends TestCase
     {
         // Ensure 5 events are applied.
         Future<ReplDBMSHeader> future = pipeline
-                .watchForProcessedSequenceNumber(seqno);
-        ReplDBMSHeader matchingEvent = future.get(2, TimeUnit.SECONDS);
+                .watchForCommittedSequenceNumber(seqno, false);
+        ReplDBMSHeader matchingEvent = future.get(120, TimeUnit.SECONDS);
         assertEquals("Applied sequence number matches", seqno,
                 matchingEvent.getSeqno());
     }
