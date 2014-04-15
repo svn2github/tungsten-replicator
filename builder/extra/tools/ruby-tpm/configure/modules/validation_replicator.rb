@@ -272,11 +272,10 @@ class RowBasedBinaryLoggingCheck < ConfigureValidationCheck
   end
 
   def enabled?
-    #super() && (get_extractor_datasource().class == MySQLDatabasePlatform && @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER))  == "true")
     super() \
-    && get_extractor_datasource().is_a?(MySQLDatabasePlatform) \
-    && @config.getProperty(get_dataservice_key(DATASERVICE_MASTER_MEMBER)) == @config.getProperty(get_host_key(HOST)) \
-    && @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER))  == "true"
+      && get_extractor_datasource().class == MySQLDatabasePlatform \
+        && @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_M \
+          && @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER))  == "true"
   end
 end
 
