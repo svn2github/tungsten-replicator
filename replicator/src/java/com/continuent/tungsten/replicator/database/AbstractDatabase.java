@@ -1021,6 +1021,19 @@ public abstract class AbstractDatabase implements Database
     }
 
     /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#findTable(java.lang.String,
+     *      java.lang.String)
+     */
+    @Override
+    public Table findTable(String schemaName, String tableName)
+            throws SQLException
+    {
+        return findTable(schemaName, tableName, false);
+    }
+
+    /**
      * Finds unique indexes from the metadata and adds them to the table.
      * Primary key is included too, if it exists.
      * 

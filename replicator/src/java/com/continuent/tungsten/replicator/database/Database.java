@@ -289,6 +289,17 @@ public interface Database
      * 
      * @param schemaName name of schema containing the table
      * @param tableName name of the table
+     * @return a Table if matching was found
+     * @throws SQLException if an error occurs
+     */
+    public Table findTable(String schemaName, String tableName)
+            throws SQLException;
+
+    /**
+     * Return the Table with all its accompanying Columns.
+     * 
+     * @param schemaName name of schema containing the table
+     * @param tableName name of the table
      * @param withUniqueIndex should unique indexes be fetched or not ?
      * @return a Table if matching was found
      * @throws SQLException if an error occurs
