@@ -481,6 +481,18 @@ public interface Database
             boolean withUniqueIndex) throws SQLException;
 
     /**
+     * Returns a list of tables available in the schema
+     * 
+     * @param schema Name of the schema
+     * @param baseTablesOnly If true, only return real tables and not catalogs
+     *            or views
+     * @return list of tables in the schema
+     * @throws SQLException
+     */
+    public ArrayList<Table> getTables(String schema, boolean baseTablesOnly)
+            throws SQLException;
+
+    /**
      * Returns a result set containing columns for a specific table.
      * 
      * @param md DatabaseMetaData object

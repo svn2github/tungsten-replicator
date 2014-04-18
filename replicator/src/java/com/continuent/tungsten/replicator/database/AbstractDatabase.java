@@ -1124,6 +1124,19 @@ public abstract class AbstractDatabase implements Database
         return tables;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#getTables(java.lang.String,
+     *      boolean)
+     */
+    @Override
+    public ArrayList<Table> getTables(String schema, boolean baseTablesOnly)
+            throws SQLException
+    {
+        return getTables(schema, baseTablesOnly, false);
+    }
+
     // this is part of TREP-232 workaround
     static final String insertColumnsValues = " ("
                                                     + ConsistencyTable.idColumnName
