@@ -261,7 +261,7 @@ public class ColumnNameFilter implements Filter
             try
             {
                 newTable = conn.findTable(orc.getSchemaName(),
-                        orc.getTableName());
+                        orc.getTableName(), false);
             }
             catch (SQLException e)
             {

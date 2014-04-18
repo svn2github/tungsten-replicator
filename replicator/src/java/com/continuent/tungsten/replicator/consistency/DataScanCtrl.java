@@ -142,8 +142,12 @@ public class DataScanCtrl
      */
     private void parseArgs()
     {
+        // TODO should these variables be removed ?
+        @SuppressWarnings("unused")
         String command = null;
+        @SuppressWarnings("unused")
         String outFile = null;
+        @SuppressWarnings("unused")
         String renameDefinitions = null;
 
         String curArg = null;
@@ -345,16 +349,16 @@ public class DataScanCtrl
             File confDir = ReplicatorRuntimeConf.locateReplicatorConfDir();
             File propsFile = new File(confDir,
                     ReplicationServiceManager.CONFIG_SERVICES);
-            println(String
-                    .format("Not all RMI parameters provided, using configuration: %s",
-                            propsFile));
+            println(String.format(
+                    "Not all RMI parameters provided, using configuration: %s",
+                    propsFile));
             TungstenProperties serviceProps = PropertiesManager
                     .loadProperties(propsFile);
-            
+
             if (rmiPortMaster == null)
                 rmiPortMaster = serviceProps.getString(ReplicatorConf.RMI_PORT,
                         ReplicatorConf.RMI_DEFAULT_PORT, false);
-            
+
             if (rmiHostMaster == null)
                 rmiHostMaster = ReplicationServiceManager
                         .getHostName(serviceProps);
@@ -410,8 +414,9 @@ public class DataScanCtrl
                 serviceSchema = "tungsten_" + service;
                 println("Service: " + service);
             }
-            
-            TungstenProperties properties = DDLScanCtrl.readConfig(configFileMaster);
+
+            TungstenProperties properties = DDLScanCtrl
+                    .readConfig(configFileMaster);
             if (properties != null)
             {
                 // Substitute DBNAME.
@@ -478,7 +483,8 @@ public class DataScanCtrl
     {
         // Need privileged connection for direct checks to be able to turn off
         // transaction logging.
-        Database connDB = DatabaseFactory.createDatabase(url, user, pass, checkDirect);
+        Database connDB = DatabaseFactory.createDatabase(url, user, pass,
+                checkDirect);
         connDB.connect();
         println(String.format("Connected to %s: %s", connDB.getType()
                 .toString(), url));
@@ -529,7 +535,7 @@ public class DataScanCtrl
                 if (slaves == null)
                     throw new ReplicatorException("No slaves to check found");
                 println(String.format("Slaves found: %d", slaves.size()));
-                
+
                 OpenReplicatorManagerMBean[] slave = new OpenReplicatorManagerMBean[slaves
                         .size()];
                 slaveDbTungsten = new Database[slaves.size()];
@@ -592,8 +598,7 @@ public class DataScanCtrl
                 }
                 println(String.format(
                         "WARNING: PK method works with tables having a single-column numeric PK."
-                                + " PK of %s:%s", table.getName(),
-                        pkCols));
+                                + " PK of %s:%s", table.getName(), pkCols));
                 return false;
             }
             else if (table.getPrimaryKey() == null)
@@ -688,7 +693,7 @@ public class DataScanCtrl
             }
         }
     }
-    
+
     /**
      * Validate and change chosen consistency check method, if needed. If method
      * is PK, but table has a composite PK, it will be reverted to limit.
@@ -730,7 +735,7 @@ public class DataScanCtrl
             println("Database: " + schema);
             println("Table(s): " + tables);
 
-            Table table = masterDbUser.findTable(schema, tables);
+            Table table = masterDbUser.findTable(schema, tables, true);
             if (tables == null || table == null)
                 fatal("Table not found (note: multiple tables not supported yet)",
                         null);
@@ -739,13 +744,13 @@ public class DataScanCtrl
                 println("Columns:");
                 printColumns(table);
             }
-            
+
             initMethod(table);
 
             // Determine begin and end position.
             initRowRange(table, true);
             initRowRange(table, false);
-           
+
             // Print actual count of rows.
             if (methodPk)
             {
@@ -785,7 +790,7 @@ public class DataScanCtrl
                                 .getURL();
                         if (!checkDirect && slaves != null)
                             host = slaves.get(c).get(ProtocolParams.RMI_HOST);
-                       println("x");
+                        println("x");
                         printvln("Inconsistent chunk @ " + host + ": row=" + r
                                 + " range=" + chunkSize + " check=" + id);
                         printvln("Drilling down (binary search):");
@@ -881,14 +886,15 @@ public class DataScanCtrl
      * @return false, if consistency check result was not found on master. true,
      *         if it was found and copied over to the slave.
      */
-    private boolean copyMasterCCToSlave(ConsistencyCheck cc, String schema, String table, Database slaveDb)
-            throws SQLException, ConsistencyException
+    private boolean copyMasterCCToSlave(ConsistencyCheck cc, String schema,
+            String table, Database slaveDb) throws SQLException,
+            ConsistencyException
     {
         // Construct consistency check with slave's table column names (in case
         // column names differ between databases).
         // TODO: instead of searching for table each time, prepare a map of
         // tables beforehand.
-        Table tableSlave = slaveDb.findTable(schema, table);
+        Table tableSlave = slaveDb.findTable(schema, table, true);
         ConsistencyCheck ccSlave = ConsistencyCheckFactory
                 .createConsistencyCheck(cc.getCheckId(), tableSlave,
                         cc.getRowOffset(), cc.getRowLimit(), getMethod(),
@@ -912,7 +918,7 @@ public class DataScanCtrl
                 String masterCrc = rs
                         .getString(ConsistencyTable.masterCrcColumnName);
                 int masterCnt = rs.getInt(ConsistencyTable.masterCntColumnName);
-                
+
                 // Put master's results into slave and execute local check.
                 slaveDb.consistencyCheck(consistencyTable, ccSlave, masterCrc,
                         masterCnt);

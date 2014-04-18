@@ -289,11 +289,12 @@ public interface Database
      * 
      * @param schemaName name of schema containing the table
      * @param tableName name of the table
+     * @param withUniqueIndex should unique indexes be fetched or not ?
      * @return a Table if matching was found
      * @throws SQLException if an error occurs
      */
-    public Table findTable(String schemaName, String tableName)
-            throws SQLException;
+    public Table findTable(String schemaName, String tableName,
+            boolean withUniqueIndex) throws SQLException;
 
     /**
      * Returns a query that can be used to set the timestamp.
@@ -461,11 +462,12 @@ public interface Database
      * @param schema Name of the schema
      * @param baseTablesOnly If true, only return real tables and not catalogs
      *            or views
+     * @param withUniqueIndex should unique indexes be fetched or not ?
      * @return list of tables in the schema
      * @throws SQLException
      */
-    public ArrayList<Table> getTables(String schema, boolean baseTablesOnly)
-            throws SQLException;
+    public ArrayList<Table> getTables(String schema, boolean baseTablesOnly,
+            boolean withUniqueIndex) throws SQLException;
 
     /**
      * Returns a result set containing columns for a specific table.
@@ -610,9 +612,11 @@ public interface Database
     /**
      * dropTungstenCatalog removes Tungsten catalog.
      * 
-     * @param schemaName The schema name where Tungsten catalog is stored 
-     * @param tungstenTableType The type of table used to store Tungsten metadata
-     * @param serviceName The service name for which the catalog has to be dropped
+     * @param schemaName The schema name where Tungsten catalog is stored
+     * @param tungstenTableType The type of table used to store Tungsten
+     *            metadata
+     * @param serviceName The service name for which the catalog has to be
+     *            dropped
      * @throws SQLException when an error occurs
      */
     public void dropTungstenCatalog(String schemaName,

@@ -253,7 +253,7 @@ public class JdbcApplier implements RawApplier
                 method = trim(res.getString(ConsistencyTable.methodColumnName));
 
                 // get checked table definition
-                Table table = conn.findTable(schemaName, tableName);
+                Table table = conn.findTable(schemaName, tableName, false);
 
                 if (table == null)
                     throw new ConsistencyException("Table not found: "

@@ -99,7 +99,7 @@ public class DDLScan
     {
         db = DatabaseFactory.createDatabase(url, user, pass);
         db.connect();
-        
+
         // Prepare reserved words lists.
         OracleDatabase oracle = new OracleDatabase();
         reservedWordsOracle = oracle.getReservedWords();
@@ -146,8 +146,7 @@ public class DDLScan
     /**
      * Compiles the given Velocity template file.
      */
-    public void parseTemplate(String templateFile)
-            throws ReplicatorException
+    public void parseTemplate(String templateFile) throws ReplicatorException
     {
         try
         {
@@ -163,7 +162,7 @@ public class DDLScan
             throw new ReplicatorException("Problem parsing the template", pee);
         }
     }
-    
+
     /**
      * Tries to load rename definitions file. It will be used for all subsequent
      * scan calls.
@@ -179,7 +178,7 @@ public class DDLScan
         renameDefinitions = new RenameDefinitions(definitionsFile);
         renameDefinitions.parseFile();
     }
-    
+
     /**
      * Stop using rename definitions file for future scan(...) calls.
      * 
@@ -210,14 +209,16 @@ public class DDLScan
     {
         // How many tables were actually matched?
         int tablesRendered = 0;
-        
+
         // Regular expression matcher for tables.
         TableMatcher tableMatcher = null;
         if (tablesToFind != null)
             tableMatcher = extractFilter(tablesToFind);
 
         // Retrieve all tables available.
-        ArrayList<Table> tables = db.getTables(dbName, true);
+        // TODO Not retrieving indexes here. Not sure whether it is relevant or
+        // not
+        ArrayList<Table> tables = db.getTables(dbName, true, false);
 
         // Make a context object and populate with the data. This is where
         // the Velocity engine gets the data to resolve the references in

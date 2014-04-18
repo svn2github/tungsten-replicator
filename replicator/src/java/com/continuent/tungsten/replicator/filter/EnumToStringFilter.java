@@ -511,7 +511,7 @@ public class EnumToStringFilter implements Filter
                         + orc.getSchemaName() + "." + tableName
                         + " - Removing table metadata from cache");
             Table newTable = conn.findTable(orc.getSchemaName(),
-                    orc.getTableName());
+                    orc.getTableName(), false);
             newTable.setTableId(orc.getTableId());
             dbCache.put(tableName, new TableWithEnums(newTable));
         }

@@ -215,7 +215,7 @@ public class ChunksGeneratorThread extends Thread
                     {
                         Table table = connection.findTable(
                                 chunkRequest.getSchema(),
-                                chunkRequest.getTable());
+                                chunkRequest.getTable(), true);
 
                         if (table != null)
                             generateChunksForTable(table,
@@ -310,7 +310,7 @@ public class ChunksGeneratorThread extends Thread
                 logger.debug("Getting list of tables from " + schemaName);
 
             ArrayList<Table> tablesFromSchema = connection.getTables(
-                    schemaName, true);
+                    schemaName, true, true);
             if (logger.isDebugEnabled())
                 logger.debug("Tables : " + tablesFromSchema);
             if (tablesFromSchema != null && tablesFromSchema.size() > 0)
@@ -931,7 +931,6 @@ public class ChunksGeneratorThread extends Thread
             if (key == null)
             {
                 logger.info("getPKFromUniqueIndex returned null key");
-
             }
             ArrayList<Column> colsList = key.getColumns();
 

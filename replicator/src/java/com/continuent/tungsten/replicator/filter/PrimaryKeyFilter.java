@@ -306,7 +306,7 @@ public class PrimaryKeyFilter implements Filter
                         + " - Removing table metadata from cache");
             reconnectIfNeeded();
             Table newTable = conn.findTable(orc.getSchemaName(),
-                    orc.getTableName());
+                    orc.getTableName(), false);
             if (newTable != null)
             {
                 newTable.setTableId(orc.getTableId());

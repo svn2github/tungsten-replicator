@@ -1125,7 +1125,7 @@ public class PrefetchApplier implements RawApplier
             {
                 // Not yet in cache. Fetch the base definition, which includes
                 // the primary key.
-                t = conn.findTable(schemaName, tableName);
+                t = conn.findTable(schemaName, tableName, false);
                 if (logger.isDebugEnabled())
                 {
                     logger.debug("Adding table to prefetch table metadata: "
