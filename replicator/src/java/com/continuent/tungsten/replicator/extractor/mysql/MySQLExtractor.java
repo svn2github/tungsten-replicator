@@ -447,6 +447,13 @@ public class MySQLExtractor implements RawExtractor
             String binlogFile = rs.getString(1);
             long binlogOffset = rs.getLong(2);
 
+            // If we are using relay logs make sure that relay logging is
+            // functioning here.
+            if (useRelayLogs)
+            {
+                startRelayLogs(binlogFile, binlogOffset);
+            }
+
             logger.info("Starting from master binlog position: " + binlogFile
                     + ":" + binlogOffset);
             return new BinlogReader(binlogOffset, binlogFile, binlogDir,
@@ -1150,6 +1157,30 @@ public class MySQLExtractor implements RawExtractor
                 binlogPosition = positionBinlogMaster(true);
             }
         }
+
+        // If we are using relay logs make sure that relay logging is
+        // functioning here and we are up to point required by binlog
+        // position.
+        startRelayLogs(binlogPosition.getFileName(),
+                binlogPosition.getPosition());
+
+        // Extract FD event
+        try
+        {
+            LogEvent formatDescriptionEvent = processFile(new BinlogReader(4,
+                    binlogPosition.getFileName(), binlogDir, binlogFilePattern,
+                    bufferSize));
+            // Is this binlog using checksum ?
+            if (formatDescriptionEvent instanceof FormatDescriptionLogEvent)
+            {
+                FormatDescriptionLogEvent event = (FormatDescriptionLogEvent) formatDescriptionEvent;
+                event.getChecksumAlgo();
+            }
+        }
+        catch (InterruptedException ignore)
+        {
+            logger.warn("Interrupted while extracting format description event");
+        }
     }
 
     /**
@@ -1544,19 +1575,6 @@ public class MySQLExtractor implements RawExtractor
                 // We must have a binlog position by time this is called.
                 startRelayLogs(binlogPosition.getFileName(),
                         binlogPosition.getPosition());
-
-                // Extract FD event. This opens the binlog and was added as
-                // part of MySQL 5.6 support.
-                LogEvent formatDescriptionEvent = processFile(new BinlogReader(
-                        4, binlogPosition.getFileName(), binlogDir,
-                        binlogFilePattern, bufferSize));
-
-                // Is this binlog using checksum ?
-                if (formatDescriptionEvent instanceof FormatDescriptionLogEvent)
-                {
-                    FormatDescriptionLogEvent event = (FormatDescriptionLogEvent) formatDescriptionEvent;
-                    event.getChecksumAlgo();
-                }
             }
             else if (relayLogTask.isFinished())
                 throw new ExtractorException(
