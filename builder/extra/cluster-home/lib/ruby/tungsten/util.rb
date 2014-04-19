@@ -9,6 +9,7 @@ class TungstenUtil
     @previous_option_arguments = {}
     @ssh_options = {}
     @display_help = false
+    @error_mutex = Mutex.new
     @num_errors = 0
     @force = false
     @json_interface = false
@@ -182,7 +183,9 @@ class TungstenUtil
     end
     
     if level == Logger::ERROR
-      @num_errors = @num_errors + 1
+      @error_mutex.synchronize do
+        @num_errors = @num_errors + 1
+      end
       
       if force?()
         level = Logger::WARN
