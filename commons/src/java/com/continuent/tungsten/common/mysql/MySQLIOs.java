@@ -99,6 +99,12 @@ public class MySQLIOs
         OK, TOO_MANY_CONNECTIONS, OPEN_FILE_LIMIT_ERROR, SOCKET_NO_IO, SOCKET_CONNECT_TIMEOUT, SEND_QUERY_TIMEOUT, QUERY_RESULTS_TIMEOUT, QUERY_EXEC_TIMEOUT, LOGIN_RESPONSE_TIMEOUT, QUERY_TOO_LARGE, QUERY_RESULT_FAILED, QUERY_EXECUTION_FAILED, SOCKET_IO_ERROR, MYSQL_ERROR, UNEXPECTED_EXCEPTION, MYSQL_PREMATURE_EOF, HOST_IS_DOWN, NO_ROUTE_TO_HOST, UNKNOWN_HOST, UNTRAPPED_CONDITION
     }
 
+    public MySQLIOs()
+    {
+        this.input = null;
+        this.output = null;
+    }
+
     /**
      * Constructor for internal use only - interface for retrieving IOs is
      * {@link #getMySQLIOs(Connection)}
@@ -523,7 +529,7 @@ public class MySQLIOs
      *            timeout
      * @return true if the server is up and running, false otherwise
      */
-    public static boolean isAlive(String hostname, int port, String user,
+    public boolean isAlive(String hostname, int port, String user,
             String password, String db, String query, int timeoutMsecs)
     {
         try
@@ -582,7 +588,7 @@ public class MySQLIOs
      * @return null if the server is not alive/accessible, or the query result
      *         wrapped inside tungsten properties
      */
-    public static TungstenProperties executeQueryWithTimeouts(String hostname,
+    public TungstenProperties executeQueryWithTimeouts(String hostname,
             int port, String user, String password, String db, String query,
             int timeoutMsecs)
     {
@@ -608,6 +614,11 @@ public class MySQLIOs
 
         String socketPhase = SOCKET_PHASE_CONNECT;
         ExecuteQueryStatus timeoutPhase = ExecuteQueryStatus.SOCKET_CONNECT_TIMEOUT;
+
+        InputStream socketInput = null;
+        OutputStream socketOutput = null;
+        
+        MySQLPacket queryResult = null;
 
         try
         {
@@ -643,9 +654,11 @@ public class MySQLIOs
             }
 
             statusAndResult.setLong(TIME_TO_CONNECT_MS, timeToConnectMs);
-            InputStream socketInput = socket.getInputStream();
-            OutputStream socketOutput = socket.getOutputStream();
-
+            
+            
+            socketInput = socket.getInputStream();
+            socketOutput = socket.getOutputStream();
+            
             if (socketInput == null || socketOutput == null)
             {
                 statusMessage = String
@@ -776,7 +789,7 @@ public class MySQLIOs
                 socketOutput.flush();
 
                 socketPhase = SOCKET_PHASE_READ;
-                MySQLPacket queryResult = MySQLPacket.mysqlReadPacket(
+                queryResult = MySQLPacket.mysqlReadPacket(
                         socketInput, true);
                 long timeToExecQueryMs = System.currentTimeMillis()
                         - beforeQuery;
@@ -1055,15 +1068,64 @@ public class MySQLIOs
         }
         finally
         {
-            try
+            if (socketOutput != null)
             {
-                // Try to properly close the connection
-                MySQLPacket p = new MySQLPacket(1, (byte) 0);
-                p.putByte((byte) MySQLConstants.COM_QUIT);
-                p.write(socket.getOutputStream());
+                try
+                {
+                    // Try to properly close the connection
+                    MySQLPacket p = new MySQLPacket(1, (byte) 0);
+                    p.putByte((byte) MySQLConstants.COM_QUIT);
+                    p.write(socketOutput);
+                }
+                catch (Exception ignored)
+                {
+                }
             }
-            catch (Exception ignored)
+
+            if (socketOutput != null)
             {
+                try
+                {
+                    socketOutput.close();
+                }
+                catch (Exception ignored)
+                {
+                }
+                finally
+                {
+                    socketOutput = null;
+                }
+            }
+            
+            if (queryResult != null)
+            {
+                try
+                {
+                  queryResult.close();  
+                }
+                catch(Exception ignored)
+                {
+                    
+                }
+                finally
+                {
+                    queryResult = null;
+                }
+            }
+
+            if (socketInput != null)
+            {
+                try
+                {
+                    socketInput.close();
+                }
+                catch (Exception ignored)
+                {
+                }
+                finally
+                {
+                    socketInput = null;
+                }
             }
 
             if (socket != null)
@@ -1075,6 +1137,10 @@ public class MySQLIOs
                 catch (IOException i)
                 {
                     logger.warn("Exception while closing socket", i);
+                }
+                finally
+                {
+                    socket = null;
                 }
             }
         }

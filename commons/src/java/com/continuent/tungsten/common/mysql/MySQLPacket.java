@@ -1516,6 +1516,27 @@ public class MySQLPacket
         dataLength = newSize;
     }
 
+    /**
+     * 
+     * Close inputstream if we have one.
+     * 
+     * @throws IOException
+     */
+    public void close() throws IOException
+    {
+        if (inputStream != null)
+        {
+            try
+            {
+                inputStream.close();
+            }
+            finally
+            {
+                inputStream = null;
+            }
+        }
+    }
+
     @Override
     public String toString()
     {
