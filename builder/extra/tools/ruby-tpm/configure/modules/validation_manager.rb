@@ -164,6 +164,10 @@ class ManagerWitnessNeededCheck < ConfigureValidationCheck
       warning("This dataservice is using a passive witness. Continuent Tungsten has support for active witnesses that improve stability over passive witnesses. Visit http://docs.continuent.com/ct/host-types for more information.")
     end
   end
+  
+  def enabled?
+    super() && (@config.getProperty(MGR_VALIDATE_WITNESS) == "true")
+  end
 end
 
 class ManagerWitnessAvailableCheck < ConfigureValidationCheck
