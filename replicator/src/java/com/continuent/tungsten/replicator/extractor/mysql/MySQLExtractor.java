@@ -134,7 +134,9 @@ public class MySQLExtractor implements RawExtractor
 
     private int                             bufferSize              = 32768;
 
-    private int                             checksumAlgo            = 0xff;
+    // This has to be a set to a valid checksum value when the binlog is
+    // first opened.
+    private Integer                         checksumAlgo            = null;
 
     public String getHost()
     {
@@ -446,13 +448,6 @@ public class MySQLExtractor implements RawExtractor
                         "Error getting master status; is the MySQL binlog enabled?");
             String binlogFile = rs.getString(1);
             long binlogOffset = rs.getLong(2);
-
-            // If we are using relay logs make sure that relay logging is
-            // functioning here.
-            if (useRelayLogs)
-            {
-                startRelayLogs(binlogFile, binlogOffset);
-            }
 
             logger.info("Starting from master binlog position: " + binlogFile
                     + ":" + binlogOffset);
@@ -1078,9 +1073,21 @@ public class MySQLExtractor implements RawExtractor
     public synchronized DBMSEvent extract() throws InterruptedException,
             ReplicatorException
     {
-        // If we are using relay logs make sure that relay logging is
-        // functioning.
+        // If we are using relay logs make sure they are enabled.
         assertRelayLogsEnabled();
+
+        // If this is the first time we have read the log, try to read
+        // the first event. This is necessary in MySQL 5.6 to detect
+        // whether checksums are in use. In MySQL 5.6 the first event after
+        // the header will tell us what the actual checksum algorithm is.
+        if (this.checksumAlgo == null)
+        {
+            // 0xff is a dummy value but sufficient to find out what the real
+            // value is.
+            this.checksumAlgo = 0xff;
+            processFile(new BinlogReader(4, binlogPosition.getFileName(),
+                    binlogDir, binlogFilePattern, bufferSize));
+        }
 
         // Extract the next event.
         DBMSEvent event = extractEvent(binlogPosition);
@@ -1156,30 +1163,6 @@ public class MySQLExtractor implements RawExtractor
                 // current master position.
                 binlogPosition = positionBinlogMaster(true);
             }
-        }
-
-        // If we are using relay logs make sure that relay logging is
-        // functioning here and we are up to point required by binlog
-        // position.
-        startRelayLogs(binlogPosition.getFileName(),
-                binlogPosition.getPosition());
-
-        // Extract FD event
-        try
-        {
-            LogEvent formatDescriptionEvent = processFile(new BinlogReader(4,
-                    binlogPosition.getFileName(), binlogDir, binlogFilePattern,
-                    bufferSize));
-            // Is this binlog using checksum ?
-            if (formatDescriptionEvent instanceof FormatDescriptionLogEvent)
-            {
-                FormatDescriptionLogEvent event = (FormatDescriptionLogEvent) formatDescriptionEvent;
-                event.getChecksumAlgo();
-            }
-        }
-        catch (InterruptedException ignore)
-        {
-            logger.warn("Interrupted while extracting format description event");
         }
     }
 
