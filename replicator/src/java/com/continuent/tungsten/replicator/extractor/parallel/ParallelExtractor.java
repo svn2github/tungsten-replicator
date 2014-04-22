@@ -113,16 +113,31 @@ public class ParallelExtractor implements RawExtractor
         this.queueSize = queueSize;
     }
 
+    /**
+     * Sets the url value.
+     * 
+     * @param url The url to set.
+     */
     public void setUrl(String url)
     {
         this.url = url;
     }
 
+    /**
+     * Sets the user value.
+     * 
+     * @param user The user to set.
+     */
     public void setUser(String user)
     {
         this.user = user;
     }
 
+    /**
+     * Sets the password value.
+     * 
+     * @param password The password to set.
+     */
     public void setPassword(String password)
     {
         this.password = password;
@@ -299,6 +314,11 @@ public class ParallelExtractor implements RawExtractor
         return null;
     }
 
+    /**
+     * Sets the path to the chunk definition file.
+     * 
+     * @param chunkDefinitionFile Chunk definition file to use.
+     */
     public void setChunkDefinitionFile(String chunkDefinitionFile)
     {
         this.chunkDefinitionFile = chunkDefinitionFile;

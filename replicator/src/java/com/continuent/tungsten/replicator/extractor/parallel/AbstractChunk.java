@@ -143,7 +143,12 @@ public abstract class AbstractChunk implements Chunk
 
         return sql.toString();
     }
-
+    
+    /**
+     * Returns the order by clause, if any.
+     * 
+     * @return
+     */
     protected String getOrderByClause()
     {
         return null;

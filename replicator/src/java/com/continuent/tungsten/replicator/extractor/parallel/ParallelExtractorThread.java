@@ -68,6 +68,7 @@ public class ParallelExtractorThread extends Thread
 
     // TODO : do we need 2 different notions for chunk size (the size of the
     // select) and rowcount (the maximum number of rows of the event) ?
+    // TODO : add a memory size limit to chunks instead ?
     private int                           rowCount   = 10000;
 
     private String                        eventId    = null;
@@ -86,6 +87,7 @@ public class ParallelExtractorThread extends Thread
         }
         catch (SQLException e)
         {
+            logger.warn("Error while connecting to database (" + url + ")", e);
         }
 
         this.queue = queue;
@@ -102,7 +104,6 @@ public class ParallelExtractorThread extends Thread
         catch (SQLException e)
         {
         }
-
     }
 
     /**
@@ -378,7 +379,6 @@ public class ParallelExtractorThread extends Thread
                             try
 
                             {
-                                // TODO: what should be the event id ?
                                 DBMSEvent ev = new DBMSEvent("ora:" + eventId,
                                         dataArray, new Timestamp(
                                                 System.currentTimeMillis()));
@@ -532,6 +532,11 @@ public class ParallelExtractorThread extends Thread
 
     }
 
+    /**
+     * Set the event identifier of the starting point.
+     * 
+     * @param eventId The event ID
+     */
     public void setEventId(String eventId)
     {
         this.eventId = eventId;

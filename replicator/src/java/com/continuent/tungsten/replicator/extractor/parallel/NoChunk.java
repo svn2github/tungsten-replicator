@@ -28,6 +28,8 @@ import java.util.List;
 import com.continuent.tungsten.replicator.database.Table;
 
 /**
+ * Defines a chunk that contains the whole table (no chunk for this table).
+ * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
@@ -51,7 +53,6 @@ public class NoChunk extends AbstractChunk implements Chunk
     @Override
     public Table getTable()
     {
-        // TODO Auto-generated method stub
         return table;
     }
 
@@ -75,7 +76,6 @@ public class NoChunk extends AbstractChunk implements Chunk
     @Override
     public Object getFrom()
     {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -87,7 +87,6 @@ public class NoChunk extends AbstractChunk implements Chunk
     @Override
     public Object getTo()
     {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -99,7 +98,6 @@ public class NoChunk extends AbstractChunk implements Chunk
     @Override
     public long getNbBlocks()
     {
-        // TODO Auto-generated method stub
         return 0;
     }
 
@@ -111,7 +109,6 @@ public class NoChunk extends AbstractChunk implements Chunk
     @Override
     protected String getWhereClause()
     {
-        // TODO Auto-generated method stub
         return null;
     }
 

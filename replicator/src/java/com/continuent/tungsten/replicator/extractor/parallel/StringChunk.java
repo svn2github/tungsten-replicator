@@ -27,6 +27,8 @@ import java.util.List;
 import com.continuent.tungsten.replicator.database.Table;
 
 /**
+ * Defines a chunk based on a single string column primary key.
+ * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
@@ -118,8 +120,13 @@ public class StringChunk extends AbstractChunk implements Chunk
         return nbBlocks;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.extractor.parallel.AbstractChunk#getWhereClause()
+     */
     @Override
-    public String getWhereClause()
+    protected String getWhereClause()
     {
         if (getFrom() != null)
         {

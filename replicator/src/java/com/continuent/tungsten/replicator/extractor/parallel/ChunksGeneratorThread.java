@@ -47,12 +47,21 @@ import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.extractor.parallel.ChunkDefinitions.ChunkRequest;
 
 /**
+ * Implements a chunk generator thread that is responsible of generating chunks
+ * for tables.
+ * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
 public class ChunksGeneratorThread extends Thread
 {
 
+    /**
+     * Hold the min, the max and the count values for a table.
+     * 
+     * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
+     * @version 1.0
+     */
     private class MinMax
     {
 
@@ -121,7 +130,7 @@ public class ChunksGeneratorThread extends Thread
     private String               whereClause;
 
     /**
-     * Creates a new <code>TableGeneratorThread</code> object
+     * Creates a new <code>ChunksGeneratorThread</code> object
      * 
      * @param user
      * @param url
@@ -298,9 +307,10 @@ public class ChunksGeneratorThread extends Thread
     }
 
     /**
-     * TODO: generateChunksForSchema definition.
+     * Generates chunk definitions for the whole given schema.
      * 
-     * @param schemaName
+     * @param schemaName Name of the schema for which chunk definitions are
+     *            generated.
      */
     private void generateChunksForSchema(String schemaName)
     {
@@ -331,11 +341,12 @@ public class ChunksGeneratorThread extends Thread
     }
 
     /**
-     * TODO: generateChunksForTable definition.
+     * Generates chunk definitions for the given table, eventually using a given
+     * chunk size and a given column list.
      * 
-     * @param table
-     * @param strings
-     * @param l
+     * @param table Table for which chunk definitions are generated.
+     * @param tableChunkSize Chunk size to be used for the given table.
+     * @param columns List of columns to be extracted for the given table.
      * @throws ReplicatorException
      * @throws InterruptedException
      */
@@ -350,11 +361,6 @@ public class ChunksGeneratorThread extends Thread
         {
             chunks.put(new NoChunk(table, columns));
             // No chunks for this table (all table at once)
-            // if (pkType == Types.NUMERIC)
-            // chunks.put(new NumericChunk(table, columns));
-            // else
-            // chunks.put(new StringChunk(table, null, null));
-
             return;
         }
         else if (tableChunkSize < 0)
@@ -806,8 +812,7 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    logger.warn("Error while closing resultset", e);
                 }
             }
             if (st != null)
@@ -818,8 +823,7 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    logger.warn("Error while closing statement", e);
                 }
             }
         }
@@ -846,8 +850,7 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (SQLException e)
         {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            logger.warn("Error while preparing chunking prepared statement", e);
         }
 
         Object[] fromValues = null, toValues = null;
@@ -889,20 +892,28 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (SQLException e1)
         {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
+            logger.warn("Error while executing chunking query", e1);
         }
-
-        try
+        finally
         {
-            result.close();
-            pStmt.close();
-        }
-        catch (SQLException e)
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+            try
+            {
+                result.close();
+            }
+            catch (SQLException e)
+            {
+                logger.warn("Error while closing resultset", e);
+            }
+            try
+            {
+                pStmt.close();
+            }
+            catch (SQLException e)
+            {
+                logger.warn("Error while closing chunking prepared statement",
+                        e);
+            }
+		}
     }
 
     private void generateChunkingPreparedStatement(Table table, long blockSize)
@@ -970,9 +981,10 @@ public class ChunksGeneratorThread extends Thread
         sqlBuffer.append(" ORDER BY ");
         sqlBuffer.append(colBuf);
 
+        String sql = sqlBuffer.toString();
         if (logger.isDebugEnabled())
-            logger.debug("Generated statement :" + sqlBuffer.toString());
-        pStmt = connection.prepareStatement(sqlBuffer.toString());
+            logger.debug("Generated statement :" + sql);
+        pStmt = connection.prepareStatement(sql);
 
         // TODO : have a setting ?
         pStmt.setFetchSize(100);

@@ -32,6 +32,9 @@ import com.continuent.tungsten.replicator.database.Key;
 import com.continuent.tungsten.replicator.database.Table;
 
 /**
+ * Defines a chunk based on limits (starting and ending points). These limits
+ * are based on primary key or on a good unique key candidate.
+ * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
@@ -75,7 +78,6 @@ public class LimitChunk extends AbstractChunk implements Chunk
     @Override
     public Table getTable()
     {
-        // TODO Auto-generated method stub
         return table;
     }
 
@@ -87,7 +89,6 @@ public class LimitChunk extends AbstractChunk implements Chunk
     @Override
     public List<String> getColumns()
     {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -123,7 +124,6 @@ public class LimitChunk extends AbstractChunk implements Chunk
     @Override
     public long getNbBlocks()
     {
-        // TODO Auto-generated method stub
         return nbBlocks;
     }
 

@@ -28,6 +28,7 @@ import java.util.List;
 import com.continuent.tungsten.replicator.database.Table;
 
 /**
+ * Defines a chunk based on single numeric column primary key.
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */

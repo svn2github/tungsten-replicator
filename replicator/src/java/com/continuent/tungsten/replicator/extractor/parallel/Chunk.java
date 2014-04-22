@@ -34,12 +34,17 @@ import com.continuent.tungsten.replicator.database.Table;
 public interface Chunk
 {
 
+    /**
+     * Returns the table which is concerned by this chunk.
+     * 
+     * @return Returns the Table this chunk is based on.
+     */
     public Table getTable();
 
     /**
-     * Returns the columns value.
+     * Returns the list of columns that are going to be extracted.
      * 
-     * @return Returns the columns.
+     * @return Returns the list of columns.
      */
     public List<String> getColumns();
 
@@ -58,7 +63,9 @@ public interface Chunk
     public Object getTo();
 
     /**
-     * Returns the nbBlocks value.
+     * Returns the nbBlocks value. This is the total number of chunks that will
+     * be used to extract the whole table content. It is used to know when a
+     * table was fully processed.
      * 
      * @return Returns the nbBlocks.
      */
@@ -72,9 +79,29 @@ public interface Chunk
     @Override
     public String toString();
 
+    /**
+     * Returns the query used to get the data of this chunk.
+     * 
+     * @param connection Database object used to generate the query.
+     * @param eventId Position used for flashback queries (when supported)
+     * @return Returns the query to execute to get data of this chunk from the
+     *         database, eventually at the given position
+     */
     public String getQuery(Database connection, String eventId);
 
+    /**
+     * Returns the list of values to be used as starting point of the chunk.
+     * 
+     * @return Returns the list of values to be used as starting point of the
+     *         chunk.
+     */
     public Object[] getFromValues();
 
+    /**
+     * Returns the list of values to be used as ending point of the chunk.
+     * 
+     * @return Returns the list of values to be used as ending point of the
+     *         chunk.
+     */
     public Object[] getToValues();
 }

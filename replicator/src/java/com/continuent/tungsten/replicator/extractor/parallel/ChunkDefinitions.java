@@ -33,14 +33,22 @@ import au.com.bytecode.opencsv.CSVReader;
 import com.continuent.tungsten.replicator.ReplicatorException;
 
 /**
- * Chunk definitions.
+ * Reads and parses the chunk definitions file and prepares a list of
+ * ChunkRequest objects.
  * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
 public class ChunkDefinitions
 {
-    private static Logger logger = Logger.getLogger(ChunkDefinitions.class);
+    private static Logger            logger = Logger.getLogger(ChunkDefinitions.class);
+
+    /**
+     * Path to chunk definition file.
+     */
+    private String                   definitionFile;
+
+    private LinkedList<ChunkRequest> chunksDefinitions;
 
     static class ChunkRequest
     {
@@ -114,13 +122,6 @@ public class ChunkDefinitions
         }
     }
 
-    /**
-     * Path to rename definition file.
-     */
-    private String                   definitionFile;
-
-    private LinkedList<ChunkRequest> chunksDefinitions;
-
     public ChunkDefinitions(String definitionFile)
     {
         this.definitionFile = definitionFile;
@@ -136,7 +137,7 @@ public class ChunkDefinitions
     }
 
     /**
-     * Parses rename definition file, validates format and populates lookup
+     * Parses chunk definition file, validates format and populates lookup
      * structures.
      * 
      * @throws ReplicatorException On format issues.
