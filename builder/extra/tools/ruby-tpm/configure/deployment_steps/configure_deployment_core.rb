@@ -505,6 +505,45 @@ module ConfigureDeploymentCore
     end
   
     if is_replicator?() && get_additional_property(REPLICATOR_IS_RUNNING) == "true" && get_additional_property(RESTART_REPLICATORS) != false
+      if replicator_is_running?()
+        # Attempt to put all replication services cleanly offline. This section
+        # is wrapped so we can continue even if there are issues during the
+        # offline process.
+        info("Putting all replication services offline")
+        begin
+          # Determine if this is before or after integrating Tungsten Replicator 2.0
+          version = cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl version")
+          if version =~ /Tungsten Enterprise/
+            # This version only supports a single replication service so the
+            # `trepctl offline` command is sufficient
+            begin
+              Timeout::timeout(30) {
+                cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl offline")
+              }
+            rescue Timeout::Error
+              debug("There was a timeout while waiting for the replication service to go offline")
+            end
+          elsif version =~ /Continuent Tungsten/
+            # This version may support multiple services. We need to get the
+            # list of services and then call `trepctl -service <svc> offline`
+            # for each of them
+            services = cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl services | grep serviceName | awk -F \":\" '{print $2}' | tr -d \" \"")
+            services.split("\n").each {
+              |svc_name|
+              begin
+                Timeout::timeout(30) {
+                  cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl -service #{svc_name} offline")
+                }
+              rescue Timeout::Error
+                debug("There was a timeout while waiting for the #{svc_name} replication service to go offline")
+              end
+            }
+          end
+        rescue CommandError
+          notice("Unable to put the replicator cleanly offline. Proceeding with `replicator stop`")
+        end
+      end
+      
       info("Stopping the replicator")
       info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/replicator stop"))
     end
