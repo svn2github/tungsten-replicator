@@ -179,3 +179,32 @@ class RouterDelayBeforeOfflineCheck < ConfigureValidationCheck
     end
   end
 end
+
+class RouterAffinityCheck < ConfigureValidationCheck
+  include ConnectorCheck
+  
+  def set_vars
+    @title = "Connector affinity validity check"
+  end
+  
+  def validate
+    # The combination of --connector-affinity and --connector-bridge-mode
+    # will only work on an RO_RELAXED connection. This is only accomplished
+    # by adding --connector-readonly or --application-readonly-port
+    if @config.getProperty(get_member_key(ENABLE_CONNECTOR_BRIDGE_MODE)) == "true"
+      if @config.getProperty(get_member_key(CONN_AFFINITY)).to_s() != ""
+        # See if --connector-readonly or --application-readonly-port is given
+        has_read_only = false
+        if @config.getProperty(get_member_key(ENABLE_CONNECTOR_RO)) == "true"
+          has_read_only = true
+        elsif @config.getProperty(get_member_key(CONN_RO_LISTEN_PORT)).to_s() != ""
+          has_read_only = true
+        end
+        
+        if has_read_only == false
+          error("The `--connector-affinity` option is only supported when `--connector-bridge-mode` is not given; or if either `--connector-readonly` or `--application-readonly-port` is provided.")
+        end
+      end
+    end
+  end
+end
