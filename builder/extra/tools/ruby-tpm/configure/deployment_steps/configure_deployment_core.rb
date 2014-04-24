@@ -523,7 +523,7 @@ module ConfigureDeploymentCore
             rescue Timeout::Error
               debug("There was a timeout while waiting for the replication service to go offline")
             end
-          elsif version =~ /Continuent Tungsten/
+          elsif version =~ /Continuent Tungsten/ || version =~ /Tungsten Replicator/
             # This version may support multiple services. We need to get the
             # list of services and then call `trepctl -service <svc> offline`
             # for each of them
