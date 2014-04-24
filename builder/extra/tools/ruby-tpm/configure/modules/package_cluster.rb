@@ -847,6 +847,10 @@ module ClusterCommandModule
   end
   
   def clean_cluster_configuration
+    # Clear the SYSTEM hash here so that all classes must regenerate their
+    # default values. This ensures the values selected here reflect any changes
+    # made.
+    @config.setProperty([SYSTEM], nil)
     update_deprecated_keys()
     
     # Reduce the component options to remove values that are the same as their defaults
