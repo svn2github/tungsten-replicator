@@ -337,6 +337,11 @@ public class MySQLPacket
     {
         return byteBuffer;
     }
+    
+    public void setByteBuffer(byte[] newByteBuffer)
+    {
+        this.byteBuffer = newByteBuffer;
+    }
 
     /**
      * Returns the packet number.
