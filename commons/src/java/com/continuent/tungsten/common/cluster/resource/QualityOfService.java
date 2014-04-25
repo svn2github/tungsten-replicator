@@ -22,8 +22,23 @@
 
 package com.continuent.tungsten.common.cluster.resource;
 
+import java.text.MessageFormat;
+
+import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+
 public enum QualityOfService
 {
 
-    RW_STRICT, RW_RELAXED, RO_STRICT, RO_RELAXED, RW_SESSION, UNDEFINED
+    RW_STRICT, RW_RELAXED, RO_STRICT, RO_RELAXED, RW_SESSION, UNDEFINED;
+    
+    public static QualityOfService fromString(String x) throws ConfigurationException
+    {
+        for (QualityOfService currentType : QualityOfService.values())
+        {
+            if (x.equalsIgnoreCase(currentType.toString()))
+                return currentType;
+        }
+        throw new ConfigurationException( MessageFormat.format(
+                        "Cannot cast into a known COMMAND: {0}", x));
+    }
 }

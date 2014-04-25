@@ -25,6 +25,7 @@ import junit.framework.TestCase;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.security.SecurityHelper.TUNGSTEN_APPLICATION_NAME;
 
 /**
  * Implements a simple unit test for SecurityHelper
@@ -101,6 +102,19 @@ public class SecurityHelperTest extends TestCase
         Boolean useJmxAuthentication = securityProp.getBoolean(SecurityConf.SECURITY_JMX_USE_AUTHENTICATION);
         assertNotNull(useJmxAuthentication);
     }
+    
+    
+    /**
+     * Reset system properties to null value
+     * 
+     */
+    private void resetSecuritySystemProperties()
+    {
+        System.clearProperty("javax.net.ssl.keyStore");
+        System.clearProperty("javax.net.ssl.keyStorePassword");
+        System.clearProperty("javax.net.ssl.trustStore");
+        System.clearProperty("javax.net.ssl.trustStorePassword");
+    }
 
     
     /**
@@ -110,6 +124,9 @@ public class SecurityHelperTest extends TestCase
      */
     public void testloadAuthenticationInformation_and_setSystemProperties() throws ConfigurationException
     {
+        // Reset info
+        resetSecuritySystemProperties();
+        
         // Get authInfo from the configuration file on the SERVER_SIDE
         AuthenticationInfo authInfo = SecurityHelper.loadAuthenticationInformation( "sample.security.properties");
         assertNotNull(authInfo);
@@ -127,6 +144,49 @@ public class SecurityHelperTest extends TestCase
         
         systemProperty = System.getProperty("javax.net.ssl.trustStorePassword", null);
         assertNotNull(systemProperty);
+    }
+    
+    /**
+     * Confirm that once we have loaded the security information, it becomes available in system properties
+     * Confirm that application specific info is used
+     * Note: Connector only info for now
+     * @throws ConfigurationException 
+     *
+     */
+    public void testloadAuthenticationInformation_and_setSystemProperties_4_Connector()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+        
+        // Get authInfo from the configuration file on the SERVER_SIDE
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("sample.security.properties", false, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("Could not load authentication and securiy information", true);
+        }
+        assertNotNull(authInfo);
+        
+        // Check it's available in system wide properties
+        String systemProperty = null;
+        systemProperty = System.getProperty("javax.net.ssl.keyStore", null);
+        assertNotNull(systemProperty);
+        assertTrue(systemProperty.contains("connector"));
+        
+        systemProperty = System.getProperty("javax.net.ssl.keyStorePassword", null);
+        assertNotNull(systemProperty);
+        assertTrue(systemProperty.contains("connector"));
+        
+        systemProperty = System.getProperty("javax.net.ssl.trustStore", null);
+        assertNotNull(systemProperty);
+        assertTrue(systemProperty.contains("connector"));
+        
+        systemProperty = System.getProperty("javax.net.ssl.trustStorePassword", null);
+        assertNotNull(systemProperty);
+        assertTrue(systemProperty.contains("connector"));
     }
 
 }
