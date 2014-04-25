@@ -22,22 +22,25 @@
 
 package com.continuent.tungsten.replicator.applier;
 
+import java.io.Writer;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Connection;
-import java.sql.Types;
 import java.sql.Timestamp;
-import java.io.Writer;
+import java.sql.Types;
+import java.util.Calendar;
+import java.util.TimeZone;
+
 import oracle.jdbc.OraclePreparedStatement;
 import oracle.sql.CLOB;
 
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.database.AdditionalTypes;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.DBMS;
-import com.continuent.tungsten.replicator.database.AdditionalTypes;
 import com.continuent.tungsten.replicator.database.JdbcURL;
 import com.continuent.tungsten.replicator.datatypes.MySQLUnsignedNumeric;
 import com.continuent.tungsten.replicator.datatypes.Numeric;
@@ -159,8 +162,8 @@ public class OracleApplier extends JdbcApplier
                     && (value.getValue() instanceof java.sql.Timestamp))
             { // Issue 704 - unsuccessful DATETIME to DATE conversion
                 Timestamp ts = (Timestamp) value.getValue();
-                ((OraclePreparedStatement) prepStatement)
-                        .setObject(bindLoc, ts);
+                ((OraclePreparedStatement) prepStatement).setTimestamp(bindLoc,
+                        ts, Calendar.getInstance(TimeZone.getTimeZone("GMT")));
             }
             else if (type == Types.DATE
                     && (value.getValue() instanceof java.lang.Long))
