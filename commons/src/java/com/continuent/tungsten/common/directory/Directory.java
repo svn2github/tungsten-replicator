@@ -898,12 +898,14 @@ public class Directory extends ResourceTree
 
                 if (foundNode == null)
                 {
-                    throw new DirectoryNotFoundException(String.format(
-                            "element '%s' not found in path '%s' while searching for entry '%s'",
-                            element,
-                            formatPath(
-                                    getAbsolutePath(getRootNode(),
-                                            nodeToSearch, true), true), path));
+                    throw new DirectoryNotFoundException(
+                            String.format(
+                                    "element '%s' not found in path '%s' while searching for entry '%s'",
+                                    element,
+                                    formatPath(
+                                            getAbsolutePath(getRootNode(),
+                                                    nodeToSearch, true), true),
+                                    path));
                 }
 
                 nodeToSearch = foundNode;
@@ -940,7 +942,7 @@ public class Directory extends ResourceTree
         {
             lastNode = node;
         }
-        
+
         return lastNode;
     }
 
@@ -1425,6 +1427,28 @@ public class Directory extends ResourceTree
      * @param path
      * @throws DirectoryNotFoundException
      */
+    public synchronized void rm(String sessionID, String path,
+            ResourceNode targetNode) throws DirectoryNotFoundException,
+            DirectoryException
+    {
+        ResourceNode nodeToRemove = null;
+
+        nodeToRemove = getStartNode(sessionID, path);
+
+        if (nodeToRemove != targetNode)
+        {
+            throw new DirectoryException(String.format(
+                    "Found node %s is not the same as the target node %s",
+                    nodeToRemove, targetNode));
+        }
+        nodeToRemove.getParent().removeChild(nodeToRemove.getKey());
+    }
+
+    /**
+     * @param sessionID
+     * @param path
+     * @throws DirectoryNotFoundException
+     */
     public synchronized void rm(String sessionID, String path)
             throws DirectoryNotFoundException, DirectoryException
     {
@@ -1617,7 +1641,12 @@ public class Directory extends ResourceTree
         ResourceNode destinationNode = destination.getRootNode();
         Integer nodesMerged = new Integer(0);
 
+        System.out.println("###### START DIRECTORY MERGE ########");
+
         _merge(sourceNode, destinationNode, nodesMerged);
+
+        System.out.println(String.format(
+                "###### END DIRECTORY MERGE, MERGED=%d ########", nodesMerged));
 
         // While we are at it, make sure that we add any sessionsByID we do
         // not already know about.
@@ -1631,6 +1660,7 @@ public class Directory extends ResourceTree
     private void _merge(ResourceNode sourceNode, ResourceNode destinationNode,
             Integer nodesMerged)
     {
+
         Map<String, ResourceNode> sourceChildren = sourceNode.getChildren();
         Map<String, ResourceNode> destinationChildren = destinationNode
                 .getChildren();

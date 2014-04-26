@@ -184,4 +184,17 @@ public class Process extends Resource
         this.clusterName = clusterName;
     }
 
+    @Override
+    protected void finalize() throws Throwable
+    {
+        try
+        {
+            System.out.println(String.format("Finalize of %s", this));
+        }
+        catch (Throwable t)
+        {
+            throw t;
+        }
+    }
+
 }
