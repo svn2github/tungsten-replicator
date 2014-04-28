@@ -30,7 +30,6 @@ import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ClusterConfiguration;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
 import com.continuent.tungsten.common.jmx.ServerRuntimeException;
-import com.continuent.tungsten.common.security.SecurityHelper.TUNGSTEN_APPLICATION_NAME;
 import com.continuent.tungsten.common.utils.CLLogLevel;
 import com.continuent.tungsten.common.utils.CLUtils;
 
@@ -102,14 +101,6 @@ public final class AuthenticationInfo
     public void checkAuthenticationInfo() throws ServerRuntimeException,
             ConfigurationException
     {
-        checkAuthenticationInfo(TUNGSTEN_APPLICATION_NAME.ANY);
-    }
-
-    public void checkAuthenticationInfo(
-            TUNGSTEN_APPLICATION_NAME tungstenApplicationName)
-            throws ServerRuntimeException,
-            ConfigurationException
-    {
         // --- Check security.properties location ---
         if (this.parentPropertiesFileLocation != null)
         {
@@ -133,8 +124,7 @@ public final class AuthenticationInfo
             }
         }
         // --- Check Keystore location ---
-        if ((this.isEncryptionNeeded() || tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR)
-                && this.keystoreLocation != null)
+        if (this.isEncryptionNeeded() && this.keystoreLocation != null)
         {
             File f = new File(this.keystoreLocation);
             // --- Find absolute path if needed
@@ -156,8 +146,7 @@ public final class AuthenticationInfo
         }
 
         // --- Check Truststore location ---
-        if ((this.isEncryptionNeeded() || tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR)
-                && this.truststoreLocation != null)
+        if (this.isEncryptionNeeded() && this.truststoreLocation != null)
         {
             File f = new File(this.truststoreLocation);
             // --- Find absolute path if needed
@@ -457,8 +446,8 @@ public final class AuthenticationInfo
             String clusterHome = ClusterConfiguration.getClusterHome();
 
             if (fileToFind.getPath() == fileToFind.getName())                   // No absolute or
-            // relative path
-            // was given
+                                                              // relative path
+                                                              // was given
             {
                 // --- Try to find find in: cluster-home/conf
                 File candidateFile = new File(clusterHome + File.separator
