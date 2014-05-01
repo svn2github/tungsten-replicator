@@ -242,3 +242,22 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
       (@config.getProperty(MGR_VALIDATE_WITNESS) == "true")
   end
 end
+
+class ManagerHeapThresholdCheck < ConfigureValidationCheck
+  include ManagerCheck
+  
+  def set_vars
+    @title = "Manager Java Heap threshold check"
+  end
+  
+  def validate
+    mem = @config.getProperty(get_member_key(MGR_JAVA_MEM_SIZE))
+    threshold = @config.getProperty(get_member_key(MGR_HEAP_THRESHOLD))
+    
+    if threshold.to_i() <= 0
+      error("The value for --mgr-heap-threshold must be greater than zero")
+    elsif threshold.to_i() >= mem.to_i()
+      error("The value for --mgr-heap-threshold must be less than --mgr-java-mem-size")
+    end
+  end
+end

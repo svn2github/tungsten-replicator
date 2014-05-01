@@ -42,6 +42,7 @@ MGR_WAIT_FOR_MEMBERS = "mgr_wait_for_members"
 MANAGER_ENABLE_INSTRUMENTATION = "manager_enable_instrumentation"
 MGR_JAVA_MEM_SIZE = "mgr_java_mem_size"
 MGR_JAVA_ENABLE_CONCURRENT_GC = "mgr_java_enable_concurrent_gc"
+MGR_HEAP_THRESHOLD = "mgr_heap_threshold"
 MGR_API = "mgr_api"
 MGR_API_PORT = "mgr_api_port"
 MGR_API_ADDRESS = "mgr_api_address"
@@ -637,8 +638,8 @@ class ManagerJavaMemorySize < ConfigurePrompt
   include AdvancedPromptModule
   
   def initialize
-    super(MGR_JAVA_MEM_SIZE, "Manager Java heap memory size in Mb (min 128)",
-      PV_INTEGER, 256)
+    super(MGR_JAVA_MEM_SIZE, "Manager Java heap memory size in MB",
+      PV_INTEGER, 80)
   end
 end
 
@@ -657,6 +658,24 @@ class ManagerJavaGarbageCollection < ConfigurePrompt
     else
       "#"
     end
+  end
+end
+
+class ManagerHeapThreshold < ConfigurePrompt
+  include ManagerPrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(MGR_HEAP_THRESHOLD, "Java memory usage (MB) that will force a Manager restart",
+      PV_INTEGER, 60)
+  end
+  
+  def load_default_value
+    @default = (@config.getProperty(get_member_key(MGR_JAVA_MEM_SIZE)).to_i() * 0.75).to_i()
+  end
+  
+  def required?
+    false
   end
 end
 
