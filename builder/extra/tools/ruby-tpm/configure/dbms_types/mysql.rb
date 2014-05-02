@@ -1310,6 +1310,12 @@ class MySQLSettingsCheck < ConfigureValidationCheck
     if max_allowed_packet == nil || max_allowed_packet.to_i() < (48*1024*1024)
       warning("We suggest adding \"max_allowed_packet=52m\" or greater to the MySQL configuration file for #{get_applier_datasource.get_connection_summary()}")
     end
+
+    info("Checking innodb_log_file_size")
+    innodb_log_file_size = get_applier_datasource.get_value("show variables like 'innodb_log_file_size'", "Value")
+    if innodb_log_file_size.to_i == 5242880
+      warning("innodb_log_file_size is set to the default value (5mb), this setting may need reviewing and setting to an appropriate value for #{get_applier_datasource.get_connection_summary()}")
+    end
     
     info("Checking open_files_limit")
     open_files_limit = get_applier_datasource.get_value("show variables like 'open_files_limit'", "Value")
