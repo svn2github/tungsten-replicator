@@ -160,6 +160,25 @@ module ClusterDiagnosticPackage
          error ("Partition #{partition_a[0]} on #{config.getProperty(HOST)} is full - Check and free disk space if required")
         end
       }
+
+      #Run a ifconfig if it's available in the path
+      ifconfig_path = ssh_result("which ifconfig 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+      if ifconfig_path != ""
+        ifconfig_output=ssh_result("ifconfig", config.getProperty(HOST), config.getProperty(USERID))
+        out = File.open("#{diag_dir}/#{h_alias}/ifconfig.txt", "w")
+        out.puts(ifconfig_output)
+        out.close
+      end
+
+      #Run a netstat if it's available in the path
+      ifconfig_path = ssh_result("which netstat 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+      if ifconfig_path != ""
+        ifconfig_output=ssh_result("netstat -nap", config.getProperty(HOST), config.getProperty(USERID))
+        out = File.open("#{diag_dir}/#{h_alias}/netstat.txt", "w")
+        out.puts(ifconfig_output)
+        out.close
+      end
+
     }
     
     require 'zip/zip'
