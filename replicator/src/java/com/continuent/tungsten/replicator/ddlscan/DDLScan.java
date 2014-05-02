@@ -215,10 +215,8 @@ public class DDLScan
         if (tablesToFind != null)
             tableMatcher = extractFilter(tablesToFind);
 
-        // Retrieve all tables available.
-        // TODO Not retrieving indexes here. Not sure whether it is relevant or
-        // not
-        ArrayList<Table> tables = db.getTables(dbName, true, false);
+        // Retrieve all tables available with unique index information.
+        ArrayList<Table> tables = db.getTables(dbName, true, true);
 
         // Make a context object and populate with the data. This is where
         // the Velocity engine gets the data to resolve the references in
