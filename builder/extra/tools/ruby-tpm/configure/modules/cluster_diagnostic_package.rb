@@ -116,6 +116,17 @@ module ClusterDiagnosticPackage
         rescue MessageError => me
           exception(me)
         end
+
+        begin
+          log = "/home/#{config.getProperty(USERID)}/.cctrl_history"
+          if remote_file_exists?(log, config.getProperty(HOST), config.getProperty(USERID))
+            scp_download(log, "#{diag_dir}/#{h_alias}/cctrl_history.txt", config.getProperty(HOST), config.getProperty(USERID))
+          end
+        rescue CommandError => ce
+          exception(ce)
+        rescue MessageError => me
+          exception(me)
+        end
         
         if @promotion_settings.getProperty([h_alias, MANAGER_ENABLED]) == "true"
           begin
