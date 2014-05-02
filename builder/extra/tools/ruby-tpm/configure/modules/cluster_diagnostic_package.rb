@@ -34,6 +34,7 @@ module ClusterDiagnosticPackage
       
       h_alias = config.getProperty(DEPLOYMENT_HOST)
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}")
+      FileUtils.mkdir_p("#{diag_dir}/#{h_alias}/os_info")
       
       out = File.open("#{diag_dir}/#{h_alias}/manifest.json", "w")
       out.puts(@promotion_settings.getProperty([h_alias, "manifest"]))
@@ -42,11 +43,45 @@ module ClusterDiagnosticPackage
       out = File.open("#{diag_dir}/#{h_alias}/tpm.txt", "w")
       out.puts(@promotion_settings.getProperty([h_alias, "tpm_reverse"]))
       out.close
-      
+
+      begin
+        scp_download("/etc/hosts", "#{diag_dir}/#{h_alias}/os_info/etc_hosts.txt", config.getProperty(HOST), config.getProperty(USERID))
+      rescue
+        next
+      end
+
+
+      begin
+        log = "/etc/system-release"
+        if remote_file_exists?(log, config.getProperty(HOST), config.getProperty(USERID))
+          scp_download(log, "#{diag_dir}/#{h_alias}/os_info/system-release.txt", config.getProperty(HOST), config.getProperty(USERID))
+        end
+      rescue
+        next
+      end
+
+
+      #Run a lsb_release -a  if it's available in the path
+      begin
+        lsb_path = ssh_result("which lsb_release 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+        if lsb_path != ""
+          lsb_output=ssh_result("lsb_release -a", config.getProperty(HOST), config.getProperty(USERID))
+          out = File.open("#{diag_dir}/#{h_alias}/os_info/lsb_release.txt", "w")
+          out.puts(lsb_output)
+          out.close
+        end
+      rescue
+
+      end
+
+
       if @promotion_settings.getProperty([h_alias, REPLICATOR_ENABLED]) == "true"
         if @promotion_settings.getProperty([h_alias, MANAGER_ENABLED]) == "true"
           out = File.open("#{diag_dir}/#{h_alias}/cctrl.txt", "w")
           out.puts(@promotion_settings.getProperty([h_alias, "cctrl_status"]))
+          out.close
+          out = File.open("#{diag_dir}/#{h_alias}/cctrl_simple.txt", "w")
+          out.puts(@promotion_settings.getProperty([h_alias, "cctrl_status_simple"]))
           out.close
         end
       
@@ -152,31 +187,90 @@ module ClusterDiagnosticPackage
           exception(me)
         end
       end
-      
-      df_output=ssh_result("df -hP| grep -v Filesystem", config.getProperty(HOST), config.getProperty(USERID)).split("\n")
-      df_output.each {|partition|
-        partition_a=partition.split(" ")
-        if partition_a[4] == '100%'
-         error ("Partition #{partition_a[0]} on #{config.getProperty(HOST)} is full - Check and free disk space if required")
-        end
-      }
 
-      #Run a ifconfig if it's available in the path
-      ifconfig_path = ssh_result("which ifconfig 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
-      if ifconfig_path != ""
-        ifconfig_output=ssh_result("ifconfig", config.getProperty(HOST), config.getProperty(USERID))
-        out = File.open("#{diag_dir}/#{h_alias}/ifconfig.txt", "w")
-        out.puts(ifconfig_output)
+      begin
+        df_output=ssh_result("df -hP| grep -v Filesystem", config.getProperty(HOST), config.getProperty(USERID)).split("\n")
+        out = File.open("#{diag_dir}/#{h_alias}/os_info/df.txt", "w")
+        df_output.each {|partition|
+          out.puts(partition)
+          partition_a=partition.split(" ")
+          if partition_a[4] == '100%'
+           error ("Partition #{partition_a[0]} on #{config.getProperty(HOST)} is full - Check and free disk space if required")
+          end
+        }
         out.close
+      rescue CommandError => ce
+      exception(ce)
+      rescue MessageError => me
+      exception(me)
       end
 
+
+
+      #Run a ifconfig if it's available in the path
+      begin
+        ifconfig_path = ssh_result("which ifconfig 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+        if ifconfig_path != ""
+          ifconfig_output=ssh_result("ifconfig", config.getProperty(HOST), config.getProperty(USERID))
+          out = File.open("#{diag_dir}/#{h_alias}/os_info/ifconfig.txt", "w")
+          out.puts(ifconfig_output)
+          out.close
+        end
+      rescue
+
+      end
+
+
       #Run a netstat if it's available in the path
-      ifconfig_path = ssh_result("which netstat 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
-      if ifconfig_path != ""
-        ifconfig_output=ssh_result("netstat -nap", config.getProperty(HOST), config.getProperty(USERID))
-        out = File.open("#{diag_dir}/#{h_alias}/netstat.txt", "w")
-        out.puts(ifconfig_output)
-        out.close
+      begin
+        ifconfig_path = ssh_result("which netstat 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+        if ifconfig_path != ""
+          ifconfig_output=ssh_result("netstat -nap", config.getProperty(HOST), config.getProperty(USERID))
+          out = File.open("#{diag_dir}/#{h_alias}/os_info/netstat.txt", "w")
+          out.puts(ifconfig_output)
+          out.close
+        end
+      rescue
+
+      end
+
+      #Run a free -m  if it's available in the path
+      begin
+        free_path = ssh_result("which free 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+        if free_path != ""
+          free_output=ssh_result("free -m", config.getProperty(HOST), config.getProperty(USERID))
+          out = File.open("#{diag_dir}/#{h_alias}/os_info/free.txt", "w")
+          out.puts(free_output)
+          out.close
+        end
+      rescue
+
+      end
+
+      #Run a java -version  if it's available in the path (note output goes to stderr so it needs the redirect)
+      begin
+        java_path = ssh_result("which java 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+        if java_path != ""
+          java_output=ssh_result("java -version 2>&1", config.getProperty(HOST), config.getProperty(USERID))
+          out = File.open("#{diag_dir}/#{h_alias}/os_info/java_info.txt", "w")
+          out.puts(java_output)
+          out.close
+        end
+      rescue
+
+      end
+
+      #Run a ruby -v  if it's available in the path
+      begin
+        ruby_path = ssh_result("which ruby 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+        if ruby_path != ""
+          ruby_output=ssh_result("ruby -v", config.getProperty(HOST), config.getProperty(USERID))
+          out = File.open("#{diag_dir}/#{h_alias}/os_info/ruby_info.txt", "w")
+          out.puts(ruby_output)
+          out.close
+        end
+      rescue
+
       end
 
     }
@@ -246,6 +340,7 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
         cmd_result("echo 'physical;*/*/manager/ServiceManager/diag' | #{cctrl_cmd} -expert", true)
         cmd_result("echo 'physical;*/*/router/RouterManager/diag' | #{cctrl_cmd} -expert", true)
         output_property("cctrl_status", cmd_result("echo 'ls -l' | #{cctrl_cmd} -expert", true))
+        output_property("cctrl_status_simple", cmd_result("echo 'ls ' | #{cctrl_cmd} -expert", true))
       end
       
       if c.svc_is_running?(c.get_svc_path("replicator", c.get_base_path()))
