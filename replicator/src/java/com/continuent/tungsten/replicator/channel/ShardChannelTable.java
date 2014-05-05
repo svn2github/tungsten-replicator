@@ -79,7 +79,7 @@ public class ShardChannelTable
     private void initialize(String schema)
     {
         channelTable = new Table(schema, TABLE_NAME);
-        shardId = new Column(SHARD_ID_COL, Types.VARCHAR, 128);
+        shardId = new Column(SHARD_ID_COL, Types.VARCHAR, 128, true); // true => isNotNull
         channel = new Column(CHANNEL_COL, Types.INTEGER);
 
         Key shardKey = new Key(Key.Primary);

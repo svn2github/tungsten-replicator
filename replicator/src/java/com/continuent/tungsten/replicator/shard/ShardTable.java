@@ -86,7 +86,7 @@ public class ShardTable
     {
         shardTable = new Table(schema, TABLE_NAME);
         shardMaster = new Column(SHARD_MASTER_COL, Types.VARCHAR, 128);
-        shardName = new Column(SHARD_ID_COL, Types.VARCHAR, 128);
+        shardName = new Column(SHARD_ID_COL, Types.VARCHAR, 128, true); // true => isNotNull
         shardCritical = new Column(SHARD_CRIT_COL, Types.TINYINT, 1);
 
         Key shardKey = new Key(Key.Primary);

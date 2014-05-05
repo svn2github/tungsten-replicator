@@ -112,7 +112,7 @@ public class CommitSeqnoTable
     {
         // Define schema.
         commitSeqnoTable = new Table(schema, TABLE_NAME);
-        commitSeqnoTableTaskId = new Column("task_id", java.sql.Types.INTEGER);
+        commitSeqnoTableTaskId = new Column("task_id", java.sql.Types.INTEGER, true); // true => isNotNull
         commitSeqnoTableSeqno = new Column("seqno", java.sql.Types.BIGINT);
         commitSeqnoTableFragno = new Column("fragno", Types.SMALLINT);
         commitSeqnoTableLastFrag = new Column("last_frag", Types.CHAR, 1);

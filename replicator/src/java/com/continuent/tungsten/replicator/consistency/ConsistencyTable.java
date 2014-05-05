@@ -72,9 +72,9 @@ public class ConsistencyTable
     {
         Table t = new Table(schema, TABLE_NAME);
 
-        t.AddColumn(new Column(dbColumnName, Types.CHAR, 64));
-        t.AddColumn(new Column(tblColumnName, Types.CHAR, 64));
-        t.AddColumn(new Column(idColumnName, Types.INTEGER));
+        t.AddColumn(new Column(dbColumnName, Types.CHAR, 64, true));   // true => isNotNull
+        t.AddColumn(new Column(tblColumnName, Types.CHAR, 64, true));  // true => isNotNull
+        t.AddColumn(new Column(idColumnName, Types.INTEGER, true));    // true => isNotNull
         t.AddColumn(new Column(offsetColumnName, Types.INTEGER, 0, true,
                 ROW_UNSET));
         t.AddColumn(new Column(limitColumnName, Types.INTEGER, 0, true,

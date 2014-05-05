@@ -88,7 +88,7 @@ public class HeartbeatTable
     private void initialize(String schema)
     {
         hbTable = new Table(schema, TABLE_NAME);
-        hbId = new Column("id", Types.BIGINT);
+        hbId = new Column("id", Types.BIGINT, true); // true => isNotNull
         hbSeqno = new Column("seqno", Types.BIGINT);
         hbEventId = new Column("eventid", Types.VARCHAR, 128);
         hbSourceTstamp = new Column("source_tstamp", Types.TIMESTAMP);
