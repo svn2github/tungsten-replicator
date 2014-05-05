@@ -48,7 +48,7 @@ build_source() {
   cp -r $SRC_DIR/commons $modules_sources_folder
   cp -r $SRC_DIR/bristlecone $modules_sources_folder
   cp -r $SRC_DIR/cookbook $modules_sources_folder
-  cp -r build.sh config extra $builder_folder/
+  cp -r build.sh helpers.sh build_tarball.sh config extra $builder_folder/
   echo "SKIP_CHECKOUT=1" > $builder_folder/config.local
 
   # Clean all copied source trees to keep only necessary files
