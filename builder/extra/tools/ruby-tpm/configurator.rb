@@ -170,11 +170,12 @@ class Configurator
     @options.output_threshold = Logger::NOTICE
     @options.stream_output = false
     @options.fake_tty = false
-    @options.ssh_options = {
+    @options.default_ssh_options = {
       :timeout => 5,
       :auth_methods => ["publickey", "hostbased"],
       :paranoid => false
     }
+    @options.ssh_options = {}
     @options.config = nil
     @options.log_name = nil
     
@@ -1363,7 +1364,16 @@ class Configurator
   end
   
   def get_ssh_options
-    @options.ssh_options
+    @options.default_ssh_options.merge(@options.ssh_options)
+  end
+  
+  def get_ssh_command_options
+    opts = ["-A", "-oStrictHostKeyChecking=no"]
+    @options.ssh_options.each{
+      |k,v|
+      opts << "-o#{k.to_s()}=#{v}"
+    }
+    return opts.join(" ")
   end
   
   def get_ssh_user(user = nil)
@@ -1372,15 +1382,6 @@ class Configurator
       ssh_options[:user]
     else
       user
-    end
-  end
-  
-  def get_ssh_port(port = 22)
-    ssh_options = get_ssh_options
-    if ssh_options.has_key?(:port) && ssh_options[:port].to_s != ""
-      ssh_options[:port]
-    else
-      port
     end
   end
   
