@@ -32,7 +32,7 @@ class TungstenUtil
       arguments = arguments.map{|arg|
         newarg = ''
         arg.split("").each{|b| 
-          unless b.getbyte(0)<33 || b.getbyte(0)>127 then 
+          unless b.getbyte(0)<32 || b.getbyte(0)>127 then 
             newarg.concat(b) 
           end
         }
