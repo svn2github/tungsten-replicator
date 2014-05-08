@@ -425,6 +425,8 @@ class TungstenMultipleTrepctl
   
   def configure
     super()
+    allow_unparsed_arguments?(true)
+    
     description("Run the trepctl command across many file locations and hosts.<br>
 <br>
 The script will automatically find all instances of Tungsten Replicator running on the current box. It will use those locations to discover additional servers that it will attempt to contact. You may override this behavior with the --paths and --hosts options.<br>
