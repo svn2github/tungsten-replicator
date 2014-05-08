@@ -231,7 +231,7 @@ class TungstenReplicatorProvisionSlave
     
     # Inspect the default value for the replication service to identify the 
     # preferred method
-    if opt(:mysqldump) == nil && opt(:xtrabackup) == nil
+    if opt(:service) != nil && opt(:mysqldump) == nil && opt(:xtrabackup) == nil
       if TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_backup_method")) == "mysqldump"
         opt(:mysqldump, true)
       else
@@ -315,6 +315,10 @@ class TungstenReplicatorProvisionSlave
     if @options[:source].to_s() == ""
       TU.error("The --source argument is required")
     else
+      if TU.is_localhost?(opt(:source))
+        TU.error("The value provided for --source, #{opt(:source)}, resolves to the local node. You cannot provision a node from itself.")
+      end
+      
       if TU.test_ssh(@options[:source], TI.user())
         begin
           TU.forward_cmd_results?(true)

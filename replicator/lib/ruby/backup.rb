@@ -118,6 +118,15 @@ class TungstenBackupScript
       @master_backup = true
     else
       @master_backup = false
+      
+      TI.replication_services().each{
+        |repl_service|
+        if TI.trepctl_value(repl_service, 'role') == "master"
+          if repl_service != opt(:service)
+            TU.error("Unable to backup #{TI.hostname()} using the #{opt(:service)} service because there is a master service available. Use the #{repl_service} service instead.")
+          end
+        end
+      }
     end
     
     if @options[:action] == ACTION_BACKUP
