@@ -142,8 +142,7 @@ module DeleteReplicationServiceDeploymentStep
   def delete_replication_service
     if is_replicator?()
       config_files = {}
-      ["#{@config.getProperty(HOME_DIRECTORY)}/conf/#{Configurator::HOST_CONFIG}",
-        "#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/#{Configurator::HOST_CONFIG}"].each{
+      ["#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/#{Configurator::HOST_CONFIG}"].each{
         |path|
         p = Properties.new()
         p.load(path)
