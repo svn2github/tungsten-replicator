@@ -479,6 +479,20 @@ class AutoRecoveryMaxAttempts < ConfigurePrompt
       "Number of times to auto-recover after online error",
       PV_INTEGER, 0)
   end
+  
+  def load_default_value
+    if get_topology().is_a?(ClusterSlaveTopology)
+      # Load the value from the cluster-slave prompt
+      @default = @config.getProperty(get_member_key(CLUSTER_SLAVE_REPL_AUTO_RECOVERY_MAX_ATTEMPTS))
+      
+      # Revert to the default method if no value is returned
+      if @default == nil
+        super()
+      end
+    else
+      super()
+    end
+  end
 end
 
 class AutoRecoveryResetInterval < ConfigurePrompt
@@ -490,6 +504,20 @@ class AutoRecoveryResetInterval < ConfigurePrompt
       "Length of time online to reset auto-recover count to 0",
       PV_ANY, "300s")
   end
+  
+  def load_default_value
+    if get_topology().is_a?(ClusterSlaveTopology)
+      # Load the value from the cluster-slave prompt
+      @default = @config.getProperty(get_member_key(CLUSTER_SLAVE_REPL_AUTO_RECOVERY_RESET_INTERVAL))
+      
+      # Revert to the default method if no value is returned
+      if @default == nil
+        super()
+      end
+    else
+      super()
+    end
+  end
 end
 
 class AutoRecoveryDelayInterval < ConfigurePrompt
@@ -500,6 +528,65 @@ class AutoRecoveryDelayInterval < ConfigurePrompt
     super(REPL_AUTO_RECOVERY_DELAY_INTERVAL,
       "Length of delay before auto-recovering",
       PV_ANY, "5s")
+  end
+  
+  def load_default_value
+    if get_topology().is_a?(ClusterSlaveTopology)
+      # Load the value from the cluster-slave prompt
+      @default = @config.getProperty(get_member_key(CLUSTER_SLAVE_REPL_AUTO_RECOVERY_DELAY_INTERVAL))
+      
+      # Revert to the default method if no value is returned
+      if @default == nil
+        super()
+      end
+    else
+      super()
+    end
+  end
+end
+
+class ClusterSlaveAutoRecoveryMaxAttempts < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(CLUSTER_SLAVE_REPL_AUTO_RECOVERY_MAX_ATTEMPTS, 
+      "Default value for --auto-recovery-max-attempts when --topology=cluster-slave",
+      PV_INTEGER, 2)
+  end
+  
+  def required?
+    false
+  end
+end
+
+class ClusterSlaveAutoRecoveryResetInterval < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(CLUSTER_SLAVE_REPL_AUTO_RECOVERY_RESET_INTERVAL,
+      "Default value for --auto-recovery-reset-interval when --topology=cluster-slave",
+      PV_ANY)
+  end
+  
+  def required?
+    false
+  end
+end
+
+class ClusterSlaveAutoRecoveryDelayInterval < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+
+  def initialize
+    super(CLUSTER_SLAVE_REPL_AUTO_RECOVERY_DELAY_INTERVAL,
+      "Default value for --auto-recovery-delay-interval when --topology=cluster-slave",
+      PV_ANY)
+  end
+  
+  def required?
+    false
   end
 end
 
