@@ -1,5 +1,9 @@
 class WatchFiles
   def self.show_differences(basedir)
+    unless Configurator.instance.is_locked?()
+      raise "Unable to show modified files because this is not the installed directory. If this is the staging directory, try running tpm from an installed Tungsten directory."
+    end
+    
     filename = basedir + "/.watchfiles"
     if File.exist?(filename)
       File.open(filename, 'r') do |file|

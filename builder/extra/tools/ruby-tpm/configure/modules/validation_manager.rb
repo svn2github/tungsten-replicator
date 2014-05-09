@@ -120,8 +120,12 @@ class PingSyntaxCheck < ConfigureValidationCheck
     end
     
     begin
-      cmd = Escape.shell_command(cmd_array).to_s
-      cmd_result(cmd)
+      Timeout::timeout(5) do
+        cmd = Escape.shell_command(cmd_array).to_s
+        cmd_result(cmd)
+      end
+    rescue Timeout::Error
+      error("It is taking longer than 5 seconds to ping localhost")
     rescue CommandError
       error("Unable to run the ping utility with '#{cmd}'")
     end

@@ -655,6 +655,10 @@ class Configurator
   end
   
   def write(content="", level=Logger::INFO, hostname = nil, add_prefix = true)
+    if forced?() && level == Logger::ERROR
+      level = Logger::WARN
+    end
+    
     unless content == "" || level == nil || add_prefix == false
       content = "#{get_log_level_prefix(level, hostname)}#{content}"
     end
@@ -1415,6 +1419,9 @@ class Configurator
       |klass|
       extra_options << "--enable-validation-warnings=#{klass}"
     }
+    if forced?()
+      extra_options << "-f"
+    end
     
     extra_options
   end

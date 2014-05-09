@@ -210,11 +210,6 @@ class QueryCommand
   end
   
   def output_modified_files
-    unless Configurator.instance.is_locked?()
-      error("Unable to show modified files because this is not the installed directory. If this is the staging directory, try running tpm from an installed Tungsten directory.")
-      return
-    end
-    
     WatchFiles.show_differences(Configurator.instance.get_base_path())
   end
   

@@ -410,7 +410,7 @@ module ConfigureCommand
       # additional information
       unless skip_prompts?()
         unless load_prompts()
-          return false
+          raise IgnoreError.new()
         end
       end
       
@@ -435,38 +435,38 @@ module ConfigureCommand
           error("This directory was installed using tools/tungsten-installer or tools/configure. Check the documentation for instructions on upgrading to tpm.")
         end
         
-        return false
+        raise IgnoreError.new()
       end
       
       # Make sure that basic connectivity to the hosts works
       debug("Prevalidate the configuration on each host")
       unless prevalidate()
-        write_header("Validation failed", Logger::ERROR)
-        output_errors()
-
         unless forced?()
-          return false
+          write_header("Validation failed", Logger::ERROR)
+          output_errors()
+          
+          raise IgnoreError.new()
         end
       end
       
       # Copy over the installation package and the host configuration file
       debug("Prepare the configuration on each host")
       unless prepare()
-        write_header("There are errors with the values provided in the configuration file", Logger::ERROR)
-        output_errors()
-
         unless forced?()
-          return false
+          write_header("There are errors with the values provided in the configuration file", Logger::ERROR)
+          output_errors()
+          
+          raise IgnoreError.new()
         end
       end
 
       unless skip_validation?()
         debug("Validate the configuration on each host")
         unless validate()
-          write_header("Validation failed", Logger::ERROR)
-          output_errors()
-
           unless forced?()
+            write_header("Validation failed", Logger::ERROR)
+            output_errors()
+
             raise IgnoreError.new()
           end
         end
