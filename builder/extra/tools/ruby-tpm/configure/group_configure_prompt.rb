@@ -629,7 +629,7 @@ module GroupConfigurePromptMember
   end
   
   def get_template_file_usage_symbol
-    "  ." + Configurator.instance.get_constant_symbol(@name)
+    "  ." + Configurator.instance.get_constant_symbol(@name).to_s()
   end
   
   def get_group_default_value

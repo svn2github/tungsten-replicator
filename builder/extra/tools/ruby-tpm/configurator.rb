@@ -1343,6 +1343,8 @@ class Configurator
       
       Object.constants.each{
         |symbol|
+        next if symbol.to_s == "Config"
+        
         @constant_map[Object.const_get(symbol)] = symbol
       }
     end
