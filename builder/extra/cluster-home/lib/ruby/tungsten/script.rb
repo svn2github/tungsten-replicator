@@ -136,6 +136,15 @@ module TungstenScript
     return @options[option_key]
   end
   
+  # Set the value for option_key if it has not been set
+  def opt_default(option_key, default_value)
+    if opt(option_key) == nil
+      opt(option_key, default_value)
+    end
+    
+    opt(option_key)
+  end
+  
   def add_command(command_key, definition)
     begin
       command_key = command_key.to_sym()
