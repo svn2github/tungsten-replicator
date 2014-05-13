@@ -302,6 +302,8 @@ public class MySQLConstants
 
     public static final int                       ER_SERVER_SHUTDOWN              = 1053;
 
+    public static final int                       ER_UNKNOWN_SYSTEM_VARIABLE      = 1193;
+
     /* Misc constants */
     /** size of the long data header */
     public static final int                       MYSQL_LONG_DATA_HEADER          = 6;
@@ -320,10 +322,13 @@ public class MySQLConstants
                                                                                                   "42000");
                                                                                           put(ER_SERVER_SHUTDOWN,
                                                                                                   "08S01");
+                                                                                          put(ER_UNKNOWN_SYSTEM_VARIABLE,
+                                                                                                  "HY000");
                                                                                       }
                                                                                   };
 
     public static final String                    MSG_SERVER_SHUTDOWN             = "Server shutdown in progress...";
+    public static final String                    MSG_UNKNOWN_SYSTEM_VARIABLE     = "Unknown system variable '%s'";
 
     /** Private constructor to prevent instantiation. */
     private MySQLConstants()
