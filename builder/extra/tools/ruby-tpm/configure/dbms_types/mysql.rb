@@ -1076,7 +1076,7 @@ class MySQLConfigFileCheck < ConfigureValidationCheck
         end
       end
     else
-      warning("Unable to check the MySQL config file '#{conf_file}'")
+      debug("Unable to check the MySQL config file '#{conf_file}'")
     end
   end
 end
@@ -1123,7 +1123,7 @@ class MySQLApplierServerIDCheck < ConfigureValidationCheck
         error("The MySQL config file '#{conf_file}' is not readable")
       end
     else
-      warning("Unable to check for a configured server-id in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
+      debug("Unable to check for a configured server-id in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
     end
   end
 end
@@ -1141,7 +1141,7 @@ class MySQLApplierPortCheck < ConfigureValidationCheck
     
     conf_file = @config.getProperty(get_applier_key(REPL_MYSQL_CONF))
     unless Configurator.instance.is_localhost?(@config.getProperty(get_applier_key(REPL_DBHOST)))
-      warning("Unable to check for a configured port in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
+      debug("Unable to check for a configured port in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
       return
     end
     
@@ -1218,7 +1218,7 @@ class MySQLApplierLogsCheck < ConfigureValidationCheck
     dir = @config.getProperty(get_applier_key(REPL_MASTER_LOGDIR))
     
     unless Configurator.instance.is_localhost?(@config.getProperty(get_applier_key(REPL_DBHOST)))
-      warning("Unable to check the configured log directory in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
+      debug("Unable to check the configured log directory in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
       return
     end
     

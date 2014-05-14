@@ -417,7 +417,10 @@ class ClusterMasterHost < ConfigurePrompt
   end
   
   def required?
-    super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true")
+    # This value is required if this is a replicator host and --master-thl-host isn't given
+    rs_alias = to_identifier("#{get_member()}_#{@config.getProperty([DEPLOYMENT_HOST])}")
+    super() && (@config.getProperty(HOST_ENABLE_REPLICATOR) == "true") &&
+      (@config.getProperty([REPL_SERVICES, rs_alias, REPL_MASTERHOST]) == nil)
   end
   
   def build_command_line_argument(member, v, public_argument = false)

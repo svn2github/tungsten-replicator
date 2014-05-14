@@ -232,16 +232,14 @@ class HomeDirectoryCheck < ConfigureValidationCheck
     if ENV['CONTINUENT_ROOT'] != nil
       unless ENV['CONTINUENT_ROOT'].to_s() == @config.getProperty(HOME_DIRECTORY).to_s()
         unless File.identical?(ENV['CONTINUENT_ROOT'].to_s(), @config.getProperty(HOME_DIRECTORY).to_s())
-          root_tpm = "#{ENV['CONTINUENT_ROOT'].to_s()}/tungsten/tools/tpm"
-          if File.exist?(root_tpm)
-            root_manifest = JSON.parse(cmd_result("#{root_tpm} query manifest"))
-            if root_manifest["product"] != Configurator.instance.get_release_details()["product"]
-              return
-            end
+          # Throw an error if we are not installing to $CONTINUENT_ROOT and
+          # nothing is installed in $CONTINUENT_ROOT. This prevents installing 
+          # to the wrong home directory but allows multiple replicators.
+          root_symlink = "#{ENV['CONTINUENT_ROOT'].to_s()}/tungsten"
+          unless File.exist?(root_symlink)
+            error("The setting for home-directory (#{@config.getProperty(HOME_DIRECTORY)}) is different to the Environment Variable CONTINUENT_ROOT (#{ENV['CONTINUENT_ROOT']})")
+            help("Remove the environment variable CONTINUENT_ROOT to continue")
           end
-          
-          error("The setting for home-directory (#{@config.getProperty(HOME_DIRECTORY)}) is different to the Environment Variable CONTINUENT_ROOT (#{ENV['CONTINUENT_ROOT']})")
-          help("Remove the environment variable CONTINUENT_ROOT to continue")
         end
       end
     end
