@@ -341,6 +341,7 @@ public class MySQLPacket
     public void setByteBuffer(byte[] newByteBuffer)
     {
         this.byteBuffer = newByteBuffer;
+        this.dataLength = newByteBuffer.length - HEADER_LENGTH;
     }
 
     /**
