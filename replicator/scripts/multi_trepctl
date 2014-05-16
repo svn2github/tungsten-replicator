@@ -688,7 +688,7 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
       running_replicators = TU.cmd_result("ps -eo args | grep \"Tungsten Replicator\"").split("\n")
       running_replicators.each{
         |ps|
-        match = ps.match(/^([a-zA-Z\-_\.\/]*)\/releases/)
+        match = ps.match(/^([a-zA-Z0-9\-_\.\/]*)\/releases/)
         unless match == nil
           check_directories << {
             :directory => match[1]
