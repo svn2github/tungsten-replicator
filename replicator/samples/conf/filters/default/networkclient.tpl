@@ -2,4 +2,4 @@
 # Supports ROW events only.
 replicator.filter.networkclient=com.continuent.tungsten.replicator.filter.NetworkClientFilter
 replicator.filter.networkclient.definitionsFile=${replicator.home.dir}/samples/extensions/java/networkclient.json
-replicator.filter.networkclient.serverport=3112
+replicator.filter.networkclient.serverPort=3112

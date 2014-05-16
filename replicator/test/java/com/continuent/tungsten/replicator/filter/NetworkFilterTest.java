@@ -64,15 +64,15 @@ import com.continuent.tungsten.replicator.pipeline.PipelineConfigBuilder;
  */
 public class NetworkFilterTest extends TestCase
 {
-    private static Logger                              logger            = Logger.getLogger(NetworkFilterTest.class);
+    private Logger                                     logger            = Logger.getLogger(NetworkFilterTest.class);
 
     private FilterVerificationHelper                   filterHelper      = new FilterVerificationHelper();
     private EventGenerationHelper                      eventHelper       = new EventGenerationHelper();
 
-    private static JSONParser                          parser            = new JSONParser();
+    private JSONParser                                 parser            = new JSONParser();
 
     private static final int                           serverPort        = 3112;
-    private static final int                           timeout           = 10;
+    private static final int                           timeout           = 30;
 
     /**
      * Is this test in progress?
@@ -239,7 +239,7 @@ public class NetworkFilterTest extends TestCase
                 String newTable = (String) obj.get("table");
                 long returnCode = (Long) obj.get("return");
 
-                String expectedNewValue = toHex(value);
+                String expectedNewValue = NetworkFilterServer.toHex(value);
 
                 assertEquals("Server returned unexpected message type",
                         NetworkClientFilter.Protocol.TYPE_FILTERED, type);
@@ -438,16 +438,6 @@ public class NetworkFilterTest extends TestCase
         return rand.nextInt(Integer.MAX_VALUE);
     }
 
-    private static String toHex(String value)
-    {
-        return String.format("%040x", new BigInteger(1, value.getBytes()));
-    }
-
-    private static String toEmpty(String value)
-    {
-        return "";
-    }
-
     public void testNetworkFilter() throws Exception
     {
         NetworkClientFilter ncf = new NetworkClientFilter();
@@ -493,7 +483,7 @@ public class NetworkFilterTest extends TestCase
             for (int col = 2; col <= 3; col++)
             {
                 String oldValue = values[col];
-                String expectedNewValue = toHex(oldValue);
+                String expectedNewValue = NetworkFilterServer.toHex(oldValue);
                 String actualNewValue = (String) orc.getColumnValues().get(0)
                         .get(col).getValue();
                 logger.info(oldValue + " -> " + actualNewValue);
@@ -536,7 +526,7 @@ public class NetworkFilterTest extends TestCase
             for (int col = 2; col <= 3; col++)
             {
                 String oldValue = values[col];
-                String expectedNewValue = toHex(oldValue);
+                String expectedNewValue = NetworkFilterServer.toHex(oldValue);
                 String actualNewValue = (String) orc.getColumnValues().get(0)
                         .get(col).getValue();
                 logger.info(oldValue + " -String_to_HEX_v1-> " + actualNewValue);
@@ -551,7 +541,7 @@ public class NetworkFilterTest extends TestCase
                         .get(5).getValue();
                 logger.info(oldValue + " -Make_Empty_v1-> " + actualNewValue);
                 assertEquals("Server returned unexpected payload",
-                        toEmpty(oldValue), actualNewValue);
+                        NetworkFilterServer.toEmpty(oldValue), actualNewValue);
             }
         }
 
@@ -603,8 +593,11 @@ public class NetworkFilterTest extends TestCase
     /**
      * A test network server implementing NetworkClientFilter TCP protocol.
      */
-    static class NetworkFilterServer extends Thread
+    static public class NetworkFilterServer extends Thread
     {
+        private Logger                                     logger     = Logger.getLogger(NetworkFilterServer.class);
+
+        private JSONParser                                 parser     = new JSONParser();
         private NetworkClientFilter.ServerMessageGenerator generator  = new NetworkClientFilter.ServerMessageGenerator();
 
         private String                                     serverName = "JAVA HEX transformer";
@@ -614,13 +607,29 @@ public class NetworkFilterTest extends TestCase
             return serverName;
         }
 
+        public static void main(String[] args)
+        {
+            NetworkFilterServer server = new NetworkFilterServer();
+            server.run(); // Start server in this thread.
+        }
+
+        public static String toHex(String value)
+        {
+            return String.format("%x", new BigInteger(1, value.getBytes()));
+        }
+
+        public static String toEmpty(String value)
+        {
+            return "";
+        }
+
         public void run()
         {
             try
             {
                 ServerSocket serverSocket = new ServerSocket(serverPort);
                 serverSocket.setSoTimeout(timeout * 1000);
-                while (testing)
+                while (true)
                 {
                     logger.info("Waiting for a client");
                     Socket server = serverSocket.accept();
@@ -633,7 +642,7 @@ public class NetworkFilterTest extends TestCase
                             new InputStreamReader(server.getInputStream()));
 
                     // Our test server is one client at a time.
-                    while (testing)
+                    while (true)
                     {
                         // Receive message.
                         String message = fromClient.readLine();
@@ -699,7 +708,6 @@ public class NetworkFilterTest extends TestCase
                         }
                     }
                 }
-                logger.info("Closed");
             }
             catch (UnknownHostException ex)
             {
@@ -713,6 +721,10 @@ public class NetworkFilterTest extends TestCase
             {
                 logger.error("Error parsing JSON: " + pe.getPosition());
                 logger.error(pe);
+            }
+            finally
+            {
+                logger.info("Closed");
             }
         }
     }

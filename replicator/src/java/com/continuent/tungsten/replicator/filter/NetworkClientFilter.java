@@ -526,13 +526,19 @@ public class NetworkClientFilter implements Filter
         try
         {
             // Send filter message.
-            toServer.println(messageGenerator.filter(transformation, seqno,
-                    row, schema, table, column, (String) value));
+            String send = messageGenerator.filter(transformation, seqno, row,
+                    schema, table, column, (String) value);
+            toServer.println(send);
 
             // Receive & check filtered message.
             String message = fromServer.readLine();
             if (logger.isDebugEnabled())
                 logger.debug("Received: " + message);
+
+            if (message == null)
+                throw new ReplicatorException(
+                        "Server didn't send response to a filter request: "
+                                + send);
 
             String payload = NetworkClientFilter.Protocol.getPayload(message);
             String json = NetworkClientFilter.Protocol.getHeader(message);
@@ -636,34 +642,45 @@ public class NetworkClientFilter implements Filter
 
             // Receive & check acknowledged message.
             String message = fromServer.readLine();
-            if (logger.isDebugEnabled())
-                logger.debug("Received: " + message);
-            String payload = NetworkClientFilter.Protocol.getPayload(message);
-            String json = NetworkClientFilter.Protocol.getHeader(message);
-            JSONObject obj = (JSONObject) parser.parse(json);
-            String type = (String) obj.get("type");
-            long returnCode = (Long) obj.get("return");
-
-            if (type.equals(Protocol.TYPE_ACKNOWLEDGED))
+            if (message != null)
             {
-                if (returnCode == 0)
+                if (logger.isDebugEnabled())
+                    logger.debug("Received: " + message);
+                String payload = NetworkClientFilter.Protocol
+                        .getPayload(message);
+                String json = NetworkClientFilter.Protocol.getHeader(message);
+                JSONObject obj = (JSONObject) parser.parse(json);
+                String type = (String) obj.get("type");
+                long returnCode = (Long) obj.get("return");
+
+                if (type.equals(Protocol.TYPE_ACKNOWLEDGED))
                 {
-                    logger.info("Server acknowledged filter release: "
-                            + payload);
+                    if (returnCode == 0)
+                    {
+                        logger.info("Server acknowledged filter release: "
+                                + payload);
+                    }
+                    else
+                    {
+                        logger.warn("Server returned a non-zero code ("
+                                + returnCode
+                                + ") in response to release message: "
+                                + payload);
+
+                    }
                 }
                 else
                 {
-                    logger.warn("Server returned a non-zero code ("
-                            + returnCode + ") in response to release message: "
-                            + payload);
-
+                    logger.warn("Server should have returned message of type \""
+                            + Protocol.TYPE_ACKNOWLEDGED
+                            + "\", but returned \""
+                            + type
+                            + "\" instead. Full message: " + message);
                 }
             }
             else
             {
-                logger.warn("Server should have returned message of type \""
-                        + Protocol.TYPE_ACKNOWLEDGED + "\", but returned \""
-                        + type + "\" instead. Full message: " + message);
+                logger.warn("Server didn't send response to a release request");
             }
         }
         catch (ParseException e)
