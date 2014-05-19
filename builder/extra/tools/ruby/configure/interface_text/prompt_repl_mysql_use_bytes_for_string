@@ -1,1 +1,0 @@
-Heterogenous replication requires that string values not be transferred as their byte representation.

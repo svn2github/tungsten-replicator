@@ -1,6 +1,0 @@
-class ConfigureValidationCheck
-  include ValidationCheckInterface
-end
-
-module LocalValidationCheck
-end

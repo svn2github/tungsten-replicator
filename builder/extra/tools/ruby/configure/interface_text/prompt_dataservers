@@ -1,3 +1,0 @@
-Each dataserver identifies a database installation that will be accessed by 
-the Tungsten Replicator.  You must provide host, location and connection 
-information.

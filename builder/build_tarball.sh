@@ -58,7 +58,8 @@ build_tarball() {
   echo "### Creating cluster home"
   cluster_home=$reldir/cluster-home
   mkdir -p $cluster_home/conf/cluster
-  mkdir -p $cluster_home/log                  # log directory for cluster-home/bin programs
+	# log directory for cluster-home/bin programs
+  mkdir -p $cluster_home/log
   
   echo "# Copying cluser-home/conf files"
   cp -r $extra_cluster_home/conf/* $cluster_home/conf
@@ -77,17 +78,8 @@ build_tarball() {
   echo "### Creating tools"
   tools_dir=$reldir/tools
   mkdir -p $tools_dir
-  cp $extra_tools/configure $tools_dir
-  cp $extra_tools/configure-service $tools_dir
-  cp $extra_tools/tungsten-installer $tools_dir
-  cp $extra_tools/update $tools_dir
-  rsync -Ca $extra_tools/ruby $tools_dir
-  
-  if [ ${INCLUDE_TPM} -eq 1 ]
-  then
-      cp $extra_tools/tpm $tools_dir
-      rsync -Ca $extra_tools/ruby-tpm $tools_dir
-  fi
+  cp $extra_tools/tpm $tools_dir
+  rsync -Ca $extra_tools/ruby-tpm $tools_dir
   
   echo "### Deleting duplicate librairies in Bristlecone ###"
   echo "# tungsten-common"

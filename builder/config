@@ -29,9 +29,3 @@ SKIP_BUILD=0
 
 # Set to 1 to skip source generation.
 SKIP_SOURCE=1
-
-# Set to 0 to also build a tools package
-SKIP_TOOLS=1
-
-# Include the tpm script and code
-INCLUDE_TPM=1
