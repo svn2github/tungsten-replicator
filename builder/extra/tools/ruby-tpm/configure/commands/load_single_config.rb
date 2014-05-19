@@ -61,7 +61,7 @@ class LoadConfigCommand
   end
   
   def get_message_host_key
-    @config.getProperty(DEPLOYMENT_HOST)
+    @config.getProperty([DEPLOYMENT_CONFIGURATION_KEY])
   end
   
   def allow_multiple_tpm_commands?

@@ -219,38 +219,6 @@ class InstallationScriptCheck < ConfigureValidationCheck
   end
 end
 
-class HomeDirectoryCheck < ConfigureValidationCheck
-  include ClusterHostCheck
-  
-  def set_vars
-    @title = "home directory"
-    @properties << HOME_DIRECTORY
-  end
-  
-  def validate
-    debug "Checking #{@config.getProperty(HOME_DIRECTORY)} is the same as $CONTINUENT_ROOT"
-    if ENV['CONTINUENT_ROOT'] != nil
-      unless ENV['CONTINUENT_ROOT'].to_s() == @config.getProperty(HOME_DIRECTORY).to_s()
-        unless File.identical?(ENV['CONTINUENT_ROOT'].to_s(), @config.getProperty(HOME_DIRECTORY).to_s())
-          # Throw an error if we are not installing to $CONTINUENT_ROOT and
-          # nothing is installed in $CONTINUENT_ROOT. This prevents installing 
-          # to the wrong home directory but allows multiple replicators.
-          root_symlink = "#{ENV['CONTINUENT_ROOT'].to_s()}/tungsten"
-          unless File.exist?(root_symlink)
-            error("The setting for home-directory (#{@config.getProperty(HOME_DIRECTORY)}) is different to the Environment Variable CONTINUENT_ROOT (#{ENV['CONTINUENT_ROOT']})")
-            help("Remove the environment variable CONTINUENT_ROOT to continue")
-          end
-        end
-      end
-    end
-  end
-  
-  def enabled?
-    super() && @config.getProperty(HOME_DIRECTORY) != nil
-  end
-end
-
-
 class WriteableHomeDirectoryCheck < ConfigureValidationCheck
   include ClusterHostCheck
   

@@ -37,83 +37,62 @@ module ConfigureDeployment
   
   def build_deployment_configurations()
     config_objs = []
-    pids = {}
-    results = {}
+    mtx = Mutex.new
+    threads = []
 
     reset_errors()
     
     if use_external_configuration?()
-      load_external_configuration()
+      pre_configs = load_external_configurations()
+    else
+      pre_configs = [@config]
     end
 
     begin
-      @config.getPropertyOr([HOSTS], {}).each_key{
-        |h_alias|
-        if h_alias == DEFAULTS
-          next
-        end
-        if use_external_configuration?()
-          if @config.getProperty([HOSTS, h_alias, HOST]) != Configurator.instance.hostname()
+      pre_configs.each{
+        |cfg|
+        cfg.getPropertyOr([HOSTS], {}).each_key{
+          |h_alias|
+          if h_alias == DEFAULTS
             next
           end
-        end
-
-        results[h_alias] = Tempfile.new('tpm')
-        pids[h_alias] = fork {
-          config_obj = get_deployment_configuration(h_alias)
-          if config_obj == nil
-            exit(0)
-          end
-          
-          results[h_alias].write(Marshal.dump(config_obj.props))
-        }
-      }
-      pids.each_value{|pid| Process.waitpid(pid) }
-
-      results.each_value{
-        |file|
-        file.rewind()
-
-        begin
-          contents = file.read()
-          unless contents == ""
-            result = result = Marshal.load(contents)
-            if result.instance_of?(RemoteResult)
-              add_remote_result(result)
-            elsif result.instance_of?(Hash)
-              config_obj = Properties.new()
-              config_obj.import(result)
-              config_obj.setProperty(DEPLOYMENT_COMMAND, self.class.name)
-              
-              # This is a local server and we need to make sure the 
-              # PREFERRED_PATH is added
-              path = config_obj.getProperty(PREFERRED_PATH)
-              unless path.to_s() == ""
-                debug("Adding #{path} to $PATH")
-                ENV['PATH'] = path + ":" + ENV['PATH']
-              end
-              
-              config_objs << config_obj
+          if use_external_configuration?()
+            if cfg.getProperty([HOSTS, h_alias, HOST]) != Configurator.instance.hostname()
+              next
             end
           end
-        rescue TypeError => te
-          raise "Cannot read the parallel result: #{result_dump}"
-        rescue ArgumentError => ae
-          error("Unable to load the parallel result.  This can happen due to a bug in Ruby.  Try updating to a newer version and retry the installation.")
-        end
+
+          threads << Thread.new(h_alias, cfg.dup()) {
+            |h_alias, cfg|
+            config_obj = get_deployment_configuration(h_alias, cfg)
+            if config_obj == nil
+              Thread.current.kill
+            end
+            
+            # This is a local server and we need to make sure the 
+            # PREFERRED_PATH is added
+            path = config_obj.getProperty(PREFERRED_PATH)
+            unless path.to_s() == ""
+              debug("Adding #{path} to $PATH")
+              ENV['PATH'] = path + ":" + ENV['PATH']
+            end
+
+            tracking_key = "#{config_obj.getProperty(HOST)}:#{config_obj.getProperty(HOME_DIRECTORY)}"
+            config_obj.setProperty(DEPLOYMENT_CONFIGURATION_KEY, tracking_key)
+            config_obj.setProperty(DEPLOYMENT_COMMAND, self.class.name)
+            mtx.synchronize do
+              config_objs << config_obj
+            end
+          }
+        }
       }
-    ensure
-      results.each_value{
-        |file|
-        file.close()
-        file.unlink()
-      }
+      threads.each{|t| t.join() }
     end
     
     config_objs
   end
   
-  def get_deployment_configuration(host_alias)
+  def get_deployment_configuration(host_alias, config_obj)
     raise "Undefined function: get_deployment_configuration"
   end
   
@@ -186,15 +165,7 @@ module ConfigureDeployment
   end
   
   def validate
-    use_firewall_listeners = get_validation_handler().use_firewall_listeners?()
-    
-    if use_firewall_listeners == true
-      get_validation_handler().start_listeners(get_deployment_configurations())
-    end
     parallel_handle(get_validation_handler_class(), 'validate')
-    if use_firewall_listeners == true
-      get_validation_handler().stop_listeners(get_deployment_configurations())
-    end
     
     get_validation_handler().add_remote_result(get_remote_result())
     get_validation_handler().post_validate()
@@ -220,44 +191,42 @@ module ConfigureDeployment
   end
   
   def parallel_handle(klass, method)
-    pids = []
-    results = []
-    config_objs = get_deployment_configurations()
+    mtx = Mutex.new
+    threads = []
     
     reset_errors()
     
     begin
+      config_objs = get_deployment_configurations()
       config_objs.each_index {
         |idx|
       
-        results[idx] = Tempfile.new('tpm')
-        pids[idx] = fork {
+        threads << Thread.new(idx, config_objs[idx]) {
+          |idx, cfg|
           h = klass.new()
-          h.send(method.to_sym(), [config_objs[idx]])
-          results[idx].write(Marshal.dump(h.get_remote_result()))
+          h.send(method.to_sym(), [cfg])
+          
+          mtx.synchronize do
+            add_remote_result(h.get_remote_result())
+          end
         }
       }
-      pids.each{|pid| Process.waitpid(pid) }
-      
-      results.each{
-        |file|
-        file.rewind()
-        
-        begin
-          result = Marshal.load(file.read())
-
-          add_remote_result(result)
-        rescue TypeError => te
-          raise "Cannot read the parallel result: #{result_dump}"
-        rescue ArgumentError => ae
-          error("Unable to load the parallel result.  This can happen due to a bug in Ruby.  Try updating to a newer version and retry the installation.")
-        end
-      }
-    ensure
-      results.each{
-        |file|
-        file.close()
-        file.unlink()
+      threads.each{|t| t.join() }
+    end
+    
+    is_valid?()
+  end
+  
+  def handle(klass, method)
+    reset_errors()
+    
+    begin
+      config_objs = get_deployment_configurations()
+      config_objs.each {
+        |cfg|
+        h = klass.new()
+        h.send(method.to_sym(), [cfg])
+        add_remote_result(h.get_remote_result())
       }
     end
     
@@ -270,8 +239,8 @@ module ConfigureDeployment
     get_deployment_configurations().each{
       |cfg|
       
-      h_alias = cfg.getNestedProperty([DEPLOYMENT_HOST])
-      h_props = @output_properties.getNestedProperty([h_alias, "props"])
+      key = cfg.getProperty([DEPLOYMENT_CONFIGURATION_KEY])
+      h_props = @output_properties.getNestedProperty([key, "props"])
       if h_props != nil
         cfg.props = h_props.dup
       end
@@ -281,10 +250,9 @@ module ConfigureDeployment
   end
   
   def parallel_deploy(type, additional_properties = nil)
-    pids = []
-    results = []
     @deployment_handlers = []
-    run_prepare_deploy_config = []
+    
+    mtx = Mutex.new
     config_objs = get_deployment_configurations()
     deployment_methods = get_deployment_objects_methods(type)
     
@@ -293,6 +261,7 @@ module ConfigureDeployment
     Configurator.instance.debug("Additional properties for #{type.to_s} deployment methods")
     Configurator.instance.debug(additional_properties.to_s)
     
+    threads = []
     config_objs.each_index {
       |idx|
 
@@ -300,19 +269,17 @@ module ConfigureDeployment
         @deployment_handlers[idx] = get_deployment_handler_class().new()
         @deployment_handlers[idx].set_additional_properties(config_objs[idx], additional_properties)
         
-        # This is a trigger to push the remaining Tungsten binaries to the
-        # remote package.  Only the validation code is sent originally
         if type == ConfigureDeploymentMethod.name
-          run_prepare_deploy_config[idx] = true
-        else
-          run_prepare_deploy_config[idx] = false
+          h = @deployment_handlers[idx]
+          
+          threads << Thread.new(idx) {
+            |idx|
+            h.prepare_deploy_config(config_objs[idx])
+          }
         end
       end
-    
-      unless results[idx]
-        results[idx] = Tempfile.new('tpm')
-      end
     }
+    threads.each{|t| t.join() }
     
     begin
       get_deployment_objects_group_ids(type).each {
@@ -328,42 +295,22 @@ module ConfigureDeployment
           }
         end
         
-        if allow_parallel
+        if allow_parallel == true
+          threads = []
+          
           config_objs.each_index {
             |idx|
-
-            pids[idx] = fork {
+            threads << Thread.new(idx) {
+              |idx|
               h = @deployment_handlers[idx]
               
-              if run_prepare_deploy_config[idx] == true
-                h.prepare_deploy_config(config_objs[idx])
-              end
-              
               h.deploy_config(config_objs[idx], type, group_id)
-              results[idx].rewind()
-              results[idx].write(Marshal.dump(h.get_remote_result()))
+              mtx.synchronize do
+                add_remote_result(h.get_remote_result())
+              end
             }
           }
-          pids.each{|pid| Process.waitpid(pid) }
-
-          results.each{
-            |file|
-            file.rewind()
-
-            begin
-              result = Marshal.load(file.read())
-
-              add_remote_result(result)
-            rescue TypeError => te
-              raise "Cannot read the parallel result: #{result_dump}"
-            rescue ArgumentError => ae
-              error("Unable to load the parallel result.  This can happen due to a bug in Ruby.  Try updating to a newer version and retry the installation.")
-            end
-          }
-          
-          unless is_valid?()
-            return false
-          end
+          threads.each{|t| t.join() }
         else
           config_objs.each_index {
             |idx|
@@ -372,17 +319,11 @@ module ConfigureDeployment
             h.deploy_config(config_objs[idx], type, group_id)
             add_remote_result(h.get_remote_result())
           }
-          
-          unless is_valid?()
-            return false
-          end
         end
-      }
-    ensure
-      results.each{
-        |file|
-        file.close()
-        file.unlink()
+        
+        unless is_valid?()
+          return false
+        end
       }
     end
     

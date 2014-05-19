@@ -255,6 +255,12 @@ class ReverseEngineerCommand
       commands << "# Installed from #{cfg.getProperty(STAGING_USER)}@#{cfg.getProperty(STAGING_HOST)}:#{cfg.getProperty(STAGING_DIRECTORY)}"
     end
     
+    external_type = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE])
+    external_source = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE])
+    if external_type == "ini"
+      commands << "# Configuration built from #{external_source}"
+    end
+    
     if default_arguments.length > 0
       commands << "# Defaults for all data services and hosts"
       commands << "tools/tpm configure defaults \\"

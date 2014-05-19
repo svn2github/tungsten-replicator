@@ -9,6 +9,9 @@
 
 # Generic parameters that control the entire installation.
 DEPLOYMENT_COMMAND = "deployment_command"
+DEPLOYMENT_CONFIGURATION_KEY = "deployment_configuration_key"
+DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE = "deployment_external_configuration_type"
+DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE = "deployment_external_configuration_source"
 DEPLOYMENT_DATASERVICE = "deployment_dataservice"
 DEPLOYMENT_DATASERVICE_ALIASES = "deployment_dataservice_aliases"
 DEPLOYMENT_HOST = "deployment_host"

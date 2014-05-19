@@ -30,6 +30,7 @@ system_require 'validator'
 system_require 'properties'
 system_require 'stringio'
 system_require 'open-uri'
+system_require 'open4'
 system_require 'configure/is_tools_package'
 system_require 'configure/parameter_names'
 system_require 'configure/configure_messages'
@@ -182,6 +183,8 @@ class Configurator
     @log = nil
     @log_cache = []
     @alive_thread = nil
+    
+    @mutex = Mutex.new
   end
   
   def cleanup(code = 0)
@@ -207,33 +210,8 @@ class Configurator
   end
 
   def run
-    # Each of these directories includes Ruby Classes and Modules that extend
-    # the behavior of tpm. Some of them will raise an IgnoreError exception
-    # if they should not be enabled.
-    Dir[File.dirname(__FILE__) + '/configure/modules/*.rb'].sort().each do |file| 
-      begin
-        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
-      rescue IgnoreError
-      end
-    end
-    Dir[File.dirname(__FILE__) + '/configure/commands/*.rb'].sort().each do |file|
-      begin
-        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
-      rescue IgnoreError
-      end
-    end
-    Dir[File.dirname(__FILE__) + '/configure/dbms_types/*.rb'].sort().each do |file| 
-      begin
-        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
-      rescue IgnoreError
-      end
-    end
-    Dir[File.dirname(__FILE__) + '/configure/topologies/*.rb'].sort().each do |file| 
-      begin
-        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
-      rescue IgnoreError
-      end
-    end
+    # Include additional Ruby files from the source tree
+    load_include_files()
     
     # The get_default_filenames() files allow users to place configuration
     # defaults in files on the system that will override any programmed
@@ -257,6 +235,36 @@ class Configurator
     rescue => e
       exception(e)
       cleanup(1)
+    end
+  end
+  
+  # Each of these directories includes Ruby Classes and Modules that extend
+  # the behavior of tpm. Some of them will raise an IgnoreError exception
+  # if they should not be enabled.
+  def load_include_files
+    Dir[File.dirname(__FILE__) + '/configure/modules/*.rb'].sort().each do |file| 
+      begin
+        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+      rescue IgnoreError
+      end
+    end
+    Dir[File.dirname(__FILE__) + '/configure/commands/*.rb'].sort().each do |file|
+      begin
+        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+      rescue IgnoreError
+      end
+    end
+    Dir[File.dirname(__FILE__) + '/configure/dbms_types/*.rb'].sort().each do |file| 
+      begin
+        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+      rescue IgnoreError
+      end
+    end
+    Dir[File.dirname(__FILE__) + '/configure/topologies/*.rb'].sort().each do |file| 
+      begin
+        require File.dirname(file) + '/' + File.basename(file, File.extname(file))
+      rescue IgnoreError
+      end
     end
   end
   
@@ -381,9 +389,10 @@ class Configurator
             unless command_class.include?(ConfigureCommand)
               raise "Command '#{command_class}' does not include ConfigureCommand"
             end
-      
+            
             @command = command_class.new(@config)
           rescue => e
+            debug(e)
             error("Unable to instantiate command: #{e.to_s()}")
             return false
           end
@@ -1208,7 +1217,11 @@ class Configurator
   end
   
   def forced?
-    @command.forced?()
+    if @command
+      @command.forced?()
+    else
+      false
+    end
   end
   
   def is_enterprise?
@@ -1456,6 +1469,12 @@ class Configurator
       @alive_thread = nil
     end
   end
+  
+  def synchronize(&block)
+    @mutex.synchronize do
+      block.call()
+    end
+  end
 end
 
 def is_port_available?(ip, port)
@@ -1494,16 +1513,20 @@ class SSHConnections
       return cmd_result(command)
     end
 
-    unless defined?(Net::SSH)
-      begin
-        require "openssl"
-      rescue LoadError
-        Configurator.instance.error("Unable to find the Ruby openssl library")
-        Configurator.instance.error("Try installing the openssl package for your version of Ruby (libopenssl-ruby#{RUBY_VERSION[0,3]}).")
-        Configurator.instance.cleanup(1)
+    Configurator.instance.synchronize() {
+      unless defined?(Net::SSH)
+        begin
+          require "openssl"
+        rescue LoadError
+          Configurator.instance.error("Unable to find the Ruby openssl library")
+          Configurator.instance.error("Try installing the openssl package for your version of Ruby (libopenssl-ruby#{RUBY_VERSION[0,3]}).")
+          Configurator.instance.cleanup(1)
+        end
+        system_require 'net/ssh'
+        
+        self.init_profile_script()
       end
-      system_require 'net/ssh'
-    end
+    }
 
     if return_object
       command = "#{command} --stream"
@@ -1529,6 +1552,7 @@ class SSHConnections
         if return_object
           log_level = nil
 
+          buf = ""
           channel = ssh.open_channel {
             |ch|
             ch.exec(". /etc/profile; #{self.init_profile_script()} export LANG=en_US; export LC_ALL=\"en_US.UTF-8\"; #{command}") {
@@ -1536,9 +1560,9 @@ class SSHConnections
 
               ch.on_data {
                 |chan,data|
-                (@buf ||= '') << data
+                (buf ||= '') << data
 
-                while line = @buf.slice!(/(.*)\r?\n/)
+                while line = buf.slice!(/(.*)\r?\n/)
                   unless line.index('RemoteResult') != nil || result != ""
                     line_log_level = Configurator.instance.get_log_level(line[0,5])
                     if line_log_level != nil
@@ -1656,31 +1680,51 @@ def ssh_result(command, host, user, return_object = false)
 end
 
 def cmd_result(command, ignore_fail = false)
-  begin
-    result = ""
-    errors = ""
-    rc = nil
+  errors = ""
+  result = ""
+  threads = []
   
-    Configurator.instance.debug("Execute `#{command}`")
-    $stderr = StringIO.new()
-    result = `export LANG=en_US; #{command}`.chomp
-    rc = $?
-    errors = $stderr.string.chomp
-    $stderr = STDERR
-  
-    if errors == ""
-      errors = "No Errors"
-    else
-      errors = "Errors: #{errors}"
-    end
-
-    Configurator.instance.debug("RC: #{rc}, Result: #{result}, #{errors}")
-    if rc != 0 && ! ignore_fail
-      raise CommandError.new(command, rc, result, errors)
-    end
-  
-    return result
+  Configurator.instance.debug("Execute `#{command}`")
+  status = Open4::popen4("export LANG=en_US; #{command}") do |pid, stdin, stdout, stderr|
+    stdin.close 
+    
+    threads << Thread.new{
+      while data = stdout.gets()
+        if data.to_s() != ""
+          result+=data
+        end
+      end
+    }
+    threads << Thread.new{
+      while edata = stderr.gets()
+        if edata.to_s() != ""
+          errors+=edata
+        end
+      end
+    }
+    
+    threads.each{|t| t.join() }
   end
+  
+  result.strip!()
+  errors.strip!()
+  
+  original_errors = errors
+  rc = status.exitstatus
+  
+  if errors == ""
+    errors = "No Errors"
+  else
+    errors = "Errors: #{errors}"
+  end
+
+  Configurator.instance.debug("RC: #{rc}, Result: #{result}, #{errors}")
+  
+  if rc != 0 && ! ignore_fail
+    raise CommandError.new(command, rc, result, original_errors)
+  end
+
+  return result
 end
 
 # Find out the full executable path or return nil

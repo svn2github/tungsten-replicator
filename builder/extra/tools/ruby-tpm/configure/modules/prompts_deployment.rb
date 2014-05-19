@@ -109,6 +109,43 @@ class DeploymentCommandPrompt < ConfigurePrompt
   end
 end
 
+class DeploymentExternalConfigurationTypePrompt < ConfigurePrompt
+  include ConstantValueModule
+  include NoTemplateValuePrompt
+  include NoReplicatorRestart
+  include NoManagerRestart
+  include NoConnectorRestart
+  
+  def initialize
+    super(DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE, "", PV_ANY)
+  end
+end
+
+class DeploymentExternalConfigurationSourcePrompt < ConfigurePrompt
+  include ConstantValueModule
+  include NoTemplateValuePrompt
+  include NoReplicatorRestart
+  include NoManagerRestart
+  include NoConnectorRestart
+  
+  def initialize
+    super(DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE, "", PV_ANY)
+  end
+end
+
+class DeploymentConfigurationKeyPrompt < ConfigurePrompt
+  include ConstantValueModule
+  include NoTemplateValuePrompt
+  include NoStoredConfigValue
+  include NoReplicatorRestart
+  include NoManagerRestart
+  include NoConnectorRestart
+  
+  def initialize
+    super(DEPLOYMENT_CONFIGURATION_KEY, "", PV_ANY)
+  end
+end
+
 class StagingHost < ConfigurePrompt
   include ConstantValueModule
   include NoTemplateValuePrompt

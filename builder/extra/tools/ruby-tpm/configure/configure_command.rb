@@ -14,6 +14,8 @@ module ConfigureCommand
     @display_preview = false
     @subcommand = false
     
+    @config_ini_paths = []
+    
     @skip_prompts = false
     @skip_validation = false
     @skip_deployment = false
@@ -23,19 +25,6 @@ module ConfigureCommand
     @command_dataservices = []
     @fixed_properties = []
     @removed_properties = []
-    
-    # Look to see if there is INI file to use to drive configurations
-    @config_ini_path = nil
-    [
-      "#{ENV['HOME']}/tungsten.ini",
-      "/etc/tungsten/tungsten.ini",
-      "/etc/tungsten.ini"
-    ].each{
-      |path|
-      if File.exist?(path)
-        @config_ini_path = path
-      end
-    }
   end
   
   def distribute_log?(v = nil)
@@ -131,12 +120,12 @@ module ConfigureCommand
   end
   
   def use_external_configuration?
-    (@config_ini_path != nil)
+    (@config_ini_paths.size() != 0)
   end
   
   def external_configuration_summary
-    if @config_ini_path != nil
-      @config_ini_path
+    if @config_ini_paths.size() != 0
+      @config_ini_paths.join(",")
     else
       raise "Unable to provide an external configuration summary because one is not being used"
     end
@@ -562,6 +551,32 @@ module ConfigureCommand
     if Configurator.instance.is_locked?()
       @command_hosts << @config.getProperty([HOSTS, @config.getProperty(DEPLOYMENT_HOST), HOST])
       @command_aliases << @config.getProperty(DEPLOYMENT_HOST)
+    end
+    
+    @config_ini_paths = []
+    if Configurator.instance.is_locked?()
+      external_type = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE])
+      external_source = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE])
+      if external_type == "ini"
+        if File.exist?(external_source)
+          @config_ini_paths << external_source
+        else
+          raise "This directory is configured by #{external_source} but the file is no longer available."
+        end
+      end
+    else
+      # Look to see if there is INI file to use to drive configurations
+      [
+        "#{ENV['HOME']}/tungsten.ini",
+        "/etc/tungsten/*.ini",
+        "/etc/tungsten.ini"
+      ].each{
+        |path|
+        Dir.glob(path) {
+          |ini_path|
+          @config_ini_paths << ini_path
+        }
+      }
     end
     
     opts=OptionParser.new

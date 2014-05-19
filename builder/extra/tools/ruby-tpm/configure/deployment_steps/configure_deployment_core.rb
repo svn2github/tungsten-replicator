@@ -275,7 +275,7 @@ module ConfigureDeploymentCore
   end
   
   def get_message_host_key
-    @config.getProperty(DEPLOYMENT_HOST)
+    @config.getProperty([DEPLOYMENT_CONFIGURATION_KEY])
   end
   
   def transform_values(matches)
