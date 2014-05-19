@@ -31,7 +31,7 @@ module ConfigureDeploymentStepDeployment
         package_path = Configurator.instance.get_package_path()
 
         debug("Copy #{package_path} to #{prepare_dir}")
-        FileUtils.cp_r(package_path, prepare_dir)
+        FileUtils.cp_r(package_path, prepare_dir, :preserve => true)
       else
         destination = File.dirname(prepare_dir)
         
