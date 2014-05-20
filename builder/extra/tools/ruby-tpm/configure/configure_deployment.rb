@@ -258,9 +258,6 @@ module ConfigureDeployment
     
     reset_errors()
     
-    Configurator.instance.debug("Additional properties for #{type.to_s} deployment methods")
-    Configurator.instance.debug(additional_properties.to_s)
-    
     threads = []
     config_objs.each_index {
       |idx|
@@ -270,16 +267,31 @@ module ConfigureDeployment
         @deployment_handlers[idx].set_additional_properties(config_objs[idx], additional_properties)
         
         if type == ConfigureDeploymentMethod.name
-          h = @deployment_handlers[idx]
-          
           threads << Thread.new(idx) {
             |idx|
+            h = @deployment_handlers[idx]
             h.prepare_deploy_config(config_objs[idx])
           }
         end
       end
     }
     threads.each{|t| t.join() }
+    
+    if additional_properties != nil
+      Configurator.instance.debug("Additional properties for #{type.to_s} deployment methods")
+      Configurator.instance.debug(additional_properties.to_s)
+      
+      threads = []
+      config_objs.each_index {
+        |idx|
+        threads << Thread.new(idx) {
+          |idx|
+          h = @deployment_handlers[idx]
+          h.set_additional_properties(config_objs[idx], additional_properties)
+        }
+      }
+      threads.each{|t| t.join() }
+    end
     
     begin
       get_deployment_objects_group_ids(type).each {

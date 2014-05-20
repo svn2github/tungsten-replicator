@@ -263,7 +263,7 @@ module ConfigureDeploymentCore
   end
   
   def get_additional_property_key(key)
-    [@config.getProperty(DEPLOYMENT_HOST), key]
+    [@config.getProperty(DEPLOYMENT_CONFIGURATION_KEY), key]
   end
   
   def get_additional_property(key)
