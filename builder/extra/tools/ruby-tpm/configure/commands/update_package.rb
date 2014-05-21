@@ -18,15 +18,15 @@ class UpdateCommand
    
     # Load option values.
     @promotion_settings.props.each_key{
-      |h_alias|
+      |k|
       if @restart_replicators == false
-        @promotion_settings.setProperty([h_alias, RESTART_REPLICATORS], false)
+        @promotion_settings.setProperty([k, RESTART_REPLICATORS], false)
       end
       if @restart_managers == false
-        @promotion_settings.setProperty([h_alias, RESTART_MANAGERS], false)
+        @promotion_settings.setProperty([k, RESTART_MANAGERS], false)
       end
       if @restart_connectors == false
-        @promotion_settings.setProperty([h_alias, RESTART_CONNECTORS], false)
+        @promotion_settings.setProperty([k, RESTART_CONNECTORS], false)
       end
     }
   end

@@ -18,8 +18,8 @@ class CCTRLCommand
     super()
     
     @promotion_settings.props.each_key{
-      |h_alias|
-      @promotion_settings.include([h_alias], {
+      |k|
+      @promotion_settings.include([k], {
       })
     }
     

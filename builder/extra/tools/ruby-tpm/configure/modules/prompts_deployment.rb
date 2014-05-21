@@ -136,7 +136,6 @@ end
 class DeploymentConfigurationKeyPrompt < ConfigurePrompt
   include ConstantValueModule
   include NoTemplateValuePrompt
-  include NoStoredConfigValue
   include NoReplicatorRestart
   include NoManagerRestart
   include NoConnectorRestart

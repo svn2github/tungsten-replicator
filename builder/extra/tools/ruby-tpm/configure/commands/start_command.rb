@@ -26,8 +26,8 @@ class StartCommand
    
     # Load option values.
     @promotion_settings.props.each_key{
-      |h_alias|
-      @promotion_settings.include([h_alias], {
+      |k|
+      @promotion_settings.include([k], {
         FROM_EVENT => @from_event, 
         FROM_MASTER_BACKUP_EVENT => @from_master_backup_event
       })
