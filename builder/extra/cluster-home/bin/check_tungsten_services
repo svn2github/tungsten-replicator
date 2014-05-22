@@ -16,7 +16,7 @@ THOME=`dirname $0`
 
 function display_help
 {
-  echo "Usage: ./check_tungsten_latency [-r] [-c] [-h]"
+  echo "Usage: ./check_tungsten_services [-r] [-c] [-h]"
   echo " -r     Check the replicator service"
   echo " -h     Display this message"
   exit 0
