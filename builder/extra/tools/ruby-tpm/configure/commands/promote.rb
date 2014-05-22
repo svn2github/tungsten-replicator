@@ -14,14 +14,11 @@ class PromoteCommand
   def validate_commit
     super()
    
-    # Load option values.
-    @promotion_settings.props.each_key{
-      |h_alias|
-      
-      if @no_connectors == true
-        @promotion_settings.setProperty([h_alias, RESTART_CONNECTORS], false)
-      end
-    }
+    if @no_connectors == true
+      override_promotion_setting(RESTART_CONNECTORS, false)
+    end
+    
+    is_valid?()
   end
 
   def parsed_options?(arguments)

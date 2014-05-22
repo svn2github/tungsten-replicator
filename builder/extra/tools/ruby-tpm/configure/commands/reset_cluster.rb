@@ -18,15 +18,10 @@ class ResetClusterCommand
   def validate_commit
     super()
     
-    @promotion_settings.props.each_key{
-      |h_alias|
-      @promotion_settings.include([h_alias], {
-        DELETE_LOGS => delete_logs?().to_s(),
-        ARCHIVE_LOGS_SUFFIX => "pid#{Process.pid}"
-      })
-    }
+    include_promotion_setting(DELETE_LOGS, delete_logs?().to_s())
+    include_promotion_setting(ARCHIVE_LOGS_SUFFIX, "pid#{Process.pid}")
     
-    get_validation_handler().is_valid?()
+    is_valid?()
   end
   
   def delete_logs?(val = nil)

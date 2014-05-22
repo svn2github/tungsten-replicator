@@ -24,14 +24,10 @@ class StartCommand
   def validate_commit
     super()
    
-    # Load option values.
-    @promotion_settings.props.each_key{
-      |k|
-      @promotion_settings.include([k], {
-        FROM_EVENT => @from_event, 
-        FROM_MASTER_BACKUP_EVENT => @from_master_backup_event
-      })
-    }
+    include_promotion_setting(FROM_EVENT, @from_event)
+    include_promotion_setting(FROM_MASTER_BACKUP_EVENT, @from_master_backup_event)
+    
+    is_valid?()
   end
 
   def parsed_options?(arguments)

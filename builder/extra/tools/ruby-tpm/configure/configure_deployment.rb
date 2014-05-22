@@ -186,6 +186,24 @@ module ConfigureDeployment
     is_valid?()
   end
   
+  def include_promotion_setting(name, value)
+    get_deployment_configurations().each{
+      |cfg|
+      @promotion_settings.include([cfg.getProperty([DEPLOYMENT_CONFIGURATION_KEY])], {
+        name => value
+      })
+    }
+  end
+  
+  def override_promotion_setting(name, value)
+    get_deployment_configurations().each{
+      |cfg|
+      @promotion_settings.override([cfg.getProperty([DEPLOYMENT_CONFIGURATION_KEY])], {
+        name => value
+      })
+    }
+  end
+  
   def validate_commit_config(deployment_config)
     get_validation_handler().validate_commit_config(deployment_config)
   end

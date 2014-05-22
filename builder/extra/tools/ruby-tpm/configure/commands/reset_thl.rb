@@ -18,15 +18,10 @@ class ResetTHLCommand
   def validate_commit
     super()
     
-    @promotion_settings.props.each_key{
-      |k|
-      @promotion_settings.include([k], {
-        DELETE_LOGS => delete_logs?().to_s(),
-        ARCHIVE_LOGS_SUFFIX => "pid#{Process.pid}"
-      })
-    }
+    include_promotion_setting(DELETE_LOGS, delete_logs?().to_s())
+    include_promotion_setting(ARCHIVE_LOGS_SUFFIX, "pid#{Process.pid}")
     
-    get_validation_handler().is_valid?()
+    is_valid?()
   end
   
   def delete_logs?(val = nil)

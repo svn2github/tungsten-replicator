@@ -16,19 +16,17 @@ class UpdateCommand
   def validate_commit
     super()
    
-    # Load option values.
-    @promotion_settings.props.each_key{
-      |k|
-      if @restart_replicators == false
-        @promotion_settings.setProperty([k, RESTART_REPLICATORS], false)
-      end
-      if @restart_managers == false
-        @promotion_settings.setProperty([k, RESTART_MANAGERS], false)
-      end
-      if @restart_connectors == false
-        @promotion_settings.setProperty([k, RESTART_CONNECTORS], false)
-      end
-    }
+    if @restart_replicators == false
+      override_promotion_setting(RESTART_REPLICATORS, false)
+    end
+    if @restart_managers == false
+      override_promotion_setting(RESTART_MANAGERS, false)
+    end
+    if @restart_connectors == false
+      override_promotion_setting(RESTART_CONNECTORS, false)
+    end
+    
+    is_valid?()
   end
 
   def parsed_options?(arguments)

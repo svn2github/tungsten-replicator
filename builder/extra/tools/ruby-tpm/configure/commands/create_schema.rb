@@ -21,14 +21,10 @@ class CreateSchemaCommand
   
   def validate_commit
     super()
-   
-    # Load option values.
-    @promotion_settings.props.each_key{
-      |h_alias|
-      @promotion_settings.include([h_alias], {
-        SCHEMA_NAME => @schema_name
-      })
-    }
+    
+    include_promotion_setting(SCHEMA_NAME, @schema_name)
+    
+    is_valid?()
   end
   
   def parsed_options?(arguments)

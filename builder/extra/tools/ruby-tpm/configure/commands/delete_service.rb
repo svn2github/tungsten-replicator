@@ -25,11 +25,9 @@ class DeleteReplicationServiceCommand
   def validate_commit
     super()
    
-    # Load option values.
-    @promotion_settings.props.each_key{
-      |h_alias|
-      @promotion_settings.setProperty([h_alias, DELETE_REPLICATION_POSITION], (@keep_position == false))
-    }
+   include_promotion_setting(DELETE_REPLICATION_POSITION, (@keep_position == false))
+   
+   is_valid?()
   end
   
   def parsed_options?(arguments)

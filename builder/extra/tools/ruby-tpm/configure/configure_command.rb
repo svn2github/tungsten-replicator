@@ -812,6 +812,30 @@ module ConfigureCommand
     info("Configuration saved to #{Configurator.instance.get_config_filename()}")
   end
   
+  def get_matching_deployment_configuration(key, value)
+    configs = get_matching_deployment_configurations(key, value)
+    
+    if configs.size() == 0
+      raise MessageError.new("Unable to find any configurations where #{Configurator.instance.get_constant_symbol(key)} = #{value}")
+    elsif configs.size() > 1
+      raise MessageError.new("Unable to find a single configuration where #{Configurator.instance.get_constant_symbol(key)} = #{value}")
+    else
+      return configs[0]
+    end
+  end
+  
+  def get_matching_deployment_configurations(key, value)
+    ret = []
+    get_deployment_configurations().each{
+      |cfg|
+      if cfg.getProperty(key) == value
+        ret << cfg
+      end
+    }
+    
+    return ret
+  end
+  
   def get_profiles_dir
     profiles_dir = nil
     unless Configurator.instance.is_enterprise?()
