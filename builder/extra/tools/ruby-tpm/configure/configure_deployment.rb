@@ -77,7 +77,7 @@ module ConfigureDeployment
               ENV['PATH'] = path + ":" + ENV['PATH']
             end
 
-            tracking_key = "#{config_obj.getProperty(HOST)}:#{config_obj.getProperty(HOME_DIRECTORY)}"
+            tracking_key = to_identifier("#{config_obj.getProperty(HOST)}:#{config_obj.getProperty(HOME_DIRECTORY)}")
             config_obj.setProperty(DEPLOYMENT_CONFIGURATION_KEY, tracking_key)
             config_obj.setProperty(DEPLOYMENT_COMMAND, self.class.name)
             mtx.synchronize do
