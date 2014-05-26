@@ -22,18 +22,9 @@
 package com.continuent.tungsten.common.tdf;
 
 import java.net.URI;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
 
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.Variant;
-import javax.ws.rs.core.Response.ResponseBuilder;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 

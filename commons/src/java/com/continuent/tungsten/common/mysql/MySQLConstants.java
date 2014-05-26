@@ -23,9 +23,6 @@
 package com.continuent.tungsten.common.mysql;
 
 import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.commons.collections.MapUtils;
 
 /**
  * The <code>MySQLConstants</code> object contains the MySQL protocol

@@ -367,8 +367,7 @@ public class SecurityHelper
         File securityPropertiesFile;
         if (propertiesFileLocation == null) // Get from default location
         {
-            ClusterConfiguration clusterConf = new ClusterConfiguration("Dummy");
-            File clusterConfDirectory = clusterConf.getDir(ClusterConfiguration
+            File clusterConfDirectory = ClusterConfiguration.getDir(ClusterConfiguration
                     .getGlobalConfigDirName(ClusterConfiguration
                             .getClusterHome()));
             securityPropertiesFile = new File(clusterConfDirectory.getPath(),

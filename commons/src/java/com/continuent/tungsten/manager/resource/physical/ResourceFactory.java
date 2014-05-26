@@ -22,8 +22,6 @@
 
 package com.continuent.tungsten.manager.resource.physical;
 
-import org.apache.log4j.Logger;
-
 import com.continuent.tungsten.common.cluster.resource.Queue;
 import com.continuent.tungsten.common.cluster.resource.Resource;
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
@@ -36,7 +34,7 @@ import com.continuent.tungsten.manager.resource.shared.ResourceConfiguration;
 
 public class ResourceFactory
 {
-    static private Logger logger = Logger.getLogger(ResourceFactory.class);
+//    static private Logger logger = Logger.getLogger(ResourceFactory.class);
 
     /**
      * @param type

@@ -51,6 +51,7 @@ public class RouterConfiguration extends ClusterConfiguration
     /**
      *
      */
+    @SuppressWarnings("unused")
     private static final long serialVersionUID                               = 1L;
 
     /**

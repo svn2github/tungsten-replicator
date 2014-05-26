@@ -934,17 +934,17 @@ public class Directory extends ResourceTree
      * @return
      * @throws DirectoryNotFoundException
      */
-    private ResourceNode getLast(Map<String, ResourceNode> map)
-            throws DirectoryNotFoundException
-    {
-        ResourceNode lastNode = null;
-        for (ResourceNode node : map.values())
-        {
-            lastNode = node;
-        }
-
-        return lastNode;
-    }
+//    private ResourceNode getLast(Map<String, ResourceNode> map)
+//            throws DirectoryNotFoundException
+//    {
+//        ResourceNode lastNode = null;
+//        for (ResourceNode node : map.values())
+//        {
+//            lastNode = node;
+//        }
+//
+//        return lastNode;
+//    }
 
     /**
      * @param path

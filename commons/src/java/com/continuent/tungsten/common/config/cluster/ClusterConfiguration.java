@@ -64,8 +64,6 @@ public class ClusterConfiguration
 
     private String                       configFileNameInUse  = null;
 
-    private Map<String, FileInputStream> loadStreamMap        = new HashMap<String, FileInputStream>();
-
     public ClusterConfiguration(String clusterName)
     {
         this.clusterName = clusterName;

@@ -95,7 +95,6 @@ public class DataSource extends Resource implements Serializable
 
     @SuppressWarnings("unused")
     private boolean                 isStandby                      = false;
-    private boolean                 isWitness                      = false;
 
     private HighWaterResource       highWater                      = new HighWaterResource();
 

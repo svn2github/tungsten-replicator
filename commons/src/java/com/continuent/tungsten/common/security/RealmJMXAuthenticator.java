@@ -43,6 +43,7 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
 //    private TungstenProperties  passwordProps          = null;
 
     private AuthenticationInfo  authenticationInfo     = null;
+
     private PasswordManager     passwordManager        = null;
 
     private static final String INVALID_CREDENTIALS    = "Invalid credentials";
@@ -71,7 +72,7 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         // --- Get auth parameters ---
         String username = (String) aCredentials[0];
         String password = (String) aCredentials[1];
-        String realm = (String) aCredentials[2];
+//        String realm = (String) aCredentials[2];
 
         // --- Perform authentication ---
         try
@@ -134,6 +135,26 @@ public class RealmJMXAuthenticator implements JMXAuthenticator
         }
 
         return aCredentials;
+    }
+    
+    /**
+     * Returns the authenticationInfo value.
+     * 
+     * @return Returns the authenticationInfo.
+     */
+    public AuthenticationInfo getAuthenticationInfo()
+    {
+        return authenticationInfo;
+    }
+
+    /**
+     * Sets the authenticationInfo value.
+     * 
+     * @param authenticationInfo The authenticationInfo to set.
+     */
+    public void setAuthenticationInfo(AuthenticationInfo authenticationInfo)
+    {
+        this.authenticationInfo = authenticationInfo;
     }
 
 }

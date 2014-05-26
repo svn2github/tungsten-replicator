@@ -30,6 +30,7 @@ package com.continuent.tungsten.common.config;
  */
 public class WildcardPattern
 {
+    @SuppressWarnings("unused")
     private static final long serialVersionUID = 1L;
 
     /**
