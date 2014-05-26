@@ -55,10 +55,9 @@ public class PropertyCommands
             throws Exception
     {
         Properties properties = null;
+        BufferedReader br = new BufferedReader(new FileReader(propertyFile));
         try
         {
-            BufferedReader br = new BufferedReader(new FileReader(propertyFile));
-
             properties = new Properties();
             String str;
             while ((str = br.readLine()) != null)
@@ -89,6 +88,20 @@ public class PropertyCommands
         {
             throw new Exception("Unable to load property file" + propertyFile,
                     t);
+        }
+        finally
+        {
+            if (br!=null)
+            {
+                try
+                {
+                    br.close();
+                }
+                catch (Exception e)
+                {
+                    // Best effort, do nothing
+                }
+            }
         }
         return properties;
     }
