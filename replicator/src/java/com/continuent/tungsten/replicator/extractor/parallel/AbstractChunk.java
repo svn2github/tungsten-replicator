@@ -76,17 +76,10 @@ public abstract class AbstractChunk implements Chunk
     @Override
     public abstract long getNbBlocks();
 
-    /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getWhereClause()
-     */
     protected abstract String getWhereClause();
 
     /**
      * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.extractor.parallel.Chunk#getQuery()
      */
     @Override
     public String getQuery(Database connection, String eventId)
@@ -146,8 +139,6 @@ public abstract class AbstractChunk implements Chunk
     
     /**
      * Returns the order by clause, if any.
-     * 
-     * @return
      */
     protected String getOrderByClause()
     {
