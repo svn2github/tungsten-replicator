@@ -113,6 +113,9 @@ module ConfigureDeploymentStepDeployment
     out.close()
     File.chmod(0644, @config.getProperty(DIRECTORY_LOCK_FILE))
     
+    # Reset the .watchfiles file before rewriting all configuration files
+    FileUtils.rm_f("#{prepare_dir}/.watchfiles")
+    
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/datasource")
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/service")
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/extension")

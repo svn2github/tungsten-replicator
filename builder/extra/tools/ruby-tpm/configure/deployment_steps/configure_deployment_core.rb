@@ -8,7 +8,6 @@ module ConfigureDeploymentCore
     @additional_properties = Properties.new()
     @additional_properties.use_prompt_handler = false
     @services = []
-    @watchfiles = []
     @methods = nil
   end
   
@@ -239,8 +238,26 @@ module ConfigureDeploymentCore
     @services.insert(-1, start_script)
   end
   
-  def watch_file(path)
-    @watchfiles << path
+  def watch_file(file)
+    prepare_dir = get_deployment_basedir()
+    FileUtils.cp(file, get_original_watch_file(file))
+    if file =~ /#{prepare_dir}/
+      file_to_watch = file.sub(prepare_dir, "")
+      if file_to_watch[0, 1] == "/"
+        file_to_watch.slice!(0)
+      end 
+    else
+      file_to_watch = file
+    end
+    File.open("#{prepare_dir}/.watchfiles", "a") {
+      |out|
+      out.puts file_to_watch
+    }
+    
+    if @config.getProperty(PROTECT_CONFIGURATION_FILES) == "true"
+      cmd_result("chmod o-rwx #{file}")
+      cmd_result("chmod o-rwx #{get_original_watch_file(file)}")
+    end
   end
   
   def get_original_watch_file(file)

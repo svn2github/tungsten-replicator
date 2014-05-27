@@ -28,30 +28,6 @@ module ConfigureDeploymentStepServices
     write_undeployall()
     write_startall()
     write_stopall()
-    
-    prepare_dir = get_deployment_basedir()
-    out = File.open(prepare_dir + "/.watchfiles", "w")
-    
-    @watchfiles.uniq().each{
-      |file|
-      
-      FileUtils.cp(file, get_original_watch_file(file))
-      if file =~ /#{prepare_dir}/
-        file_to_watch = file.sub(prepare_dir, "")
-        if file_to_watch[0, 1] == "/"
-          file_to_watch.slice!(0)
-        end 
-      else
-        file_to_watch = file
-      end
-      out.puts file_to_watch
-      
-      if @config.getProperty(PROTECT_CONFIGURATION_FILES) == "true"
-        cmd_result("chmod o-rwx #{file}")
-        cmd_result("chmod o-rwx #{get_original_watch_file(file)}")
-      end
-    }
-    out.close
   end
   
   def deploy_services

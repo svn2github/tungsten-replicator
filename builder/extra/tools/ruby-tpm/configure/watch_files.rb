@@ -24,7 +24,7 @@ class WatchFiles
           begin
             file_differences = cmd_result("diff -u #{original_file} #{current_file}")
           rescue CommandError => ce
-            if ce.rc.exitstatus == 1
+            if ce.rc == 1
               puts ce.result
             else
               raise ce
@@ -60,7 +60,7 @@ class WatchFiles
             file_differences = cmd_result("diff -u #{original_file} #{current_file}")
             # No differences
           rescue CommandError => ce
-            if ce.rc.exitstatus == 1
+            if ce.rc == 1
               modified_files << line
             else
               raise ce
