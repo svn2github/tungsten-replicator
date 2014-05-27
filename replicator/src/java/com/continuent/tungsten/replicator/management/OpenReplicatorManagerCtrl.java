@@ -976,6 +976,11 @@ public class OpenReplicatorManagerCtrl
             }
         }
 
+        // Validation.
+        if (fromEvent != null && baseSeqno != -1)
+            fatal("Parameters -from-event and -base-seqno cannot be used together",
+                    null);
+
         // Split params object into a Tungsten properties object.
         TungstenProperties paramProps = new TungstenProperties();
         if (params != null)
