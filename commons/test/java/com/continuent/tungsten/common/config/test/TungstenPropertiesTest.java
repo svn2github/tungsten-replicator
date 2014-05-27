@@ -775,7 +775,6 @@ public class TungstenPropertiesTest extends TestCase
         return props2;
     }
 
-    @SuppressWarnings("resource")
     public void testSendReceiveNegative() throws IOException
     {
         PipedInputStream in = new PipedInputStream();
