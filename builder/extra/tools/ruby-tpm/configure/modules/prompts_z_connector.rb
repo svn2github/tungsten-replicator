@@ -872,14 +872,6 @@ class ConnectorMaxSlaveLatency < ConfigurePrompt
   def required?
     false
   end
-  
-  def add_jdbc_driver_options(opts)
-    if get_value() != nil
-      opts << "maxAppliedLatency=#{get_value}"
-    end
-  end
-  
-  ConnectorDriverOptions.register(CONN_MAX_SLAVE_LATENCY)
 end
 
 class ConnectorAffinity < ConfigurePrompt

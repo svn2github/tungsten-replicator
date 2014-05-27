@@ -519,9 +519,9 @@ host=#{ds_alias}"
 
   def write_router_properties
     transformer = Transformer.new(
-          "#{@config.getProperty(TARGET_DIRECTORY)}/tungsten-connector/samples/conf/router.properties.tpl",
-            "#{@config.getProperty(TARGET_DIRECTORY)}/cluster-home/conf/router.properties", "#")
-      transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
+      "#{@config.getProperty(TARGET_DIRECTORY)}/tungsten-connector/samples/conf/router.properties.tpl",
+      "#{@config.getProperty(TARGET_DIRECTORY)}/cluster-home/conf/router.properties", "#")
+    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
     transformer.transform_values(method(:transform_values))
     
     transformer.output
