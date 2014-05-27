@@ -144,7 +144,6 @@ public class OpenReplicatorManagerCtrl
         println("Replicator-Wide Commands:");
         println("  version                      - Show replicator version and build");
         println("  services [-json] [-full]     - List replication services");
-        println("  shutdown [-y]                - (Deprecated) shut down replication services cleanly and exit");
         println("  kill [-y]                    - Exit immediately without shutting down services");
         println("Service-Specific Commands (Require -service option)");
         println("  backup [-backup agent] [-storage agent] [-limit s]");
@@ -865,13 +864,8 @@ public class OpenReplicatorManagerCtrl
     // Shuts down the replicator nicely.
     private void doShutdown() throws Exception
     {
-        boolean yes = confirm("This command is DEPRECATED and will be removed! Use `replicator stop` instead."
-                + "\r\nDo you really want to shutdown the replicator?");
-        if (yes)
-        {
-            expectLostConnection = true;
-            this.serviceManagerMBean.stop();
-        }
+        fatal("This command was DEPRECATED as of version 3.0.0. Use `replicator stop` instead.",
+                null);
     }
 
     // Terminate the replicator process with prejudice.
