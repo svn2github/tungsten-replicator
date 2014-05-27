@@ -91,7 +91,7 @@ public class PropertyCommands
         }
         finally
         {
-            if (br!=null)
+            if (br != null)
             {
                 try
                 {
@@ -182,13 +182,24 @@ public class PropertyCommands
             }
             DirectoryCommands.copyFile(tmpPropertiesFile, propertyFile);
             tmpFile.delete();
-            return true;
+            didUpdate = true;
         }
         else
         {
             tmpFile.delete();
-            return false;
+            didUpdate = false;
         }
+
+        if (br!=null)
+            try
+        {
+                br.close();
+        }
+        catch (Exception e)
+        {
+            // Best effort: do nothing.
+        }
+        return didUpdate;
     }
 
     private static String getNextBackupName(String directoryPath,

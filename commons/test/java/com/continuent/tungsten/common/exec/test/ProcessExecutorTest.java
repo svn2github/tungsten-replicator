@@ -184,6 +184,23 @@ public class ProcessExecutorTest
                 int copyByte = copyStream.read();
                 if (origByte != copyByte)
                 {
+                    if (origStream != null)
+                        try
+                        {
+                            origStream.close();
+                        }
+                        catch (Exception e)
+                        {
+                        }
+                    if (copyStream != null)
+                        try
+                        {
+                            copyStream.close();
+                        }
+                        catch (Exception e)
+                        {
+                        }
+                    
                     throw new Exception(
                             "Original bin file and temp copy differ at byte "
                                     + i + " orig file="
@@ -192,6 +209,24 @@ public class ProcessExecutorTest
                                     + copyBinFile.getAbsolutePath());
                 }
             }
+
+            if (origStream != null)
+                try
+                {
+                    origStream.close();
+                }
+                catch (Exception e)
+                {
+                }
+            if (copyStream != null)
+                try
+                {
+                    copyStream.close();
+                }
+                catch (Exception e)
+                {
+                }
+
         }
     }
 

@@ -168,10 +168,11 @@ public class HelpManager
     protected void loadAndWrite(File file) throws HelpException
     {
         FileReader fr = null;
+        BufferedReader br = null;
         try
         {
             fr = new FileReader(file);
-            BufferedReader br = new BufferedReader(fr);
+            br = new BufferedReader(fr);
             String line;
             while ((line = br.readLine()) != null)
             {
@@ -195,6 +196,17 @@ public class HelpManager
                 {
                 }
             }
+
+            if (br != null)
+                try
+                {
+                    br.close();
+                }
+                catch (Exception e)
+                {
+
+                }
+
         }
     }
 }

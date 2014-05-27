@@ -256,6 +256,13 @@ public class FileIO
                     charset));
             bw.write(value);
             bw.flush();
+            try
+            {
+                bw.close();
+            }
+            catch (Exception e)
+            {
+            }
             if (fsync)
             {
                 fos.getFD().sync();

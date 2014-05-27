@@ -447,6 +447,14 @@ public class BufferedFileDataInputTest extends TestCase
             // Cancel the thread.
             reader.cancel();
             readerThread.join(1000);
+            try
+            {
+                dos.close();
+            }
+            catch (Exception e)
+            {
+            }
+
         }
     }
 
@@ -519,6 +527,14 @@ public class BufferedFileDataInputTest extends TestCase
                 reader.cancel();
                 readerThread.join(1000);
             }
+        }
+        
+        try
+        {
+            dos.close();
+        }
+        catch (Exception e)
+        {
         }
 
         // Ensure liveness--we must have read data and accepted
