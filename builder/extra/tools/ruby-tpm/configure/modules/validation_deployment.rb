@@ -1149,7 +1149,9 @@ class HostsFileCheck < ConfigureValidationCheck
         
         return_addresses = {}
         return_addresses[ds_alias] = {}
-        @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS], "").split(",").each{
+        members = @config.getPropertyOr([DATASERVICES, ds_alias, DATASERVICE_MEMBERS], "").split(",")
+
+        members.each{
           |h_alias|
           h_name = @config.getProperty([HOSTS, h_alias, HOST])
           # grep (case-insensitive) (whole word) hostname | grep (does not begin with #)
@@ -1170,7 +1172,9 @@ class HostsFileCheck < ConfigureValidationCheck
               help("Eliminate any loopback addresses associated with #{h_name} from /etc/hosts")
             else
               line_parts = line.split(/\s/)
-              return_addresses[ds_alias][h_alias] = line_parts[0]
+              if members.include?(@config.getProperty(HOST))
+                return_addresses[ds_alias][h_alias] = line_parts[0]
+              end
             end
           else
             error("There are multiple entries for #{h_name} in the /etc/hosts file")
