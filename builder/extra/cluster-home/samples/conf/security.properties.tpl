@@ -16,9 +16,14 @@ security.rmi.authentication.username=@{RMI_USER}
 security.password_file.location=@{JAVA_PASSWORDSTORE_PATH}
 security.access_file.location=@{JAVA_JMXREMOTE_ACCESS_PATH}
 
-# Keystore and Trustore for SSL and encryption
+# Keystore and Truststore for SSL and encryption
 security.keystore.location=@{JAVA_KEYSTORE_PATH}
 security.keystore.password=@{JAVA_KEYSTORE_PASSWORD}
 security.truststore.location=@{JAVA_TRUSTSTORE_PATH}
 security.truststore.password=@{JAVA_TRUSTSTORE_PASSWORD}
 
+# Keystore and Truststore for the Tungsten Connector
+connector.security.keystore.location=@{JAVA_CONNECTOR_KEYSTORE_PATH}
+connector.security.keystore.password=@{JAVA_CONNECTOR_KEYSTORE_PASSWORD}
+connector.security.truststore.location=@{JAVA_CONNECTOR_TRUSTSTORE_PATH}
+connector.security.truststore.password=@{JAVA_CONNECTOR_TRUSTSTORE_PASSWORD}
