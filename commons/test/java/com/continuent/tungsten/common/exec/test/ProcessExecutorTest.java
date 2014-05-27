@@ -225,19 +225,6 @@ public class ProcessExecutorTest
                         .startsWith("prefix"));
         Assert.assertTrue("Looking for output string: ", contents
                 .indexOf("output") > 0);
-
-        if (br != null)
-        {
-            try
-            {
-                br.close();
-            }
-            catch (Exception e)
-            {
-                // Best effort, do nothing
-            }
-        }
-
     }
 
     // Utility routine to check stdout string from a successful execution.
