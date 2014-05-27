@@ -156,11 +156,22 @@ class ManagerWitnessNeededCheck < ConfigureValidationCheck
   
   def validate
     witnesses = @config.getProperty(DATASERVICE_WITNESSES).to_s()
-    repl_members = @config.getProperty(DATASERVICE_REPLICATION_MEMBERS)
-    
-    if repl_members.to_s().split(",").size() < 3
+    members_count = @config.getProperty(DATASERVICE_REPLICATION_MEMBERS).to_s().split(",").size()
+
+    if members_count == 1
+      # Single member
+      if witnesses != ""
+        warning("A witness should not be configured for single member dataservices.")
+      end
+    elsif (members_count % 2) == 0
+      # Is even
       if witnesses == ""
-        error("This dataservice is configured with less than 3 members and no witnesses. Update the configuration with an active witness for the highest stability. Visit http://docs.continuent.com/ct/host-types for more information.")
+        error("This dataservice is configured with an even number of replication members and no witnesses. Update the configuration with an active witness for the highest stability. Visit http://docs.continuent.com/ct/host-types for more information.")
+      end
+    else
+      # Is odd
+      if witnesses != ""
+        warning("This dataservice is configured with an odd number of replication members and a witness. Update the configuration without a witness for the highest stability. Visit http://docs.continuent.com/ct/host-types for more information.")
       end
     end
     
@@ -244,6 +255,29 @@ class ManagerWitnessAvailableCheck < ConfigureValidationCheck
     super() && (@config.getProperty(DATASERVICE_WITNESSES).to_s() != "") &&
       (@config.getProperty(ENABLE_ACTIVE_WITNESSES) == "false") &&
       (@config.getProperty(MGR_VALIDATE_WITNESS) == "true")
+  end
+end
+
+class ManagerActiveWitnessConversionCheck < ConfigureValidationCheck
+  include ManagerCheck
+  
+  def set_vars
+    @title = "Active witness is not a current replicator check"
+  end
+  
+  def validate
+    current_release_directory = @config.getProperty(CURRENT_RELEASE_DIRECTORY)
+    if File.exists?(current_release_directory)
+      # Check if replicator is in cluster-home/bin/startall
+      is_replicator = cmd_result("cat #{current_release_directory}/cluster-home/bin/startall | grep tungsten-replicator | wc -l")
+      if is_replicator == "1"
+        error("The active witness \"#{@config.getProperty(HOST)}\" is already running as a replicator. If you proceed it will no longer be available as a datasource. Specify an active witness that is not already running a replicator.")
+      end
+    end
+  end
+  
+  def enabled?
+    super() && (@config.getProperty(MGR_IS_WITNESS).to_s() == "true")
   end
 end
 

@@ -756,7 +756,7 @@ class ManagerIsWitness < ConfigurePrompt
       if @config.getPropertyOr(get_dataservice_key(DATASERVICE_WITNESSES)).include_alias?(get_host_alias())
         @default = "true"
       else
-        @default = false
+        @default = "false"
       end
     else
       @default = "false"
