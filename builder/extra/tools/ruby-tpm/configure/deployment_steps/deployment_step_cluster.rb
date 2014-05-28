@@ -257,6 +257,17 @@ EOF
     trigger_event(:deploy_config_files, host_config)
     
     host_config.store(config_file)
+    
+    external_type = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE])
+    external_source = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE])
+    installed_tungsten_ini = "#{prepare_dir}/tungsten.ini"
+    if external_type == "ini" && File.exists?(external_source)
+      # Create a symlink of the INI file into the installed directory
+      if File.exists?(installed_tungsten_ini)
+        FileUtils.rm_f(installed_tungsten_ini)
+      end
+      FileUtils.ln_sf(external_source, installed_tungsten_ini)
+    end
   end
   
   def commit_release

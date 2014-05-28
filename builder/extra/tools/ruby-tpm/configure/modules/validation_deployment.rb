@@ -219,6 +219,32 @@ class InstallationScriptCheck < ConfigureValidationCheck
   end
 end
 
+class MatchingHomeDirectoryCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  
+  def set_vars
+    @title = "Home directory matches current directory"
+    @properties << HOME_DIRECTORY
+    @fatal_on_error = true
+  end
+  
+  def validate
+    debug "Checking #{@config.getProperty(HOME_DIRECTORY)} matches the current running directory"
+    
+    unless File.exists?("#{@config.getProperty(HOME_DIRECTORY)}/tungsten")
+      error("You are running from a configured directory but the new configuration does not update the current directory.")
+    else
+      unless File.readlink("#{@config.getProperty(HOME_DIRECTORY)}/tungsten") == Configurator.instance.get_base_path()
+        error("You are running from a configured directory but the new configuration does not update the current directory.")
+      end
+    end
+  end
+  
+  def enabled?
+    super() && (@config.getProperty(HOME_DIRECTORY) != nil) && Configurator.instance.is_locked?()
+  end
+end
+
 class WriteableHomeDirectoryCheck < ConfigureValidationCheck
   include ClusterHostCheck
   

@@ -554,32 +554,23 @@ module ConfigureCommand
     end
     
     @config_ini_paths = []
-    if Configurator.instance.is_locked?()
-      external_type = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE])
-      external_source = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE])
-      if external_type == "ini"
-        if File.exist?(external_source)
-          @config_ini_paths << external_source
-        else
-          raise "This directory is configured by #{external_source} but the file is no longer available."
-        end
-      end
-    else
-      # Look to see if there is INI file to use to drive configurations
-      [
-        "#{ENV['HOME']}/tungsten.ini",
-        "/etc/tungsten/*.ini",
-        "/etc/tungsten.ini"
-      ].each{
-        |path|
-        Dir.glob(path) {
-          |ini_path|
-          @config_ini_paths << ini_path
-        }
-      }
-    end
     
     opts=OptionParser.new
+    opts.on("--ini String")                     { |val|
+      if Configurator.instance.is_locked?()
+        error("The --ini argument is not supported on installed directories. Try running the command from a staging directory.")
+      else
+        found_files = false
+        Dir.glob(val) {
+          |ini_path|
+          @config_ini_paths << ini_path
+          found_files = true
+        }
+        if found_files == false
+          error("No files were found at #{val}")
+        end
+      end
+    }
     opts.on("--dataservice-name String")        { |val| command_dataservices(val) }
     opts.on("--host String", "--hosts String")  { |val| command_hosts(val) }
     opts.on("-f", "--force")          { forced?(true) }
@@ -605,6 +596,34 @@ module ConfigureCommand
     opts.on("--config-only")          { skip_validation?(true)
                                         skip_deployment?(true) }
     remainder = Configurator.instance.run_option_parser(opts, arguments)
+    
+    # No INI files were passed in so we will look for them
+    if @config_ini_paths.size() == 0
+      if Configurator.instance.is_locked?()
+        external_type = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE])
+        external_source = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE])
+        if external_type == "ini"
+          if File.exist?(external_source)
+            @config_ini_paths << external_source
+          else
+            raise "This directory is configured by #{external_source} but the file is no longer available."
+          end
+        end
+      else
+        # Look to see if there is INI file to use to drive configurations
+        [
+          "#{ENV['HOME']}/tungsten.ini",
+          "/etc/tungsten/*.ini",
+          "/etc/tungsten.ini"
+        ].each{
+          |path|
+          Dir.glob(path) {
+            |ini_path|
+            @config_ini_paths << ini_path
+          }
+        }
+      end
+    end
     
     # If the first remaining argument does not start with a dash
     # attempt to set it as the subcommand. The subcommand() function will
