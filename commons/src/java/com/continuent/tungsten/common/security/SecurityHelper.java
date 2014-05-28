@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.text.MessageFormat;
 
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
@@ -263,10 +264,18 @@ public class SecurityHelper
                     .getString(SecurityConf.SECURITY_ACCESS_FILE_LOCATION);
             String keystoreLocation = securityProperties
                     .getString(security_keystore_location);
+            keystoreLocation = (keystoreLocation != null && StringUtils
+                    .isNotBlank(keystoreLocation))
+                    ? keystoreLocation
+                    : null;
             String keystorePassword = securityProperties
                     .getString(security_keystore_password);
             String truststoreLocation = securityProperties
                     .getString(security_truststore_location);
+            truststoreLocation = (truststoreLocation != null && StringUtils
+                    .isNotBlank(truststoreLocation))
+                    ? truststoreLocation
+                    : null;
             String truststorePassword = securityProperties
                     .getString(security_truststore_password);
             String userName = securityProperties.getString(
@@ -289,8 +298,8 @@ public class SecurityHelper
             // --- Check information is correct ---
             if (doConsistencyChecks)
                 authInfo.checkAuthenticationInfo(tungstenApplicationName); // Checks authentication and
-                                                    // encryption parameters:
-                                                    // file exists, ...
+            // encryption parameters:
+            // file exists, ...
 
             // --- Set critical properties as System Properties ---
             SecurityHelper.setSecurityProperties(authInfo, false);
@@ -337,7 +346,7 @@ public class SecurityHelper
             CLUtils.println("Setting system property: name=" + name + " value="
                     + value);
         }
-        if (value!=null)
+        if (value != null)
             System.setProperty(name, value);
     }
 
