@@ -32,20 +32,21 @@ module ClusterDiagnosticPackage
       |config|
       build_topologies(config)
       
+      c_key = config.getProperty(DEPLOYMENT_CONFIGURATION_KEY)
       h_alias = config.getProperty(DEPLOYMENT_HOST)
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}")
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}/os_info")
       
       out = File.open("#{diag_dir}/#{h_alias}/manifest.json", "w")
-      out.puts(@promotion_settings.getProperty([h_alias, "manifest"]))
+      out.puts(@promotion_settings.getProperty([c_key, "manifest"]))
       out.close
       
       out = File.open("#{diag_dir}/#{h_alias}/tpm.txt", "w")
-      out.puts(@promotion_settings.getProperty([h_alias, "tpm_reverse"]))
+      out.puts(@promotion_settings.getProperty([c_key, "tpm_reverse"]))
       out.close
 
       out = File.open("#{diag_dir}/#{h_alias}/tpm_diff.txt", "w")
-      out.puts(@promotion_settings.getProperty([h_alias, "tpm_diff"]))
+      out.puts(@promotion_settings.getProperty([c_key, "tpm_diff"]))
       out.close
 
       begin
@@ -79,18 +80,18 @@ module ClusterDiagnosticPackage
       end
 
 
-      if @promotion_settings.getProperty([h_alias, REPLICATOR_ENABLED]) == "true"
-        if @promotion_settings.getProperty([h_alias, MANAGER_ENABLED]) == "true"
+      if @promotion_settings.getProperty([c_key, REPLICATOR_ENABLED]) == "true"
+        if @promotion_settings.getProperty([c_key, MANAGER_ENABLED]) == "true"
           out = File.open("#{diag_dir}/#{h_alias}/cctrl.txt", "w")
-          out.puts(@promotion_settings.getProperty([h_alias, "cctrl_status"]))
+          out.puts(@promotion_settings.getProperty([c_key, "cctrl_status"]))
           out.close
           out = File.open("#{diag_dir}/#{h_alias}/cctrl_simple.txt", "w")
-          out.puts(@promotion_settings.getProperty([h_alias, "cctrl_status_simple"]))
+          out.puts(@promotion_settings.getProperty([c_key, "cctrl_status_simple"]))
           out.close
         end
       
         out = File.open("#{diag_dir}/#{h_alias}/trepctl.json", "w")
-        out.puts(@promotion_settings.getProperty([h_alias, "replicator_json_status"]))
+        out.puts(@promotion_settings.getProperty([c_key, "replicator_json_status"]))
         out.close
         
         out = File.open("#{diag_dir}/#{h_alias}/trepctl.txt", "w")
@@ -99,7 +100,7 @@ module ClusterDiagnosticPackage
           if rs_alias == DEFAULTS
             next
           end
-          out.puts(@promotion_settings.getProperty([h_alias, "replicator_status_#{rs_alias}"]))
+          out.puts(@promotion_settings.getProperty([c_key, "replicator_status_#{rs_alias}"]))
         }
         out.close
       
@@ -109,7 +110,7 @@ module ClusterDiagnosticPackage
           if rs_alias == DEFAULTS
             next
           end
-          out.puts(@promotion_settings.getProperty([h_alias, "thl_info_#{rs_alias}"]))
+          out.puts(@promotion_settings.getProperty([c_key, "thl_info_#{rs_alias}"]))
         }
         out.close
 
@@ -119,7 +120,7 @@ module ClusterDiagnosticPackage
           if rs_alias == DEFAULTS
             next
           end
-          out.puts(@promotion_settings.getProperty([h_alias, "thl_index_#{rs_alias}"]))
+          out.puts(@promotion_settings.getProperty([c_key, "thl_index_#{rs_alias}"]))
         }
         out.close
         
@@ -177,7 +178,7 @@ module ClusterDiagnosticPackage
           exception(me)
         end
         
-        if @promotion_settings.getProperty([h_alias, MANAGER_ENABLED]) == "true"
+        if @promotion_settings.getProperty([c_key, MANAGER_ENABLED]) == "true"
           begin
             scp_download("#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/log/tmsvc.log", "#{diag_dir}/#{h_alias}/tmsvc.log.tmp", config.getProperty(HOST), config.getProperty(USERID))
             copy_log("#{diag_dir}/#{h_alias}/tmsvc.log.tmp", "#{diag_dir}/#{h_alias}/tmsvc.log", LOG_SIZE)
@@ -190,7 +191,7 @@ module ClusterDiagnosticPackage
         end
       end
       
-      if @promotion_settings.getProperty([h_alias, CONNECTOR_ENABLED]) == "true"
+      if @promotion_settings.getProperty([c_key, CONNECTOR_ENABLED]) == "true"
         begin
           scp_download("#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/log/connector.log", "#{diag_dir}/#{h_alias}/connector.log.tmp", config.getProperty(HOST), config.getProperty(USERID))
           copy_log("#{diag_dir}/#{h_alias}/connector.log.tmp", "#{diag_dir}/#{h_alias}/connector.log", LOG_SIZE)

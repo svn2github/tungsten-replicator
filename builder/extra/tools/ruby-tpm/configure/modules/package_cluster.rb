@@ -1573,6 +1573,7 @@ module ClusterCommandModule
     get_deployment_configurations().each{
       |cfg|
       
+      c_key = cfg.getProperty(DEPLOYMENT_CONFIGURATION_KEY)
       h_alias = cfg.getProperty(DEPLOYMENT_HOST)
 
       if cfg.getProperty(HOST_ENABLE_REPLICATOR) == "true"
@@ -1580,12 +1581,12 @@ module ClusterCommandModule
       end
 
       if cfg.getProperty(HOST_ENABLE_CONNECTOR) == "true"
-        if @promotion_settings.getProperty([h_alias, RESTART_CONNECTORS]) == false
+        if @promotion_settings.getProperty([c_key, RESTART_CONNECTORS]) == false
           display_promote_connectors = true
         end
       
-        if @promotion_settings.getProperty([h_alias, ACTIVE_DIRECTORY_PATH]) && @promotion_settings.getProperty([h_alias, CONNECTOR_ENABLED]) == "true"
-          unless @promotion_settings.getProperty([h_alias, CONNECTOR_IS_RUNNING]) == "true"
+        if @promotion_settings.getProperty([c_key, ACTIVE_DIRECTORY_PATH]) && @promotion_settings.getProperty([c_key, CONNECTOR_ENABLED]) == "true"
+          unless @promotion_settings.getProperty([c_key, CONNECTOR_IS_RUNNING]) == "true"
             display_promote_connectors = true
           end
         elsif cfg.getProperty(SVC_START) != "true"
