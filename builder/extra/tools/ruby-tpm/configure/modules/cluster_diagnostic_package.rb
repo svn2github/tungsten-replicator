@@ -44,6 +44,10 @@ module ClusterDiagnosticPackage
       out.puts(@promotion_settings.getProperty([h_alias, "tpm_reverse"]))
       out.close
 
+      out = File.open("#{diag_dir}/#{h_alias}/tpm_diff.txt", "w")
+      out.puts(@promotion_settings.getProperty([h_alias, "tpm_diff"]))
+      out.close
+
       begin
         scp_download("/etc/hosts", "#{diag_dir}/#{h_alias}/os_info/etc_hosts.txt", config.getProperty(HOST), config.getProperty(USERID))
       rescue
@@ -336,6 +340,7 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
     begin
       output_property("manifest", cmd_result("cat #{current_release_directory}/.manifest.json"))
       output_property("tpm_reverse", cmd_result("#{tpm_cmd} reverse --public"))
+      output_property("tpm_diff", cmd_result("#{tpm_cmd} query modified-files"))
       
       ["manager", "replicator", "connector"].each {
         |svc|
