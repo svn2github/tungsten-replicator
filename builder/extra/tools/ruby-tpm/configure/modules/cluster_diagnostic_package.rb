@@ -108,6 +108,16 @@ module ClusterDiagnosticPackage
           out.puts(@promotion_settings.getProperty([h_alias, "thl_info_#{rs_alias}"]))
         }
         out.close
+
+        out = File.open("#{diag_dir}/#{h_alias}/thl_index.txt", "w")
+        config.getPropertyOr([REPL_SERVICES], {}).keys().sort().each{
+            |rs_alias|
+          if rs_alias == DEFAULTS
+            next
+          end
+          out.puts(@promotion_settings.getProperty([h_alias, "thl_index_#{rs_alias}"]))
+        }
+        out.close
         
         begin
           scp_download("#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/trepsvc.log", "#{diag_dir}/#{h_alias}/trepsvc.log.tmp", config.getProperty(HOST), config.getProperty(USERID))
@@ -353,6 +363,7 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
           end
           output_property("replicator_status_#{rs_alias}", cmd_result("#{trepctl_cmd} -service #{@config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])} status", true))
           output_property("thl_info_#{rs_alias}", cmd_result("#{thl_cmd} -service #{@config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])} info", true))
+          output_property("thl_index_#{rs_alias}", cmd_result("#{thl_cmd} -service #{@config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])} index", true))
         }
       end
     rescue CommandError => ce
