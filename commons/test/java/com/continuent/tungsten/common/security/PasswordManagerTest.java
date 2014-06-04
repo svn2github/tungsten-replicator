@@ -58,7 +58,7 @@ public class PasswordManagerTest extends TestCase
             pwd = new PasswordManager(
                     "sample.security.properties_DOES_NOT_EXIST");
             AuthenticationInfo authenticationInfo = pwd.getAuthenticationInfo();
-            authenticationInfo.checkAuthenticationInfo();
+            authenticationInfo.checkAndCleanAuthenticationInfo();
         }
         catch (ConfigurationException e)
         {

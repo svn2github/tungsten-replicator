@@ -25,6 +25,7 @@ import junit.framework.TestCase;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.config.cluster.ConfigurationException;
+import com.continuent.tungsten.common.jmx.ServerRuntimeException;
 import com.continuent.tungsten.common.security.SecurityHelper.TUNGSTEN_APPLICATION_NAME;
 
 /**
@@ -210,6 +211,122 @@ public class SecurityHelperTest extends TestCase
 
         assertTrue(authInfo.getKeystoreLocation() == null);
         assertTrue(authInfo.getTruststoreLocation() == null);
+    }
+    
+    /**
+     * Confirm  behavior when connector.security.use.SSL=false
+     * 
+     * @throws ConfigurationException
+     */
+    public void testConnectorSecuritySettingsSSL_false()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that by default connector.security.use.SSL=false
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("test.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("Could not load authentication and securiy information", true);
+        }
+        assertFalse(authInfo.isConnectorUseSSL());
+        
+        // Confirm that unnecessary information has been deleted
+        assertNull(authInfo.getKeystoreLocation());
+        assertNull(authInfo.getKeystorePassword());
+        assertNull(authInfo.getTruststoreLocation());
+        assertNull(authInfo.getTruststorePassword());
+        
+        // Check it's NOT available in system wide properties
+        String systemProperty = null;
+        systemProperty = System.getProperty("javax.net.ssl.keyStore", null);
+        assertNull(systemProperty);
+
+        systemProperty = System.getProperty("javax.net.ssl.keyStorePassword", null);
+        assertNull(systemProperty);
+   
+        systemProperty = System.getProperty("javax.net.ssl.trustStore", null);
+        assertNull(systemProperty);
+
+        systemProperty = System.getProperty("javax.net.ssl.trustStorePassword", null);
+        assertNull(systemProperty);
+        
+
+    }
+    
+    /**
+     * Confirm  behavior when connector.security.use.SSL=true
+     * 
+     * @throws ConfigurationException
+     */
+    public void testConnectorSecuritySettingsSSL_true()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that by default connector.security.use.SSL=false
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("sample.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("Could not load authentication and securiy information", true);
+        }
+        assertTrue(authInfo.isConnectorUseSSL());
+    }
+    
+    /**
+     * Confirm  behavior when connector.security.use.SSL=true
+     * 
+     * @throws ConfigurationException
+     */
+    public void testConnectorSecuritySettingsSSL_errors_true()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that exception is thrown when keystore location is not specified
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("test.ssl.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ServerRuntimeException e)
+        {
+            assertTrue("An exception was thrown, that's expected !", true);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("That should not be this kind of Exception being thrown", true);
+        }
+        assertEquals(null, authInfo);
+        
+        
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that exception is thrown when trustore location is not specified
+        authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("test.ssl2.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ServerRuntimeException e)
+        {
+            assertTrue("An exception was thrown, that's expected !", true);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("That should not be this kind of Exception being thrown", true);
+        }
+        assertEquals(null, authInfo);
+        
     }
 
 }

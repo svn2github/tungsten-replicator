@@ -49,14 +49,13 @@ public class SecurityHelper
     private static final Logger logger = Logger.getLogger(SecurityHelper.class);
 
     /*
-     * Defines the type of application requesting Security information.
-     * This allows module specific configuration of security.
+     * Defines the type of application requesting Security information. This
+     * allows module specific configuration of security.
      */
     // TUC-1872
     public static enum TUNGSTEN_APPLICATION_NAME
     {
-        CONNECTOR,
-        ANY;
+        CONNECTOR, ANY;
     }
 
     /**
@@ -256,6 +255,9 @@ public class SecurityHelper
             }
 
             // Retrieve properties
+            boolean connectorUseSSL = securityProperties.getBoolean(
+                    SecurityConf.CONNECTOR_USE_SSL, "false", false);
+
             String parentFileLocation = securityProperties
                     .getString(SecurityConf.SECURITY_PROPERTIES_PARENT_FILE_LOCATION);
             String passwordFileLocation = securityProperties
@@ -265,9 +267,7 @@ public class SecurityHelper
             String keystoreLocation = securityProperties
                     .getString(security_keystore_location);
             keystoreLocation = (keystoreLocation != null && StringUtils
-                    .isNotBlank(keystoreLocation))
-                    ? keystoreLocation
-                    : null;
+                    .isNotBlank(keystoreLocation)) ? keystoreLocation : null;
             String keystorePassword = securityProperties
                     .getString(security_keystore_password);
             String truststoreLocation = securityProperties
@@ -282,6 +282,7 @@ public class SecurityHelper
                     SecurityConf.SECURITY_JMX_USERNAME, null, false);
 
             // Populate return object
+            authInfo.setConnectorUseSSL(connectorUseSSL);
             authInfo.setParentPropertiesFileLocation(parentFileLocation);
             authInfo.setAuthenticationNeeded(useAuthentication);
             authInfo.setUseTungstenAuthenticationRealm(useTungstenAuthenticationRealm);
@@ -296,10 +297,10 @@ public class SecurityHelper
             authInfo.setUsername(userName);
 
             // --- Check information is correct ---
-            if (doConsistencyChecks)
-                authInfo.checkAuthenticationInfo(tungstenApplicationName); // Checks authentication and
-            // encryption parameters:
+            // Checks authentication and encryption parameters
             // file exists, ...
+            if (doConsistencyChecks)
+                authInfo.checkAndCleanAuthenticationInfo(tungstenApplicationName);
 
             // --- Set critical properties as System Properties ---
             SecurityHelper.setSecurityProperties(authInfo, false);
@@ -376,9 +377,10 @@ public class SecurityHelper
         File securityPropertiesFile;
         if (propertiesFileLocation == null) // Get from default location
         {
-            File clusterConfDirectory = ClusterConfiguration.getDir(ClusterConfiguration
-                    .getGlobalConfigDirName(ClusterConfiguration
-                            .getClusterHome()));
+            File clusterConfDirectory = ClusterConfiguration
+                    .getDir(ClusterConfiguration
+                            .getGlobalConfigDirName(ClusterConfiguration
+                                    .getClusterHome()));
             securityPropertiesFile = new File(clusterConfDirectory.getPath(),
                     SecurityConf.SECURITY_PROPERTIES_FILE_NAME);
         }
@@ -394,8 +396,7 @@ public class SecurityHelper
             securityProps = new TungstenProperties();
             securityConfigurationFileInputStream = new FileInputStream(
                     securityPropertiesFile);
-            securityProps.load(securityConfigurationFileInputStream,
-                    true);
+            securityProps.load(securityConfigurationFileInputStream, true);
             closeSecurityConfigurationFileInputStream(securityConfigurationFileInputStream);
         }
         catch (FileNotFoundException e)
@@ -434,8 +435,8 @@ public class SecurityHelper
     }
 
     /**
-     * Close the security.properties input stream once it's been used.
-     * Best effort
+     * Close the security.properties input stream once it's been used. Best
+     * effort
      * 
      * @param fis
      */

@@ -50,6 +50,7 @@ public class SecurityConf
     static public final String SECURITY_KEYSTORE_PASSWORD                                            = "security.keystore.password";
     static public final String SECURITY_TRUSTSTORE_LOCATION                                          = "security.truststore.location";
     static public final String SECURITY_TRUSTSTORE_PASSWORD                                          = "security.truststore.password";
+    static public final String CONNECTOR_USE_SSL                                                     = "connector.security.use.ssl";
     static public final String CONNECTOR_SECURITY_KEYSTORE_LOCATION                                  = "connector.security.keystore.location";
     static public final String CONNECTOR_SECURITY_KEYSTORE_PASSWORD                                  = "connector.security.keystore.password";
     static public final String CONNECTOR_SECURITY_TRUSTSTORE_LOCATION                                = "connector.security.truststore.location";

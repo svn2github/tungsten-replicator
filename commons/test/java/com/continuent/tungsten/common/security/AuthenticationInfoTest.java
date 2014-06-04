@@ -49,7 +49,7 @@ public class AuthenticationInfoTest extends TestCase
         try
         {
             authInfo.setTruststoreLocation("");
-            authInfo.checkAuthenticationInfo();
+            authInfo.checkAndCleanAuthenticationInfo();
         }
         catch (ServerRuntimeException sre)
         {

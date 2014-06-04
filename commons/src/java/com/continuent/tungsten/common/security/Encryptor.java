@@ -66,7 +66,7 @@ public class Encryptor
         this.authenticationInfo = authenticationInfo;
 
         // --- Check parameters ---
-        this.authenticationInfo.checkAuthenticationInfo();
+        this.authenticationInfo.checkAndCleanAuthenticationInfo();
     }
 
     /**

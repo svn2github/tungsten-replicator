@@ -364,7 +364,7 @@ public class PasswordManagerCtrl
                 // --- AuthenticationInfo consistency check
                 // Try to create files if possible
                 pwd.passwordManager.try_createAuthenticationInfoFiles();
-                authenticationInfo.checkAuthenticationInfo();
+                authenticationInfo.checkAndCleanAuthenticationInfo();
 
             }
             catch (ConfigurationException ce)
