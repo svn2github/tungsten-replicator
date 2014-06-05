@@ -1,7 +1,7 @@
 module ValidationCheckInterface
   include ConfigureMessages
   
-  attr_reader :title, :description, :properties, :messages, :fatal_on_error, :support_remote_fix
+  attr_reader :title, :description, :properties, :messages, :fatal_on_error
   def initialize
     @title = nil
     @description = ""
@@ -9,7 +9,6 @@ module ValidationCheckInterface
     @config = nil
     @fatal_on_error = false
     @help = []
-    @support_remote_fix = false
     reset_errors()
     
     set_vars()

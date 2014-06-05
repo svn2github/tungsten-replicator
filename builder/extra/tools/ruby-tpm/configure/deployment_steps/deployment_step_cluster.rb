@@ -9,9 +9,12 @@ module ConfigureDeploymentStepDeployment
   
   def create_release
     prepare_dir = get_deployment_basedir()
+    mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/share")
     mkdir_if_absent(@config.getProperty(LOGS_DIRECTORY))
     mkdir_if_absent(@config.getProperty(RELEASES_DIRECTORY))
     
+    # Determine if we need to copy this directory into place or
+    # if we are updating the existing installed directory
     copy_release = true
     if @config.getProperty(HOME_DIRECTORY) == Configurator.instance.get_base_path()
       copy_release = false
@@ -24,94 +27,27 @@ module ConfigureDeploymentStepDeployment
     end
 
     if copy_release == true
+      # Copy the software into the home directory
       FileUtils.rmtree(File.dirname(prepare_dir))
       mkdir_if_absent(File.dirname(prepare_dir))
       
-      if @config.getProperty(DEPLOY_CURRENT_PACKAGE) == "true"
-        package_path = Configurator.instance.get_package_path()
-
-        debug("Copy #{package_path} to #{prepare_dir}")
-        FileUtils.cp_r(package_path, prepare_dir, :preserve => true)
-      else
-        destination = File.dirname(prepare_dir)
-        
-        debug("Download and unpack #{@config.getProperty(DEPLOY_PACKAGE_URI)}")
-        uri = URI::parse(@config.getProperty(DEPLOY_PACKAGE_URI))
-
-        if uri.scheme == "http" || uri.scheme == "https"
-          unless @config.getProperty(DEPLOY_PACKAGE_URI) =~ /.tar.gz/
-            raise "Only files ending in .tar.gz may be fetched using #{uri.scheme.upcase}"
-          end
-
-          package_basename = File.basename(@config.getProperty(DEPLOY_PACKAGE_URI), ".tar.gz")
-          unless (File.exists?("#{@config.getProperty(TEMP_DIRECTORY)}/#{package_basename}.tar.gz"))
-            cmd_result("cd #{@config.getProperty(TEMP_DIRECTORY)}; wget --no-check-certificate #{@config.getProperty(DEPLOY_PACKAGE_URI)}")
-          else
-            debug("Using the package already downloaded to #{@config.getProperty(TEMP_DIRECTORY)}/#{package_basename}.tar.gz")
-          end
-
-          cmd_result("cd #{destination}; tar zxf #{@config.getProperty(TEMP_DIRECTORY)}/#{package_basename}.tar.gz")
-        elsif uri.scheme == "file"
-          rsync_cmd = ["rsync"]
+      package_path = Configurator.instance.get_base_path()
+      debug("Copy #{package_path} to #{prepare_dir}")
+      FileUtils.cp_r(package_path, prepare_dir, :preserve => true)
       
-          unless uri.port
-            rsync_cmd << "-aze ssh --delete"
-          else
-            rsync_cmd << "-aze \"ssh --delete -p #{uri.port}\""
-          end
-      
-          if uri.host != "localhost"
-            unless uri.userinfo
-              rsync_cmd << "#{uri.host}:#{uri.path}"
-            else
-              rsync_cmd << "#{uri.userinfo}@#{uri.host}:#{uri.path}"
-            end
-
-            rsync_cmd << @config.getProperty(TEMP_DIRECTORY)
-        
-            cmd_result(rsync_cmd.join(" "))
-          else
-            unless File.dirname(uri.path) == @config.getProperty(TEMP_DIRECTORY)
-              FileUtils.cp(uri.path, @config.getProperty(TEMP_DIRECTORY))
-            end
-          end
-        
-          package_basename = File.basename(uri.path)
-          if package_basename =~ /.tar.gz$/
-            package_basename = File.basename(package_basename, ".tar.gz")
-          
-            cmd_result("cd #{destination}; tar zxf #{@config.getProperty(TEMP_DIRECTORY)}/#{package_basename}.tar.gz")
-          elsif package_basename =~ /.tar$/
-            package_basename = File.basename(package_basename, ".tar")
-          
-            cmd_result("cd #{destination}; tar xf #{@config.getProperty(TEMP_DIRECTORY)}/#{package_basename}.tar")
-          elsif File.directory?("#{@config.getProperty(TEMP_DIRECTORY)}/#{package_basename}")
-            FileUtils.cp_r(@config.getProperty(TEMP_DIRECTORY) + '/' + package_basename, prepare_dir)
-          end
-        end
-      end
-      
-      commit_script = "#{File.dirname(prepare_dir)}/commit.sh"
-      out = File.open(commit_script, "w")
-      out.puts("#!/bin/sh")
-      out.puts("PREPARE_DIR=#{prepare_dir}")
-      out.puts("TARGET_DIR=#{@config.getProperty(TARGET_DIRECTORY)}")
-      out.puts("if [ ! -d $PREPARE_DIR ]")
-      out.puts("then")
-      out.puts('  echo "$PREPARE_DIR is not present, it may have been promoted already."')
-      out.puts("  exit 1")
-      out.puts("fi")
-      out.puts("mv $PREPARE_DIR $TARGET_DIR")
-      out.puts("$TARGET_DIR/tools/tpm promote")
-      out.close
-      File.chmod(0755, commit_script)
-      info "GENERATED FILE: " + commit_script
+      host_transformer("#{File.dirname(prepare_dir)}/commit.sh") {
+        |t|
+        t.mode(0755)
+        t.watch_file?(false)
+        t.set_template("cluster-home/samples/bin/commit.sh.tpl")
+      }
     end
     
-    out = File.open(@config.getProperty(DIRECTORY_LOCK_FILE), "w")
-    out.puts(@config.getProperty(HOME_DIRECTORY))
-    out.close()
-    File.chmod(0644, @config.getProperty(DIRECTORY_LOCK_FILE))
+    File.open(@config.getProperty(DIRECTORY_LOCK_FILE), "w") {
+      |f|
+      f.puts(@config.getProperty(HOME_DIRECTORY))
+      f.chmod(0644)
+    }
     
     # Reset the .watchfiles file before rewriting all configuration files
     FileUtils.rm_f("#{prepare_dir}/.watchfiles")
@@ -124,9 +60,6 @@ module ConfigureDeploymentStepDeployment
         "#{get_deployment_basedir()}/cluster-home/conf/cluster/#{@config.getProperty(DATASERVICENAME)}/service/replicator.properties")
     end
     
-    Configurator.instance.write_header("Building the Tungsten home directory")
-    mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/share")
-    
     DeploymentFiles.prompts.each{
       |p|
       if @config.getProperty(p[:local]) != nil && File.exist?(@config.getProperty(p[:local]))
@@ -136,60 +69,97 @@ module ConfigureDeploymentStepDeployment
     	end
     }
     
-    # Create share/env.sh script.
+    # Create the share/env.sh script
     script = "#{@config.getProperty(HOME_DIRECTORY)}/#{CONTINUENT_ENVIRONMENT_SCRIPT}"
     debug("Generate environment at #{script}")
-    transformer = Transformer.new(
-		  "#{get_deployment_basedir()}/cluster-home/samples/conf/env.sh.tpl",
-			script, "#")
-    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-	  transformer.transform_values(method(:transform_values))
-    transformer.output
-    watch_file(transformer.get_filename())
-    FileUtils.chmod(0755, script)
+    host_transformer(script) {
+      |t|
+      t.set_template("cluster-home/samples/conf/env.sh.tpl")
+      t.mode(0755)
+    }
+    
+    # Create the share/aliases.sh script
+    script = "#{@config.getProperty(HOME_DIRECTORY)}/share/aliases.sh"
+    if @config.getProperty(EXECUTABLE_PREFIX) != ""
+      host_transformer(script) {
+        |t|
+        t.set_template("cluster-home/samples/conf/aliases.sh.tpl")
+        t.mode(0755)
+      }
+    else
+      if File.exists?(script)
+        FileUtils.rm_f(script)
+      end
+    end
     
     # Write the cluster-home/conf/security.properties file
-    transformer = Transformer.new(
-		  "#{get_deployment_basedir()}/cluster-home/samples/conf/security.properties.tpl",
-			"#{get_deployment_basedir()}/cluster-home/conf/security.properties", "#")
-    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-	  transformer.transform_values(method(:transform_values))
-    transformer.output
-    watch_file(transformer.get_filename())
+    transform_host_template("cluster-home/conf/security.properties",
+      "cluster-home/samples/conf/security.properties.tpl")
     
-    if Configurator.instance.is_enterprise?()
-      debug("Write INSTALLED cookbook scripts")
-      transformer = Transformer.new(
-        "#{get_deployment_basedir()}/cookbook/samples/INSTALLED_USER_VALUES.tpl",
-        "#{get_deployment_basedir()}/cookbook/INSTALLED_USER_VALUES.sh", "#")
-      transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-  	  transformer.transform_values(method(:transform_values))
-	  
+    # Write the tungsten-cookbook/INSTALLED* files
+    write_tungsten_cookbook_installed_recipe()
+    
+    # Remove any deploy.cfg files in the installed directory
+    FileUtils.rm(Dir.glob("#{prepare_dir}/#{Configurator::DATASERVICE_CONFIG}*"))
+    
+    # Write the tungsten.cfg file to the installed directory as a record
+    # of the configuration at this time
+    config_file = prepare_dir + '/' + Configurator::HOST_CONFIG
+    debug("Write #{config_file}")
+    host_config = @config.dup()
+    ph = ConfigurePromptHandler.new(host_config)
+    ph.prepare_saved_server_config()
+    host_config.store(config_file)
+
+    external_type = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE])
+    external_source = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE])
+    installed_tungsten_ini = "#{prepare_dir}/tungsten.ini"
+    if external_type == "ini" && File.exists?(external_source)
+      # Create a symlink of the INI file into the installed directory
+      if File.exists?(installed_tungsten_ini)
+        FileUtils.rm_f(installed_tungsten_ini)
+      end
+      FileUtils.ln_sf(external_source, installed_tungsten_ini)
+    end
+  end
+  
+  def write_tungsten_cookbook_installed_recipe
+    unless Configurator.instance.is_enterprise?()
+      return
+    end
+    
+    debug("Write INSTALLED cookbook scripts")
+    
+    dsids={}
+    host_transformer("cookbook/INSTALLED_USER_VALUES.sh") {
+      |t|
+      t.mode(0755)
+      t.set_template("cookbook/samples/INSTALLED_USER_VALUES.tpl")
+      
       nodeid=1
       listed_nodes = []
-      
+
   	  dsid=1
-  	  dsids={}
       @config.getPropertyOr(DATASERVICES, []).each_key{
         |ds_alias|
         if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_IS_COMPOSITE]) == "true"
           ds_name=@config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
-          transformer << "export COMPOSITE_DS=#{ds_name}"
+          t << "export COMPOSITE_DS=#{ds_name}"
           dsids[ds_name] = "configure $COMPOSITE_DS"
         else
           ds_name=@config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
           master=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_MASTER_MEMBER])
           slaves=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_REPLICATION_MEMBERS]).split(",")-[master]
           connectors=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS])
-          
-          transformer << "export DS_NAME#{dsid}=#{ds_name}"
-          transformer << "export MASTER#{dsid}=#{master}"
-          transformer << "export SLAVES#{dsid}=#{slaves.join(",")}"
-          transformer << "export CONNECTORS#{dsid}=#{connectors}"
-          
+
+          t << "export DS_NAME#{dsid}=#{ds_name}"
+          t << "export MASTER#{dsid}=#{master}"
+          t << "export SLAVES#{dsid}=#{slaves.join(",")}"
+          t << "export CONNECTORS#{dsid}=#{connectors}"
+
           dsids[ds_name] = "configure $DS_NAME#{dsid}"
           dsid = dsid+1
-          
+
           [
             DATASERVICE_MASTER_MEMBER,
             DATASERVICE_REPLICATION_MEMBERS,
@@ -203,21 +173,18 @@ module ConfigureDeploymentStepDeployment
                 next
               end
 
-              transformer << "export NODE#{nodeid}=#{node}"
+              t << "export NODE#{nodeid}=#{node}"
               nodeid = nodeid+1
               listed_nodes << node
             }
           }
         end
       }
-	  
-      transformer.output
-      watch_file(transformer.get_filename())
-      FileUtils.chmod(0755, script)
-    
-      File.open("#{get_deployment_basedir()}/cookbook/INSTALLED.tmpl", "w") {
-        |f|
-        f.puts <<EOF
+    }
+  
+    File.open("#{get_deployment_basedir()}/cookbook/INSTALLED.tmpl", "w") {
+      |f|
+      f.puts <<EOF
 ##################################
 # DO NOT MODIFY THIS FILE
 ##################################
@@ -225,49 +192,25 @@ module ConfigureDeploymentStepDeployment
 # . cookbook/INSTALLED_USER_VALUES.sh
 
 EOF
-        rec = ReverseEngineerCommand.new(@config)
-        commands = rec.build_commands(@config)
-        
-        # Update the tpm configure commands to use environment variables
-        commands.map!{
-          |cmd|
-          cmd.gsub(/configure ([a-zA-Z0-9_]+)/){
-            |match|
-            if dsids.has_key?($1)
-              dsids[$1]
-            else
-              "configure #{$1}"
-            end
-          }
+      rec = ReverseEngineerCommand.new(@config)
+      commands = rec.build_commands(@config)
+      
+      # Update the tpm configure commands to use environment variables
+      # that were defined in INSTALLED_USER_VALUES.sh
+      commands.map!{
+        |cmd|
+        cmd.gsub(/configure ([a-zA-Z0-9_]+)/){
+          |match|
+          if dsids.has_key?($1)
+            dsids[$1]
+          else
+            "configure #{$1}"
+          end
         }
-        f.puts(commands.join("\n"))
       }
-      watch_file("#{get_deployment_basedir()}/cookbook/INSTALLED.tmpl")
-    end
-
-    config_file = prepare_dir + '/' + Configurator::HOST_CONFIG
-    debug("Write #{config_file}")
-
-    host_config = @config.dup()
-    ph = ConfigurePromptHandler.new(host_config)
-    ph.prepare_saved_server_config()
-    
-    FileUtils.rm(Dir.glob("#{prepare_dir}/#{Configurator::DATASERVICE_CONFIG}*"))
-    
-    trigger_event(:deploy_config_files, host_config)
-    
-    host_config.store(config_file)
-    
-    external_type = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_TYPE])
-    external_source = @config.getNestedProperty([DEPLOYMENT_EXTERNAL_CONFIGURATION_SOURCE])
-    installed_tungsten_ini = "#{prepare_dir}/tungsten.ini"
-    if external_type == "ini" && File.exists?(external_source)
-      # Create a symlink of the INI file into the installed directory
-      if File.exists?(installed_tungsten_ini)
-        FileUtils.rm_f(installed_tungsten_ini)
-      end
-      FileUtils.ln_sf(external_source, installed_tungsten_ini)
-    end
+      f.puts(commands.join("\n"))
+    }
+    WatchFiles.watch_file("#{get_deployment_basedir()}/cookbook/INSTALLED.tmpl", @config)
   end
   
   def commit_release
@@ -311,6 +254,7 @@ EOF
       current_release_target_dir = nil
     end
     
+    # Copy dynamic configuration information from the old directory to this one
     unless target_dir == current_release_target_dir
       if File.exists?(current_release_directory)    
         if current_release_target_dir
@@ -357,58 +301,9 @@ EOF
       end
       
       if is_manager?()
-        @config.getPropertyOr(DATASERVICES, {}).keys().each{
-          |comp_ds_alias|
-
-          if comp_ds_alias == DEFAULTS
-            next
-          end
-
-          if @config.getProperty([DATASERVICES, comp_ds_alias, DATASERVICE_IS_COMPOSITE]) == "false"
-            next
-          end
-
-          unless include_dataservice?(comp_ds_alias)
-            next
-          end
-
-          mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/service")
-          mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/datasource")
-          mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/extension")
-
-          @config.getProperty([DATASERVICES, comp_ds_alias, DATASERVICE_COMPOSITE_DATASOURCES]).to_s().split(",").each{
-            |ds_alias|
-            
-            path = "#{prepare_dir}/cluster-home/conf/cluster/#{comp_ds_alias}/datasource/#{ds_alias}.properties"
-            unless File.exist?(path)
-              if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_RELAY_SOURCE]).to_s() != ""
-                ds_role = "slave"
-              else
-                ds_role = "master"
-              end
-              
-              File.open(path, "w") {
-                |f|
-                f.puts "
-appliedLatency=-1.0
-precedence=1
-name=#{ds_alias}
-state=OFFLINE
-url=jdbc\:t-router\://#{ds_alias}/${DBNAME}
-alertMessage=
-isAvailable=true
-role=#{ds_role}
-isComposite=true
-alertStatus=OK
-alertTime=#{Time.now().strftime("%s000")}
-dataServiceName=#{comp_ds_alias}
-vendor=continuent
-driver=com.continuent.tungsten.router.jdbc.TSRDriver
-host=#{ds_alias}"
-              }
-            end
-          }
-        }
+        # This will create the datasource files for any composite dataservices
+        # that weren't copied over in the rsync commands above
+        initiate_composite_dataservices()
       end
       
       unless target_dir == prepare_dir
@@ -421,6 +316,10 @@ host=#{ds_alias}"
       FileUtils.ln_s(target_dir, current_release_directory)
     end
     
+    # Update the mtime for the directory so sorting is easier
+    FileUtils.touch(target_dir)
+    
+    # Remove some old directories that are no longer used
     if File.exists?(@config.getProperty(CONFIG_DIRECTORY))
       FileUtils.rmtree(@config.getProperty(CONFIG_DIRECTORY))
     end
@@ -430,7 +329,6 @@ host=#{ds_alias}"
     if File.exists?(@config.getProperty(HOME_DIRECTORY) + "/service-logs")
       FileUtils.rmtree(@config.getProperty(HOME_DIRECTORY) + "/service-logs")
     end
-    FileUtils.touch(target_dir)
     
     FileUtils.cp(current_release_directory + '/' + Configurator::HOST_CONFIG, current_release_directory + '/.' + Configurator::HOST_CONFIG + '.orig')
     if @config.getProperty(PROTECT_CONFIGURATION_FILES) == "true"
@@ -444,6 +342,7 @@ host=#{ds_alias}"
       write_policymgr_properties()
     end
     
+    # Update the THL URI in dynamic properties so it uses the correct protocol
     if is_replicator?()
       @config.getPropertyOr(REPL_SERVICES, {}).keys().each{
         |rs_alias|
@@ -452,7 +351,6 @@ host=#{ds_alias}"
           next
         end
         
-        # Update the THL URI in dynamic properties so it uses the correct protocol
         dynamic_properties = @config.getProperty([REPL_SERVICES, rs_alias,REPL_SVC_DYNAMIC_CONFIG])
         if File.exists?(dynamic_properties)
           if @config.getProperty([REPL_SERVICES, rs_alias, REPL_ENABLE_THL_SSL]) == "true"
@@ -522,41 +420,22 @@ host=#{ds_alias}"
       }
     }
 
-    out = File.open(dataservices_file, "w")
-    dataservices.each{
-      |ds_alias,managers|
-      out.puts "#{ds_alias}=#{managers}"
+    File.open(dataservices_file, "w") {
+      |f|
+      dataservices.each{
+        |ds_alias,managers|
+        f.puts "#{ds_alias}=#{managers}"
+      }
     }
-    out.close
-    info "GENERATED FILE: " + dataservices_file
   end
 
   def write_router_properties
-    transformer = Transformer.new(
-      "#{@config.getProperty(TARGET_DIRECTORY)}/tungsten-connector/samples/conf/router.properties.tpl",
-      "#{@config.getProperty(TARGET_DIRECTORY)}/cluster-home/conf/router.properties", "#")
-    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-    transformer.transform_values(method(:transform_values))
-    
-    transformer.output
-    watch_file(transformer.get_filename())
+    transform_host_template("cluster-home/conf/router.properties",
+      "tungsten-connector/samples/conf/router.properties.tpl")
   end
   
   def write_policymgr_properties
-    # Write the policymgr.properties file.
-    transformer = Transformer.new(
-      "#{@config.getProperty(TARGET_DIRECTORY)}/tungsten-connector/samples/conf/policymgr.properties.tpl",
-      "#{@config.getProperty(TARGET_DIRECTORY)}/cluster-home/conf/policymgr.properties", "# ")
-    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-    transformer.transform_values(method(:transform_values))
-
-    transformer.transform { |line|
-      if line =~ /^notifierMonitorClass/ then
-        "notifierMonitorClass=com.continuent.tungsten.commons.patterns.notification.adaptor.MonitorNotifierGroupCommAdaptor"
-      else
-        line
-      end
-    }
-    watch_file(transformer.get_filename())
+    transform_host_template("cluster-home/conf/policymgr.properties",
+      "tungsten-connector/samples/conf/policymgr.properties.tpl")
   end
 end

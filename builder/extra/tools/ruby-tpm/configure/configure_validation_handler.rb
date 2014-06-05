@@ -309,23 +309,6 @@ class ConfigureValidationHandler
     @config.getProperty([DEPLOYMENT_CONFIGURATION_KEY])
   end
   
-  # Read the prompt response from the command line.
-  def input_value(prompt, default)
-    default = default.to_s
-    if (default.length + prompt.length < 75)
-      printf "%s [%s]: ", prompt, default
-    else
-      printf "%s\n[%s]:", prompt, default
-    end
-    value = STDIN.gets
-    value.strip!
-    if value == ""
-      return default
-    else
-      return value
-    end
-  end
-  
   def self.skip_validation_class?(klass, cfg)
     @@host_skip_classes ||= {}
     

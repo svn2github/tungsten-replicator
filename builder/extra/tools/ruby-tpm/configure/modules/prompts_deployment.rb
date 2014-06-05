@@ -18,27 +18,8 @@ class ClusterHosts < GroupConfigurePrompt
     
     super()
   end
-  
-  def get_new_alias_prompt
-    TemporaryPrompt.new("What host would you like to configure?  Enter nothing to stop entering #{@plural}.")
-  end
-  
-  def validate_new_alias(new_alias)
-    super(to_identifier(new_alias))
-  end
-  
-  def add_alias(new_alias)
-    fixed_alias = to_identifier(new_alias)
-    
-    super(fixed_alias)
-    
-    @config.setProperty([get_name(), fixed_alias, HOST], new_alias)
-  end
 end
 
-# Prompts that include this module will be collected for each host 
-# across interactive mode, the configure script and the
-# tungsten-installer script
 module ClusterHostPrompt
   include GroupConfigurePromptMember
   include HashPromptDefaultsModule
@@ -203,82 +184,6 @@ class RemotePackagePath < ConfigurePrompt
   end
 end
 
-class DeployCurrentPackagePrompt < ConfigurePrompt
-  include AdvancedPromptModule
-  include NoTemplateValuePrompt
-  include NoStoredServerConfigValue
-  
-  def initialize
-    super(DEPLOY_CURRENT_PACKAGE, "Deploy the current Tungsten package", PV_BOOLEAN, "true")
-    self.extend(NotTungstenUpdatePrompt)
-  end
-end
-
-class DeployPackageURIPrompt < ConfigurePrompt
-  include AdvancedPromptModule
-  include NoTemplateValuePrompt
-  include NoStoredServerConfigValue
-
-  def initialize
-    super(DEPLOY_PACKAGE_URI, "URL for the Tungsten package to deploy", PV_URI)
-    self.extend(NotTungstenUpdatePrompt)
-  end
-
-  def enabled?
-    @config.getProperty(DEPLOY_CURRENT_PACKAGE) != "true"
-  end
-  
-  def load_default_value
-    if enabled?
-      @default = "https://s3.amazonaws.com/releases.continuent.com/#{Configurator.instance.get_release_name()}.tar.gz"
-    else
-      @default = nil
-    end
-  end
-  
-  def accept?(raw_value)
-    value = super(raw_value)
-    if value.to_s == ""
-      return value
-    end
-    
-    uri = URI::parse(value)
-    if uri.scheme == "http" || uri.scheme == "https"
-      unless value =~ /.tar.gz/
-        raise "Only files ending in .tar.gz may be fetched using #{uri.scheme.upcase}"
-      end
-      
-      return value
-    elsif uri.scheme == "file"
-      if (uri.host == "localhost")
-        package_basename = File.basename(uri.path)
-        if package_basename =~ /.tar.gz$/
-          return value
-        elsif package_basename =~ /.tar$/
-          return value
-        elsif File.extname(uri.path) == ""
-          return value
-        else
-          raise "#{package_basename} is not a directory or recognized archive file"
-        end
-      elsif (uri.host == "remote")
-        package_basename = File.basename(uri.path)
-        if package_basename =~ /.tar.gz$/
-          return value
-        elsif package_basename =~ /.tar$/
-          return value
-        elsif File.extname(uri.path) == ""
-          return value
-        else
-          raise "#{package_basename} is not a directory or recognized archive file"
-        end
-      end
-    else
-      raise "#{uri.scheme.upcase()} is an unrecognized scheme for the deployment package"
-    end
-  end
-end
-
 class ConfigTargetBasenamePrompt < ConfigurePrompt
   include ConstantValueModule
   include NoTemplateValuePrompt
@@ -296,10 +201,6 @@ class ConfigTargetBasenamePrompt < ConfigurePrompt
     else
       @default = Configurator.instance.get_unique_basename()
     end
-  end
-  
-  def save_value?(v)
-    true
   end
 end
 
@@ -366,10 +267,6 @@ class HomeDirectoryPrompt < ConfigurePrompt
     if value == Configurator.instance.get_base_path()
       error("You must specify a separate location to deploy Continuent Tungsten")
     end
-  end
-  
-  def save_value?(v)
-    true
   end
 end
 
@@ -511,25 +408,7 @@ class TargetBasenamePrompt < ConfigurePrompt
       return
     end
     
-    if @config.getProperty(get_member_key(HOME_DIRECTORY)) == Configurator.instance.get_base_path()
-      @default = File.basename(Configurator.instance.get_base_path())
-    elsif "#{@config.getProperty(get_member_key(HOME_DIRECTORY))}/#{RELEASES_DIRECTORY_NAME}/#{Configurator.instance.get_basename()}" == Configurator.instance.get_base_path()
-      @default = File.basename(Configurator.instance.get_base_path())
-    else
-      if @config.getProperty(DEPLOY_CURRENT_PACKAGE) == "true"
-        @default = File.basename(Configurator.instance.get_package_path())
-      else
-        uri = URI::parse(@config.getProperty(get_member_key(DEPLOY_PACKAGE_URI)))
-        package_basename = File.basename(uri.path)          
-        if package_basename =~ /.tar.gz$/
-          package_basename = File.basename(package_basename, ".tar.gz")
-        elsif package_basename =~ /.tar$/
-          package_basename = File.basename(package_basename, ".tar")
-        end
-        
-        @default = package_basename
-      end
-    end
+    @default = File.basename(Configurator.instance.get_base_path())
   end
 end
 
@@ -627,7 +506,7 @@ class ReplicationAPI < ConfigurePrompt
     super(REPL_API, "Enable the replication API", PV_BOOLEAN, "false")
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if get_value() == "true"
       ""
     else
@@ -995,7 +874,7 @@ class RootCommandPrefixPrompt < ConfigurePrompt
     end
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if get_value() == "true"
       "sudo -n"
     else
@@ -1022,7 +901,7 @@ class JavaGarbageCollection < ConfigurePrompt
       PV_BOOLEAN, "false")
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if get_value() == "true"
       ""
     else
@@ -1193,6 +1072,21 @@ class ProfileScriptPrompt < ConfigurePrompt
   
   def initialize
     super(PROFILE_SCRIPT, "Append commands to include env.sh in this profile script", PV_ANY, "")
+  end
+  
+  def required?
+    false
+  end
+end
+
+class ExecutablePrefixPrompt < ConfigurePrompt
+  include ClusterHostPrompt
+  include NoConnectorRestart
+  include NoReplicatorRestart
+  include NoManagerRestart
+  
+  def initialize
+    super(EXECUTABLE_PREFIX, "Declare aliases for all scripts with this prefix to support multiple installations per host", PV_ANY, "")
   end
   
   def required?
@@ -1461,6 +1355,15 @@ class HostPreferredPath < ConfigurePrompt
   end
 end
 
+class TemplateSearchPath < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(TEMPLATE_SEARCH_PATH, "Additional path to find configuration templates", PV_ANY, "")
+  end
+end
+
 class HostSkipStatemap < ConfigurePrompt
   include ClusterHostPrompt
   include CommercialPrompt
@@ -1564,7 +1467,7 @@ class HostJavaKeystorePath < ConfigurePrompt
     super(JAVA_KEYSTORE_PATH, "Local path to the Java Keystore file.", PV_FILENAME)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/tungsten_keystore.jks"
   end
   
@@ -1605,7 +1508,7 @@ class HostJavaTruststorePath < ConfigurePrompt
     super(JAVA_TRUSTSTORE_PATH, "Local path to the Java Truststore file.", PV_FILENAME)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/tungsten_truststore.ts"
   end
   
@@ -1646,7 +1549,7 @@ class HostJavaJMXRemoteAccessPath < ConfigurePrompt
     super(JAVA_JMXREMOTE_ACCESS_PATH, "Local path to the Java JMX Remote Access file.", PV_FILENAME)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/jmxremote.access"
   end
   
@@ -1687,7 +1590,7 @@ class HostJavaPasswordStorePath < ConfigurePrompt
     super(JAVA_PASSWORDSTORE_PATH, "Local path to the Java Password Store file.", PV_FILENAME)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     @config.getProperty(get_member_key(SECURITY_DIRECTORY)) + "/passwords.store"
   end
   

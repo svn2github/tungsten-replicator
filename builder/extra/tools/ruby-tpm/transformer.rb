@@ -99,97 +99,123 @@ class Transformer
     }
   end
   
-  # Initialize with the name of the to -> from files. 
-  def initialize(infile, outfile = nil, end_comment = "")
-    @infile = infile
+  def initialize(config, outfile = nil)
+    @config = config
     @outfile = outfile
-    @end_comment = end_comment
+    @transform_values_method = nil
+
+    @mode = nil
+    @timestamp = true
+    @watch_file = true
+    
     @fixed_replacements = {}
     @fixed_additions = {}
     @fixed_matches = {}
     
-    if defined?(Configurator)
-      #Configurator.instance.info("INPUT FROM: " + @infile)
-    else
-      #puts "INPUT FROM: " + @infile
+    @output = []
+  end
+  
+  # Enable/Disable the header timestamp of when the file was created
+  def timestamp?(v = nil)
+    if v != nil
+      @timestamp = v
     end
     
-    @output = []
-    File.open(@infile) do |file|
-      while line = file.gets
-        @output << line.chomp()
-      end
+    @timestamp
+  end
+  
+  # Enable/Disable support for identifying user modifications to this file
+  def watch_file?(v = nil)
+    if v != nil
+      @watch_file = v
     end
+    
+    @watch_file
+  end
+  
+  # Force the file to have a specific mode
+  def mode(v = nil)
+    if v != nil
+      @mode = v
+    end
+    
+    @mode
+  end
+  
+  def set_transform_values_method(func)
+    @transform_values_method = func
   end
 
-  # Transform file by passing each line through a block that either
-  # changes it or returns the line unchanged. 
-  def transform(&block)
-    transform_lines{
-      |line|
-      block.call(line)
-    }
-    output
-  end
-  
-  def output
-    if @outfile
-      out = File.open(@outfile, "w")
-      if @end_comment
-        out.puts @end_comment + "AUTO-GENERATED: #{DateTime.now}"
-      end
-      @output.each { |line| out.puts line }
-      out.close
-      if defined?(Configurator)
-        Configurator.instance.info("OUTPUT TO: " + @outfile)
-      else
-        puts "OUTPUT TO: " + @outfile
-      end
-    else
-      return self.to_s
-    end
-  end
-  
+  # Evaluate each line in the template by passing it to a code block 
+  # and storing the result
   def transform_lines(&block)
     @output.map!{
       |line|
-      line_keys = line.scan(/[#]?([a-zA-Z0-9\._-]+)=.*/)
-      if line_keys.length() > 0 && @fixed_replacements.has_key?(line_keys[0][0])
-        "#{line_keys[0][0]}=#{@fixed_replacements[line_keys[0][0]]}"
-      else
-        block.call(line)
-      end        
+      block.call(line)
     }
   end
-  
-  def transform_values(method)
-    @output.map!{
-      |line|
-      line_keys = line.scan(/^[#]?([a-zA-Z0-9\._-]+)[ ]*=[ ]*.*/)
-      if line_keys.length() > 0 && @fixed_replacements.has_key?(line_keys[0][0])
-        if line =~ /@\{[A-Za-z\._]+\}/
-          if defined?(Configurator)
-            Configurator.instance.debug("Fixed property value for '#{line_keys[0][0]}' is overriding a template value")
-          end
-        end
+    
+  # Evaluate a single template line and return the result
+  def transform_line(line)
+    # Look for --property=key=value options that will apply to this line
+    line_keys = line.scan(/^[#]?([a-zA-Z0-9\._-]+)[ ]*=[ ]*.*/)
+    if line_keys.length() > 0 && @fixed_replacements.has_key?(line_keys[0][0])
+      "#{line_keys[0][0]}=#{@fixed_replacements[line_keys[0][0]]}"
+    else
+      # Look for template placeholders
+      # ([\#|include|includeAll]*\()? -> A function reference to do something besides a simple substitution
+      # ([A-Za-z\._]+) -> The actual template variable name
+      # (\|)? -> A separator that identifies a default value
+      # ([A-Za-z0-9\._\-\=\?\&]*)? -> The default value if the template variable does not have a value
+      line.gsub!(/@\{([\#|include|includeAll]*\()?([A-Za-z\._]+)(\|)?([A-Za-z0-9\._\-\=\?\&]*)?[\)]?\}/){
+        |match|
+        functionMarker = $1
+        defaultValueMarker = $3
+        defaultValue = $4
+        # This must be after the other lines so it doesn't overwrite the special variables
+        r = @transform_values_method.call($2.split("."))
         
-        "#{line_keys[0][0]}=#{@fixed_replacements[line_keys[0][0]]}"
-      else
-        line.gsub!(/@\{(\#\()?([A-Za-z\._]+)(\|)?([A-Za-z0-9\._\-\=\?\&]*)?(\))?\}/){
-          |match|
-          functionMarker = $1
-          orMarker = $3
-          orValue = $4
-          r = method.call($2.split("."))
+        # Replace this line with the content of a template 
+        # returned by the template variable
+        if functionMarker == "include("
+          pattern = r
+          r = []
+          find_templates([pattern]).each {
+            |template_files|
+            template_files.each{
+              |template|
+              r << transform_file(template)
+              r << ""
+            }
+          }
           
+          r = r.join("\n")
+        # Replace this line with the content of all templates found based
+        # on a list of search patterns returned by the template variable
+        elsif functionMarker == "includeAll("
+          patterns = r
+          r = []
+          find_templates(patterns).each {
+            |template_files|
+            template_files.each{
+              |template|
+              r << transform_file(template)
+              r << ""
+            }
+          }
+          
+          r = r.join("\n")
+        else
           if r.is_a?(Array)
             r = r.join(',')
           end
-          
-          if r.to_s() == "" && orMarker == "|"
-            r = orValue
+        
+          # There is no returned value and a default is available
+          if r.to_s() == "" && defaultValueMarker == "|"
+            r = defaultValue
           end
-          
+        
+          # This function will create a comment if the template variable is empty
           if functionMarker == "#("
             if r.to_s() == ""
               r = "#"
@@ -197,26 +223,164 @@ class Transformer
               r = ""
             end
           end
-          
-          r
-        }
-        
-        line_keys = line.scan(/^[#]?([a-zA-Z0-9\._-]+)[ ]*=(.*)/)
-        if line_keys.size > 0
-          if @fixed_additions.has_key?(line_keys[0][0])
-            line_keys[0][1] += @fixed_additions[line_keys[0][0]]
-            line = line_keys[0][0] + "=" + line_keys[0][1]
-          end
-        
-          if @fixed_matches.has_key?(line_keys[0][0])
-            line_keys[0][1].sub!(Regexp.new(@fixed_matches[line_keys[0][0]][0]), @fixed_matches[line_keys[0][0]][1])
-            line = line_keys[0][0] + "=" + line_keys[0][1]
-          end
         end
         
-        line
+        r
+      }
+      
+      line_keys = line.scan(/^[#]?([a-zA-Z0-9\._-]+)[ ]*=(.*)/)
+      if line_keys.size > 0
+        # Append content to this line based on the --property=key+=value
+        if @fixed_additions.has_key?(line_keys[0][0])
+          line_keys[0][1] += @fixed_additions[line_keys[0][0]]
+          line = line_keys[0][0] + "=" + line_keys[0][1]
+        end
+      
+        # Modify content on this line based on the --property=key~=value
+        if @fixed_matches.has_key?(line_keys[0][0])
+          line_keys[0][1].sub!(Regexp.new(@fixed_matches[line_keys[0][0]][0]), @fixed_matches[line_keys[0][0]][1])
+          line = line_keys[0][0] + "=" + line_keys[0][1]
+        end
+      end
+      
+      line
+    end
+  end
+  
+  # Read the contents of a file and transform each line using the current Transformer
+  def transform_file(path)
+    out = []
+    File.open(path) do |file|
+      while line = file.gets
+        out << transform_line(line.chomp())
+      end
+    end
+    
+    return out.join("\n")
+  end
+  
+  # Evaluate the template and push the contents to the outfile
+  # If no file was given then the contents are returned as a string
+  def output
+    @output.map!{
+      |line|
+      transform_line(line)
+    }
+    
+    if @outfile
+      Configurator.instance.info("Writing " + @outfile)
+      File.open(@outfile, "w") {
+        |f|
+        if mode() != nil
+          f.chmod(mode())
+        end
+        
+        if timestamp?()
+          f.puts "# AUTO-GENERATED: #{DateTime.now}"
+        end
+
+        @output.each{
+          |line| 
+          f.puts(line) 
+        }
+      }
+      
+      if watch_file?()
+        WatchFiles.watch_file(@outfile, @config)
+      end
+    else
+      return self.to_s
+    end
+  end
+  
+  # Find a template matching the given pattern and store the contents
+  # to be evaluated later
+  def set_template(pattern)
+    if File.expand_path(pattern) == pattern
+      raise MessageError.new("Unable to use '#{pattern}' as a template because it is an absolute path.")
+    end
+    
+    @output = []
+    find_templates([pattern]).each{
+      |template_files|
+      template_files.each{
+        |path|
+        File.open(path) do |file|
+          while line = file.gets
+            @output << line.chomp()
+          end
+        end
+      }
+    }
+  end
+  
+  # Find additional template content that should be added to the final file
+  def find_template_addons(pattern)
+    addons = []
+    
+    get_search_directories().each {
+      |dir|
+      Dir.glob("#{dir}/#{pattern}.addon*").each {
+        |file|
+        addons << file
+      }
+    }
+    
+    addons
+  end
+  
+  # Find a list of files matching the given search patterns among the available
+  # template search directories. Only the first file for each basename
+  # will be returned.
+  def find_templates(search)
+    templates = {}
+    
+    get_search_directories().each {
+      |dir|
+      search.each {
+        |pattern|
+        Dir.glob("#{dir}/#{pattern}") {
+          |file|
+          base = File.basename(file)
+          
+          # Do not store the file if it is a duplicate of another template
+          unless templates.has_key?(base)
+            templates[base] = [file] + find_template_addons(file[dir.length+1, file.length])
+          end
+        }
+      }
+    }
+    
+    # Sort and return the files as an array
+    template_files = []
+    templates.keys().sort().each{
+      |k|
+      template_files << templates[k]
+    }
+    
+    if template_files.size() == 0
+      raise MessageError.new("Unable to find a template file for '#{search}'")
+    end
+    
+    template_files
+  end
+  
+  # Get an array of directories that may contain template files
+  def get_search_directories
+    dirs = []
+    
+    # Add any additional search paths that may be provided
+    @config.getProperty(TEMPLATE_SEARCH_PATH).split(",").each {
+      |path|
+      if File.exists?(path) && File.directory?(path)
+        dirs << path
       end
     }
+    
+    # These are the fallback locations for templates
+    dirs << "#{@config.getProperty(HOME_DIRECTORY)}/share/templates"
+    dirs << @config.getProperty(PREPARE_DIRECTORY)
+    dirs
   end
   
   def get_filename

@@ -205,11 +205,6 @@ module ConfigureMessages
                 Configurator.instance.output(help.join("\n"))
               end
         
-              # Disable this section for now
-              if $host_error.check.support_remote_fix && Configurator.instance.is_interactive?() && false
-                execute_fix = input_value("Do you want the script to automatically fix this?", "false")
-              end
-        
               unless help == nil || help.empty?()
                 Configurator.instance.write_divider(Logger::ERROR)
               end

@@ -84,7 +84,7 @@ end
 module ResetClusterDeploymentStep
   def get_methods
     [
-      ConfigureCommitmentMethod.new("set_maintenance_policy", ConfigureDeployment::FIRST_GROUP_ID, 0),
+      ConfigureCommitmentMethod.new("set_maintenance_policy", ConfigureDeploymentStepMethod::FIRST_GROUP_ID, 0),
       ConfigureCommitmentMethod.new("stop_replication_services", -1, 0),
       ConfigureCommitmentMethod.new("clear_dynamic_properties", 0, 0),
       ConfigureCommitmentMethod.new("rotate_logs", 0, 0),
@@ -92,7 +92,7 @@ module ResetClusterDeploymentStep
       ConfigureCommitmentMethod.new("reset_replication_services", 0, 2),
       ConfigureCommitmentMethod.new("wait_for_manager", 2, -1),
       ConfigureCommitmentMethod.new("set_original_policy", 4, 2),
-      ConfigureCommitmentMethod.new("report_services", ConfigureDeployment::FINAL_GROUP_ID, ConfigureDeployment::FINAL_STEP_WEIGHT, false)
+      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false)
     ]
   end
   module_function :get_methods
@@ -157,58 +157,7 @@ module ResetClusterDeploymentStep
     end
     
     if is_manager?()
-      @config.getPropertyOr(DATASERVICES, {}).keys().each{
-        |comp_ds_alias|
-
-        if comp_ds_alias == DEFAULTS
-          next
-        end
-
-        if @config.getProperty([DATASERVICES, comp_ds_alias, DATASERVICE_IS_COMPOSITE]) == "false"
-          next
-        end
-
-        unless include_dataservice?(comp_ds_alias)
-          next
-        end
-
-        mkdir_if_absent("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/cluster-home/conf/cluster/#{comp_ds_alias}/service")
-        mkdir_if_absent("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/cluster-home/conf/cluster/#{comp_ds_alias}/datasource")
-        mkdir_if_absent("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/cluster-home/conf/cluster/#{comp_ds_alias}/extension")
-
-        @config.getProperty([DATASERVICES, comp_ds_alias, DATASERVICE_COMPOSITE_DATASOURCES]).to_s().split(",").each{
-          |ds_alias|
-          
-          path = "#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/cluster-home/conf/cluster/#{comp_ds_alias}/datasource/#{ds_alias}.properties"
-          unless File.exist?(path)
-            if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_RELAY_SOURCE]).to_s() != ""
-              ds_role = "slave"
-            else
-              ds_role = "master"
-            end
-            
-            File.open(path, "w") {
-              |f|
-              f.puts "
-appliedLatency=-1.0
-precedence=1
-name=#{ds_alias}
-state=OFFLINE
-url=jdbc\:t-router\://#{ds_alias}/${DBNAME}
-alertMessage=
-isAvailable=true
-role=#{ds_role}
-isComposite=true
-alertStatus=OK
-alertTime=#{Time.now().strftime("%s000")}
-dataServiceName=#{comp_ds_alias}
-vendor=continuent
-driver=com.continuent.tungsten.router.jdbc.TSRDriver
-host=#{ds_alias}"
-            }
-          end
-        }
-      }
+      initiate_composite_dataservices()
     end
   end
 end

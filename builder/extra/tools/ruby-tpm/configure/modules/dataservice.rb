@@ -14,9 +14,6 @@ class ReplicationServices < GroupConfigurePrompt
   end
 end
 
-# Prompts that include this module will be collected for each dataservice 
-# across interactive mode, the configure-service script and the
-# tungsten-installer script
 module ReplicationServicePrompt
   include GroupConfigurePromptMember
   include HashPromptDefaultsModule
@@ -114,7 +111,6 @@ class ReplicationServiceDeploymentHost < ConfigurePrompt
     super(DEPLOYMENT_HOST, 
       "On what host would you like to deploy this replication service?", 
       PV_IDENTIFIER)
-    @weight = -1
   end
   
   def get_disabled_value
@@ -325,9 +321,9 @@ class ReplicationServiceTHLMaster < ConfigurePrompt
     super() && [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
-      return super(transform_values_method)
+      return super()
     else
       relay_source = @config.getProperty(get_dataservice_key(DATASERVICE_RELAY_SOURCE))
       
@@ -357,14 +353,14 @@ class ReplicationServiceTHLMasterPort < ConfigurePrompt
     super() && [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if [REPL_ROLE_S, REPL_ROLE_ARCHIVE].include?(@config.getProperty(get_member_key(REPL_ROLE)))
-      return super(transform_values_method)
+      return super()
     else
       relay_source = @config.getProperty(get_dataservice_key(DATASERVICE_RELAY_SOURCE))
       
       if relay_source.to_s == ""
-        return super(transform_values_method)
+        return super()
       else
         return @config.getProperty([DATASERVICES, relay_source, DATASERVICE_THL_PORT])
       end
@@ -384,7 +380,7 @@ class ReplicationServiceTHLMasterURI < ConfigurePrompt
     super(REPL_MASTER_URI, "Master THL URI", PV_ANY)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     topology = Topology.build(get_dataservice_alias(), @config)
     return topology.get_master_thl_uri(get_host_alias())
   end
@@ -842,7 +838,7 @@ class BackupScriptCommandPrefixConfigurePrompt < BackupConfigurePrompt
     @default = @config.getPropertyOr(get_host_key(ROOT_PREFIX), "false")
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if get_value() == "true"
       "sudo -n"
     else
@@ -1194,23 +1190,14 @@ class ReplicationServiceApplierConfig < ConfigurePrompt
     super(REPL_SVC_APPLIER_CONFIG, "Replication service applier config properties")
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if @config.getProperty(PREFETCH_ENABLED) == "true"
-      template = @config.getProperty(PREPARE_DIRECTORY) + "/" + 
-        "tungsten-replicator/samples/conf/appliers/prefetch.tpl"
+      "tungsten-replicator/samples/conf/appliers/prefetch.tpl"
     elsif @config.getProperty(BATCH_ENABLED) == "true"
-      template = @config.getProperty(PREPARE_DIRECTORY) + "/" + 
-        "tungsten-replicator/samples/conf/appliers/batch.tpl"
+      "tungsten-replicator/samples/conf/appliers/batch.tpl"
     else
-      template = @config.getProperty(PREPARE_DIRECTORY) + "/" + 
-        get_applier_datasource().get_applier_template()
+      get_applier_datasource().get_applier_template()
     end
-    
-    transformer = Transformer.new(template)
-    transformer.set_fixed_properties(@config.getProperty(get_member_key(FIXED_PROPERTY_STRINGS)))
-    transformer.transform_values(transform_values_method)
-    
-    return transformer.to_s
   end
 end
 
@@ -1222,13 +1209,8 @@ class ReplicationServiceExtractorConfig < ConfigurePrompt
     super(REPL_SVC_EXTRACTOR_CONFIG, "Replication service extractor config properties")
   end
   
-  def get_template_value(transform_values_method)
-    transformer = Transformer.new(@config.getProperty(PREPARE_DIRECTORY) + "/" + 
-      get_extractor_datasource().get_extractor_template())
-    transformer.set_fixed_properties(@config.getTemplateValue(get_member_key(FIXED_PROPERTY_STRINGS)))
-    transformer.transform_values(transform_values_method)
-    
-    return transformer.to_s
+  def get_template_value
+    get_extractor_datasource().get_extractor_template()
   end
 end
 
@@ -1240,36 +1222,16 @@ class ReplicationServiceFilterConfig < ConfigurePrompt
     super(REPL_SVC_FILTER_CONFIG, "Replication service filter config properties")
   end
   
-  def get_template_value(transform_values_method)
-    output_lines = []
-    
-    Dir[@config.getProperty(PREPARE_DIRECTORY) + '/tungsten-replicator/samples/conf/filters/default/*.tpl'].sort().each do |file| 
-      transformer = Transformer.new(file)
-      transformer.set_fixed_properties(@config.getTemplateValue(get_member_key(FIXED_PROPERTY_STRINGS)))
-      transformer.transform_values(transform_values_method)
-      
-      output_lines = output_lines + transformer.to_a + [""]
-    end
+  def get_template_value
+    patterns = []
+    patterns << "tungsten-replicator/samples/conf/filters/default/*.tpl"
     
     if get_applier_datasource().class != get_extractor_datasource.class
-      Dir[@config.getProperty(PREPARE_DIRECTORY) + "/tungsten-replicator/samples/conf/filters/#{get_extractor_datasource().get_uri_scheme()}/*.tpl"].sort().each do |file| 
-        transformer = Transformer.new(file)
-        transformer.set_fixed_properties(@config.getTemplateValue(get_member_key(FIXED_PROPERTY_STRINGS)))
-        transformer.transform_values(transform_values_method)
-      
-        output_lines = output_lines + transformer.to_a + [""]
-      end
+      patterns << "tungsten-replicator/samples/conf/filters/#{get_extractor_datasource().get_uri_scheme()}/*.tpl"
     end
     
-    Dir[@config.getProperty(PREPARE_DIRECTORY) + "/tungsten-replicator/samples/conf/filters/#{get_applier_datasource().get_uri_scheme()}/*.tpl"].sort().each do |file| 
-      transformer = Transformer.new(file)
-      transformer.set_fixed_properties(@config.getTemplateValue(get_member_key(FIXED_PROPERTY_STRINGS)))
-      transformer.transform_values(transform_values_method)
-      
-      output_lines = output_lines + transformer.to_a + [""]
-    end
-    
-    return output_lines.join("\n")
+    patterns << "tungsten-replicator/samples/conf/filters/#{get_applier_datasource().get_uri_scheme()}/*.tpl"
+    patterns
   end
 end
 
@@ -1281,26 +1243,11 @@ class ReplicationServiceBackupConfig < ConfigurePrompt
     super(REPL_SVC_BACKUP_CONFIG, "Replication service backup config properties")
   end
   
-  def get_template_value(transform_values_method)
-    output_lines = []
-    
-    Dir[@config.getProperty(PREPARE_DIRECTORY) + '/tungsten-replicator/samples/conf/backup_methods/default/*.tpl'].sort().each do |file| 
-      transformer = Transformer.new(file)
-      transformer.set_fixed_properties(@config.getTemplateValue(get_member_key(FIXED_PROPERTY_STRINGS)))
-      transformer.transform_values(transform_values_method)
-      
-      output_lines = output_lines + transformer.to_a + [""]
-    end
-    
-    Dir[@config.getProperty(PREPARE_DIRECTORY) + "/tungsten-replicator/samples/conf/backup_methods/#{get_applier_datasource().get_uri_scheme()}/*.tpl"].sort().each do |file| 
-      transformer = Transformer.new(file)
-      transformer.set_fixed_properties(@config.getTemplateValue(get_member_key(FIXED_PROPERTY_STRINGS)))
-      transformer.transform_values(transform_values_method)
-      
-      output_lines = output_lines + transformer.to_a + [""]
-    end
-    
-    return output_lines.join("\n")
+  def get_template_value
+    patterns = []
+    patterns << "tungsten-replicator/samples/conf/backup_methods/default/*.tpl"
+    patterns << "tungsten-replicator/samples/conf/backup_methods/#{get_applier_datasource().get_uri_scheme()}/*.tpl"
+    patterns
   end
 end
 
@@ -1312,7 +1259,7 @@ class ReplicationServiceExtractorFilters < ConfigurePrompt
     super(REPL_SVC_EXTRACTOR_FILTERS, "Replication service extractor filters")
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     (get_extractor_datasource().get_extractor_filters() + get_value().to_s().split(",")).join(",")
   end
   
@@ -1329,7 +1276,7 @@ class ReplicationServiceTHLFilters < ConfigurePrompt
     super(REPL_SVC_THL_FILTERS, "Replication service THL filters")
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     (get_value().to_s().split(",") + get_extractor_datasource().get_thl_filters()).join(",")
   end
   
@@ -1346,7 +1293,7 @@ class ReplicationServiceApplierFilters < ConfigurePrompt
     super(REPL_SVC_APPLIER_FILTERS, "Replication service applier filters")
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     (get_value().to_s().split(",") + get_applier_datasource().get_applier_filters()).join(",")
   end
   
@@ -1620,7 +1567,7 @@ class ReplicationServiceExtractorInitScript < ConfigurePrompt
     super(REPL_SVC_DATASOURCE_EXTRACTOR_INIT_SCRIPT, "SQL commands to run when connecting to the datasource extractor", PV_FILENAME)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     v = get_value()
     
     if v.to_s() != ""
@@ -1669,7 +1616,7 @@ class ReplicationServiceApplierInitScript < ConfigurePrompt
     super(REPL_SVC_DATASOURCE_APPLIER_INIT_SCRIPT, "SQL commands to run when connecting to the datasource applier", PV_FILENAME)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     v = get_value()
     
     if v.to_s() != ""
@@ -1718,7 +1665,7 @@ class ReplicationServiceTHLInitScript < ConfigurePrompt
     super(REPL_SVC_DATASOURCE_THL_INIT_SCRIPT, "SQL commands to run when connecting to the datasource thl", PV_FILENAME)
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     v = get_value()
     
     if v.to_s() != ""

@@ -19,7 +19,6 @@ class ConfigurePromptHandler
       |prompt_obj| 
       register_prompt(prompt_obj)
     }
-    @prompts = @prompts.sort{|a,b| a.get_weight <=> b.get_weight}
   end
   
   def register_prompts(prompt_objs)
@@ -40,100 +39,6 @@ class ConfigurePromptHandler
     
     @prompts.push(prompt_obj)
     @key_index[prompt_obj.name] = prompt_obj
-  end
-  
-  # Loop over each ConfigurePrompt object and collect the response
-  def run()
-    i = 0
-    previous_prompts = []
-    
-    display_help()
-    
-    # Go through each prompt in the system and collect a value for it
-    while i < @prompts.length
-      begin
-        Configurator.instance.debug("Start prompt #{@prompts[i].class().name()}:#{@prompts[i].get_name()}")
-        @prompts[i].run()
-        Configurator.instance.debug("Finish prompt #{@prompts[i].class().name()}:#{@prompts[i].get_name()}")
-        if @prompts[i].allow_previous?()
-          previous_prompts.push(i)
-        end
-        i += 1
-      rescue ConfigureSaveConfigAndExit => csce
-        # Pass the request to save and exit up the chain untouched
-        raise csce
-      rescue ConfigureAcceptAllDefaults
-        force_default_prompt = false
-        
-        fix_default_value = lambda do ||
-          begin
-            # Prompt the user because the default value is invalid
-            @prompts[i].run
-            if @prompts[i].allow_previous?
-              previous_prompts.push(i)
-            end
-            i += 1
-            force_default_prompt = false
-          rescue ConfigureSaveConfigAndExit => csce
-            # Pass the request to save and exit up the chain untouched
-            raise csce
-          rescue ConfigureAcceptAllDefaults
-            # We are already trying to do this
-            puts "The current prompt does not have a valid default, please provide a value"
-            redo
-          rescue ConfigurePreviousPrompt
-            previous_prompt = previous_prompts.pop()
-            if previous_prompt == nil
-              puts "Unable to move to the previous prompt"
-            else
-              i = previous_prompt
-              force_default_prompt = true
-            end
-          end
-        end
-        
-        # Store the default value for this and all remaining prompts
-        Configurator.instance.write "Accepting the default value for all remaining prompts"
-        while i < @prompts.length do
-          unless @prompts[i].enabled_for_config?
-            # Clear the config value because the prompt is disabled
-            @prompts[i].save_disabled_value()
-          else
-            @prompts[i].save_current_value()
-          end
-          
-          unless @prompts[i].enabled?
-            i += 1
-          else
-            begin
-              # Trigger the prompt to be run because the user requested it
-              if force_default_prompt
-                raise PropertyValidatorException
-              end
-              
-              # Ensure that the value is valid 
-              @prompts[i].validate()
-              unless @prompts[i].is_valid?
-                raise ConfigurePromptError.new(self, "")
-              end
-              
-              i += 1
-            rescue ConfigurePromptError => e
-              fix_default_value.call()
-            rescue ConfigurePromptErrorSet => s
-              fix_default_value.call()
-            end
-          end
-        end
-      rescue ConfigurePreviousPrompt
-        previous_prompt = previous_prompts.pop()
-        if previous_prompt == nil
-          puts "Unable to move to the previous prompt"
-        else
-          i = previous_prompt
-        end
-      end
-    end
   end
     
   def validate()
@@ -236,7 +141,7 @@ class ConfigurePromptHandler
   def output_update_components
     @prompts.each{
       |prompt|
-       prompt.output_update_components()
+      prompt.output_update_components()
     }
   end
   
@@ -280,11 +185,11 @@ class ConfigurePromptHandler
     nil
   end
   
-  def find_template_value(attrs, transform_values_method)
+  def find_template_value(attrs)
     prompt = @key_index[attrs[0]]
     if prompt != nil
       begin
-        return prompt.find_template_value(attrs, transform_values_method)
+        return prompt.find_template_value(attrs)
       rescue IgnoreError
         #Do Nothing
       end
@@ -379,13 +284,9 @@ class ConfigurePromptError < StandardError
     Configurator.instance.error "> Message: #{@message}"
     
     arg = @prompt.get_command_line_argument
-    if Configurator.instance.is_interactive?
-      Configurator.instance.error "> Prompt: #{@prompt.get_display_prompt()}"
-    else
-      if @prompt.enabled_for_command_line?
-        arg = @prompt.get_command_line_argument
-        Configurator.instance.error "> Argument: --#{arg}"
-      end
+    if @prompt.enabled_for_command_line?
+      arg = @prompt.get_command_line_argument
+      Configurator.instance.error "> Argument: --#{arg}"
     end
     
     if @current_value.to_s() != ""

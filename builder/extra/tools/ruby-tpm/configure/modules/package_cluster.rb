@@ -14,8 +14,6 @@ module ClusterCommandModule
       DeploymentExternalConfigurationSourcePrompt.new(),
       DeploymentConfigurationKeyPrompt.new(),
       RemotePackagePath.new(),
-      DeployCurrentPackagePrompt.new(),
-      DeployPackageURIPrompt.new(),
       DeploymentHost.new(),
       StagingHost.new(),
       StagingUser.new(),
@@ -1290,13 +1288,6 @@ module ClusterCommandModule
       return nil
     end
     
-    if config_obj.getProperty(DEPLOY_PACKAGE_URI)
-      uri = URI::parse(config_obj.getProperty(DEPLOY_PACKAGE_URI))
-      package_basename = File.basename(uri.path)
-    else
-      uri = nil
-    end
-    
     config_obj.setProperty(DEPLOYMENT_HOST, host_alias)
     
     unless Configurator.instance.is_locked?()
@@ -1503,11 +1494,6 @@ module ClusterCommandModule
         (config_obj.getNestedPropertyOr(path, {}).has_key?(g_alias) != true)
       }
     }
-    
-    if uri && uri.scheme == "file" && (uri.host == nil || uri.host == "localhost") && !(Configurator.instance.is_localhost?(@config.getProperty([HOSTS, host_alias, HOST])))
-      config_obj.setProperty(GLOBAL_DEPLOY_PACKAGE_URI, @config.getProperty(DEPLOY_PACKAGE_URI))
-      config_obj.setProperty(DEPLOY_PACKAGE_URI, "file://localhost#{config_obj.getProperty([HOSTS, host_alias, TEMP_DIRECTORY])}/#{package_basename}")
-    end
     
     if !(Configurator.instance.is_localhost?(config_obj.getProperty([HOSTS, host_alias, HOST])))
       if config_obj.getProperty([HOSTS, host_alias, REPL_MYSQL_CONNECTOR_PATH])

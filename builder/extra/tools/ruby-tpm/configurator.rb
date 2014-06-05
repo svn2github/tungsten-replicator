@@ -31,7 +31,6 @@ system_require 'properties'
 system_require 'stringio'
 system_require 'open-uri'
 system_require 'open4'
-system_require 'configure/is_tools_package'
 system_require 'configure/parameter_names'
 system_require 'configure/configure_messages'
 system_require 'configure/configure_prompt_handler'
@@ -43,7 +42,6 @@ system_require 'configure/validation_check_interface'
 system_require 'configure/configure_validation_check'
 system_require 'configure/group_validation_check'
 system_require 'configure/configure_deployment_handler'
-system_require 'configure/configure_deployment'
 system_require 'configure/configure_command'
 system_require 'configure/database_platform'
 system_require 'configure/cctrl'
@@ -991,11 +989,7 @@ class Configurator
   end
   
   def get_base_path
-    if is_full_tungsten_package?()
-      File.expand_path(File.dirname(__FILE__) + "/../../")
-    else
-      File.expand_path(File.dirname(__FILE__) + "/../")
-    end
+    File.expand_path(File.dirname(__FILE__) + "/../../")
   end
   
   def get_log_filename
@@ -1027,25 +1021,8 @@ class Configurator
     end
   end
   
-  def get_package_path
-    if is_full_tungsten_package?()
-      get_base_path()
-    else
-      runtime_path = File.expand_path(get_base_path() + "/.runtime/" + get_release_name())
-      if File.exists?(runtime_path)
-        return runtime_path
-      else
-        return nil
-      end
-    end
-  end
-  
   def get_ruby_prefix
-    if is_full_tungsten_package?()
-      "tools/ruby"
-    else
-      "ruby"
-    end
+    "tools/ruby"
   end
   
   def get_basename
@@ -1078,10 +1055,6 @@ class Configurator
   
   def get_lock_filename
     "#{get_base_path()}/#{DIRECTORY_LOCK_FILENAME}"
-  end
-  
-  def is_full_tungsten_package?
-    (IS_TOOLS_PACKAGE==false)
   end
   
   def get_manifest_file_path
@@ -1210,10 +1183,6 @@ class Configurator
   
   def advanced_mode?
     @command.advanced?()
-  end
-  
-  def is_interactive?
-    @command.interactive?()
   end
   
   def forced?

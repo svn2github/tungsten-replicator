@@ -637,31 +637,21 @@ module ConfigureDeploymentStepPostgreSQLWAL
       write_wal_shipping_properties()
       write_svc_properties("postgresql", @config.getProperty(REPL_BOOT_SCRIPT))
       
-      transformer = Transformer.new(
-  		  "#{get_deployment_basedir()}/tungsten-manager/samples/conf/checker.postgresqlserver.properties.tpl",
-  			"#{get_deployment_basedir()}/tungsten-manager/conf/checker.postgresqlserver.properties", "#")
-  	  transformer.transform_values(method(:transform_replication_dataservice_values))
-      transformer.output
-      watch_file(transformer.get_filename())
+      transform_service_template("tungsten-manager/conf/checker.postgresqlserver.properties",
+        "tungsten-manager/samples/conf/checker.postgresqlserver.properties.tpl")
     end
     
     super()
   end
   
   def write_wal_shipping_properties()
-    transformer = Transformer.new(
-        "#{get_deployment_basedir()}/tungsten-replicator/samples/conf/postgresql-wal.properties.tpl",
-        "#{get_deployment_basedir()}/tungsten-replicator/conf/postgresql-wal.properties", "# ")
-    
-    transformer.set_fixed_properties(@config.getTemplateValue(get_host_key(FIXED_PROPERTY_STRINGS)))
-    transformer.transform_values(method(:transform_replication_dataservice_values))
-    transformer.output
-    watch_file(transformer.get_filename())
+    transform_service_template("tungsten-replicator/conf/postgresql-wal.properties",
+      "tungsten-replicator/samples/conf/postgresql-wal.properties.tpl")
   end
   
   def get_replication_dataservice_template()
     if [PG_REPL_METHOD_STREAMING, PG_REPL_METHOD_SHIPPING].include?(@config.getProperty(REPL_PG_METHOD))
-      "#{get_deployment_basedir()}/tungsten-replicator/samples/conf/replicator.properties.postgresql.tpl"
+      "tungsten-replicator/samples/conf/replicator.properties.postgresql.tpl"
     else
       super()
     end

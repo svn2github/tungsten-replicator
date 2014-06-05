@@ -6,7 +6,6 @@ class GroupValidationCheck
     @group_checks = []
     @name = name.to_s()
     @config = nil
-    @weight = 0
     @singular = singular.to_s().downcase()
     @plural = plural.to_s().downcase()
     
@@ -122,11 +121,6 @@ module GroupValidationCheckMember
   # Assign the current member for this prompt
   def set_member(member_name)
     @member_name = member_name
-  end
-  
-  # Reset the member assignment for this prompt
-  def clear_member
-    @member_name = nil
   end
   
   # Return the current member or the defaults member if none is set

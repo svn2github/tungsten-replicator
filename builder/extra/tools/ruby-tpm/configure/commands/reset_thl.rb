@@ -84,14 +84,14 @@ end
 module ResetTHLDeploymentStep
   def get_methods
     [
-      ConfigureCommitmentMethod.new("set_maintenance_policy", ConfigureDeployment::FIRST_GROUP_ID, 0),
+      ConfigureCommitmentMethod.new("set_maintenance_policy", ConfigureDeploymentStepMethod::FIRST_GROUP_ID, 0),
       ConfigureCommitmentMethod.new("stop_replication_services", -1, 0),
       ConfigureCommitmentMethod.new("rotate_logs", 0, 0),
       ConfigureCommitmentMethod.new("start_replication_services_offline", 0, 1),
       ConfigureCommitmentMethod.new("reset_replication_services", 0, 2),
       ConfigureCommitmentMethod.new("wait_for_manager", 2, -1),
       ConfigureCommitmentMethod.new("set_original_policy", 4, 2),
-      ConfigureCommitmentMethod.new("report_services", ConfigureDeployment::FINAL_GROUP_ID, ConfigureDeployment::FINAL_STEP_WEIGHT, false)
+      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false)
     ]
   end
   module_function :get_methods

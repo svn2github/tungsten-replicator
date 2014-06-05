@@ -33,7 +33,6 @@ class OpensslLibraryCheck < ConfigureValidationCheck
     @title = "OpenSSL Library Check"
     @description = "Look for the Ruby OpenSSL library needed to connecto to remote hosts"
     @fatal_on_error = true
-    @weight = -10
   end
   
   def validate
@@ -59,7 +58,6 @@ class SSHLoginCheck < ConfigureValidationCheck
     @description = "Ensure that the configuration host can login to each member of the dataservice via SSH"
     @properties << USERID
     @fatal_on_error = true
-    @weight = -5
   end
   
   def validate
@@ -298,32 +296,6 @@ class WriteableHomeDirectoryCheck < ConfigureValidationCheck
   end
 end
 
-class DeploymentPackageCheck < ConfigureValidationCheck
-  include ClusterHostCheck
-  include LocalValidationCheck
-  
-  def set_vars
-    @title = "Deployment package"
-  end
-  
-  def validate
-    uri = URI::parse(@config.getProperty(GLOBAL_DEPLOY_PACKAGE_URI))
-    if uri.scheme == "file" && (uri.host == nil || uri.host == "localhost")
-      debug("Send deployment package to #{@config.getProperty(HOST)}")
-      user = @config.getProperty(USERID)
-      ssh_user = Configurator.instance.get_ssh_user(user)
-      cmd_result("rsync -Caze ssh --delete #{uri.path} #{ssh_user}@#{@config.getProperty(HOST)}:#{@config.getProperty(TEMP_DIRECTORY)}")
-      if user != ssh_user
-        ssh_result("chown -R #{user} #{@config.getProperty(TEMP_DIRECTORY)}/#{File.basename(uri.path)}", @config.getProperty(HOST), ssh_user)
-      end
-    end
-  end
-  
-  def enabled?
-    @config.getProperty(DEPLOY_PACKAGE_URI) && !(Configurator.instance.is_localhost?(@config.getProperty(HOST)))
-  end
-end
-
 class RubyVersionCheck < ConfigureValidationCheck
   include ClusterHostCheck
   include LocalValidationCheck
@@ -550,28 +522,6 @@ class HostnameCheck < ConfigureValidationCheck
       error "Hostname must be #{@config.getProperty(HOST)}, or change the configuration to use #{Configurator.instance.hostname()}"
     else
       debug "Hostname is OK"
-    end
-  end
-end
-
-class PackageDownloadCheck < ConfigureValidationCheck
-  include ClusterHostCheck
-  
-  def set_vars
-    @title = "Package download check"
-  end
-  
-  def validate
-    if @config.getProperty(DEPLOY_PACKAGE_URI) != nil
-      uri = URI::parse(@config.getProperty(DEPLOY_PACKAGE_URI))
-      if uri.scheme == "http" || uri.scheme == "https"
-        success_lines_count = cmd_result("curl -I -s -k #{@config.getProperty(DEPLOY_PACKAGE_URI)} | grep HTTP | grep 200 | wc -l")
-        if success_lines_count.to_i() == 1
-          info("The package download link is accessible")
-        else
-          error("The package download link is not accessible")
-        end
-      end
     end
   end
 end

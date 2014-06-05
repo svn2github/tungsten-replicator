@@ -318,7 +318,7 @@ replicator.store.parallel-queue.syncInterval=10000
 # EXTRACTORS #
 ##############
 
-@{REPL_SVC_EXTRACTOR_CONFIG}
+@{include(REPL_SVC_EXTRACTOR_CONFIG)}
 
 # Local THL extractor. 
 replicator.extractor.thl-extractor=com.continuent.tungsten.replicator.thl.THLStoreExtractor
@@ -363,7 +363,7 @@ replicator.extractor.parallel-q-extractor.storeName=parallel-queue
 # APPLIERS #
 ############
 
-@{REPL_SVC_APPLIER_CONFIG}
+@{include(REPL_SVC_APPLIER_CONFIG)}
 
 # Local THL applier. 
 replicator.applier.thl-applier=com.continuent.tungsten.replicator.thl.THLStoreApplier
@@ -381,7 +381,7 @@ replicator.applier.parallel-q-applier.storeName=parallel-queue
 # FILTERS # 
 ###########
 
-@{REPL_SVC_FILTER_CONFIG}
+@{includeAll(REPL_SVC_FILTER_CONFIG)}
 
 #####################
 # PIPELINE SERVICES #
@@ -406,7 +406,7 @@ replicator.backup.agents=@{APPLIER.REPL_DBBACKUPAGENTS}
 # Default backup agent.
 replicator.backup.default=@{REPL_BACKUP_METHOD}
 
-@{REPL_SVC_BACKUP_CONFIG}
+@{includeAll(REPL_SVC_BACKUP_CONFIG)}
 
 # List of configured storage agents.  Uncomment appropriately for your site. 
 replicator.storage.agents=fs

@@ -39,7 +39,7 @@ class ValidateConfigCommand
   end
   
   def run
-    result = validate_config(@config)
+    result = get_validation_handler().validate_config(@config)
     
     # Remove the config object so that the dump/load process is faster
     result.clean()

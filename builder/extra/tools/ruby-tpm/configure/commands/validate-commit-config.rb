@@ -39,7 +39,7 @@ class ValidateCommitConfigCommand
   end
     
   def run
-    result = validate_commit_config(@config)
+    result = get_validation_handler().validate_commit_config(@config)
     
     # Remove the config object so that the dump/load process is faster
     @config = nil

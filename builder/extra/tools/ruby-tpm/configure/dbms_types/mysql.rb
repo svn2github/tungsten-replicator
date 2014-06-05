@@ -382,7 +382,7 @@ class MySQLDriver < ConfigurePrompt
     end
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if get_value() == "drizzle"
       "mysql:thin"
     elsif get_value() == "mariadb"
@@ -1632,16 +1632,12 @@ module ConfigureDeploymentStepMySQL
           file.puts("datadir=#{@config.getProperty(get_service_key(REPL_MYSQL_DATADIR))}")
         end
       }
-      watch_file(@config.getProperty(get_service_key(REPL_MYSQL_SERVICE_CONF)))
+      WatchFiles.watch_file(@config.getProperty(get_service_key(REPL_MYSQL_SERVICE_CONF)), @config)
     end
     
     if is_manager?() && (get_applier_datasource().is_a?(MySQLDatabasePlatform) || get_extractor_datasource().is_a?(MySQLDatabasePlatform))
-      transformer = Transformer.new(
-  		  "#{get_deployment_basedir()}/tungsten-manager/samples/conf/checker.mysqlserver.properties.tpl",
-  			"#{get_deployment_basedir()}/tungsten-manager/conf/checker.mysqlserver.properties", "#")
-  	  transformer.transform_values(method(:transform_replication_dataservice_values))
-      transformer.output
-      watch_file(transformer.get_filename())
+      transform_service_template("tungsten-manager/conf/checker.mysqlserver.properties",
+        "tungsten-manager/samples/conf/checker.mysqlserver.properties.tpl")
       
       write_svc_properties("mysql", @config.getProperty(REPL_BOOT_SCRIPT))
       
@@ -1649,13 +1645,11 @@ module ConfigureDeploymentStepMySQL
         FileUtils.cp("#{get_deployment_basedir()}/tungsten-manager/rules-ext/mysql_readonly.service.properties", 
           "#{get_deployment_basedir()}/cluster-home/conf/cluster/#{@config.getProperty(DATASERVICENAME)}/service/mysql_readonly.properties")
     
-        transformer = Transformer.new(
-    		  "#{get_deployment_basedir()}/tungsten-manager/samples/conf/mysql_readonly.tpl",
-    			"#{get_deployment_basedir()}/cluster-home/bin/mysql_readonly", "#")
-    	  transformer.transform_values(method(:transform_replication_dataservice_values))
-        transformer.output
-        watch_file(transformer.get_filename())
-        File.chmod(0750, "#{get_deployment_basedir()}/cluster-home/bin/mysql_readonly")
+        service_transformer("cluster-home/bin/mysql_readonly") {
+          |t|
+          t.mode(0750)
+          t.set_template("tungsten-manager/samples/conf/mysql_readonly.tpl")
+        }
       else
         FileUtils.rm_f("#{get_deployment_basedir()}/cluster-home/conf/cluster/#{@config.getProperty(DATASERVICENAME)}/service/mysql_readonly.properties")
         FileUtils.rm_f("#{get_deployment_basedir()}/cluster-home/bin/mysql_readonly")

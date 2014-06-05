@@ -72,6 +72,9 @@ tpm_#{cmd.tr('-', '_')}=\"#{klass_options.join(' ')}\"
   fi
 }
 complete -o nospace -F _tpm tpm
+if [ "$EXECUTABLE_PREFIX" != "" ]; then
+	complete -F _tpm ${EXECUTABLE_PREFIX}_tpm
+fi
 EOF
 
       scripts = [
@@ -110,6 +113,9 @@ EOF
 }
 EOF
           file.printf("complete -o nospace -F #{id} #{basename}\n")
+          file.printf("if [ \"$EXECUTABLE_PREFIX\" != \"\" ]; then\n")
+          file.printf("  complete -F #{id} ${EXECUTABLE_PREFIX}_#{basename}\n")
+        	file.printf("fi\n")
         end
       }
     end

@@ -45,9 +45,9 @@ module RestartClusterDeploymentStep
   def get_methods
     [
       ConfigureCommitmentMethod.new("stop_services", -1, 0),
-      ConfigureCommitmentMethod.new("start_services", 1, ConfigureDeployment::FINAL_STEP_WEIGHT),
+      ConfigureCommitmentMethod.new("start_services", 1, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT),
       ConfigureCommitmentMethod.new("wait_for_manager", 2, -1),
-      ConfigureCommitmentMethod.new("report_services", ConfigureDeployment::FINAL_GROUP_ID, ConfigureDeployment::FINAL_STEP_WEIGHT, false)
+      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false)
     ]
   end
   module_function :get_methods

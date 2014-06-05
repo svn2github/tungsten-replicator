@@ -2,6 +2,9 @@
 
 set_tungsten_env() {
 	export CONTINUENT_ROOT=@{HOME_DIRECTORY}
+	
+	EXECUTABLE_PREFIX="@{EXECUTABLE_PREFIX}"
+	
 	if [ -z $CONTINUENT_ROOT ];
 	then
 		echo "you must have the environment variable CONTINUENT_ROOT defined"
@@ -16,8 +19,16 @@ set_tungsten_env() {
 		return 1
 	fi
 
-	export PATH=@{PREFERRED_PATH}:$PATH:$CONTINUENT_ROOT/tungsten/tungsten-manager/bin:$CONTINUENT_ROOT/tungsten/tungsten-replicator/bin:$CONTINUENT_ROOT/tungsten/tungsten-replicator/scripts:$CONTINUENT_ROOT/tungsten/cluster-home/bin:$CONTINUENT_ROOT/tungsten/tungsten-connector/bin:$CONTINUENT_ROOT/share:$CONTINUENT_ROOT/tungsten/tools
+	PREFERRED_PATH="@{PREFERRED_PATH}"
+	if [ "$PREFERRED_PATH" != "" ]; then
+		export PATH=${PREFERRED_PATH}:$PATH
+	fi
 	
+	if [ -f $CONTINUENT_ROOT/share/aliases.sh ]; then
+		. $CONTINUENT_ROOT/share/aliases.sh
+	else
+		export PATH=$PATH:$CONTINUENT_ROOT/tungsten/tungsten-manager/bin:$CONTINUENT_ROOT/tungsten/tungsten-replicator/bin:$CONTINUENT_ROOT/tungsten/tungsten-replicator/scripts:$CONTINUENT_ROOT/tungsten/cluster-home/bin:$CONTINUENT_ROOT/tungsten/tungsten-connector/bin:$CONTINUENT_ROOT/share:$CONTINUENT_ROOT/tungsten/tools
+	fi
 	
 	_cctrl()
   {
@@ -31,6 +42,9 @@ set_tungsten_env() {
     return 0
   }
 	complete -F _cctrl cctrl
+	if [ "$EXECUTABLE_PREFIX" != "" ]; then
+		complete -F _cctrl ${EXECUTABLE_PREFIX}_cctrl
+	fi
 	
 	_trepctl()
   {
@@ -68,6 +82,9 @@ set_tungsten_env() {
     fi
   }
   complete -F _trepctl trepctl
+	if [ "$EXECUTABLE_PREFIX" != "" ]; then
+		complete -F _trepctl ${EXECUTABLE_PREFIX}_trepctl
+	fi
   
   
 	_thl()
@@ -91,6 +108,9 @@ set_tungsten_env() {
     fi
   }
   complete -F _thl thl
+	if [ "$EXECUTABLE_PREFIX" != "" ]; then
+		complete -F _thl ${EXECUTABLE_PREFIX}_thl
+	fi
   
   if [ -f "${CONTINUENT_ROOT}/tungsten/tools/.tpm.complete" ]; then
     . "${CONTINUENT_ROOT}/tungsten/tools/.tpm.complete"

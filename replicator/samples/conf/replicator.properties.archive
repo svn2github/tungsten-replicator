@@ -259,7 +259,7 @@ replicator.applier.thl-applier.storeName=thl
 # FILTERS # 
 ###########
 
-@{REPL_SVC_FILTER_CONFIG}
+@{includeAll(REPL_SVC_FILTER_CONFIG)}
 
 #####################
 # PIPELINE SERVICES #

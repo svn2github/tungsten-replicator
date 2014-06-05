@@ -39,34 +39,6 @@ class Clusters < GroupConfigurePrompt
       self.add_prompt(klass.new())
     }
   end
-  
-  def get_new_alias_prompt
-    TemporaryPrompt.new("What dataservice would you like to configure?  Enter nothing to stop entering #{@plural}.")
-  end
-  
-  def add_alias(new_alias)
-    super(new_alias)
-    @config.setProperty([get_name(), new_alias, DATASERVICENAME], new_alias)
-  end
-  
-  def after_new_members
-    each_member{
-      |ds_alias|
-      dataservice_members = @config.getPropertyOr([get_name(), ds_alias, DATASERVICE_MEMBERS], "").split(",")
-      dataservice_connectors = @config.getPropertyOr([get_name(), ds_alias, DATASERVICE_CONNECTORS], "").split(",")
-      
-      dataservice_members.each{
-        |member|
-        @config.setDefault([HOSTS, to_identifier(member), DEPLOYMENT_DATASERVICE], ds_alias)
-        @config.setDefault([HOSTS, to_identifier(member), HOST], member)
-      }
-      dataservice_connectors.each{
-        |member|
-        @config.setDefault([HOSTS, to_identifier(member), DEPLOYMENT_DATASERVICE], ds_alias)
-        @config.setDefault([HOSTS, to_identifier(member), HOST], member)
-      }
-    }
-  end
 end
 
 module ClusterPrompt
@@ -525,11 +497,11 @@ class ClusterWitnesses < ConfigurePrompt
     end
   end
   
-  def get_template_value(transform_values_method)
+  def get_template_value
     if @config.getProperty(get_member_key(ENABLE_ACTIVE_WITNESSES)) == "true"
       return ""
     else
-      super(transform_values_method)
+      super()
     end
   end
 end

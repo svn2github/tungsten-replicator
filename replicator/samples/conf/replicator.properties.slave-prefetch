@@ -365,7 +365,7 @@ replicator.extractor.prefetch-queue.storeName=prefetch-queue
 # APPLIERS #
 ############
 
-@{REPL_SVC_APPLIER_CONFIG}
+@{include(REPL_SVC_APPLIER_CONFIG)}}
 
 # Local THL applier. 
 replicator.applier.thl-applier=com.continuent.tungsten.replicator.thl.THLStoreApplier
@@ -387,7 +387,7 @@ replicator.applier.prefetch-queue.storeName=prefetch-queue
 # FILTERS # 
 ###########
 
-@{REPL_SVC_FILTER_CONFIG}
+@{includeAll(REPL_SVC_FILTER_CONFIG)}
 
 ####################################################
 # ERROR-HANDLING AND CONSISTENCY-CHECKING POLICIES #

@@ -67,7 +67,7 @@ class DeploySingleConfigCommand
     if @run_group_id
       @run_group_id = @run_group_id.to_i
     end
-    result = deploy_config(Configurator.instance.get_config(), @deployment_method_class_name, @run_group_id, additional_properties)
+    result = get_deployment_object(Configurator.instance.get_config()).run(@deployment_method_class_name, @run_group_id, additional_properties)
     
     # Remove the config object so that the dump/load process is faster
     @config = nil
