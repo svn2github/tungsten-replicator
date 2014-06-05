@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2013 Continuent Inc.
+ * Copyright (C) 2009-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,10 +23,14 @@
 package com.continuent.tungsten.replicator.extractor.mysql;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.database.Column;
+import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.BigEndianConversion;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 
@@ -61,23 +65,41 @@ public class TableMapLogEvent extends LogEvent
      * </ul>
      * Source : http://forge.mysql.com/wiki/MySQL_Internals_Binary_Log
      */
-    static Logger  logger = Logger.getLogger(TableMapLogEvent.class);
+    static Logger                logger            = Logger.getLogger(TableMapLogEvent.class);
 
-    private long   tableId;
-    private int    databaseNameLength;
-    private int    tableNameLength;
-    private long   columnsCount;
+    private long                 tableId;
+    private int                  databaseNameLength;
+    private int                  tableNameLength;
+    private long                 columnsCount;
 
-    private String databaseName;
-    private String tableName;
+    private String               databaseName;
+    private String               tableName;
 
-    private byte[] columnsTypes;
+    private byte[]               columnsTypes;
 
     // Not used for now...
     // private String nullBits;
 
-    private int[]  metadata;
-    private int    metadataSize;
+    private int[]                metadata;
+    private int                  metadataSize;
+
+    // MariaDB 10 support
+    private Table                table;
+
+    private static final Pattern TIMESTAMP_PATTERN = Pattern
+                                                           .compile(
+                                                                   "timestamp(\\(([0-6])\\))?",
+                                                                   Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern DATETIME_PATTERN  = Pattern
+                                                           .compile(
+                                                                   "datetime(\\(([0-6])\\))?",
+                                                                   Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern TIME_PATTERN      = Pattern
+                                                           .compile(
+                                                                   "time(\\(([0-6])\\))?",
+                                                                   Pattern.CASE_INSENSITIVE);
 
     public long getTableId()
     {
@@ -306,8 +328,132 @@ public class TableMapLogEvent extends LogEvent
         }
         catch (IOException e)
         {
-            logger.error("Table Map event parsing failed for: " + e);
+            logger.error("Table Map event parsing failed ", e);
         }
         return;
     }
+
+    /**
+     * Add to this event the table metadata fetched from database. This is used
+     * for MariaDB 10 support. Metadata is then used to check whether
+     * datetime/time/timestamp special handling is required (subsecond
+     * precision). If so, metadata[datetime_column] is set to the number of
+     * digits of subseconds, whereas it is 0 by default.
+     * 
+     * @param table Table metadata
+     */
+    public void setTable(Table table)
+    {
+        // Table metadata
+        this.table = table;
+
+        int columnType;
+        for (Column column : table.getAllColumns())
+        {
+            columnType = -1;
+            int position = column.getPosition() - 1;
+            try
+            {
+                columnType = LittleEndianConversion.convert1ByteToInt(
+                        columnsTypes, position);
+            }
+            catch (IOException e)
+            {
+            }
+
+            Matcher matcher;
+
+            switch (columnType)
+            {
+                case MysqlBinlog.MYSQL_TYPE_DATETIME :
+                    if (logger.isDebugEnabled())
+                        logger.debug("Handling DATETIME column " + position
+                                + " / " + column.getTypeDescription());
+
+                    matcher = DATETIME_PATTERN.matcher((column
+                            .getTypeDescription()));
+                    if (matcher.matches())
+                    {
+                        if (matcher.group(1) == null)
+                        {
+                            // Handling type DATETIME with no extra precision
+                            metadata[position] = 0;
+                        }
+                        else
+                        {
+                            // Handling type DATETIME(i) with 0 <= i <= 6
+                            Integer value = Integer.valueOf(matcher.group(2));
+                            metadata[position] = (value == 0 ? -1 : value);
+                            // Note that we use metadata field which is not used
+                            // inside the binlog to describe the number of
+                            // digits for second parts
+                        }
+                    }
+                    break;
+                case MysqlBinlog.MYSQL_TYPE_TIME :
+                    if (logger.isDebugEnabled())
+                        logger.debug("Handling DATETIME column " + position
+                                + " / " + column.getTypeDescription());
+
+                    matcher = TIME_PATTERN
+                            .matcher((column.getTypeDescription()));
+                    if (matcher.matches())
+                    {
+                        if (matcher.group(1) == null)
+                        {
+                            // Handling type TIME with no extra precision
+                            metadata[position] = 0;
+                        }
+                        else
+                        {
+                            // Handling type TIME(i) with 0 <= i <= 6
+                            Integer value = Integer.valueOf(matcher.group(2));
+                            metadata[position] = (value == 0 ? -1 : value);
+                            // Note that we use metadata field which is not used
+                            // inside the binlog to describe the number of
+                            // digits for second parts
+                        }
+                    }
+                    break;
+                case MysqlBinlog.MYSQL_TYPE_TIMESTAMP :
+                    if (logger.isDebugEnabled())
+                        logger.debug("Handling TIMESTAMP column " + position
+                                + " / " + column.getTypeDescription());
+
+                    matcher = TIMESTAMP_PATTERN.matcher((column
+                            .getTypeDescription()));
+                    if (matcher.matches())
+                    {
+                        if (matcher.group(1) == null)
+                        {
+                            // Handling type TIMESTAMP with no extra precision
+                            metadata[position] = 0;
+                        }
+                        else
+                        {
+                            // Handling type TIMESTAMP(i) with 0 <= i <= 6
+                            Integer value = Integer.valueOf(matcher.group(2));
+                            metadata[position] = (value == 0 ? -1 : value);
+                            // Note that we use metadata field which is not used
+                            // inside the binlog to describe the number of
+                            // digits for second parts
+                        }
+                    }
+                    break;
+                default :
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Returns the table value.
+     * 
+     * @return Returns the table.
+     */
+    public Table getTable()
+    {
+        return table;
+    }
+
 }

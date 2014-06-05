@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2013 Continuent Inc.
+ * Copyright (C) 2009-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -91,7 +91,7 @@ public abstract class RowsLogEvent extends LogEvent
      * </ul>
      * Source : http://forge.mysql.com/wiki/MySQL_Internals_Binary_Log
      */
-    static Logger                       logger               = Logger.getLogger(RowsLogEvent.class);
+    static Logger                       logger                                 = Logger.getLogger(RowsLogEvent.class);
 
     private long                        tableId;
 
@@ -111,10 +111,51 @@ public abstract class RowsLogEvent extends LogEvent
 
     protected boolean                   useBytesForString;
 
-    protected FormatDescriptionLogEvent descriptionEvent     = null;
+    protected FormatDescriptionLogEvent descriptionEvent                       = null;
 
-    private boolean                     flagForeignKeyChecks = true;
-    private boolean                     flagUniqueChecks     = true;
+    private boolean                     flagForeignKeyChecks                   = true;
+    private boolean                     flagUniqueChecks                       = true;
+
+    /**
+     * MariaDB 10 TIME, TIMESTAMP and DATETIME support
+     */
+    // DATETIME is stored on a different number of bytes depending on the
+    // subsecond precision.
+    // DATETIME_BYTES_PER_SUB_SECOND_DECIMALS[i] is the number of bytes written
+    // to the binlog for a DATETIME value with i decimal digits (DATETIME(i) in
+    // MariaDB).
+    private static final int[]          DATETIME_BYTES_PER_SUB_SECOND_DECIMAL  = new int[]{
+            5, 6, 6, 7, 7, 7, 8                                                };
+
+    // TIME is stored on a different number of bytes depending on the
+    // subsecond precision.
+    // TIME_BYTES_PER_SUB_SECOND_DECIMALS[i] is the number of bytes written
+    // to the binlog for a TIME value with i decimal digits (TIME(i) in
+    // MariaDB).
+    private static final int[]          TIME_BYTES_PER_SUB_SECOND_DECIMAL      = {
+            3, 4, 4, 5, 5, 5, 6                                                };
+
+    // This is the maximum value for TIME datatype in microseconds. This value
+    // is added to actual time value when written to the binlog. It needs to get
+    // substracted when value is extracted from binlog.
+    private static final long           MAX_TIME                               = (838L
+                                                                                       * 3600L
+                                                                                       + 59L
+                                                                                       * 60L
+                                                                                       + 59L + 1L) * 1000000L;
+
+    // TIMESTAMP is written as previously, but extra bytes are stored for second
+    // parts.
+    // TIMESTAMP_BYTES_PER_SUB_SECOND_DECIMAL[i] is the number of extra bytes
+    // written to the binlog for i decimal digits (TIMESTAMP(i) in MariaDB).
+    private static final int[]          TIMESTAMP_BYTES_PER_SUB_SECOND_DECIMAL = {
+            0, 1, 1, 2, 2, 3, 3                                                };
+
+    // Multiplier used to read the number as microseconds.
+    // For example, TIME(i) has i decimal digits. These decimals are converted
+    // into microseconds by multiplying by SECOND_TO_MICROSECOND_MULTIPLIER[i]
+    private static final int[]          SECOND_TO_MICROSECOND_MULTIPLIER       = new int[]{
+            1000000, 100000, 10000, 1000, 100, 10, 1                           };
 
     public RowsLogEvent(byte[] buffer, int eventLength,
             FormatDescriptionLogEvent descriptionEvent, int eventType,
@@ -259,11 +300,10 @@ public abstract class RowsLogEvent extends LogEvent
     }
 
     protected int extractValue(ColumnSpec spec, ColumnVal value, byte[] row,
-            int rowPos, int type, int meta) throws IOException,
-            ReplicatorException
+            int rowPos, int type, int meta, TableMapLogEvent map)
+            throws IOException, ReplicatorException
     {
         int length = 0;
-
         // Calculate length for MYSQL_TYPE_STRING
         if (type == MysqlBinlog.MYSQL_TYPE_STRING)
         {
@@ -473,22 +513,62 @@ public abstract class RowsLogEvent extends LogEvent
 
             case MysqlBinlog.MYSQL_TYPE_TIMESTAMP :
             {
-                long i32 = LittleEndianConversion.convertNBytesToLong_2(row,
-                        rowPos, 4);
+                int offset = 0;
 
+                Timestamp ts;
+                long i32;
+                int nanos = 0;
+
+                if (spec != null)
+                    spec.setType(java.sql.Types.TIMESTAMP);
+
+                if (meta > 0)
+                {
+                    // MariaDB 10 TIMESTAMP datatype support
+                    offset = TIMESTAMP_BYTES_PER_SUB_SECOND_DECIMAL[meta];
+                    i32 = BigEndianConversion.convert4BytesToInt(row, rowPos);
+                    long microsec = BigEndianConversion.convertNBytesToInt(row,
+                            rowPos + 4, offset)
+                            * SECOND_TO_MICROSECOND_MULTIPLIER[meta];
+                    nanos = 1000 * (int) microsec;
+                    if (nanos < 0 || nanos > 999999999)
+                    {
+                        logger.warn("Extracted a wrong number of nanoseconds : "
+                                + nanos
+                                + " - in ms, value was "
+                                + microsec
+                                + "("
+                                + BigEndianConversion.convertNBytesToInt(row,
+                                        rowPos + 4, offset)
+                                + " * "
+                                + SECOND_TO_MICROSECOND_MULTIPLIER[meta]
+                                + " )"
+                                + "- as hexa : "
+                                + hexdump(row, rowPos + 4, offset));
+                    }
+
+                }
+                else
+                {
+                    // MySQL TIMESTAMP standard datatype support
+                    i32 = LittleEndianConversion.convertNBytesToLong_2(row,
+                            rowPos, 4);
+                }
                 if (i32 == 0)
                 {
                     value.setValue(Integer.valueOf(0));
                 }
                 else
-                    // convert sec based timestamp to millisecond precision
-                    value.setValue(new java.sql.Timestamp(i32 * 1000));
-                if (spec != null)
-                    spec.setType(java.sql.Types.TIMESTAMP);
-                return 4;
+                {
+                    ts = new java.sql.Timestamp(i32 * 1000);
+                    ts.setNanos(nanos);
+                    value.setValue(ts);
+                }
+                return 4 + offset;
             }
             case MysqlBinlog.MYSQL_TYPE_TIMESTAMP2 :
             {
+                // MYSQL 5.6 TIMESTAMP datatype support
                 int secPartsLength = 0;
                 long i32 = BigEndianConversion.convertNBytesToLong(row, rowPos,
                         4);
@@ -525,31 +605,77 @@ public abstract class RowsLogEvent extends LogEvent
             }
             case MysqlBinlog.MYSQL_TYPE_DATETIME :
             {
-                long i64 = LittleEndianConversion.convert8BytesToLong(row,
-                        rowPos); /* YYYYMMDDhhmmss */
-
-                // Let's check for zero date
-                if (i64 == 0)
-                {
-                    value.setValue(Integer.valueOf(0));
-                    if (spec != null)
-                        spec.setType(java.sql.Types.TIMESTAMP);
-                    return 8;
-                }
-
-                // calculate year, month...sec components of timestamp
-                long d = i64 / 1000000;
-                int year = (int) (d / 10000);
-                int month = (int) (d % 10000) / 100;
-                int day = (int) (d % 10000) % 100;
-
-                long t = i64 % 1000000;
-                int hour = (int) (t / 10000);
-                int min = (int) (t % 10000) / 100;
-                int sec = (int) (t % 10000) % 100;
-
-                // construct timestamp from time components
                 java.sql.Timestamp ts = null;
+                int year, month, day, hour, min, sec, nanos = 0;
+
+                long i64 = 0;
+                int offset;
+                if (meta == 0)
+                {
+                    // MYSQL standard DATETIME datatype support
+                    offset = 8;
+                    i64 = LittleEndianConversion.convert8BytesToLong(row,
+                            rowPos); /* YYYYMMDDhhmmss */
+
+                    // Let's check for zero date
+                    if (i64 == 0)
+                    {
+                        value.setValue(Integer.valueOf(0));
+                        if (spec != null)
+                            spec.setType(java.sql.Types.TIMESTAMP);
+                        return offset;
+                    }
+                    // calculate year, month...sec components of timestamp
+                    long d = i64 / 1000000;
+                    year = (int) (d / 10000);
+                    month = (int) (d % 10000) / 100;
+                    day = (int) (d % 10000) % 100;
+
+                    long t = i64 % 1000000;
+                    hour = (int) (t / 10000);
+                    min = (int) (t % 10000) / 100;
+                    sec = (int) (t % 10000) % 100;
+                    offset = 8;
+                }
+                else
+                {
+                    // MariaDB 10 DATETIME datatype support
+                    offset = DATETIME_BYTES_PER_SUB_SECOND_DECIMAL[meta];
+
+                    if (logger.isDebugEnabled())
+                        logger.debug("Handling MariaDB 10 datetime datatype");
+                    if (meta < 0)
+                    {
+                        meta = 0;
+                    }
+                    i64 = BigEndianConversion.convertNBytesToLong(row, rowPos,
+                            DATETIME_BYTES_PER_SUB_SECOND_DECIMAL[meta])
+                            * SECOND_TO_MICROSECOND_MULTIPLIER[meta];
+
+                    // Let's check for zero date
+                    if (i64 == 0)
+                    {
+                        value.setValue(Integer.valueOf(0));
+                        if (spec != null)
+                            spec.setType(java.sql.Types.TIMESTAMP);
+                        return offset;
+                    }
+
+                    nanos = (int) (i64 % 1000000L) * 1000;
+                    i64 /= 1000000L;
+                    sec = (int) (i64 % 60L);
+                    i64 /= 60L;
+                    min = (int) (i64 % 60L);
+                    i64 /= 60L;
+                    hour = (int) (i64 % 24L);
+                    i64 /= 24L;
+                    day = (int) (i64 % 32L);
+                    i64 /= 32L;
+                    month = (int) (i64 % 13L);
+                    i64 /= 13L;
+                    year = (int) i64;
+                    offset = DATETIME_BYTES_PER_SUB_SECOND_DECIMAL[meta];
+                }
 
                 // Force the use of GMT as calendar for DATETIME datatype
                 Calendar cal = Calendar
@@ -559,16 +685,17 @@ public abstract class RowsLogEvent extends LogEvent
                 cal.set(year, month - 1, day, hour, min, sec);
 
                 ts = new Timestamp(cal.getTimeInMillis());
-                // Clear the nanos (no data)
-                ts.setNanos(0);
+
+                ts.setNanos(nanos);
 
                 value.setValue(ts);
                 if (spec != null)
                     spec.setType(java.sql.Types.DATE);
-                return 8;
+                return offset;
             }
             case MysqlBinlog.MYSQL_TYPE_DATETIME2 :
             {
+                // MYSQL 5.6 DATETIME datatype support
                 /**
                  * 1 bit sign (used when on disk)<br>
                  * 17 bits year*13+month (year 0-9999, month 0-12)<br>
@@ -651,17 +778,63 @@ public abstract class RowsLogEvent extends LogEvent
             }
             case MysqlBinlog.MYSQL_TYPE_TIME :
             {
-                long i32 = LittleEndianConversion.convert3BytesToInt(row,
-                        rowPos);
-                value.setValue(java.sql.Time.valueOf(i32 / 10000 + ":"
-                        + (i32 % 10000) / 100 + ":" + i32 % 100));
+                Time time;
+                Timestamp tsVal;
+                int offset;
+
+                if (meta == 0)
+                {
+                    // MYSQL standard TIME datatype support
+                    offset = 3;
+                    long i32 = LittleEndianConversion.convert3BytesToInt(row,
+                            rowPos);
+                    time = java.sql.Time.valueOf(i32 / 10000 + ":"
+                            + (i32 % 10000) / 100 + ":" + i32 % 100);
+                    value.setValue(time);
+                }
+                else
+                {
+                    // MariaDB 10 TIME datatype support
+                    if (meta < 0)
+                    {
+                        meta = 0;
+                        logger.warn("Negative metadata detected");
+                    }
+
+                    offset = TIME_BYTES_PER_SUB_SECOND_DECIMAL[meta];
+
+                    long i64 = BigEndianConversion.convertNBytesToLong(row,
+                            rowPos, offset)
+                            * SECOND_TO_MICROSECOND_MULTIPLIER[meta];
+
+                    i64 -= MAX_TIME;
+
+                    if (logger.isDebugEnabled())
+                        logger.debug("Extracted value is " + i64);
+
+                    // Convert microseconds to nanoseconds
+                    int nanos = (int) (i64 % 1000000L) * 1000;
+
+                    i64 /= 1000000L;
+                    int sec = (int) (i64 % 60L);
+                    i64 /= 60L;
+                    int min = (int) (i64 % 60L);
+                    i64 /= 60L;
+                    int hour = (int) (i64 % 24L);
+                    time = java.sql.Time.valueOf(hour + ":" + min + ":" + sec);
+                    tsVal = new java.sql.Timestamp(time.getTime());
+                    tsVal.setNanos(nanos);
+                    value.setValue(tsVal);
+                }
+
                 if (spec != null)
                     spec.setType(java.sql.Types.TIME);
-                return 3;
+                return offset;
             }
 
             case MysqlBinlog.MYSQL_TYPE_TIME2 :
             {
+                // MYSQL 5.6 TIME datatype support
                 /**
                  * 1 bit sign (Used for sign, when on disk)<br>
                  * 1 bit unused (Reserved for wider hour range, e.g. for
@@ -1031,7 +1204,8 @@ public abstract class RowsLogEvent extends LogEvent
                 else
                 {
                     // Check if column was null until now
-                    ColumnSpec keySpec = oneRowChange.getKeySpec().get(colCount);
+                    ColumnSpec keySpec = oneRowChange.getKeySpec()
+                            .get(colCount);
                     if (keySpec != null
                             && keySpec.getType() == java.sql.Types.NULL
                             && !isNull)
@@ -1084,7 +1258,7 @@ public abstract class RowsLogEvent extends LogEvent
                             rowPos,
                             LittleEndianConversion.convert1ByteToInt(
                                     map.getColumnsTypes(), i),
-                            map.getMetadata()[i]);
+                            map.getMetadata()[i], map);
                 }
                 catch (IOException e)
                 {
