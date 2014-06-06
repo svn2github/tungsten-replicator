@@ -12,6 +12,51 @@ module ClusterDiagnosticPackage
     
     return remainder
   end
+
+  def call_mysql(config,h_alias,ds,sql)
+    ret=nil
+    begin
+      ret=ssh_result("mysql --defaults-file=#{config.getProperty([REPL_SERVICES, h_alias, REPL_MYSQL_SERVICE_CONF])}  --host=#{ds.host} --port=#{ds.port} --skip-column-names -e\"#{sql}\"", config.getProperty(HOST), config.getProperty(USERID),false)
+    rescue
+      ret=nil
+    end
+    ret
+  end
+
+  def write_file(file,contents)
+    out = File.open(file, "w")
+    out.puts(contents)
+    out.close
+  end
+
+  def run_command(config,command)
+
+    ret=nil
+
+    command_a=command.split(" ")
+     begin
+      path = ssh_result("which #{command_a[0]} 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
+      if path != ""
+        ret=ssh_result(command, config.getProperty(HOST), config.getProperty(USERID))
+      end
+    rescue
+      ret=nil
+    end
+    ret
+  end
+
+  def get_log(config,source,dest)
+
+
+    if remote_file_exists?(source, config.getProperty(HOST), config.getProperty(USERID))
+      begin
+        scp_download(source, "#{dest}.tmp", config.getProperty(HOST), config.getProperty(USERID))
+        copy_log("#{dest}.tmp", dest, LOG_SIZE)
+        FileUtils.rm("#{dest}.tmp")
+      rescue
+      end
+    end
+  end
   
   def commit
     super()
@@ -31,9 +76,16 @@ module ClusterDiagnosticPackage
     get_deployment_configurations().each{
       |config|
       build_topologies(config)
-      
+
+
+
+
       c_key = config.getProperty(DEPLOYMENT_CONFIGURATION_KEY)
       h_alias = config.getProperty(DEPLOYMENT_HOST)
+
+
+
+
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}")
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}/os_info")
       
@@ -188,6 +240,20 @@ module ClusterDiagnosticPackage
           rescue MessageError => me
             exception(me)
           end
+        end
+
+        ds=ConfigureDatabasePlatform.build([REPL_SERVICES, h_alias], config)
+
+        if ds.getVendor == "mysql"
+          FileUtils.mkdir_p("#{diag_dir}/#{h_alias}/mysql")
+          write_file("#{diag_dir}/#{h_alias}/mysql/innodb_status.txt",call_mysql(config,h_alias,ds,'show innodb status'))
+          write_file("#{diag_dir}/#{h_alias}/mysql/global_variables.txt",call_mysql(config,h_alias,ds,'show global variables'))
+          write_file("#{diag_dir}/#{h_alias}/mysql/status.txt",call_mysql(config,h_alias,ds,'show status'))
+
+          #This will probably fail unless the tungsten user has access to the logfile
+          get_log(config,
+                call_mysql(config,h_alias,ds,"select variable_value from information_schema.global_variables where variable_name='log_error'"),
+                "#{diag_dir}/#{h_alias}/mysql/mysql_error.log")
         end
       end
       
