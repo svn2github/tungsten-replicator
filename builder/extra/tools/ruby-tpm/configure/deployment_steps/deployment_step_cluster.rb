@@ -221,7 +221,7 @@ EOF
       profile_path = File.expand_path(@config.getProperty(PROFILE_SCRIPT), @config.getProperty(HOME_DIRECTORY))
 
       if File.exist?(profile_path)
-        matching_lines = cmd_result("grep 'Tungsten Environment' #{profile_path} | wc -l")
+        matching_lines = cmd_result("grep 'Tungsten Environment for #{@config.getProperty(HOME_DIRECTORY)}$' #{profile_path} | wc -l")
         case matching_lines.to_i()
         when 2
           debug("Tungsten env.sh is already included in #{profile_path}")
@@ -229,18 +229,46 @@ EOF
           begin
             f = File.open(profile_path, "a")
             f.puts("")
-            f.puts("# Begin Tungsten Environment")
+            f.puts("# Begin Tungsten Environment for #{@config.getProperty(HOME_DIRECTORY)}")
             f.puts("# Include the Tungsten variables")
             f.puts("# Anything in this section may be changed during the next operation")
             f.puts("if [ -f \"#{@config.getProperty(HOME_DIRECTORY)}/share/env.sh\" ]; then")
             f.puts("    . \"#{@config.getProperty(HOME_DIRECTORY)}/share/env.sh\"")
             f.puts("fi")
-            f.puts("# End Tungsten Environment")
+            f.puts("# End Tungsten Environment for #{@config.getProperty(HOME_DIRECTORY)}")
           ensure
             f.close()
           end
         else
           error("Unable to add the Tungsten environment to #{profile_path}.  Remove any lines from '# Begin Tungsten Environment' to '# End Tungsten Environment'.")
+        end
+        
+        # Remove any sections from previous versions that don't list their related directory
+        matching_lines = cmd_result("grep 'Begin Tungsten Environment$' #{profile_path} | wc -l")
+        if matching_lines.to_i() == 1
+          file_contents = nil
+          File.open(profile_path, "r") {
+            |f|
+            file_contents = f.readlines()
+          }
+          
+          # Look for the beginning string and remove the next 6 lines
+          idx = file_contents.index("# Begin Tungsten Environment\n")
+          if idx != nil
+            end_idx = idx+6
+            # Make sure this matches the format we are expecting
+            if file_contents[end_idx] == "# End Tungsten Environment\n"
+              while idx <= end_idx do
+                file_contents[idx] = nil
+                idx = idx+1
+              end
+            end
+          end
+          
+          File.open(profile_path, "w") {
+            |f|
+            f.puts(file_contents.join())
+          }
         end
       else
         error("Unable to add the Tungsten environment to #{profile_path} because the file does not exist.")
