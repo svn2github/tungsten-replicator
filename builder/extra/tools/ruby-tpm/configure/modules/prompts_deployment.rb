@@ -1360,7 +1360,11 @@ class TemplateSearchPath < ConfigurePrompt
   include AdvancedPromptModule
   
   def initialize
-    super(TEMPLATE_SEARCH_PATH, "Additional path to find configuration templates", PV_ANY, "")
+    super(TEMPLATE_SEARCH_PATH, "Additional path to find configuration templates", PV_ANY)
+  end
+  
+  def load_default_value
+    @default = "#{@config.getProperty(get_member_key(HOME_DIRECTORY))}/share/templates"
   end
 end
 
