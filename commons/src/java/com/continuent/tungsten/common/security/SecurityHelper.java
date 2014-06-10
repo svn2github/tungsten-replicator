@@ -295,6 +295,7 @@ public class SecurityHelper
             authInfo.setTruststoreLocation(truststoreLocation);
             authInfo.setTruststorePassword(truststorePassword);
             authInfo.setUsername(userName);
+            authInfo.setParentProperties(securityProperties);
 
             // --- Check information is correct ---
             // Checks authentication and encryption parameters

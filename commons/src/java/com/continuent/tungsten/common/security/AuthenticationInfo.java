@@ -46,6 +46,8 @@ public final class AuthenticationInfo
     private static final Logger logger                         = Logger.getLogger(AuthenticationInfo.class);
     /** Location of the file from which this was built **/
     private String              parentPropertiesFileLocation   = null;
+    /** Properties from the files from which this was built **/
+    private TungstenProperties  parentProperties               = null;
 
     private boolean             authenticationNeeded           = false;
     private boolean             encryptionNeeded               = false;
@@ -94,16 +96,15 @@ public final class AuthenticationInfo
      * 
      * @throws ConfigurationException
      */
-    public void checkAndCleanAuthenticationInfo() throws ServerRuntimeException,
-            ConfigurationException
+    public void checkAndCleanAuthenticationInfo()
+            throws ServerRuntimeException, ConfigurationException
     {
         checkAndCleanAuthenticationInfo(TUNGSTEN_APPLICATION_NAME.ANY);
     }
 
     public void checkAndCleanAuthenticationInfo(
             TUNGSTEN_APPLICATION_NAME tungstenApplicationName)
-            throws ServerRuntimeException,
-            ConfigurationException
+            throws ServerRuntimeException, ConfigurationException
     {
         // --- Check security.properties location ---
         if (this.parentPropertiesFileLocation != null)
@@ -128,7 +129,8 @@ public final class AuthenticationInfo
             }
         }
         // --- Clean up ---
-        if (tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR && !this.isConnectorUseSSL())
+        if (tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR
+                && !this.isConnectorUseSSL())
         {
             // The Connector does not use SSL, delete unnecessary information.
             this.keystoreLocation = null;
@@ -136,17 +138,19 @@ public final class AuthenticationInfo
             this.truststoreLocation = null;
             this.truststorePassword = null;
         }
-                
+
         // --- Check Keystore location ---
         if ((this.isEncryptionNeeded() && this.keystoreLocation != null)
-                ||
-                (tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR && this.isConnectorUseSSL()))
+                || (tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR && this
+                        .isConnectorUseSSL()))
         {
             // --- Check file location is specified ---
             if (this.keystoreLocation == null)
             {
                 String msg = MessageFormat.format(
-                        "Configuration error: {0}={1} but: {2}={3}", SecurityConf.CONNECTOR_USE_SSL, this.isConnectorUseSSL(),
+                        "Configuration error: {0}={1} but: {2}={3}",
+                        SecurityConf.CONNECTOR_USE_SSL,
+                        this.isConnectorUseSSL(),
                         SecurityConf.CONNECTOR_SECURITY_KEYSTORE_LOCATION,
                         this.keystoreLocation);
                 CLUtils.println(msg, CLLogLevel.detailed);
@@ -174,14 +178,16 @@ public final class AuthenticationInfo
 
         // --- Check Truststore location ---
         if ((this.isEncryptionNeeded() && this.truststoreLocation != null)
-                ||
-                (tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR && this.isConnectorUseSSL()))
+                || (tungstenApplicationName == TUNGSTEN_APPLICATION_NAME.CONNECTOR && this
+                        .isConnectorUseSSL()))
         {
             // --- Check file location is specified ---
             if (this.truststoreLocation == null)
             {
                 String msg = MessageFormat.format(
-                        "Configuration error: {0}={1} but: {2}={3}", SecurityConf.CONNECTOR_USE_SSL, this.isConnectorUseSSL(),
+                        "Configuration error: {0}={1} but: {2}={3}",
+                        SecurityConf.CONNECTOR_USE_SSL,
+                        this.isConnectorUseSSL(),
                         SecurityConf.CONNECTOR_SECURITY_TRUSTSTORE_LOCATION,
                         this.truststoreLocation);
                 CLUtils.println(msg, CLLogLevel.detailed);
@@ -489,6 +495,26 @@ public final class AuthenticationInfo
     {
         this.connectorUseSSL = connectorUseSSL;
     }
+    
+    /**
+     * Returns the parentProperties value.
+     * 
+     * @return Returns the parentProperties.
+     */
+    public TungstenProperties getParentProperties()
+    {
+        return parentProperties;
+    }
+
+    /**
+     * Sets the parentProperties value.
+     * 
+     * @param parentProperties The parentProperties to set.
+     */
+    public void setParentProperties(TungstenProperties parentProperties)
+    {
+        this.parentProperties = parentProperties;
+    }
 
     /**
      * Try to find a file absolute path from a series of default location
@@ -505,7 +531,7 @@ public final class AuthenticationInfo
         {
             String clusterHome = ClusterConfiguration.getClusterHome();
 
-            if (fileToFind.getPath() == fileToFind.getName())                   // No absolute or
+            if (fileToFind.getPath() == fileToFind.getName()) // No absolute or
             // relative path
             // was given
             {
