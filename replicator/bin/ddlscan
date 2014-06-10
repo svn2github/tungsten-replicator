@@ -14,7 +14,7 @@
 DDL_CTRL=com.continuent.tungsten.replicator.ddlscan.DDLScanCtrl
 
 # Log4j properties to use for DDLScan utility.
-DDL_CTRL_LOG4J=log4j-thl.properties
+DDL_CTRL_LOG4J=log4j-utils.properties
 
 # Find home. 
 RPBIN=`dirname $0`
