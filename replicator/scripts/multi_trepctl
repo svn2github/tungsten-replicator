@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 
 require "#{File.dirname(__FILE__)}/../../cluster-home/lib/ruby/tungsten"
+require "uri"
+require "date"
 
 class TungstenMultipleTrepctl
   include TungstenScript
@@ -130,14 +132,14 @@ class TungstenMultipleTrepctl
       
       # If we see a record with role=="master", it overrides all other entries
       if rec["role"] == "master"
-        service_masters[rec["serviceName"]] = rec["masterListenUri"]
+        service_masters[rec["serviceName"]] = rec["masterListenUri"].chomp("/") + "/"
       else
         if service_masters[rec["serviceName"]] == nil
           service_masters[rec["serviceName"]] = []
         end
         if service_masters[rec["serviceName"]].is_a?(Array)
           # Comment out this line if you only want to return the real master
-          service_masters[rec["serviceName"]] << rec["masterConnectUri"]
+          service_masters[rec["serviceName"]] << rec["masterConnectUri"].chomp("/") + "/"
         end
       end
     }
@@ -147,12 +149,20 @@ class TungstenMultipleTrepctl
     service_masters.each_key{
       |service|
       if service_masters[service].is_a?(Array)
-        service_masters[service] = service_masters[service].uniq().join(",")
+        unique_masters = service_masters[service].uniq()
+        if unique_masters.size() == 1
+          uri = URI(unique_masters[0])
+        else
+          uri = URI("")
+        end
+      else
+        uri = URI(service_masters[service])
       end
       
       master_records << {
         "serviceName" => service,
-        "output" => service_masters[service]
+        "host" => uri.host,
+        "uri" => uri.to_s()
       }
     }
     
@@ -163,10 +173,18 @@ class TungstenMultipleTrepctl
   def collect_backup_records_from_services(records)
     pids = []
     results = []
+    handled_locations = {}
 
     records.each_index{
       |idx|
 
+      # Prevent loading backups from multiple services in the same replicator
+      if handled_locations.has_key?(records[idx][:loc_id])
+        next
+      else
+        handled_locations[records[idx][:loc_id]] = true
+      end
+      
       results[idx] = Tempfile.new('ssh')
       pids << fork {
         rec = records[idx]
@@ -187,7 +205,15 @@ class TungstenMultipleTrepctl
                 }
               end
               # Include the matching value in the backup entry
-              backup_records[match[1]][match[2]] = match[3]
+              if match[2] == "backup_date"
+                backup_records[match[1]]["backup_milliseconds"] = match[3]
+                
+                t = Time.at(match[3].to_i()/1000)
+                d = DateTime.new(t.year, t.month, t.day, t.hour, t.min, t.sec, Rational(t.gmt_offset / 3600, 24))
+                backup_records[match[1]][match[2]] = d.strftime("%Y-%m-%d %H:%M:%S")
+              else
+                backup_records[match[1]][match[2]] = match[3]
+              end
             end
           }
           
@@ -213,6 +239,10 @@ class TungstenMultipleTrepctl
     results.each_index{
       |idx|
       file = results[idx]
+      if file == nil
+        next
+      end
+      
       file.rewind()
       results[idx] = file.read()
 
@@ -230,7 +260,7 @@ class TungstenMultipleTrepctl
         TU.error(rec[:command_output].message, rec["host"])
       elsif rec[:command_output].is_a?(StandardError)
         TU.error(rec[:command_output].message, rec["host"])
-      else
+      elsif rec[:command_output] != nil
         rec[:command_output].each{
           |storage_key, backup_entry|
           backup_entry["file_name"] = backup_entry["archive.0.file_name"]
@@ -792,10 +822,10 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
     end
     
     if command() == "backups"
-      opt_default(:fields, "host,serviceName,backup_date,prefix,file_name")
+      opt_default(:fields, "host,serviceName,backup_date,prefix,agent")
       opt_default(:sort_by, "host,serviceName,backup_date")
     elsif command() == "masterof"
-      opt_default(:fields, "servicename,output")
+      opt_default(:fields, "servicename,host,uri")
       opt_default(:sort_by, "servicename")
     elsif command() == "run"
       opt_default(:fields, "host,serviceName,output")
