@@ -81,6 +81,7 @@ module ClusterDiagnosticPackage
 
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}")
       FileUtils.mkdir_p("#{diag_dir}/#{h_alias}/os_info")
+      FileUtils.mkdir_p("#{diag_dir}/#{h_alias}/conf")
       
       write_file("#{diag_dir}/#{h_alias}/manifest.json",@promotion_settings.getProperty([c_key, "manifest"]))
       write_file("#{diag_dir}/#{h_alias}/tpm.txt",@promotion_settings.getProperty([c_key, "tpm_reverse"]))
@@ -139,6 +140,19 @@ module ClusterDiagnosticPackage
         if @promotion_settings.getProperty([c_key, MANAGER_ENABLED]) == "true"
           get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/log/tmsvc.log", "#{diag_dir}/#{h_alias}/tmsvc.log")
         end
+
+
+        #Get Replicator Static properties from each host
+        config.getPropertyOr([REPL_SERVICES], {}).keys().sort().each{
+            |rs_alias|
+          if rs_alias == DEFAULTS
+            next
+          end
+          command="cat #{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/conf/static-#{config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])}.properties|grep -v password"
+          fileName="#{diag_dir}/#{h_alias}/conf/static-#{config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])}.properties"
+          write_file(fileName,run_command(config,command))
+        }
+
 
         ds=ConfigureDatabasePlatform.build([REPL_SERVICES, h_alias], config)
 
