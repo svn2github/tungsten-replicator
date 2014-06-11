@@ -7,7 +7,7 @@ require 'net/http'
 
 #      SAMPLE USAGE:
 #      api_server='localhost:8090'
-#      service=chicago
+#      service="chicago"
 #
 #      cctrl = TungstenDataserviceManager.new(api_server)
 #      cctrl.list(:text)
@@ -21,10 +21,10 @@ require 'net/http'
 # 
 #      begin
 #        APICall.set_return_on_call_fail(:raise)
-#        json_obj = cctrl.post(service}/host1', 'promote')
+#        json_obj = cctrl.post("#{service}/host1", 'promote')
 #        pp json_obj["message"]
 #      rescue Exception => e
-#        puts e   # failure message will coem here
+#        puts e   # failure message will come here
 #      end
  
 
