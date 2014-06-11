@@ -142,7 +142,7 @@ module ClusterDiagnosticPackage
         end
 
 
-        #Get Replicator Static properties from each host
+        #Get Replicator Static/Dynamic properties from each host
         config.getPropertyOr([REPL_SERVICES], {}).keys().sort().each{
             |rs_alias|
           if rs_alias == DEFAULTS
@@ -150,6 +150,10 @@ module ClusterDiagnosticPackage
           end
           command="cat #{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/conf/static-#{config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])}.properties|grep -v password"
           fileName="#{diag_dir}/#{h_alias}/conf/static-#{config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])}.properties"
+          write_file(fileName,run_command(config,command))
+
+          command="cat #{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/conf/dynamic-#{config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])}.properties|grep -v password"
+          fileName="#{diag_dir}/#{h_alias}/conf/dynamic-#{config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])}.properties"
           write_file(fileName,run_command(config,command))
         }
 
