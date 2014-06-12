@@ -353,7 +353,10 @@ public class DsQueryCtrl
             if (rs.wasNull())
                 output.append("NULL");
             else
-                output.append(obj.toString());
+            {
+                String out = obj.toString().replaceAll("\"", "\\\\\"");
+                output.append(out);
+            }
 
             output.append('\"');
         }
