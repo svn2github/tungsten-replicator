@@ -334,7 +334,7 @@ public class NetworkClientFilter implements Filter
      * 
      * @throws Exception if the file cannot be found.
      */
-    private String readDefinitionsFile(String file) throws IOException
+    public static String readDefinitionsFile(String file) throws IOException
     {
         BufferedReader br = new BufferedReader(new FileReader(file));
         try
