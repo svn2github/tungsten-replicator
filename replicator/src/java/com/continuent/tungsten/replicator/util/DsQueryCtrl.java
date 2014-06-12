@@ -349,7 +349,12 @@ public class DsQueryCtrl
             output.append('\"');
             output.append(':');
             output.append('\"');
-            output.append(rs.getObject(i).toString());
+            Object obj = rs.getObject(i);
+            if (rs.wasNull())
+                output.append("NULL");
+            else
+                output.append(obj.toString());
+
             output.append('\"');
         }
         output.append('}');
