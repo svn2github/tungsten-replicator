@@ -594,7 +594,18 @@ public class MySQLExtractor implements RawExtractor
 
                 boolean unsafeForBlockCommit = false;
 
-                if (logEvent.getClass() == QueryLogEvent.class)
+                if (logEvent.getClass() == MariaDBGTIDEvent.class)
+                {
+                    // Start of new transaction for MariaDB 10 with GTID
+                    // enforced
+                    inTransaction = true;
+                    doCommit = false;
+                    // This is an equivalent of BEGIN statement : not sure where
+                    // session variables qre stored though
+
+                    continue;
+                }
+                else if (logEvent.getClass() == QueryLogEvent.class)
                 {
                     QueryLogEvent event = (QueryLogEvent) logEvent;
                     String queryString = event.getQuery();
@@ -1114,7 +1125,7 @@ public class MySQLExtractor implements RawExtractor
         else if (logger.isDebugEnabled())
             logger.debug("Table " + tableEvent.getDatabaseName() + "."
                     + tableEvent.getTableName() + " found in cache.");
-        
+
         if (table == null)
         {
             logger.warn("No metadata found for table "

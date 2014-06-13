@@ -141,6 +141,33 @@ public class MysqlBinlog
     public static final int                     ENUM_END_EVENT_FROM_56              = 36;
     /* End of 5.6 new events */
 
+    /* MariaDB 10 new events */
+    public static final int                     ENUM_MARIA_START_EVENT              = 160;
+    public static final int                     ANNOTATE_ROWS_EVENT                 = 160;
+    /*
+     * Binlog checkpoint event. Used for XA crash recovery on the master, not
+     * used in replication. A binlog checkpoint event specifies a binlog file
+     * such that XA crash recovery can start from that file - and it is
+     * guaranteed to find all XIDs that are prepared in storage engines but not
+     * yet committed.
+     */
+    public static final int                     BINLOG_CHECKPOINT_EVENT             = 161;
+    /*
+     * Gtid event. For global transaction ID, used to start a new event group,
+     * instead of the old BEGIN query event, and also to mark stand-alone
+     * events.
+     */
+    public static final int                     GTID_EVENT                          = 162;
+    /*
+     * Gtid list event. Logged at the start of every binlog, to record the
+     * current replication state. This consists of the last GTID seen for each
+     * replication domain.
+     */
+    public static final int                     GTID_LIST_EVENT                     = 163;
+    public static final int                     ENUM_MARIA_END_EVENT                = 163;
+
+    /* End of MariaDB 10 new events */
+
     public static final int                     ST_SERVER_VER_LEN                   = 50;
     public static final int                     LOG_EVENT_TYPES                     = ENUM_END_EVENT - 1;
     public static final int                     LOG_NEW_5_6_EVENT_TYPES             = ENUM_END_EVENT_FROM_56
@@ -177,6 +204,11 @@ public class MysqlBinlog
     public static final int                     EXECUTE_LOAD_QUERY_EXTRA_HEADER_LEN = (4 + 4 + 4 + 1);
     public static final int                     EXECUTE_LOAD_QUERY_HEADER_LEN       = (QUERY_HEADER_LEN + EXECUTE_LOAD_QUERY_EXTRA_HEADER_LEN);
     public static final int                     INCIDENT_HEADER_LEN                 = 2;
+
+    public static final int                     ANNOTATE_ROWS_HEADER_LEN            = 0;
+    public static final int                     BINLOG_CHECKPOINT_HEADER_LEN        = 4;
+    public static final int                     GTID_HEADER_LEN                     = 19;
+    public static final int                     GTID_LIST_HEADER_LEN                = 4;
 
     /* start event post-header (for v3 and v4) */
     public static final int                     ST_BINLOG_VER_OFFSET                = 0;

@@ -38,6 +38,8 @@ public class FormatDescriptionLogEvent extends StartLogEvent
     protected int   binlogVersion;
     public short    commonHeaderLength;
     public short[]  postHeaderLength;
+    public short[]  maria10PostHeaderLength;
+
     private int     eventTypesCount;
     private int     checksumAlgo;
 
@@ -151,6 +153,9 @@ public class FormatDescriptionLogEvent extends StartLogEvent
         this.binlogVersion = binlogVersion;
         postHeaderLength = new short[MysqlBinlog.ENUM_END_EVENT_FROM_56];
 
+        maria10PostHeaderLength = new short[MysqlBinlog.ENUM_MARIA_END_EVENT
+                - MysqlBinlog.ENUM_MARIA_START_EVENT + 1];
+
         /* identify binlog format */
         switch (binlogVersion)
         {
@@ -218,6 +223,15 @@ public class FormatDescriptionLogEvent extends StartLogEvent
                 postHeaderLength[MysqlBinlog.NEW_WRITE_ROWS_EVENT - 1] = MysqlBinlog.ROWS_HEADER_LEN + 2;
                 postHeaderLength[MysqlBinlog.NEW_UPDATE_ROWS_EVENT - 1] = MysqlBinlog.ROWS_HEADER_LEN + 2;
                 postHeaderLength[MysqlBinlog.NEW_DELETE_ROWS_EVENT - 1] = MysqlBinlog.ROWS_HEADER_LEN + 2;
+
+                maria10PostHeaderLength[MysqlBinlog.ANNOTATE_ROWS_EVENT
+                        - MysqlBinlog.ENUM_MARIA_START_EVENT] = MysqlBinlog.ANNOTATE_ROWS_HEADER_LEN;
+                maria10PostHeaderLength[MysqlBinlog.GTID_EVENT
+                        - MysqlBinlog.ENUM_MARIA_START_EVENT] = MysqlBinlog.GTID_HEADER_LEN;
+                maria10PostHeaderLength[MysqlBinlog.GTID_LIST_EVENT
+                        - MysqlBinlog.ENUM_MARIA_START_EVENT] = MysqlBinlog.GTID_LIST_HEADER_LEN;
+                maria10PostHeaderLength[MysqlBinlog.BINLOG_CHECKPOINT_EVENT
+                        - MysqlBinlog.ENUM_MARIA_START_EVENT] = MysqlBinlog.BINLOG_CHECKPOINT_HEADER_LEN;
 
                 break;
         }
