@@ -20,10 +20,10 @@ EXCEPTION WHEN OTHERS THEN
    NULL;
 END;
 
+-- Create directory either way, so we can grant permissions in other scripts
+EXECUTE IMMEDIATE 'CREATE OR REPLACE DIRECTORY tungsten_dir AS ''' || v_path ||'''';
 
 IF specific_file THEN 
-   EXECUTE IMMEDIATE 'CREATE OR REPLACE DIRECTORY tungsten_dir AS ''' || v_path ||'''';
-
    BEGIN
       EXECUTE IMMEDIATE 'CREATE TABLE tungsten_load(tableName VARCHAR2(30), columns VARCHAR2(4000)) ORGANIZATION EXTERNAL (TYPE ORACLE_LOADER DEFAULT DIRECTORY tungsten_dir
          ACCESS PARAMETERS (RECORDS DELIMITED BY NEWLINE
