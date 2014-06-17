@@ -796,6 +796,14 @@ module MySQLServiceScript
     "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{@options[:mysqlhost]} --port=#{@options[:mysqlport]} --opt --single-transaction --all-databases --add-drop-database --master-data=2"
   end
   
+  def get_innobackupex_path()
+    path = TU.which("innobackupex-1.5.1")
+    if path.nil?
+      path = TU.which("innobackupex")
+    end
+    return path
+  end
+
   def get_xtrabackup_command
     # Use the configured my.cnf file, or the additional config file 
     # if we created one
@@ -805,7 +813,7 @@ module MySQLServiceScript
       defaults_file = @options[:extra_mysql_defaults_file].path()
     end
     
-    "innobackupex-1.5.1 --defaults-file=#{defaults_file} --host=#{@options[:mysqlhost]} --port=#{@options[:mysqlport]}"
+    "#{get_innobackupex_path()} --defaults-file=#{defaults_file} --host=#{@options[:mysqlhost]} --port=#{@options[:mysqlport]}"
   end
   
   def xtrabackup_supports_argument(arg)

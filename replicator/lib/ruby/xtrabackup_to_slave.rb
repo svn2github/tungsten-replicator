@@ -35,7 +35,7 @@ class TungstenXtrabackupToSlaveScript < TungstenBackupScript
       # Build the command and run it
       # All STDERR output from the command is processed before going to STDERR
       # When the MySQL binlog position is found, it is saved for later use
-      TU.notice("Run innobackupex-1.5.1 sending the output to #{@options[:target]}:#{@options[:storage_directory]}")
+      TU.notice("Run innobackupex sending the output to #{@options[:target]}:#{@options[:storage_directory]}")
       TU.forward_cmd_results?(true)
       TU.cmd_stderr("cd #{TI.setting("temp_directory")}; #{sudo_prefix()}#{get_xtrabackup_command()} #{additional_args.join(" ")} #{staging_dir} | ssh #{TU.get_ssh_command_options()} #{@options[:target]} \"mkdir -p #{@options[:storage_directory]}; rm -rf #{@options[:storage_directory]}/*; cd #{@options[:storage_directory]}; tar -xi\"") {
         |line|
@@ -125,10 +125,11 @@ class TungstenXtrabackupToSlaveScript < TungstenBackupScript
       TU.test_ssh(@options[:target], TI.user())
     end
     
-    path = TU.cmd_result("#{sudo_prefix()}which innobackupex-1.5.1 2>/dev/null", true)
+    path = get_innobackupex_path()
     if path == ""
-      TU.error("Unable to find the innobackupex-1.5.1 script using sudo")
+      TU.error("Unable to find the innobackupex script")
     end
+
   end
   
   def configure
