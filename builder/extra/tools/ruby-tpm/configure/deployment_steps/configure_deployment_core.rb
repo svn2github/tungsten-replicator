@@ -596,7 +596,15 @@ module ConfigureDeploymentCore
   end
   
   def get_extractor_datasource(rs_alias = nil)
-    get_applier_datasource(rs_alias)
+    if rs_alias == nil
+	    rs_alias = @config.getProperty(DEPLOYMENT_SERVICE)
+	  end
+	  
+	  if @config.getProperty([REPL_SERVICES, rs_alias, REPL_ROLE]) == REPL_ROLE_DI
+	    ConfigureDatabasePlatform.build([REPL_SERVICES, rs_alias], @config, true)
+	  else
+      get_applier_datasource(rs_alias)
+    end
   end
   
   def get_service_key(key)

@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+#
+# Make sure the trep_commit_seqno table exists and has the correct values
+#
+
+require "#{File.dirname(__FILE__)}/../../cluster-home/lib/ruby/tungsten"
+
+class TungstenReplicatorGetPosition
+  include TungstenScript
+  include SingleServiceScript
+  
+  def main
+    service_schema = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_svc_schema"))
+    sql = "SELECT * FROM #{service_schema}.trep_commit_seqno;"
+    
+    begin
+      position = TI.sql_result(@options[:service], sql)
+    rescue CommandError => ce
+      TU.exception(ce)
+      return false
+    end
+    
+    if position.size() == 0
+      puts JSON.pretty_generate({})
+    elsif position.size() == 1
+      puts JSON.pretty_generate(position[0])
+    else
+      if opt(:all) == true
+        puts JSON.pretty_generate(position)
+      else
+        TU.error("Unable to print position information because there are multiple positions. Add the '--all' option to display all records.")
+      end
+    end
+  end
+
+  def configure
+    super()
+    description("Output the current replication position from the trep_commit_seqno table")
+    
+    add_option(:all, {
+      :on => "--all",
+      :default => false,
+      :help => "Display all position records if multiple exist"
+    })
+  end
+  
+  def validate
+    super()
+  end
+  
+  def script_name
+    "tungsten_get_position"
+  end
+  
+  self.new().run()
+end

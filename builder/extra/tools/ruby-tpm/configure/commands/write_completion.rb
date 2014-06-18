@@ -84,6 +84,7 @@ EOF
         "cluster-home/bin/cluster_backup",
         "tungsten-replicator/scripts/tungsten_provision_slave",
         "tungsten-replicator/scripts/tungsten_read_master_events",
+        "tungsten-replicator/scripts/tungsten_get_position",
         "tungsten-replicator/scripts/tungsten_set_position",
         "tungsten-replicator/scripts/xtrabackup_to_slave",
         "tungsten-replicator/scripts/mysqldump_to_slave",

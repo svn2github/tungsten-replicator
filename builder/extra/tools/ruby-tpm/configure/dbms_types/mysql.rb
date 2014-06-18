@@ -21,6 +21,7 @@ REPL_MYSQL_USE_BYTES_FOR_STRING = "repl_mysql_use_bytes_for_string"
 REPL_MYSQL_CONF = "repl_datasource_mysql_conf"
 REPL_MYSQL_COMMAND = "repl_datasource_mysql_command"
 REPL_MYSQL_SERVICE_CONF = "repl_datasource_mysql_service_conf"
+EXTRACTOR_REPL_MYSQL_SERVICE_CONF = "repl_direct_datasource_mysql_service_conf"
 
 class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def get_uri_scheme
@@ -245,6 +246,10 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   
   def getJdbcUrl()
     "jdbc:#{getJdbcScheme()}://${replicator.global.db.host}:${replicator.global.db.port}/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false"
+  end
+  
+  def getJdbcQueryUrl()
+    "jdbc:mysql://#{@host}:#{@port}"
   end
   
   def getJdbcDriver()
@@ -591,6 +596,19 @@ class MySQLServiceConfigFile < ConfigurePrompt
   
   def load_default_value
     @default = @config.getProperty(get_host_key(HOME_DIRECTORY)) + "/share/.my.#{@config.getProperty(get_member_key(DEPLOYMENT_SERVICE))}.cnf"
+  end
+end
+
+class DirectMySQLServiceConfigFile < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(EXTRACTOR_REPL_MYSQL_SERVICE_CONF, "Path to my.cnf file customized for this service", PV_FILENAME)
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_host_key(HOME_DIRECTORY)) + "/share/.my.#{@config.getProperty(get_member_key(DEPLOYMENT_SERVICE))}.direct.cnf"
   end
 end
 
@@ -1649,6 +1667,19 @@ module ConfigureDeploymentStepMySQL
       }
       WatchFiles.watch_file(@config.getProperty(get_service_key(REPL_MYSQL_SERVICE_CONF)), @config)
     end
+    
+    if @config.getProperty(get_service_key(REPL_ROLE)) == REPL_ROLE_DI
+      eds = get_extractor_datasource()
+      if eds.is_a?(MySQLDatabasePlatform)
+        File.open(@config.getProperty(get_service_key(EXTRACTOR_REPL_MYSQL_SERVICE_CONF)), "w") {
+          |file|
+          file.puts("[client]")
+          file.puts("user=#{eds.username}")
+          file.puts("password=#{eds.password}")
+        }
+        WatchFiles.watch_file(@config.getProperty(get_service_key(EXTRACTOR_REPL_MYSQL_SERVICE_CONF)), @config)
+      end
+	  end
     
     if is_manager?() && (get_applier_datasource().is_a?(MySQLDatabasePlatform) || get_extractor_datasource().is_a?(MySQLDatabasePlatform))
       transform_service_template("tungsten-manager/conf/checker.mysqlserver.properties",

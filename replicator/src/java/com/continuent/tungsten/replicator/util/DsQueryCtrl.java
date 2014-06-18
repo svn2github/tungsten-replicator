@@ -348,17 +348,16 @@ public class DsQueryCtrl
             output.append(rs.getMetaData().getColumnLabel(i));
             output.append('\"');
             output.append(':');
-            output.append('\"');
             Object obj = rs.getObject(i);
             if (rs.wasNull())
-                output.append("NULL");
+                output.append("null");
             else
             {
+	            output.append('\"');
                 String out = obj.toString().replaceAll("\"", "\\\\\"");
                 output.append(out);
+	            output.append('\"');
             }
-
-            output.append('\"');
         }
         output.append('}');
     }

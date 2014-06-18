@@ -17,6 +17,14 @@ module DatasourcePrompt
     ConfigureDatabasePlatform.build([@parent_group.name, get_member()], @config)
   end
   
+  def get_extractor_datasource
+    if @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_DI
+      ConfigureDatabasePlatform.build([@parent_group.name, get_member()], @config, true)
+    else
+      get_datasource()
+    end
+  end
+  
   def get_command_line_argument()
     super.gsub("repl-", "")
   end
@@ -479,6 +487,32 @@ class DatasourceExtractorJDBCURL < ConfigurePrompt
   
   def get_template_value
     get_datasource().getExtractorJdbcUrl()
+  end
+end
+
+class DatasourceJDBCQueryURL < ConfigurePrompt
+  include DatasourcePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_DBJDBCQUERYURL, "Datasource JDBC Query URL")
+  end
+  
+  def load_default_value
+    @default = get_datasource().getJdbcQueryUrl()
+  end
+end
+
+class DatasourceExtractorJDBCQueryURL < ConfigurePrompt
+  include DatasourcePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(EXTRACTOR_REPL_DBJDBCQUERYURL, "Datasource Extraction JDBC Query URL")
+  end
+  
+  def load_default_value
+    @default = get_extractor_datasource().getJdbcQueryUrl()
   end
 end
 

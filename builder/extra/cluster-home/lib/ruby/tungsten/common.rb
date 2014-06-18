@@ -1,4 +1,4 @@
-DEFAULTS = "defaults"
+DEFAULTS = "__defaults__"
 REPL_RMI_PORT = "repl_rmi_port"
 MGR_RMI_PORT = "mgr_rmi_port"
 HOST_ENABLE_REPLICATOR = "host_enable_replicator"
@@ -37,7 +37,7 @@ class CommandError < StandardError
     if @errors == ""
       errors = "No Errors"
     else
-      errors = "Errors: #{errors}"
+      errors = "Errors: #{@errors}"
     end
     
     "Failed: #{command}, RC: #{rc}, Result: #{result}, #{errors}"

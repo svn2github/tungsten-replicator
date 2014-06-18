@@ -10,12 +10,31 @@ class MySQLTerminalCommand
     false
   end
   
+  def get_bash_completion_arguments
+    super() + ["--extractor"]
+  end
+  
+  def output_command_usage
+    super()
+    
+    output_usage_line("--extractor", "Create a connection to the direct extraction datasource (if available).")
+  end
+  
   def parsed_options?(arguments)
+    arguments = super(arguments)
+    
     if Configurator.instance.display_help? && !Configurator.instance.display_preview?()
       return true
     end
     
-    @terminal_args = arguments
+    @extractor = false
+    
+    # Define extra option to load event.  
+    opts=OptionParser.new
+    opts.on("--extractor") { @extractor = true }
+    remainder = Configurator.instance.run_option_parser(opts, arguments)
+    
+    @terminal_args = remainder
     
     []
   end
@@ -54,13 +73,31 @@ class MySQLTerminalCommand
         break
       end
     }
-    ds = ConfigureDatabasePlatform.build([REPL_SERVICES, rs_alias], @config)
+    
+    # Override the --extractor flag if this is not a direct replicator
+    unless @config.getProperty([REPL_SERVICES, rs_alias, REPL_ROLE]) == REPL_ROLE_DI
+      @extractor = false
+    end
+    
+    ds = ConfigureDatabasePlatform.build([REPL_SERVICES, rs_alias], @config, @extractor)
     unless ds.is_a?(MySQLDatabasePlatform)
       error("Unable to open connection to non MySQL server")
       return false
     end
     
-    exec("mysql --defaults-file=#{@config.getProperty([REPL_SERVICES, rs_alias, REPL_MYSQL_SERVICE_CONF])} --host=#{ds.host} --port=#{ds.port} #{@terminal_args.join(' ')}")
+    if @extractor == true
+      conf = @config.getProperty([REPL_SERVICES, rs_alias, EXTRACTOR_REPL_MYSQL_SERVICE_CONF])
+    else
+      conf = @config.getProperty([REPL_SERVICES, rs_alias, REPL_MYSQL_SERVICE_CONF])
+    end
+    
+    if ENV.has_key?("OLDPWD")
+      pre = "cd #{ENV["OLDPWD"]};"
+    else
+      pre = ""
+    end
+    
+    exec("#{pre}mysql --defaults-file=#{conf} --host=#{ds.host} --port=#{ds.port} #{@terminal_args.join(' ')}")
   end
 
   def self.get_command_name

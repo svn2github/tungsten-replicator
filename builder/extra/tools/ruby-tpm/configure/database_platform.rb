@@ -1,16 +1,25 @@
 class ConfigureDatabasePlatform
-  attr_reader :username, :password, :host, :port
+  attr_reader :username, :password, :host, :port, :extractor
   
-  def initialize(prefix, config)
+  def initialize(prefix, config, extractor = false)
     if prefix == nil || config == nil
       return
     end
     
     @prefix = prefix
-    @host = config.getProperty(prefix + [REPL_DBHOST])
-    @port = config.getProperty(prefix + [REPL_DBPORT])
-    @username = config.getProperty(prefix + [REPL_DBLOGIN])
-    @password = config.getProperty(prefix + [REPL_DBPASSWORD])
+    @extractor = extractor
+    
+    if @extractor == true
+      @host = config.getProperty(prefix + [EXTRACTOR_REPL_DBHOST])
+      @port = config.getProperty(prefix + [EXTRACTOR_REPL_DBPORT])
+      @username = config.getProperty(prefix + [EXTRACTOR_REPL_DBLOGIN])
+      @password = config.getProperty(prefix + [EXTRACTOR_REPL_DBPASSWORD])
+    else
+      @host = config.getProperty(prefix + [REPL_DBHOST])
+      @port = config.getProperty(prefix + [REPL_DBPORT])
+      @username = config.getProperty(prefix + [REPL_DBLOGIN])
+      @password = config.getProperty(prefix + [REPL_DBPASSWORD])
+    end
     @config = config
   end
   
@@ -88,6 +97,10 @@ class ConfigureDatabasePlatform
 	end
 	
 	def check_thl_schema(thl_schema)
+  end
+  
+  def getJdbcQueryUrl()
+    raise "Undefined function: #{self.class.name}.getJdbcQueryUrl"
   end
   
   def getJdbcUrl()
@@ -206,9 +219,14 @@ class ConfigureDatabasePlatform
     false
   end
   
-  def self.build(prefix, config)
-    klass = self.get_class(config.getProperty(prefix + [REPL_DBTYPE]))
-    return klass.new(prefix, config)
+  def self.build(prefix, config, extractor = false)
+    if extractor == true
+      key = EXTRACTOR_REPL_DBTYPE
+    else
+      key = REPL_DBTYPE
+    end
+    klass = self.get_class(config.getProperty(prefix + [key]))
+    return klass.new(prefix, config, extractor)
   end
   
   def self.get_class(scheme)

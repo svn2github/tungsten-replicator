@@ -4,12 +4,23 @@ class TungstenReplicatorReadMasterEvents
   
   def main
     begin
-      if @options[:after] != nil
-        mysqlbinlog_after(@options[:after])
-      elsif @options[:high] == nil
-        mysqlbinlog_after(@options[:low]-1)
+      topology = TI.topology(opt(:service))
+      datasource_type = TI.datasource_type(opt(:service), (topology.type == "direct"))
+      case datasource_type
+      when "mysql"
+        if topology.type == "direct"
+          opt(:my_cnf, TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_direct_datasource_mysql_service_conf")))
+        end
+        
+        if @options[:after] != nil
+          mysqlbinlog_after(@options[:after])
+        elsif @options[:high] == nil
+          mysqlbinlog_after(@options[:low]-1)
+        else
+          mysqlbinlog_between(@options[:low]-1, @options[:high])
+        end
       else
-        mysqlbinlog_between(@options[:low]-1, @options[:high])
+        TU.error("Unable to support tungsten_read_master_events for #{datasource_type} datasources")
       end
     rescue => e
       raise e
