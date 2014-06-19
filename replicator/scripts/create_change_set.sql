@@ -291,6 +291,21 @@ IF err_found or warn_found THEN
    DBMS_OUTPUT.PUT_LINE('**********************************************************************************');
 END IF;
 
+IF tableCount > 0 THEN
+   DECLARE
+      CURSOR C1 IS SELECT tableName FROM SYS.tungsten_load WHERE tableName NOT IN (SELECT table_name FROM ALL_TABLES WHERE owner=v_user and table_name not like 'AQ$%' and table_name not like 'CDC$%');
+   BEGIN
+      OPEN C1;
+      LOOP
+         FETCH C1 INTO v_table_name;
+         EXIT WHEN C1%NOTFOUND;
+
+         DBMS_OUTPUT.PUT_LINE ('ERROR: TABLE NOT FOUND: ' || v_table_name);
+      END LOOP;
+      CLOSE C1;
+   END;
+END IF;
+
 END;
 /
 EXIT
