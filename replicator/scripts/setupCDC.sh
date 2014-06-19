@@ -30,7 +30,7 @@ fi
 
 DEFAULT_CHANGE_SET="TUNGSTEN_CHANGE_SET"
 CHANGE_SET=${DEFAULT_CHANGE_SET}
-[ -z "${service}" ] && echo "ERROR: service must be defined in ${CNF_FILE}" && exit 1
+[ -z "${service}" ] && echo "ERROR: Service must be defined in ${CNF_FILE}" && exit 1
 [ ! -z "${service}" ] && CHANGE_SET="TUNGSTEN_CS_${service}"
 
 if [ -n "${sys_user}" ]
@@ -68,8 +68,8 @@ then
    sqlplus -S -L ${SYSDBA} @delete_user.sql $pub_user
    if [ $? -eq 148 ]
    then
-      echo "Disconnect publisher user (${pub_user}) connections."
-      echo "Setup was incomplete!"
+      echo "ERROR: There are open publisher user ${pub_user} connections still using this service, or a CDC setup/update script is already running."
+      echo "Please terminate these connections and then run this script again."
       exit $?
    else
       echo "Done."
