@@ -1,11 +1,13 @@
-
---For DEBUG purpose, comment the following 3 lines and uncomment the 4th one
-set feedback off
-set echo off
-set term off
---set serveroutput on
+--set feedback off
+--set echo off
+--set term off
+set verify off
+set serveroutput on
 
 DECLARE
+--For DEBUG purpose, set debug to true
+debug boolean := false;
+
 v_version varchar2(17);
 i_version number;
 tableCount NUMBER;
@@ -21,6 +23,9 @@ v_tungsten_pwd varchar2(30) := '&5';
 v_cdc_type varchar(30) := '&6';
 v_sync boolean := (v_cdc_type = 'SYNC_SOURCE');
 
+i_pub_tablespace number := '&7';
+v_tablespace varchar2(30) := ' DEFAULT TABLESPACE '||v_pub_user;
+
 v_table_name varchar2(30);
 
 BEGIN
@@ -28,7 +33,7 @@ BEGIN
 SELECT count(*) into tableCount from tungsten_load;
 
 SELECT version into v_version from v$instance;
-DBMS_OUTPUT.PUT_LINE ('Oracle version : ' || v_version || '/'|| TO_CHAR(INSTR( v_version, '.')));
+IF debug THEN DBMS_OUTPUT.PUT_LINE ('Oracle version : ' || v_version || '/'|| TO_CHAR(INSTR( v_version, '.'))); END IF;
 i_version := TO_NUMBER(SUBSTR(v_version, 1, INSTR(v_version, '.') -1));
 
 BEGIN
@@ -37,10 +42,14 @@ EXCEPTION WHEN OTHERS THEN
    DBMS_OUTPUT.PUT_LINE ('Unable to find user ' || v_pub_user);
 END;
 
+IF i_pub_tablespace = 0 THEN
+   v_tablespace := '';
+END IF;
+
 IF v_tmp_user IS NULL THEN
    DBMS_OUTPUT.PUT_LINE ('Creating user ' || v_pub_user);
    -- User not found : create it
-   EXECUTE IMMEDIATE 'CREATE USER '||v_pub_user||' IDENTIFIED BY '||v_password||' QUOTA UNLIMITED ON SYSTEM QUOTA UNLIMITED ON SYSAUX';
+   EXECUTE IMMEDIATE 'CREATE USER '||v_pub_user||' IDENTIFIED BY '||v_password||' '||v_tablespace||' QUOTA UNLIMITED ON SYSTEM QUOTA UNLIMITED ON SYSAUX';
    EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO ' || v_pub_user;
    EXECUTE IMMEDIATE 'GRANT CREATE TABLE TO ' || v_pub_user;
    EXECUTE IMMEDIATE 'GRANT CREATE TABLESPACE TO ' || v_pub_user;
@@ -83,7 +92,7 @@ IF not v_sync THEN
       EXECUTE IMMEDIATE 'ALTER DATABASE FORCE LOGGING';
       EXECUTE IMMEDIATE 'ALTER DATABASE ADD SUPPLEMENTAL LOG DATA';
    EXCEPTION WHEN OTHERS THEN
-      DBMS_OUTPUT.PUT_LINE ('Unable to add supplemental log data : ' || SQLERRM );
+      IF debug THEN DBMS_OUTPUT.PUT_LINE ('Unable to add supplemental log data : ' || SQLERRM ); END IF;
    END;
    DBMS_CAPTURE_ADM.BUILD();
 END IF;
@@ -97,11 +106,10 @@ IF tableCount > 0 THEN
          FETCH C INTO v_table_name;
          EXIT WHEN C%NOTFOUND;
    
-         DBMS_OUTPUT.PUT_LINE ('Processing table ' || v_user || '.' || v_table_name);
-
+         IF debug THEN DBMS_OUTPUT.PUT_LINE ('Processing table ' || v_user || '.' || v_table_name); END IF;
 
          IF not v_sync THEN
-            DBMS_OUTPUT.PUT_LINE ('Adding supplemental log data');
+            IF debug THEN DBMS_OUTPUT.PUT_LINE ('Adding supplemental log data'); END IF;
             BEGIN
                EXECUTE IMMEDIATE  'ALTER TABLE "' || v_user || '"."' || v_table_name || '" DROP SUPPLEMENTAL LOG DATA (ALL) COLUMNS';
             EXCEPTION WHEN OTHERS THEN
@@ -109,7 +117,7 @@ IF tableCount > 0 THEN
             END;
             EXECUTE IMMEDIATE  'ALTER TABLE "' || v_user || '"."' || v_table_name || '" ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS';
 
-            DBMS_OUTPUT.PUT_LINE ('Preparing table instanciation');
+            IF debug THEN DBMS_OUTPUT.PUT_LINE ('Preparing table instantiation'); END IF;
             DBMS_CAPTURE_ADM.PREPARE_TABLE_INSTANTIATION(TABLE_NAME => '"' || v_user || '"."' || v_table_name || '"'  );
          END IF;
          
@@ -128,10 +136,10 @@ ELSE
          FETCH C INTO v_table_name;
          EXIT WHEN C%NOTFOUND;
 
-         DBMS_OUTPUT.PUT_LINE ('Processing table ' || v_user || '.' || v_table_name);
+         IF debug THEN DBMS_OUTPUT.PUT_LINE ('Processing table ' || v_user || '.' || v_table_name); END IF;
 
          IF not v_sync THEN
-            DBMS_OUTPUT.PUT_LINE ('Adding supplemental log data');
+            IF debug THEN DBMS_OUTPUT.PUT_LINE ('Adding supplemental log data'); END IF;
             BEGIN
                EXECUTE IMMEDIATE  'ALTER TABLE "' || v_user || '"."' || v_table_name || '" DROP SUPPLEMENTAL LOG DATA (ALL) COLUMNS';
             EXCEPTION WHEN OTHERS THEN
@@ -139,7 +147,7 @@ ELSE
             END;
             EXECUTE IMMEDIATE  'ALTER TABLE "' || v_user || '"."' || v_table_name || '" ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS';
 
-            DBMS_OUTPUT.PUT_LINE ('Preparing table instanciation');
+            IF debug THEN DBMS_OUTPUT.PUT_LINE ('Preparing table instantiation'); END IF;
             DBMS_CAPTURE_ADM.PREPARE_TABLE_INSTANTIATION(TABLE_NAME => '"' || v_user || '"."' || v_table_name || '"' );
          END IF;
          EXECUTE IMMEDIATE 'GRANT SELECT,FLASHBACK ON "'|| v_user || '"."' || v_table_name ||'" TO '||v_tungsten_user;

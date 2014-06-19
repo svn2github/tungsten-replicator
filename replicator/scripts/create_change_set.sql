@@ -19,6 +19,7 @@ v_cdc_type varchar(30) := '&2';
 v_tungsten_user varchar2(30) := '&3';
 v_pub_user varchar2(100):= '&4';
 v_change_set_name varchar2(30) := UPPER('&5');
+i_pub_tablespace number := '&6';
 
 b_sync boolean := (v_cdc_type = 'SYNC_SOURCE');
 
