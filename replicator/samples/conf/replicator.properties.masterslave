@@ -227,6 +227,7 @@ replicator.stage.remote-to-thl.filters=
 replicator.stage.thl-to-q=com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask
 replicator.stage.thl-to-q.extractor=thl-extractor
 replicator.stage.thl-to-q.applier=parallel-q-applier
+replicator.stage.thl-to-q.filters=
 replicator.stage.thl-to-q.blockCommitRowCount=${replicator.global.buffer.size}
 
 replicator.stage.q-to-dbms=com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask

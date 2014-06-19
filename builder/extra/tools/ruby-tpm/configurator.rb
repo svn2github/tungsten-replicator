@@ -658,7 +658,7 @@ class Configurator
 
   # Write a sub-divider, which is used between sections under a singl header.
   def write_divider(level=Logger::INFO)
-    write("-"*(Configurator.instance.detect_terminal_size[0]-5), level, nil, false)
+    write("-"*[(Configurator.instance.detect_terminal_size[0]-5),0].max(), level, nil, false)
   end
   
   def write(content="", level=Logger::INFO, hostname = nil, add_prefix = true)
