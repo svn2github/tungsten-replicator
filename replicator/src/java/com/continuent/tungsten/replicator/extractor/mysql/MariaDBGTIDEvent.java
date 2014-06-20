@@ -117,6 +117,26 @@ public class MariaDBGTIDEvent extends QueryLogEvent
     }
 
     /**
+     * Returns the GTID domainId value.
+     * 
+     * @return Returns the domainId.
+     */
+    public int getGTIDDomainId()
+    {
+        return domainId;
+    }
+
+    /**
+     * Returns the GTID seqno value.
+     * 
+     * @return Returns the seqno.
+     */
+    public long getGTIDSeqno()
+    {
+        return seqno;
+    }
+
+    /**
      * {@inheritDoc}
      * 
      * @see java.lang.Object#toString()
@@ -125,7 +145,7 @@ public class MariaDBGTIDEvent extends QueryLogEvent
     public String toString()
     {
         return domainId + " " + serverId + " " + seqno + "(standalone:"
-                + standalone + "/groupCommit:" + groupCommit + ")";
+                + standalone + " / groupCommit:" + groupCommit + ")";
     }
 
 }

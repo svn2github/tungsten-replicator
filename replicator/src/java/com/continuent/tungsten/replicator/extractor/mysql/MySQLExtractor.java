@@ -553,6 +553,10 @@ public class MySQLExtractor implements RawExtractor
             RowChangeData rowChangeData = null;
             long fragSize = 0;
             int serverId = -1;
+
+            int gtidDomainId = -1;
+            long gtidSeqno = -1;
+
             while (true)
             {
                 DBMSEvent dbmsEvent = null;
@@ -598,11 +602,14 @@ public class MySQLExtractor implements RawExtractor
                 {
                     // Start of new transaction for MariaDB 10 with GTID
                     // enforced
+
                     inTransaction = true;
                     doCommit = false;
+                    MariaDBGTIDEvent event = (MariaDBGTIDEvent) logEvent;
                     // This is an equivalent of BEGIN statement : not sure where
-                    // session variables qre stored though
-
+                    // session variables are stored though
+                    gtidDomainId = event.getGTIDDomainId();
+                    gtidSeqno = event.getGTIDSeqno();
                     continue;
                 }
                 else if (logEvent.getClass() == QueryLogEvent.class)
@@ -1054,6 +1061,17 @@ public class MySQLExtractor implements RawExtractor
                 {
                     dbmsEvent.addMetadataOption(ReplOptionParams.SERVER_ID,
                             String.valueOf(serverId));
+
+                    if (gtidDomainId >= 0)
+                        dbmsEvent.addMetadataOption(
+                                ReplOptionParams.GTID_DOMAIN_ID,
+                                String.valueOf(gtidDomainId));
+
+                    if (gtidSeqno >= 0)
+                        dbmsEvent.addMetadataOption(
+                                ReplOptionParams.GTID_SEQNO,
+                                String.valueOf(gtidSeqno));
+
                     if (doRollback)
                         dbmsEvent.addMetadataOption(ReplOptionParams.ROLLBACK,
                                 "");
