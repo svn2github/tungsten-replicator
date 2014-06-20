@@ -100,7 +100,7 @@ class ConfigureDatabasePlatform
   end
   
   def getJdbcQueryUrl()
-    raise "Undefined function: #{self.class.name}.getJdbcQueryUrl"
+    getJdbcUrl()
   end
   
   def getJdbcUrl()
