@@ -216,13 +216,13 @@ public class DDLScanCtrl
 
     private String tableFileToRegex(String tableFile) throws IOException
     {
-        return tableFileToRegex(db, tableFile);
+        return tableFileToRegex(null, tableFile);
     }
 
     /**
      * Converts a new-line seperated text file containing table names into a
-     * format searchable by regular expression matcher:
-     * SCHEMA.TABLE,SCHEMA.TABLE,...
+     * format accepted by DDLScan:
+     * table1,table2,...,tableN
      * 
      * @param schema Prefix to add before each table name. If null - not added.
      * @param tableFile Table file like tungsten.tables used by Oracle
@@ -580,7 +580,7 @@ public class DDLScanCtrl
         println("  -pass secret     - JDBC password");
         println("  -url jdbcUrl     - JDBC connection string (use single quotes to escape)");
         println("Schema scan specification:");
-        println(" [-tables regex]   - Regular expression enabled list defining tables to find");
+        println(" [-tables regex]   - Comma-separated list of tables to find");
         println(" [-tableFile file] - New-line seperated definitions file of tables to find");
         println(" [-rename file]    - Definitions file for renaming schemas, tables and columns");
         println("Global options:");

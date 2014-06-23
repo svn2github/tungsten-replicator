@@ -194,8 +194,9 @@ public class DDLScan
      * Scans and extracts metadata from the database of requested tables. Calls
      * merge(...) against each found table.
      * 
-     * @param tablesToFind Regular expression enable list of tables to find or
-     *            null for all tables.
+     * @param tablesToFind Comma-separated list of tables to find (don't specify
+     *            schema name), null for all tables in schema. Regular
+     *            expressions are *not* supported.
      * @param templateOptions Options (option->value) to pass to the template.
      * @param writer Writer object to use for appending rendered template. Make
      *            sure to initialize it before and flush/close it after
@@ -210,13 +211,25 @@ public class DDLScan
         // How many tables were actually matched?
         int tablesRendered = 0;
 
-        // Regular expression matcher for tables.
-        TableMatcher tableMatcher = null;
-        if (tablesToFind != null)
-            tableMatcher = extractFilter(tablesToFind);
-
-        // Retrieve all tables available with unique index information.
-        ArrayList<Table> tables = db.getTables(dbName, true, true);
+        ArrayList<Table> tables = null;
+        if (tablesToFind == null)
+        {
+            // Retrieve all tables available with unique index information.
+            tables = db.getTables(dbName, true, true);
+        }
+        else
+        {
+            // Retrieve only requested tables.
+            tables = new ArrayList<Table>();
+            String[] tableNames = tablesToFind.split(",");
+            for (String tableName : tableNames)
+            {
+                Table table = db.findTable(dbName, tableName, true);
+                if (table != null)
+                    tables.add(table);
+                // TODO: add error reporting and report if table was not found.
+            }
+        }
 
         // Make a context object and populate with the data. This is where
         // the Velocity engine gets the data to resolve the references in
@@ -250,18 +263,13 @@ public class DDLScan
         // Iterate through all available tables in the database.
         for (Table table : tables)
         {
-            // Is this table requested by the user?
-            if (tableMatcher == null
-                    || tableMatcher.match(table.getSchema(), table.getName()))
-            {
-                // If requested, do the renaming.
-                rename(table);
+            // Do the renaming.
+            rename(table);
 
-                // Velocity merge.
-                merge(context, table, writer);
+            // Velocity merge.
+            merge(context, table, writer);
 
-                tablesRendered++;
-            }
+            tablesRendered++;
         }
 
         // No tables have been found and/or matched.
