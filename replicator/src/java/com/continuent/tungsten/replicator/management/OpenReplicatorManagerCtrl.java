@@ -959,13 +959,15 @@ public class OpenReplicatorManagerCtrl
                     doChecksum = false;
                 else if ("-provision".equals(curArg))
                 {
-                    // Take the next non-option argument as the provision
-                    // position.
+                    // Take the next, if any, non-option argument as the
+                    // provision position.
                     fromEvent = argvIterator.peek();
-                    if (fromEvent.startsWith("-"))
+                    if (fromEvent == null || fromEvent.startsWith("-"))
                         fromEvent = null;
+                    else
+                        argvIterator.next();
+
                     doProvision = true;
-                    argvIterator.next();
                 }
                 else
                     fatal("Unrecognized option: " + curArg, null);
