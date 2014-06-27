@@ -14,7 +14,7 @@ v_existing_change_table varchar2(30) := '';
 
 
 BEGIN
-  v_change_table_name := 'CT_' || SUBSTR(v_table_name, 1, 22);
+  v_change_table_name := 'CT_' || SUBSTR(v_table_name, 1, 27);
   BEGIN
     SELECT TRIM(USERNAME) into v_user from ALL_USERS where USERNAME=UPPER('&1');
   EXCEPTION WHEN OTHERS THEN

@@ -15,6 +15,7 @@ v_column_list varchar(10000);
 i_pub_tablespace number;
 */
 
+v_ct_name varchar2(100);
 v_quoted_ct_name varchar2(100);
 v_quoted_table varchar2(100);
 v_quoted_user varchar2(100);
@@ -34,7 +35,8 @@ BEGIN
       
   v_column_list := '''' || v_column_list || '''';
   v_quoted_table := '''' || v_table_name  || '''';
-  v_quoted_ct_name := '''CT_' || SUBSTR(v_table_name, 1, 22)  || '''';
+  v_ct_name := 'CT_' || SUBSTR(v_table_name, 1, 27);
+  v_quoted_ct_name := '''' || v_ct_name  || '''';
   v_quoted_schema := '''' || v_user || '''';
   v_quoted_cs_name := '''' || v_change_set_name || ''''; 
   v_quoted_user := '''' || v_pub_user  || '''';
@@ -62,15 +64,15 @@ BEGIN
 
     EXECUTE IMMEDIATE v_create_ct_statement;
     IF DEBUG_LVL > 1 THEN
-      DBMS_OUTPUT.PUT_LINE ('Running GRANT SELECT ON '|| 'CT_' || SUBSTR(v_table_name, 1, 22) || ' TO ' || v_tungsten_user);
+      DBMS_OUTPUT.PUT_LINE ('Running GRANT SELECT ON '|| v_ct_name || ' TO ' || v_tungsten_user);
     END IF;
     
-    EXECUTE IMMEDIATE 'GRANT SELECT ON '|| 'CT_' || SUBSTR(v_table_name, 1, 22) || ' TO ' || v_tungsten_user;
+    EXECUTE IMMEDIATE 'GRANT SELECT ON '|| v_ct_name || ' TO ' || v_tungsten_user;
                
     IF not b_sync THEN
       DBMS_OUTPUT.PUT_LINE(' -> ' ||  v_quoted_ct_name || ' : OK' );
     ELSE
-      SELECT CREATED_SCN INTO createdSCN FROM change_tables WHERE CHANGE_SET_NAME=v_change_set_name and CHANGE_TABLE_NAME='CT_' || SUBSTR(v_table_name, 1, 22);
+      SELECT CREATED_SCN INTO createdSCN FROM change_tables WHERE CHANGE_SET_NAME=v_change_set_name and CHANGE_TABLE_NAME=v_ct_name;
       DBMS_OUTPUT.PUT_LINE(' -> ' ||  v_quoted_ct_name || ' : created at SCN ' || createdSCN);
     END IF;
   EXCEPTION WHEN OTHERS THEN
