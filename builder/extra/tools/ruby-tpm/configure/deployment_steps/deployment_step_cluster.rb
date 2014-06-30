@@ -142,6 +142,10 @@ module ConfigureDeploymentStepDeployment
   	  dsid=1
       @config.getPropertyOr(DATASERVICES, []).each_key{
         |ds_alias|
+        if ds_alias == DEFAULTS
+          next
+        end
+        
         if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_IS_COMPOSITE]) == "true"
           ds_name=@config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
           t << "export COMPOSITE_DS=#{ds_name}"
