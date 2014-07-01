@@ -56,12 +56,12 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
     // CREATE [TEMPORARY] TABLE [IF NOT EXISTS] tbl_name
     protected Pattern                   createTable     = Pattern
                                                                 .compile(
-                                                                        "^\\s*create\\s*(?:temporary\\s*)?table\\s*(?:if\\s*not\\s*exists\\s*){0,1}(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*create\\s*(temporary\\s*)?table\\s*(?:if\\s*not\\s*exists\\s*){0,1}(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
                                                                         Pattern.CASE_INSENSITIVE);
     // DROP [TEMPORARY] TABLE [IF EXISTS]
     protected Pattern                   dropTable       = Pattern
                                                                 .compile(
-                                                                        "^\\s*(drop\\s*(?:temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*(drop\\s*(temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
                                                                         Pattern.CASE_INSENSITIVE);
 
     protected Pattern                   dropTableMdata  = Pattern
@@ -341,8 +341,18 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
             m = createTable.matcher(statement);
             if (m.find())
             {
-                return new SqlOperation(SqlOperation.TABLE,
-                        SqlOperation.CREATE, m.group(1), m.group(2));
+                if (m.group(1) == null)
+                {
+                    return new SqlOperation(SqlOperation.TABLE,
+                            SqlOperation.CREATE, m.group(2), m.group(3));
+                }
+                else
+                {
+                    // found temporary keyword in this create table statement
+                    return new SqlOperation(SqlOperation.TABLE,
+                            SqlOperation.CREATE, m.group(2), m.group(3), false);
+                }
+
             }
             // Create index.
             m = createIndex.matcher(statement);
@@ -413,8 +423,14 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
                             + m.group(2) + " " + m.group(3));
 
                 }
-                return new SqlOperation(command, SqlOperation.TABLE,
-                        SqlOperation.DROP, m.group(2), m.group(3));
+                if (m.group(2) == null)
+                    return new SqlOperation(command, SqlOperation.TABLE,
+                            SqlOperation.DROP, m.group(3), m.group(4));
+                else
+                    // found temporary keyword in this drop table statement
+                    return new SqlOperation(command, SqlOperation.TABLE,
+                            SqlOperation.DROP, m.group(3), m.group(4), false);
+
             }
             // Drop view.
             m = dropView.matcher(statement);

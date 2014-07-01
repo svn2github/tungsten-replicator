@@ -118,11 +118,12 @@ public class TestSqlOperationMatcher
     public void testCreateTable() throws Exception
     {
         String[] cmds1 = {"create table foo", "CREATE TABLE IF NOT EXISTS foo",
-                "   creAtE TEMPORary TabLE \"foo\"",
                 "create   table   `foo` /* hello*/"};
         String[] cmds2 = {"create table bar.foo", "CREATE TABLE bar.foo",
-                "creAtE TabLE \"bar\".\"foo\"",
+                "creAtE TabLE \"bar\".\"foo\""};
+        String[] cmds3 = {"   creAtE TEMPORary TabLE \"foo\"",
                 "create temporary  table   `bar`.`foo` /* hello*/"};
+
         SqlOperationMatcher m = new MySQLOperationMatcher();
         for (String cmd : cmds1)
         {
@@ -149,6 +150,22 @@ public class TestSqlOperationMatcher
             Assert.assertEquals("Found database: " + cmd, "bar",
                     sqlName.getSchema());
         }
+        for (String cmd : cmds3)
+        {
+            SqlOperation sqlName = m.match(cmd);
+            Assert.assertNotNull("Matched: " + cmd, sqlName);
+            Assert.assertEquals("Found object: " + cmd, SqlOperation.TABLE,
+                    sqlName.getObjectType());
+            Assert.assertEquals("Found operation: " + cmd, SqlOperation.CREATE,
+                    sqlName.getOperation());
+            Assert.assertEquals("Found name: " + cmd, "foo", sqlName.getName());
+            if (sqlName.getSchema() != null)
+                Assert.assertEquals("Found database: " + cmd, "bar",
+                        sqlName.getSchema());
+            Assert.assertFalse("Is autocommit: " + cmd, sqlName.isAutoCommit());
+
+        }
+
     }
 
     /**
@@ -158,14 +175,14 @@ public class TestSqlOperationMatcher
     public void testDropTable() throws Exception
     {
         String[] cmds1 = {"drop table foo", "DROP TABLE foo",
-                "DrOp TabLE \"foo\"",
-                "drop temporary  table   `foo` /* hello*/",
-                "drop    table  if   exists  foo"};
+                "DrOp TabLE \"foo\"", "drop    table  if   exists  foo"};
         String[] cmds2 = {"drop table bar.foo", "DROP TABLE bar.foo",
-                "DRop TemporarY TabLE \"bar\".\"foo\"",
                 "drop   table   `bar`.`foo` /* hello*/",
                 "drop table  if  exists bar.foo",
                 "DROP TABLE IF EXISTS TUNGSTEN_INFO.bravo, `bar`.`foo`"};
+        String[] cmds3 = {"drop temporary  table   `foo` /* hello*/",
+                "DRop TemporarY TabLE \"bar\".\"foo\""};
+
         SqlOperationMatcher m = new MySQLOperationMatcher();
         for (String cmd : cmds1)
         {
@@ -192,6 +209,22 @@ public class TestSqlOperationMatcher
             Assert.assertEquals("Found database: " + cmd, "bar",
                     sqlName.getSchema());
         }
+
+        for (String cmd : cmds3)
+        {
+            SqlOperation sqlName = m.match(cmd);
+            Assert.assertNotNull("Matched: " + cmd, sqlName);
+            Assert.assertEquals("Found object: " + cmd, SqlOperation.TABLE,
+                    sqlName.getObjectType());
+            Assert.assertEquals("Found operation: " + cmd, SqlOperation.DROP,
+                    sqlName.getOperation());
+            Assert.assertEquals("Found name: " + cmd, "foo", sqlName.getName());
+            if (sqlName.getSchema() != null)
+                Assert.assertEquals("Found database: " + cmd, "bar",
+                        sqlName.getSchema());
+            Assert.assertFalse("Is autocommit: " + cmd, sqlName.isAutoCommit());
+        }
+
     }
 
     /**

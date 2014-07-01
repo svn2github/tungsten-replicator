@@ -739,7 +739,12 @@ public class MySQLExtractor implements RawExtractor
                             statement.addOption(
                                     StatementData.CREATE_OR_DROP_DB, "");
 
-                        if (operation == SqlOperation.CREATE
+                        // Issue 960 : correctly handling temporary tables
+                        if (sqlOperation.getObjectType() == SqlOperation.TABLE
+                                && !sqlOperation.isAutoCommit()
+                                && (operation == SqlOperation.CREATE || operation == SqlOperation.DROP))
+                            unsafeForBlockCommit = false;
+                        else if (operation == SqlOperation.CREATE
                                 || operation == SqlOperation.DROP
                                 || operation == SqlOperation.ALTER
                                 || operation == SqlOperation.UNRECOGNIZED)
