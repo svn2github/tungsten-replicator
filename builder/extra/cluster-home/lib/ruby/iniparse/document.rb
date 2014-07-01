@@ -32,9 +32,29 @@ module IniParse
       @lines[key.to_s]
     end
 
+    # Deletes the section whose name matches the given +key+.
+    #
+    # Returns the document.
+    #
+    def delete(*args)
+      @lines.delete(*args)
+      self
+    end
+
     # Returns this document as a string suitable for saving to a file.
     def to_ini
-      @lines.to_a.map { |line| line.to_ini }.join($/)
+      string = @lines.to_a.map { |line| line.to_ini }.join($/)
+      string = "#{ string }\n" unless string[-1] == "\n"
+
+      string
+    end
+
+    alias_method :to_s, :to_ini
+
+    # A human-readable version of the document, for debugging.
+    def inspect
+      sections = @lines.select { |l| l.is_a?(IniParse::Lines::Section) }
+      "#<IniParse::Document {#{ sections.map(&:key).join(', ') }}>"
     end
 
     # Returns true if a section with the given +key+ exists in this document.

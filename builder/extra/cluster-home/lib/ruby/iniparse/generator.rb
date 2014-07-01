@@ -110,8 +110,12 @@ module IniParse
         raise LineNotAllowed, "You can't nest sections in INI files."
       end
 
-      @context = Lines::Section.new(name, line_options(opts))
-      @document.lines << @context
+      if @document.has_section?(name.to_s())
+        @context = @document[name.to_s()]
+      else
+        @context = Lines::Section.new(name, line_options(opts))
+        @document.lines << @context
+      end
 
       if block_given?
         begin

@@ -8,6 +8,7 @@ module IniParse
       def initialize(opts = {})
         @comment        = opts.fetch(:comment, nil)
         @comment_sep    = opts.fetch(:comment_sep, ';')
+        @comment_prefix = opts.fetch(:comment_prefix, ' ')
         @comment_offset = opts.fetch(:comment_offset, 0)
         @indent         = opts.fetch(:indent, '')
       end
@@ -40,7 +41,7 @@ module IniParse
       # Returns the inline comment for this line. Includes the comment
       # separator at the beginning of the string.
       def comment
-        '%s %s' % [@comment_sep, @comment]
+        "#{ @comment_sep }#{ @comment_prefix }#{ @comment }"
       end
 
       # Returns whether this is a line which has no data.
@@ -152,6 +153,15 @@ module IniParse
         end
       end
 
+      # Deletes the option identified by +key+.
+      #
+      # Returns the section.
+      #
+      def delete(*args)
+        @lines.delete(*args)
+        self
+      end
+
       # Like [], except instead of returning just the option value, it returns
       # the matching line instance.
       #
@@ -189,6 +199,28 @@ module IniParse
 
       def line_contents
         '[%s]' % key
+      end
+    end
+
+    # Stores options which appear at the beginning of a file, without a
+    # preceding section.
+    class AnonymousSection < Section
+      def initialize
+        super('__anonymous__')
+      end
+
+      def to_ini
+        # Remove the leading space which is added by joining the blank line
+        # content with the options.
+        super.gsub(/\A\n/, '')
+      end
+
+      #######
+      private
+      #######
+
+      def line_contents
+        ''
       end
     end
 
