@@ -170,7 +170,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
     h_alias = to_identifier(@host)
     if @config.getProperty([HOSTS, h_alias]) != nil
       begin
-        logbin = ssh_result("my_print_defaults --config-file=#{@config.getProperty(@prefix + [REPL_MYSQL_CONF])} mysqld | grep '^--log[_-]bin'", @host, @config.getProperty([HOSTS, h_alias, USERID])).split("=")[-1].strip()
+        logbin = ssh_result("my_print_defaults --config-file=#{@config.getProperty(@prefix + [REPL_MYSQL_CONF])} mysqld | grep '^--log[_-]bin='", @host, @config.getProperty([HOSTS, h_alias, USERID])).split("=")[-1].strip()
 
         if logbin.to_s() != ""
           logdir = File.dirname(logbin)
@@ -1260,7 +1260,7 @@ class MySQLApplierLogsCheck < ConfigureValidationCheck
     end
     
     begin
-      conf_file_results = cmd_result("#{my_print_defaults} --config-file=#{conf_file} mysqld | grep '^--log[_-]bin'").split("=")[-1].strip()
+      conf_file_results = cmd_result("#{my_print_defaults} --config-file=#{conf_file} mysqld | grep '^--log[_-]bin='").split("=")[-1].strip()
     rescue CommandError
     end
     
