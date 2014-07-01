@@ -40,8 +40,6 @@ import com.continuent.tungsten.replicator.applier.DummyApplier;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
-import com.continuent.tungsten.replicator.dbms.OneRowChange;
-import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.event.EventGenerationHelper;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.extractor.DummyExtractor;
