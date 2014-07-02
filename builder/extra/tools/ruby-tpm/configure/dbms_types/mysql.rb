@@ -1242,12 +1242,12 @@ class MySQLApplierLogsCheck < ConfigureValidationCheck
   def validate
     dir = @config.getProperty(get_applier_key(REPL_MASTER_LOGDIR))
     
+    conf_file = @config.getProperty(get_applier_key(REPL_MYSQL_CONF))
     unless Configurator.instance.is_localhost?(@config.getProperty(get_applier_key(REPL_DBHOST)))
       debug("Unable to check the configured log directory in '#{conf_file}' on #{get_applier_datasource.get_connection_summary}")
       return
     end
     
-    conf_file = @config.getProperty(get_applier_key(REPL_MYSQL_CONF))
     unless File.exists?(conf_file) && File.readable?(conf_file)
       error("The MySQL config file '#{conf_file}' is not readable")
       return

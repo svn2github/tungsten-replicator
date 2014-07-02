@@ -1434,7 +1434,12 @@ class Configurator
         puts "\n"
         $stdout.flush()
       end
-      Thread.kill(@alive_thread)
+      
+      begin
+        Thread.kill(@alive_thread)
+      rescue TypeError
+      end
+      
       @alive_thread = nil
     end
   end
