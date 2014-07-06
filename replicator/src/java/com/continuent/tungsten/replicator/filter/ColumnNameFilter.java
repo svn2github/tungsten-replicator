@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.filter;
 
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -55,7 +56,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class ColumnNameFilter implements Filter
 {
-    private static Logger                               logger     = Logger.getLogger(ColumnNameFilter.class);
+    private static Logger                               logger              = Logger.getLogger(ColumnNameFilter.class);
 
     // Metadata cache is a hashtable indexed by the database name and each
     // database uses a hashtable indexed by the table name (This is done in
@@ -64,15 +65,16 @@ public class ColumnNameFilter implements Filter
     // updated only when a table is used for the first time by a row event.
     private Hashtable<String, Hashtable<String, Table>> metadataCache;
 
-    Database                                            conn          = null;
+    Database                                            conn                = null;
 
     private String                                      user;
     private String                                      url;
     private String                                      password;
-    private boolean                                     addSignedFlag = true;
+    private boolean                                     addSignedFlag       = true;
+    private boolean                                     ignoreMissingTables = true;
 
     // SQL parser.
-    SqlOperationMatcher                                 sqlMatcher = new MySQLOperationMatcher();
+    SqlOperationMatcher                                 sqlMatcher          = new MySQLOperationMatcher();
 
     /**
      * {@inheritDoc}
@@ -95,13 +97,13 @@ public class ColumnNameFilter implements Filter
         if (addSignedFlag)
             msg += "and signed flag ";
         logger.info(msg += "will be queried from the DBMS");
-        
+
         // Initialize cache for tables.
         metadataCache = new Hashtable<String, Hashtable<String, Table>>();
 
         // Load defaults for connection
         if (url == null)
-            url = context.getJdbcUrl("tungsten_" + context.getServiceName());
+            url = context.getJdbcUrl(null);
         if (user == null)
             user = context.getJdbcUser();
         if (password == null)
@@ -272,10 +274,33 @@ public class ColumnNameFilter implements Filter
             }
             if (newTable == null)
             {
-                throw new ReplicatorException(
-                        "Unable to find column metadata; table may be missing: schema="
-                                + orc.getSchemaName() + " table="
-                                + orc.getTableName());
+                if (ignoreMissingTables)
+                {
+                    // If we are ignoring missing tables, manufacture a
+                    // table definition with generated column names.
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Ignored a missing table: name="
+                                + orc.getSchemaName() + "." + tableName);
+                    }
+                    newTable = new Table(orc.getSchemaName(),
+                            orc.getTableName());
+                    int maxCols = Math.max(orc.getColumnSpec().size(), orc
+                            .getKeySpec().size());
+                    for (int i = 0; i < maxCols; i++)
+                    {
+                        Column column = new Column("col_" + i, Types.OTHER);
+                        newTable.AddColumn(column);
+                    }
+                }
+                else
+                {
+                    // Otherwise generate an error.
+                    throw new ReplicatorException(
+                            "Unable to find column metadata; table may be missing: schema="
+                                    + orc.getSchemaName() + " table="
+                                    + orc.getTableName());
+                }
             }
             newTable.setTableId(orc.getTableId());
             dbCache.put(tableName, newTable);
@@ -330,5 +355,14 @@ public class ColumnNameFilter implements Filter
     public void setAddSignedFlag(boolean addSignedFlag)
     {
         this.addSignedFlag = addSignedFlag;
+    }
+
+    /**
+     * If true ignore missing tables. This allows us to read a log that includes
+     * dropped tables where we cannot look up metadata.
+     */
+    public void setIgnoreMissingTables(boolean ignoreMissingTables)
+    {
+        this.ignoreMissingTables = ignoreMissingTables;
     }
 }

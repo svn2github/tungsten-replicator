@@ -10,6 +10,6 @@ rename = $renameDefinitions.getDefinitionsFile()
 */
 ## Check for missing table information.
 #if ( !$table )
-/* ERROR: no tables found! Is database and tables option specified correctly? */
+/* ERROR: no tables found! Are database and tables option specified correctly? */
 #stop
 #end

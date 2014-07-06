@@ -39,6 +39,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.io.WrappedInputStream;
 import com.continuent.tungsten.common.mysql.MySQLConstants;
 import com.continuent.tungsten.common.mysql.MySQLIOs;
 import com.continuent.tungsten.common.mysql.MySQLPacket;
@@ -76,6 +77,7 @@ public class RelayLogClient
     private boolean                   autoClean                   = true;
     private int                       serverId                    = 1;
     private long                      readTimeout                 = 60;
+    private boolean                   deterministicIo             = false;
     private LinkedBlockingQueue<File> logQueue                    = null;
 
     // Relay storage and positioning information.
@@ -180,6 +182,11 @@ public class RelayLogClient
     public void setServerId(int serverId)
     {
         this.serverId = serverId;
+    }
+
+    public void setDeterministicIo(boolean deterministicIo)
+    {
+        this.deterministicIo = deterministicIo;
     }
 
     public synchronized LinkedBlockingQueue<File> getLogQueue()
@@ -318,7 +325,7 @@ public class RelayLogClient
         try
         {
             MySQLIOs io = MySQLIOs.getMySQLIOs(conn);
-            input = io.getInput();
+            input = new WrappedInputStream(io.getInput(), deterministicIo);
             output = io.getOutput();
         }
         catch (Exception e)

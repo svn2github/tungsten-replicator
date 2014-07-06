@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Implements a class to manipulate generic file system path structures that can
  * apply to any type of file system-like structure including Linux, Hadoop, and
- * in future possibly Zookeeper.
+ * Zookeeper.
  */
 public class FilePath
 {

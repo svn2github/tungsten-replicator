@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2012 Continuent Inc.
+ * Copyright (C) 2012-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,6 +28,8 @@ import java.sql.Statement;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.csv.CsvInfo;
+import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.Table;
 
 /**
@@ -65,6 +67,7 @@ public class InfiniDBBatchApplier extends SimpleBatchApplier
         }
         try
         {
+            Database conn = (Database) connections.get(0);
             tmpStatement = conn.createStatement();
             conn.setAutoCommit(false);
             int rowsLoaded = tmpStatement.executeUpdate(delete);
@@ -75,7 +78,7 @@ public class InfiniDBBatchApplier extends SimpleBatchApplier
                 logger.debug("Rows deleted: " + rowsLoaded);
             }
         }
-        catch (SQLException e)
+        catch (Exception e)
         {
             ReplicatorException re = new ReplicatorException(
                     "Unable to delete data from stage table: "

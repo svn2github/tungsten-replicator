@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -62,7 +62,8 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  * Filter takes an optional parameter for performance tuning. Instead of
  * checking all the tables you may define only a specific comma-delimited list
  * in process_tables_schemas parameter. Eg.:<br/>
- * replicator.filter.enumtostringfilter.process_tables_schemas=myschema.mytable1,myschema.mytable2
+ * replicator.filter.enumtostringfilter.process_tables_schemas=myschema.mytable1
+ * ,myschema.mytable2
  * 
  * @author <a href="mailto:linas.virbalas@continuent.com">Linas Virbalas</a>
  * @version 1.0
@@ -95,8 +96,8 @@ public class EnumToStringFilter implements Filter
             this.enumDefinitions = enumDefinitions;
         }
     }
-    
-    private static Logger                               logger               = Logger.getLogger(EnumToStringFilter.class);
+
+    private static Logger                                        logger               = Logger.getLogger(EnumToStringFilter.class);
 
     // Metadata cache is a hashtable indexed by the database name and each
     // database uses a hashtable indexed by the table name (This is done in
@@ -105,18 +106,18 @@ public class EnumToStringFilter implements Filter
     // updated only when a table is used for the first time by a row event.
     private Hashtable<String, Hashtable<String, TableWithEnums>> metadataCache;
 
-    Database                                            conn                 = null;
+    Database                                                     conn                 = null;
 
-    private String                                      user;
-    private String                                      url;
-    private String                                      password;
+    private String                                               user;
+    private String                                               url;
+    private String                                               password;
 
-    private List<String>                                tables               = null;
-    private List<String>                                schemas              = null;
-    private String                                      processTablesSchemas = null;
+    private List<String>                                         tables               = null;
+    private List<String>                                         schemas              = null;
+    private String                                               processTablesSchemas = null;
 
     // SQL parser.
-    SqlOperationMatcher                                 sqlMatcher           = new MySQLOperationMatcher();
+    SqlOperationMatcher                                          sqlMatcher           = new MySQLOperationMatcher();
 
     /**
      * {@inheritDoc}
@@ -154,15 +155,15 @@ public class EnumToStringFilter implements Filter
     {
         metadataCache = new Hashtable<String, Hashtable<String, TableWithEnums>>();
 
-        // Load defaults for connection 
+        // Load defaults for connection
         if (url == null)
-            url = context.getJdbcUrl("tungsten");
+            url = context.getJdbcUrl(null);
         if (user == null)
             user = context.getJdbcUser();
         if (password == null)
             password = context.getJdbcPassword();
-        
-        // Connect. 
+
+        // Connect.
         try
         {
             conn = DatabaseFactory.createDatabase(url, user, password);
@@ -256,7 +257,8 @@ public class EnumToStringFilter implements Filter
                     // metadata for the concerned table
                     String name = sqlOperation.getName();
                     String defaultDB = sdata.getDefaultSchema();
-                    removeTableMetadata(name, sqlOperation.getSchema(), defaultDB);
+                    removeTableMetadata(name, sqlOperation.getSchema(),
+                            defaultDB);
                     continue;
                 }
 
@@ -270,7 +272,8 @@ public class EnumToStringFilter implements Filter
     {
         if (schemaName != null)
         {
-            Hashtable<String, TableWithEnums> tableCache = metadataCache.get(schemaName);
+            Hashtable<String, TableWithEnums> tableCache = metadataCache
+                    .get(schemaName);
             if (tableCache != null && tableCache.remove(tableName) != null)
             {
                 if (logger.isDebugEnabled())
@@ -283,7 +286,8 @@ public class EnumToStringFilter implements Filter
         }
         else
         {
-            Hashtable<String, TableWithEnums> tableCache = metadataCache.get(defaultDB);
+            Hashtable<String, TableWithEnums> tableCache = metadataCache
+                    .get(defaultDB);
             if (tableCache != null && tableCache.remove(tableName) != null)
                 logger.info("ALTER TABLE detected - Removing table metadata for '"
                         + defaultDB + "." + tableName + "'");
@@ -297,7 +301,7 @@ public class EnumToStringFilter implements Filter
     {
         return parseEnumeration(listTypeDefinition);
     }
-    
+
     /**
      * Parses MySQL enum type definition statement. Eg.:<br/>
      * enum('Active','Inactive','Removed')<br/>
@@ -447,7 +451,7 @@ public class EnumToStringFilter implements Filter
                 }
             }
         }
-        
+
         return enumElements;
     }
 
@@ -512,12 +516,23 @@ public class EnumToStringFilter implements Filter
                         + " - Removing table metadata from cache");
             Table newTable = conn.findTable(orc.getSchemaName(),
                     orc.getTableName(), false);
+            // If we cannot find the table, it is possible it has been deleted,
+            // in which case there is nothing to be done.
+            if (newTable == null)
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Ignored a missing table: name="
+                            + orc.getSchemaName() + "." + tableName);
+                }
+                return;
+            }
             newTable.setTableId(orc.getTableId());
             dbCache.put(tableName, new TableWithEnums(newTable));
         }
 
         // Is there any enum columns in this table? If so, retrieve enum
-        // definitions of each enum column.        
+        // definitions of each enum column.
         TableWithEnums table = dbCache.get(tableName);
         // Have we already cached enum definitions?
         HashMap<Integer, String[]> enumDefinitions = table.getEnumDefinitions();
@@ -618,8 +633,13 @@ public class EnumToStringFilter implements Filter
                     // Iterate through all rows in the event and transform each.
                     for (int row = 0; row < columnValues.size(); row++)
                     {
-                        // ColumnVal keyValue = keyValues.get(row).get(k);
-                        ColumnVal colValue = columnValues.get(row).get(c);
+                        // Fetch the column value. Note that rows may not be
+                        // complete.
+                        List<ColumnVal> colValues = columnValues.get(row);
+                        if (colValues.size() <= c)
+                            continue;
+                        ColumnVal colValue = colValues.get(c);
+
                         // It must be integer at this point.
                         if (colValue.getValue() != null)
                         {

@@ -59,7 +59,7 @@ public class SimpleJobService<V>
         BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>(
                 maxRequests);
         ThreadFactory factory = new SimpleThreadFactory(name);
-        pool = new ThreadPoolExecutor(1, maxThreads, keepAlive,
+        pool = new ThreadPoolExecutor(maxThreads, maxThreads, keepAlive,
                 TimeUnit.SECONDS, queue, factory);
     }
 

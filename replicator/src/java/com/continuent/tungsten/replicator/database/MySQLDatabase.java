@@ -53,9 +53,9 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange;
  */
 public class MySQLDatabase extends AbstractDatabase
 {
-    private static Logger             logger                        = Logger.getLogger(MySQLDatabase.class);
+    private static Logger                  logger                        = Logger.getLogger(MySQLDatabase.class);
 
-    private boolean                   sessionLevelLoggingSuppressed = false;
+    private boolean                        sessionLevelLoggingSuppressed = false;
 
     /** A list of words that can't be used in table and column names. */
     private static final ArrayList<String> reservedWords                 = new ArrayList<String>(
@@ -99,9 +99,9 @@ public class MySQLDatabase extends AbstractDatabase
             "SQLWARNING", "SQL_SMALL_RESULT", "STRAIGHT_JOIN", "THEN",
             "TINYTEXT", "TRIGGER", "UNION", "UNSIGNED", "USE", "UTC_TIME",
             "VARBINARY", "VARYING", "WHILE", "XOR"                               }));
-    
-    private static final List<String> SYSTEM_SCHEMAS                = Arrays.asList(new String[]{
-            "mysql", "performance_schema", "information_schema"     });
+
+    private static final List<String>      SYSTEM_SCHEMAS                = Arrays.asList(new String[]{
+            "mysql", "performance_schema", "information_schema"          });
 
     public MySQLDatabase() throws SQLException
     {
@@ -160,20 +160,9 @@ public class MySQLDatabase extends AbstractDatabase
      */
     public void connect() throws SQLException
     {
-        connect(false);
-    }
-
-    /**
-     * Connect to a MySQL database, which includes setting the wait_timeout to a
-     * very high value so we don't lose our connection. {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#connect(boolean)
-     */
-    public void connect(boolean binlog) throws SQLException
-    {
         // Use superclass method to avoid missing things like loading the
         // driver class.
-        super.connect(binlog);
+        super.connect();
 
         // set connection timeout to maximum to prevent timeout on the
         // server side

@@ -34,6 +34,7 @@ import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.common.jmx.MethodDesc;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
+import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
@@ -48,9 +49,11 @@ public class ShardManager implements ShardManagerMBean
     private String        password;
     private String        schema;
     private String        tableType;
+    private PluginContext context;
 
     public ShardManager(String serviceName, String url, String user,
-            String password, String tungstenSchema, String tungstenTableType)
+            String password, String tungstenSchema, String tungstenTableType,
+            PluginContext context)
     {
         this.serviceName = serviceName;
         this.url = url;
@@ -58,6 +61,7 @@ public class ShardManager implements ShardManagerMBean
         this.password = password;
         this.schema = tungstenSchema;
         this.tableType = tungstenTableType;
+        this.context = context;
     }
 
     @Override
@@ -70,6 +74,7 @@ public class ShardManager implements ShardManagerMBean
     @MethodDesc(description = "Inserts new shards for service", usage = "insert")
     public int insert(List<Map<String, String>> params) throws SQLException
     {
+        assertNotUnprivilegedMaster();
         int shardsCount = 0;
         if (logger.isDebugEnabled())
         {
@@ -111,6 +116,7 @@ public class ShardManager implements ShardManagerMBean
     @MethodDesc(description = "Updates shards for service", usage = "update")
     public int update(List<Map<String, String>> params) throws SQLException
     {
+        assertNotUnprivilegedMaster();
         if (logger.isDebugEnabled())
             logger.debug("Updating shards for service " + serviceName);
 
@@ -151,6 +157,7 @@ public class ShardManager implements ShardManagerMBean
     @MethodDesc(description = "Deletes shards for service", usage = "delete")
     public int delete(List<Map<String, String>> params) throws SQLException
     {
+        assertNotUnprivilegedMaster();
         if (logger.isDebugEnabled())
             logger.debug("Deleting shards for service " + serviceName);
 
@@ -188,8 +195,9 @@ public class ShardManager implements ShardManagerMBean
 
     @Override
     @MethodDesc(description = "Deletes all shards for service", usage = "deleteAll")
-    public int deleteAll() throws SQLException
+    public int deleteAll() throws SQLException, RuntimeException
     {
+        assertNotUnprivilegedMaster();
         if (logger.isDebugEnabled())
             logger.debug("Deleting all shards for service " + serviceName);
         Database connection = null;
@@ -232,9 +240,26 @@ public class ShardManager implements ShardManagerMBean
     {
         Database db = null;
         db = DatabaseFactory.createDatabase(url, user, password, true);
-        db.connect(false);
+        db.connect();
+        if (context.isPrivilegedMaster() || context.isPrivilegedSlave())
+        {
+            // Suppress logging of transactions if we have the power to do so.
+            if (db.supportsControlSessionLevelLogging())
+            {
+                db.controlSessionLevelLogging(true);
+            }
+        }
 
         return db;
+    }
+
+    /**
+     * Ensures that we are not logging on a mastre.
+     */
+    public void assertNotUnprivilegedMaster() throws RuntimeException
+    {
+        if (context.isMaster() && !context.isPrivilegedMaster())
+            throw new RuntimeException("Operation requires a privileged master");
     }
 
     public void advertiseInternal()

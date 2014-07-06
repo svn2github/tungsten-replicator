@@ -1771,14 +1771,14 @@ public class JdbcApplier implements RawApplier
             // Create the database. Note that we need to see if we have a
             // privileged account as some slaves like Amazon RDS do not allow
             // superuser.
-            if (!context.isPrivilegedSlaveUpdate())
+            if (!context.isPrivilegedSlave())
             {
                 logger.info("Assuming non-privileged JDBC login for apply");
             }
             conn = DatabaseFactory.createDatabase(url, user, password,
-                    context.isPrivilegedSlaveUpdate());
+                    context.isPrivilegedSlave());
             conn.setInitScript(initScript);
-            conn.connect(false);
+            conn.connect();
             statement = conn.createStatement();
 
             // Enable binlogs at session level if this is supported and we are

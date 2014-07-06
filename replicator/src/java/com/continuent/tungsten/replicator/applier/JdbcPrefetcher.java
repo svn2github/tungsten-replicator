@@ -1190,7 +1190,7 @@ public class JdbcPrefetcher implements RawApplier
 
             // Create the database.
             conn = DatabaseFactory.createDatabase(url, user, password);
-            conn.connect(true);
+            conn.connect();
             statement = conn.createStatement();
 
             // Create table metadata cache.

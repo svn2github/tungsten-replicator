@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,7 +29,6 @@ import java.io.StringWriter;
 
 import org.junit.Assert;
 import org.junit.Test;
-
 
 /**
  * Implements a basic unit test of CSV input and output.
@@ -96,6 +95,57 @@ public class CsvTest
 
         // Ensure we are done.
         Assert.assertFalse("Third read failed", csvReader.next());
+    }
+
+    /**
+     * Verify that we can write a file to output and read it back in using
+     * CsvReader and CsvWriter instances generated from a CsvSpecification.
+     */
+    @Test
+    public void testOutputInputFromSpecification() throws Exception
+    {
+        // Generate a default specification but set the field separator just for
+        // fun.
+        CsvSpecification csvSpec = new CsvSpecification();
+        csvSpec.setFieldSeparator(":");
+        csvSpec.setUseHeaders(true);
+
+        StringWriter sw = new StringWriter();
+        CsvWriter csvWriter = csvSpec.createCsvWriter(sw);
+
+        // Write values.
+        csvWriter.addColumnName("a");
+        csvWriter.addColumnName("bb");
+        csvWriter.addColumnName("ccc");
+        csvWriter.put("a", "r1a");
+        csvWriter.put("bb", "r1b");
+        csvWriter.put("ccc", "r1c");
+        csvWriter.flush();
+        String csv = sw.toString();
+
+        // Read values back in again and validate.
+        StringReader sr = new StringReader(csv);
+        CsvReader csvReader = csvSpec.createCsvReader(sr);
+
+        // Validate names.
+        Assert.assertTrue("First read succeeded", csvReader.next());
+        Assert.assertEquals("size of names", 3, csvReader.getNames().size());
+        Assert.assertEquals("a", csvReader.getNames().get(0));
+        Assert.assertEquals("bb", csvReader.getNames().get(1));
+        Assert.assertEquals("ccc", csvReader.getNames().get(2));
+
+        // Check row 1 values using index and names.
+        Assert.assertEquals("r1 val1", "r1a", csvReader.getString(1));
+        Assert.assertEquals("r1 val1", "r1a", csvReader.getString("a"));
+
+        Assert.assertEquals("r1 val2", "r1b", csvReader.getString(2));
+        Assert.assertEquals("r1 val2", "r1b", csvReader.getString("bb"));
+
+        Assert.assertEquals("r1 val1", "r1c", csvReader.getString(3));
+        Assert.assertEquals("r1 val1", "r1c", csvReader.getString("ccc"));
+
+        // Ensure we are done.
+        Assert.assertFalse("Read failed", csvReader.next());
     }
 
     /**

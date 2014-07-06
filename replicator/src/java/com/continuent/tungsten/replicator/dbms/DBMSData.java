@@ -49,6 +49,9 @@ public class DBMSData implements Serializable
 
     }
 
+    /**
+     * Add an option value. This can create duplicates the option exists.
+     */
     public void addOption(String name, String value)
     {
         if (options == null)
@@ -56,6 +59,42 @@ public class DBMSData implements Serializable
         options.add(new ReplOption(name, value));
     }
 
+    /**
+     * Set the value, adding a new option if it does not exist or changing the
+     * existing value.
+     */
+    public void setOption(String name, String value)
+    {
+        removeOption(name);
+        addOption(name, value);
+    }
+
+    /**
+     * Remove an option and return its value if it exists.
+     */
+    public String removeOption(String name)
+    {
+        // Remove previous value, if any.
+        if (options != null)
+        {
+            ReplOption existingOption = null;
+            for (ReplOption replOption : options)
+            {
+                if (name.equals(replOption.getOptionName()))
+                    existingOption = replOption;
+            }
+            if (existingOption != null)
+            {
+                options.remove(existingOption);
+                return existingOption.getOptionValue();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return all options.
+     */
     public List<ReplOption> getOptions()
     {
         return options;

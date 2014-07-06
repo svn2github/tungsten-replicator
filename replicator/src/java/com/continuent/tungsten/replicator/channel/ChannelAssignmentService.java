@@ -167,14 +167,24 @@ public class ChannelAssignmentService implements PipelineService
         // Create the database connection.
         try
         {
-            conn = DatabaseFactory.createDatabase(url, user, password);
+            conn = DatabaseFactory.createDatabase(url, user, password,
+                    context.isPrivilegedSlave());
             if (reconnectTimeoutInSeconds > 0)
             {
                 logger.info("ChannelAssignmentService will use a "
                         + reconnectTimeoutInSeconds + "s timeout.");
                 connectionLastUsedTime = System.currentTimeMillis();
             }
-            conn.connect(false);
+            // Need to suppress logging if possible. If we are running on a
+            // master we also don't want to run without a privileged account to
+            // avoid corrupting downstream replicators. However that check needs
+            // to happen when we actually log data.
+            conn.connect();
+            if (context.isSlave() && context.isPrivilegedSlave())
+            {
+                if (conn.supportsControlSessionLevelLogging())
+                    conn.controlSessionLevelLogging(true);
+            }
         }
         catch (SQLException e)
         {

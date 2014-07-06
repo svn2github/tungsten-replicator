@@ -222,7 +222,7 @@ public class HeartbeatTable
             db = DatabaseFactory.createDatabase(url, user, password);
             if (initScript != null)
                 db.setInitScript(initScript);
-            db.connect(true);
+            db.connect();
             startHeartbeat(db, name);
         }
         finally

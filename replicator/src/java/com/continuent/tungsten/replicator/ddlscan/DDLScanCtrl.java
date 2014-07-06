@@ -188,7 +188,7 @@ public class DDLScanCtrl
                 return false;
             }
         }
-        
+
         if (tableFile != null)
             tables = tableFileToRegex(tableFile);
 
@@ -197,7 +197,8 @@ public class DDLScanCtrl
         else
             writer = new BufferedWriter(new FileWriter(new File(outFile)));
 
-        if (tables != null)
+        // Summarize tables to stdout if we are going to an output file.
+        if (tables != null && outFile != null)
             println("tables = " + tables);
 
         scanner.scan(tables, templateOptions, writer);
@@ -315,7 +316,7 @@ public class DDLScanCtrl
             // Command line parameters and options.
             String configFile = null;
             String service = null;
-            
+
             String templateFile = null;
             String additionalPath = null;
             String user = null;

@@ -981,11 +981,20 @@ class LogSlaveUpdates < ConfigurePrompt
   end
 end
 
-class SlavePrivilegedUpdates < ConfigurePrompt
+class PrivilegedSlave < ConfigurePrompt
   include ReplicationServicePrompt
 
   def initialize
-    super(SLAVE_PRIVILEGED_UPDATES, "Does login for slave update have superuser privileges",
+    super(PRIVILEGED_SLAVE, "Does login for slave have superuser privileges",
+      PV_BOOLEAN, "true")
+  end
+end
+
+class PrivilegedMaster < ConfigurePrompt
+  include ReplicationServicePrompt
+
+  def initialize
+    super(PRIVILEGED_MASTER, "Does login for master have superuser privileges",
       PV_BOOLEAN, "true")
   end
 end
@@ -1198,6 +1207,19 @@ class ReplicationServiceApplierConfig < ConfigurePrompt
     else
       get_applier_datasource().get_applier_template()
     end
+  end
+end
+
+class ReplicationServiceApplierDatasourceConfig < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_SVC_APPLIER_DATASOURCE_CONFIG, "Replication service applier datasource config properties")
+  end
+  
+  def get_template_value
+    get_applier_datasource().get_datasource_template()
   end
 end
 

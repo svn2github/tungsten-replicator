@@ -144,8 +144,8 @@ public class DBMSEvent implements Serializable
         metadata.add(new ReplOption(name, value));
     }
 
-    /** 
-     * Sets an existing metadata option or if absent adds it. 
+    /**
+     * Sets an existing metadata option or if absent adds it.
      */
     public void setMetaDataOption(String name, String value)
     {
@@ -183,6 +183,26 @@ public class DBMSEvent implements Serializable
         {
             if (name.equals(option.getOptionName()))
                 return option.getOptionValue();
+        }
+        return null;
+    }
+
+    /**
+     * Removes an existing metadata option if it exists and returns the value.
+     */
+    public String removeMetadataOption(String name)
+    {
+        // Remove previous value, if any.
+        ReplOption existingOption = null;
+        for (ReplOption replOption : metadata)
+        {
+            if (name.equals(replOption.getOptionName()))
+                existingOption = replOption;
+        }
+        if (existingOption != null)
+        {
+            metadata.remove(existingOption);
+            return existingOption.getOptionValue();
         }
         return null;
     }

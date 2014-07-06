@@ -138,7 +138,8 @@ public class PipelineConfigBuilder
                 || ReplicatorConf.FILTER.equals(type)
                 || ReplicatorConf.STORE.equals(type)
                 || ReplicatorConf.STAGE.equals(type)
-                || ReplicatorConf.SERVICE.equals(type))
+                || ReplicatorConf.SERVICE.equals(type)
+                || ReplicatorConf.DATASOURCE.equals(type))
             return;
         else
             throw new Exception("Unrecognized type: " + type);

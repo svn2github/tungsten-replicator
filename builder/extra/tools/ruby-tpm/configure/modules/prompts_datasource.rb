@@ -142,6 +142,10 @@ class DatasourceDBPort < ConfigurePrompt
     super()
   end
   
+  def required?
+    super() && get_datasource().get_default_port() != nil
+  end
+  
   PortForConnectors.register(REPL_SERVICES, REPL_DBPORT)
   PortForManagers.register(REPL_SERVICES, REPL_DBPORT)
 end
@@ -175,6 +179,19 @@ class DatasourceDBPassword < ConfigurePrompt
   def update_deprecated_keys()
     replace_deprecated_key(get_member_key('repl_admin_password'))
     super()
+  end
+end
+
+class DatasourceEnableDBSSL < ConfigurePrompt
+  include DatasourcePrompt
+
+  def initialize
+    super(REPL_ENABLE_DBSSL, "Enable SSL connection to DBMS server",
+      PV_BOOLEAN, "false")
+  end
+
+  def required?
+    false
   end
 end
 
@@ -370,6 +387,10 @@ class DirectDatasourceDBPort < ConfigurePrompt
   def load_default_value
     @default = @config.getProperty(get_member_key(REPL_DBPORT))
   end
+  
+  def required?
+    super() && get_datasource().get_default_port() != nil
+  end
 
   PortForConnectors.register(REPL_SERVICES, EXTRACTOR_REPL_DBPORT)
   PortForManagers.register(REPL_SERVICES, EXTRACTOR_REPL_DBPORT)
@@ -474,6 +495,19 @@ class DatasourceJDBCURL < ConfigurePrompt
   
   def get_template_value
     get_datasource().getJdbcUrl()
+  end
+end
+
+class DatasourceJDBCSSLOptions < ConfigurePrompt
+  include DatasourcePrompt
+  include ConstantValueModule
+ 
+  def initialize
+    super(REPL_DBJDBCURLSSLOPTIONS, "Datasource JDBC URL SSL options")
+  end
+ 
+  def get_template_value
+    get_datasource().getJdbcUrlSSLOptions()
   end
 end
 

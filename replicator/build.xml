@@ -68,8 +68,12 @@
         <path refid="compile.classpath"/>
         <path location="${classes.dir}"/>
 	<fileset dir="${project.common}/lib-test/">
-		<include name="*.jar"/>
+        <include name="*.jar"/>
 	</fileset>
+    <fileset dir="${external.lib.dir}" erroronmissingdir="false">
+        <include name="*.jar"/>
+    </fileset>
+
     </path>
 
     <path id="javadoc.src.path">

@@ -26,39 +26,39 @@ message ProtobufOneRowChange {
   }
 
   message ProtobufColumnSpec {
-	required int32	index = 1;
-	optional string	name = 2;
-	required int32	type = 3;
-	required bool	signed = 4;
-	required int32	length = 5;
-	required bool	notNull = 6;
+  required int32  index = 1;
+  optional string  name = 2;
+  required int32  type = 3;
+  required bool  signed = 4;
+  required int32  length = 5;
+  required bool  notNull = 6;
   }
 
-	message ProtobufRowValue {
-	  message ProtobufColumnVal {
-		enum Type {INT=1; LONG=2; FLOAT=3; DOUBLE=4; STRING=5; TIMESTAMP=6; BIT=7; TIME=8; DATE=9; BLOB=10; NULL=11;DECIMAL=12; BINARYSTRING=13;}
-		required Type type = 1;
-		optional sint32 intValue = 2;
-		optional sint64 longValue = 3;
-		optional float floatValue = 4;
-		optional double doubleValue = 5;
-		optional string stringValue = 6;
-		optional bytes bytesValue = 7;
-	  }
-	
-	  repeated ProtobufColumnVal columnValue = 1;
-	}
+  message ProtobufRowValue {
+    message ProtobufColumnVal {
+    enum Type {INT=1; LONG=2; FLOAT=3; DOUBLE=4; STRING=5; TIMESTAMP=6; BIT=7; TIME=8; DATE=9; BLOB=10; NULL=11;DECIMAL=12; BINARYSTRING=13;}
+    required Type type = 1;
+    optional sint32 intValue = 2;
+    optional sint64 longValue = 3;
+    optional float floatValue = 4;
+    optional double doubleValue = 5;
+    optional string stringValue = 6;
+    optional bytes bytesValue = 7;
+    }
+  
+    repeated ProtobufColumnVal columnValue = 1;
+  }
 
-  required string		schemaName = 1;
-  required string		tableName = 2;
-  required ActionType	action = 3;
+  required string    schemaName = 1;
+  required string    tableName = 2;
+  required ActionType  action = 3;
 
   repeated ProtobufColumnSpec keySpec= 4;
   repeated ProtobufColumnSpec columnSpec = 5;
 
   repeated ProtobufRowValue keyValues = 6;
   repeated ProtobufRowValue columnValues = 7;
-  optional sint64		tableId = 8;
+  optional sint64    tableId = 8;
 }
 
 message ProtobufRowChangeData {  
@@ -68,12 +68,12 @@ message ProtobufRowChangeData {
 
 message ProtobufOneChange {
   enum Type {
-  	ROW_DATA=1;
-  	STATEMENT_DATA=2;
-  	ROW_ID_DATA=3;
-  	LOAD_DATA_FILE_FRAGMENT=4;
-  	LOAD_DATA_FILE_QUERY=5;
-  	LOAD_DATA_FILE_DELETE=6;
+    ROW_DATA=1;
+    STATEMENT_DATA=2;
+    ROW_ID_DATA=3;
+    LOAD_DATA_FILE_FRAGMENT=4;
+    LOAD_DATA_FILE_QUERY=5;
+    LOAD_DATA_FILE_DELETE=6;
   }
   required Type type = 1;
   optional ProtobufRowChangeData data = 2;

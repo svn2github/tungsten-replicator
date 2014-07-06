@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2012 Continuent Inc.
+ * Copyright (C) 2012-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Stephane Giron
- * Contributor(s): Linas Virbalas
+ * Contributor(s): Linas Virbalas, Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.filter;
@@ -447,7 +447,7 @@ public class CDCMetadataFilter implements Filter
         
         // Load defaults for connection
         if (url == null)
-            url = context.getJdbcUrl("tungsten_" + context.getServiceName());
+            url = context.getJdbcUrl(null);
         if (user == null)
             user = context.getJdbcUser();
         if (password == null)

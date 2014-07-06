@@ -910,6 +910,18 @@ class JavaGarbageCollection < ConfigurePrompt
   end
 end
 
+class JavaExternalLibDir < ConfigurePrompt
+  include ClusterHostPrompt
+  include AdvancedPromptModule
+  include MigrateFromReplicationServices
+
+  def initialize
+    super(REPL_JAVA_EXTERNAL_LIB_DIR, 
+      "Directory for 3rd party Jar files required by replicator",
+      PV_FILENAME, "")
+  end
+end
+
 class ReplicationRMIPort < ConfigurePrompt
   include ClusterHostPrompt
   include MigrateFromReplicationServices

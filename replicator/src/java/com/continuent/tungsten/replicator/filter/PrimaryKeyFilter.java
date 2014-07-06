@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -58,7 +58,7 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class PrimaryKeyFilter implements Filter
 {
-    private static Logger                               logger               = Logger.getLogger(PrimaryKeyFilter.class);
+    private static Logger                               logger                    = Logger.getLogger(PrimaryKeyFilter.class);
 
     // Metadata cache is a hashtable indexed by the database name and each
     // database uses a hashtable indexed by the table name (This is done in
@@ -67,17 +67,17 @@ public class PrimaryKeyFilter implements Filter
     // updated only when a table is used for the first time by a row event.
     private Hashtable<String, Hashtable<String, Table>> metadataCache;
 
-    Database                                            conn                 = null;
+    Database                                            conn                      = null;
 
     private String                                      user;
     private String                                      url;
     private String                                      password;
 
-    private List<String>                                tables               = null;
-    private List<String>                                schemas              = null;
-    private String                                      processTablesSchemas = null;
-    private boolean                                     addPkeyToInserts     = false;
-    private boolean                                     addColumnsToDeletes  = false;
+    private List<String>                                tables                    = null;
+    private List<String>                                schemas                   = null;
+    private String                                      processTablesSchemas      = null;
+    private boolean                                     addPkeyToInserts          = false;
+    private boolean                                     addColumnsToDeletes       = false;
 
     private long                                        reconnectTimeoutInSeconds = 60;
 
@@ -124,7 +124,7 @@ public class PrimaryKeyFilter implements Filter
 
         // Load defaults for connection
         if (url == null)
-            url = context.getJdbcUrl("tungsten_" + context.getServiceName());
+            url = context.getJdbcUrl(null);
         if (user == null || user.compareTo("") == 0)
             user = context.getJdbcUser();
         if (password == null || password.compareTo("") == 0)
@@ -325,6 +325,33 @@ public class PrimaryKeyFilter implements Filter
                         + " not found in cache");
             return;
         }
+
+        // At this point we take a break to add column information to deletes.
+        // This is not really related to primary keys but is a feature of this
+        // filter and has to be done now or will be missed if there is no
+        // primary key.
+        if (orc.getAction() == ActionType.DELETE && this.addColumnsToDeletes)
+        {
+            // Optionally get table columns and add them to metadata for the
+            // DELETE.
+            List<ColumnSpec> colSpecs = orc.getColumnSpec();
+            if (colSpecs.size() == 0)
+            {
+                List<Column> cols = table.getAllColumns();
+                for (int i = 0; i < cols.size(); i++)
+                {
+                    Column column = cols.get(i);
+                    OneRowChange.ColumnSpec colSpec = orc.new ColumnSpec();
+                    colSpec.setIndex(column.getPosition());
+                    colSpec.setName(column.getName());
+                    colSpec.setType(column.getType());
+                    colSpec.setTypeDescription(column.getTypeDescription());
+                    colSpecs.add(colSpec);
+                }
+            }
+        }
+
+        // Find the table primary key.
         Key primaryKey = table.getPrimaryKey();
         if (primaryKey == null)
         {
@@ -416,27 +443,6 @@ public class PrimaryKeyFilter implements Filter
                 logger.debug("INSERT already contain keys: " + keySpecs.size());
             }
         }
-        else if (orc.getAction() == ActionType.DELETE
-                && this.addColumnsToDeletes)
-        {
-            // Optionally get table columns and add them to metadata for the
-            // DELETE.
-            List<ColumnSpec> colSpecs = orc.getColumnSpec();
-            if (colSpecs.size() == 0)
-            {
-                List<Column> cols = table.getAllColumns();
-                for (int i = 0; i < cols.size(); i++)
-                {
-                    Column column = cols.get(i);
-                    OneRowChange.ColumnSpec colSpec = orc.new ColumnSpec();
-                    colSpec.setIndex(column.getPosition());
-                    colSpec.setName(column.getName());
-                    colSpec.setType(column.getType());
-                    colSpec.setTypeDescription(column.getTypeDescription());
-                    colSpecs.add(colSpec);
-                }
-            }
-        }
     }
 
     private void reconnectIfNeeded() throws SQLException
@@ -451,7 +457,7 @@ public class PrimaryKeyFilter implements Filter
             conn.connect();
         }
     }
-    
+
     public void setUser(String user)
     {
         this.user = user;
@@ -489,10 +495,9 @@ public class PrimaryKeyFilter implements Filter
     {
         this.addColumnsToDeletes = addColumnsToDeletes;
     }
-    
+
     public void setReconnectTimeout(long seconds)
     {
         reconnectTimeoutInSeconds = seconds;
     }
-
 }

@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import com.continuent.tungsten.common.file.FileIO;
 import com.continuent.tungsten.common.file.FileIOException;
 import com.continuent.tungsten.common.file.FilePath;
+import com.continuent.tungsten.common.file.JavaFileIO;
 
 /**
  * This class reads and writes TungstenProperties data safely on a file system.
@@ -40,10 +41,10 @@ import com.continuent.tungsten.common.file.FilePath;
 public class TungstenPropertiesIO
 {
     /** Process file using JSON format serialization. */
-    public final String    JSON            = "JSON";
+    public static final String JSON            = "JSON";
 
     /** Process file using Java properties format serialization. */
-    public final String    JAVA_PROPERTIES = "JAVA_PROPERTIES";
+    public static final String JAVA_PROPERTIES = "JAVA_PROPERTIES";
 
     // Properties with reasonable defaults.
     private String         format          = "JAVA_PROPERTIES";
@@ -69,7 +70,7 @@ public class TungstenPropertiesIO
      */
     public TungstenPropertiesIO(File path)
     {
-        this(new FileIO(), new FilePath(path.getAbsolutePath()));
+        this(new JavaFileIO(), new FilePath(path.getAbsolutePath()));
     }
 
     public String getFormat()

@@ -441,6 +441,11 @@ public class CommitSeqnoTable
                 logger.warn("No task 0 present; cannot reduce task entries: "
                         + schema + "." + TABLE_NAME);
             }
+            else if (hasTask0 && rows == 1)
+            {
+                logger.info("Task entries already reduced to task 0; no need to reduce: "
+                        + schema + "." + TABLE_NAME);
+            }
             else if (!hasCommonSeqno)
             {
                 logger.warn("Sequence numbers do not match; cannot reduce task entries: "

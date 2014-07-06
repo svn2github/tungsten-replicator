@@ -22,77 +22,34 @@
 
 package com.continuent.tungsten.common.file;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
- * Implements simple utility methods for storing and retrieving files located
- * under a base directory. This class is designed to support operations on both
- * standard Linux file systems as well as Hadoop. For this reason we use the
- * package-defined FileIOException as a covering exception for all underlying
- * exception types instead of exceptions like IOException that only apply to on
- * particular type of file system.
+ * Denotes a class that implements simple utility methods for storing and
+ * retrieving files located under a base directory. Implementations support
+ * operations on both standard Linux file systems as well as Hadoop File System
+ * (HDFS). For this reason we use the package-defined FileIOException as a
+ * covering exception for all underlying exception types instead of exceptions
+ * like IOException that only apply to on particular type of file system.
  */
-public class FileIO
+public interface FileIO
 {
-    /**
-     * Internal filter class to select file names based on a prefix. If the
-     * prefix value is null all names are selected.
-     */
-    public class LocalFilenameFilter implements FilenameFilter
-    {
-        private final String prefix;
-
-        public LocalFilenameFilter(String prefix)
-        {
-            this.prefix = prefix;
-        }
-
-        public boolean accept(File dir, String name)
-        {
-            if (prefix == null)
-                return true;
-            else
-                return name.startsWith(prefix);
-        }
-    }
 
     /** Returns true if path exists. */
-    public boolean exists(FilePath path)
-    {
-        return new File(path.toString()).exists();
-    }
+    public boolean exists(FilePath path);
 
     /** Returns true if path is an ordinary file. */
-    public boolean isFile(FilePath path)
-    {
-        return new File(path.toString()).isFile();
-    }
+    public boolean isFile(FilePath path);
 
     /** Returns true if path is a directory. */
-    public boolean isDirectory(FilePath path)
-    {
-        return new File(path.toString()).isDirectory();
-    }
+    public boolean isDirectory(FilePath path);
 
     /** Returns true if path is writable. */
-    public boolean writable(FilePath path)
-    {
-        return new File(path.toString()).canWrite();
-    }
+    public boolean writable(FilePath path);
 
     /** Returns true if path is readable. */
-    public boolean readable(FilePath path)
-    {
-        return new File(path.toString()).canRead();
-    }
+    public boolean readable(FilePath path);
 
     /**
      * Return a list of the names of children of this path.
@@ -101,10 +58,7 @@ public class FileIO
      * @return An array of path names, which will be empty if there are no
      *         children
      */
-    public String[] list(FilePath path)
-    {
-        return list(path, null);
-    }
+    public String[] list(FilePath path);
 
     /**
      * Return a list of the names of children of this path that start with the
@@ -115,20 +69,7 @@ public class FileIO
      * @return An array of path names, which will be empty if there are no
      *         children
      */
-    public String[] list(FilePath path, String prefix)
-    {
-        // Children can only exist on directories.
-        if (isDirectory(path))
-        {
-            File dir = new File(path.toString());
-            String[] seqnoFileNames = dir.list(new LocalFilenameFilter(prefix));
-            return seqnoFileNames;
-        }
-        else
-        {
-            return new String[0];
-        }
-    }
+    public String[] list(FilePath path, String prefix);
 
     /**
      * Create path as a new directory.
@@ -136,10 +77,7 @@ public class FileIO
      * @param path Path to create
      * @return true if successful
      */
-    public boolean mkdir(FilePath path)
-    {
-        return new File(path.toString()).mkdirs();
-    }
+    public boolean mkdir(FilePath path);
 
     /**
      * Create path as a new directory including any intervening directories in
@@ -148,21 +86,15 @@ public class FileIO
      * @param path Path to create
      * @return true if successful
      */
-    public boolean mkdirs(FilePath path)
-    {
-        return new File(path.toString()).mkdirs();
-    }
+    public boolean mkdirs(FilePath path);
 
     /**
-     * Delete path. This form ignored children.
+     * Delete path. This form ignoress children.
      * 
      * @param path Path to delete
      * @return true if fully successful, otherwise false.
      */
-    public boolean delete(FilePath path)
-    {
-        return delete(path, false);
-    }
+    public boolean delete(FilePath path);
 
     /**
      * Delete path and optionally any children. Recursive deletes fail if we
@@ -172,34 +104,7 @@ public class FileIO
      * @param recursive If true delete child files/directories as well
      * @return true if fully successful, otherwise false.
      */
-    public boolean delete(FilePath path, boolean recursive)
-    {
-        // If the node does not exist, return immediately.
-        if (!exists(path))
-            return true;
-
-        // Try to delete children if this is recursive. Otherwise,
-        // we cannot continuent and must return.
-        if (isDirectory(path))
-        {
-            for (String child : list(path))
-            {
-                if (recursive)
-                {
-                    boolean deleted = delete(new FilePath(path, child),
-                            recursive);
-                    if (!deleted)
-                        return false;
-                }
-                else
-                    return false;
-            }
-        }
-
-        // Delete the path for which we were called.
-        File fileToDelete = new File(path.toString());
-        return fileToDelete.delete();
-    }
+    public boolean delete(FilePath path, boolean recursive);
 
     /**
      * Write data to file system using UTF-8 charset for file encoding and with
@@ -207,12 +112,9 @@ public class FileIO
      * 
      * @param path The file path
      * @param value The string to write in the file
-     * @throws FileIOException Thrown if file is not writable
+     * @throws FileIOException Thrown if path is not writable
      */
-    public void write(FilePath path, String value) throws FileIOException
-    {
-        write(path, value, "UTF-8", false);
-    }
+    public void write(FilePath path, String value) throws FileIOException;
 
     /**
      * Write data to file system with flush only.
@@ -220,13 +122,10 @@ public class FileIO
      * @param path The file path
      * @param value The string to write in the file
      * @param charset Character set of file data (e.g., UTF-8)
-     * @throws FileIOException Thrown if file is not writable
+     * @throws FileIOException Thrown if path is not writable
      */
     public void write(FilePath path, String value, String charset)
-            throws FileIOException
-    {
-        write(path, value, charset, false);
-    }
+            throws FileIOException;
 
     /**
      * Writes a string into a file, replacing an existing contents. There are
@@ -239,57 +138,11 @@ public class FileIO
      * @param value The string to write in the file
      * @param charset Character set of file data (e.g., UTF-8)
      * @param fsync If true issue an fsync, otherwise just flush
-     * @throws FileIOException Thrown if file is not writable
+     * @throws FileIOException Thrown if path is not writable
      */
 
     public void write(FilePath path, String value, String charset, boolean fsync)
-            throws FileIOException
-    {
-        // Write the JSON and flush to storage. This overwrites any
-        // previous version.
-        FileOutputStream fos = null;
-        try
-        {
-            File f = new File(path.toString());
-            fos = new FileOutputStream(f);
-            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos,
-                    charset));
-            bw.write(value);
-            bw.flush();
-            if (fsync)
-            {
-                fos.getFD().sync();
-            }
-        }
-        catch (IOException e)
-        {
-            throw new FileIOException("Unable to write data to file: file="
-                    + path.toString() + " value=" + safeSynopsis(value, 20), e);
-        }
-        finally
-        {
-            if (fos != null)
-            {
-                try
-                {
-                    fos.close();
-                }
-                catch (IOException e)
-                {
-                }
-            }
-        }
-    }
-
-    // Print a prefix of a string value avoiding accidental index
-    // out-of-bounds errors.
-    private String safeSynopsis(String value, int length)
-    {
-        if (value.length() <= length)
-            return value;
-        else
-            return value.substring(0, 10) + "...";
-    }
+            throws FileIOException;
 
     /**
      * Returns the value of the contents of a file as a string using UTF-8 as
@@ -298,12 +151,9 @@ public class FileIO
      * @param path The file path
      * @return Contents of the file, which is an empty string for a 0-length
      *         file
-     * @throws FileIOException Thrown if file is not readable
+     * @throws FileIOException Thrown if path is not readable
      */
-    public String read(FilePath path) throws FileIOException
-    {
-        return read(path, "UTF-8");
-    }
+    public String read(FilePath path) throws FileIOException;
 
     /**
      * Returns the value of the contents of a file as a string.
@@ -312,44 +162,28 @@ public class FileIO
      * @param charset Character set of file data (e.g., UTF-8)
      * @return Contents of the file, which is an empty string for a 0-length
      *         file
-     * @throws FileIOException Thrown if file is not readable
+     * @throws FileIOException Thrown if path is not readable
      */
-    public String read(FilePath path, String charset) throws FileIOException
-    {
-        // Read JSON from storage.
-        FileInputStream fos = null;
-        try
-        {
-            File f = new File(path.toString());
-            fos = new FileInputStream(f);
-            BufferedReader bf = new BufferedReader(new InputStreamReader(fos,
-                    charset));
-            StringBuffer buf = new StringBuffer();
-            int nextChar = 0;
-            while ((nextChar = bf.read()) > -1)
-            {
-                buf.append((char) nextChar);
-            }
-            return buf.toString();
-        }
-        catch (IOException e)
-        {
-            throw new FileIOException("Unable to read data from file: file="
-                    + path.toString(), e);
-        }
-        finally
-        {
-            if (fos != null)
-            {
-                try
-                {
-                    fos.close();
-                }
-                catch (IOException e)
-                {
-                }
-            }
-        }
-    }
+    public String read(FilePath path, String charset) throws FileIOException;
 
+    /**
+     * Returns an input stream that can be used to read bytes from a particular
+     * path. It is the responsibility of users to close the input stream.
+     * 
+     * @param path The path from which to read.
+     * @return An InputStream instance
+     * @throws FileIOException Thrown if path is not readable
+     */
+    public InputStream getInputStream(FilePath path) throws FileIOException;
+
+    /**
+     * Returns an output stream that can be used to write bytes to a particular
+     * path, overwriting any current contents. It is the responsibility of users
+     * to close the output stream.
+     * 
+     * @param path The path to which to write
+     * @return An OutputStream instance
+     * @throws FileIOException Thrown if path is not writable
+     */
+    public OutputStream getOutputStream(FilePath path) throws FileIOException;
 }

@@ -166,7 +166,10 @@ public interface PluginContext
     public boolean logReplicatorUpdates();
 
     /** Returns true if the JDBC login for slave apply is a superuser. */
-    public boolean isPrivilegedSlaveUpdate();
+    public boolean isPrivilegedSlave();
+
+    /** Returns true if the JDBC login for master extract is a superuser. */
+    public boolean isPrivilegedMaster();
 
     /**
      * Return true if operating in native slave takeover mode.

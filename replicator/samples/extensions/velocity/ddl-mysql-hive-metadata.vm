@@ -1,0 +1,67 @@
+#*
+  Tungsten Scale-Out Stack
+  Copyright (C) 2014 Continuent Inc.
+  Contact: tungsten@continuent.org
+
+  Initial developer(s): Robert Hodges, Linas Virbalas
+  Contributor(s):
+*##parse("includes/hive-reserved-words.vm")
+
+#if ( ! $schemaPrefix )
+#set ( $schemaPrefix = "" )
+#end
+#if ( ! $tablePrefix )
+#set ( $tablePrefix = "" )
+#end
+
+## Check for missing table information.
+#if ( !$table )
+{
+  "tables": [
+  ]
+}
+#stop
+#end
+#if ( $first )
+{
+  "tables": [
+#else
+,
+#end
+## Start the table definition. 
+  {
+    "schema": "${schemaPrefix}$table.getSchema()", 
+    "name": "${tablePrefix}$table.getName()",
+## Primary key.
+#if ( $table.getPrimaryKey() )
+    "keys": [##
+#foreach ( $key in $table.getPrimaryKey().getColumns() )
+"$key.getName()"##
+#if( $foreach.hasNext ),#end
+#end
+],
+#end
+    "columns": [
+#foreach ( $col in $table.getAllColumns() )
+      {"name": "##
+#if ( $reservedWordsHiveQL.contains($col.getName().toUpperCase()) )
+_$col.getName()##
+#else
+$col.getName()##
+#end
+", "type": "##
+#parse("includes/hive-column-types.vm")##
+"}##
+#if( $foreach.hasNext )
+,
+#end
+#end
+
+    ]
+  }##
+## Close bracket at last table. 
+#if ( $last )
+
+  ]
+}
+#end

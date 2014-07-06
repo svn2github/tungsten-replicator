@@ -27,12 +27,17 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
+
+import javax.sql.rowset.serial.SerialException;
+
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -41,6 +46,7 @@ import org.json.simple.parser.ParseException;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
+import com.continuent.tungsten.replicator.database.DatabaseHelper;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.StatementData;
@@ -48,6 +54,7 @@ import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
@@ -70,6 +77,11 @@ public class NetworkClientFilter implements Filter
      * TCP port filtering server is listening on.
      */
     private int                    serverPort           = 3112;
+
+    /**
+     * Socket timeout in seconds.
+     */
+    private int                    timeout              = 10;
 
     /**
      * Parsed JSON holder.
@@ -113,6 +125,14 @@ public class NetworkClientFilter implements Filter
     public void setServerPort(int serverPort)
     {
         this.serverPort = serverPort;
+    }
+
+    /**
+     * Sets a timeout (in seconds) for network socket operations.
+     */
+    public void setTimeout(int timeout)
+    {
+        this.timeout = timeout;
     }
 
     /**
@@ -198,7 +218,7 @@ public class NetworkClientFilter implements Filter
                                                                         .getValue());
 
                                                     // Send to server.
-                                                    String newValue = sendToFilter(
+                                                    Object newValue = sendToFilter(
                                                             transformation,
                                                             event.getSeqno(),
                                                             row,
@@ -206,7 +226,7 @@ public class NetworkClientFilter implements Filter
                                                             orc.getTableName(),
                                                             colSpec.getName(),
                                                             colValue.getValue());
-                                                    colValue.setValue(newValue);
+                                                    colValue.setValue((Serializable) newValue);
 
                                                     if (logger.isDebugEnabled())
                                                         logger.debug("Received value: "
@@ -257,7 +277,7 @@ public class NetworkClientFilter implements Filter
                                                                         .getValue());
 
                                                     // Send to server.
-                                                    String newValue = sendToFilter(
+                                                    Object newValue = sendToFilter(
                                                             transformation,
                                                             event.getSeqno(),
                                                             row,
@@ -265,7 +285,7 @@ public class NetworkClientFilter implements Filter
                                                             orc.getTableName(),
                                                             keySpec.getName(),
                                                             keyValue.getValue());
-                                                    keyValue.setValue(newValue);
+                                                    keyValue.setValue((Serializable) newValue);
 
                                                     if (logger.isDebugEnabled())
                                                         logger.debug("Received value: "
@@ -457,6 +477,9 @@ public class NetworkClientFilter implements Filter
                     + serverPort);
             InetAddress host = InetAddress.getByName("localhost");
             socket = new Socket(host, serverPort);
+            socket.setSoTimeout(timeout * 1000);
+            logger.debug("Receive buffer size: "
+                    + socket.getReceiveBufferSize());
             logger.info("Connected to " + socket.getRemoteSocketAddress());
 
             toServer = new PrintWriter(socket.getOutputStream(), true);
@@ -484,16 +507,24 @@ public class NetworkClientFilter implements Filter
         try
         {
             // Send prepare message.
-            toServer.println(messageGenerator.prepare());
+            toServer.print(messageGenerator.prepare());
+            toServer.flush();
 
             // Receive & check acknowledged message.
-            String message = fromServer.readLine();
+            String header = fromServer.readLine();
             if (logger.isDebugEnabled())
-                logger.debug("Received: " + message);
+                logger.debug("Received header: " + header);
 
-            String payload = NetworkClientFilter.Protocol.getPayload(message);
-            String json = NetworkClientFilter.Protocol.getHeader(message);
-            JSONObject obj = (JSONObject) parser.parse(json);
+            JSONObject obj = (JSONObject) parser.parse(header);
+            long payloadLen = (Long) obj.get("payload");
+            if (logger.isDebugEnabled())
+                logger.debug("Payload length: " + payloadLen);
+
+            String payload = NetworkClientFilter.Protocol.readPayload(
+                    fromServer, (int) payloadLen);
+            if (logger.isDebugEnabled())
+                logger.debug("Received payload: " + payload);
+
             String type = (String) obj.get("type");
             String service = (String) obj.get("service");
             long returnCode = (Long) obj.get("return");
@@ -517,32 +548,115 @@ public class NetworkClientFilter implements Filter
     }
 
     /**
+     * Converts underlying data type value to string. Exception is thrown if
+     * type is unsupported.
+     */
+    private String valueToString(Object value) throws ReplicatorException
+    {
+        if (value instanceof String)
+        {
+            return value.toString();
+        }
+        else if (value instanceof Integer)
+        {
+            return value.toString();
+        }
+        else if (value instanceof SerialBlob)
+        {
+            try
+            {
+                SerialBlob blob = (SerialBlob) value;
+                return new String(blob.getBytes(1, (int) blob.length()));
+            }
+            catch (SerialException e)
+            {
+                throw new ReplicatorException(
+                        "Unable to convert SerialBlob to String: " + e, e);
+            }
+        }
+        else
+        {
+            // For other data types using cast instead of toString() on purpose.
+            // This way we get an exception if cast is unsupported, while
+            // toString() would just return a JAVA class name in such cases.
+            return (String) value;
+        }
+    }
+
+    /**
+     * Converts string back to correct (previous) data type.
+     * 
+     * @throws ReplicatorException
+     */
+    private Object stringToValue(Object oldValue, String newValue)
+            throws ReplicatorException
+    {
+        if (oldValue instanceof String)
+        {
+            return newValue;
+        }
+        else if (oldValue instanceof Integer)
+        {
+            return Integer.valueOf(newValue);
+        }
+        else if (oldValue instanceof SerialBlob)
+        {
+            try
+            {
+                return DatabaseHelper.getSafeBlob(newValue.getBytes());
+            }
+            catch (SQLException e)
+            {
+                throw new ReplicatorException(
+                        "Unable to convert back from String to SerialBlob: "
+                                + e, e);
+            }
+        }
+        else
+        {
+            // TODO: convert numeric and other types.
+            return newValue;
+        }
+    }
+
+    /**
      * Sends column/key value to the server and receives filtered result.
      */
-    private String sendToFilter(String transformation, long seqno, int row,
+    private Object sendToFilter(String transformation, long seqno, int row,
             String schema, String table, String column, Object value)
             throws ReplicatorException
     {
         try
         {
+            // Convert various data types to string for transfer.
+            String str = valueToString(value);
+
             // Send filter message.
             String send = messageGenerator.filter(transformation, seqno, row,
-                    schema, table, column, (String) value);
-            toServer.println(send);
+                    schema, table, column, str);
+            toServer.print(send);
+            toServer.flush();
 
             // Receive & check filtered message.
-            String message = fromServer.readLine();
+            String header = fromServer.readLine();
             if (logger.isDebugEnabled())
-                logger.debug("Received: " + message);
+                logger.debug("Received header: " + header);
 
-            if (message == null)
+            if (header == null)
                 throw new ReplicatorException(
                         "Server didn't send response to a filter request: "
                                 + send);
 
-            String payload = NetworkClientFilter.Protocol.getPayload(message);
-            String json = NetworkClientFilter.Protocol.getHeader(message);
-            JSONObject obj = (JSONObject) parser.parse(json);
+            JSONObject obj = (JSONObject) parser.parse(header);
+            long payloadLen = (Long) obj.get("payload");
+            if (logger.isDebugEnabled())
+                logger.debug("Payload length: " + payloadLen);
+
+            String payload = NetworkClientFilter.Protocol.readPayload(
+                    fromServer, (int) payloadLen);
+            if (logger.isDebugEnabled())
+                logger.debug("Received payload: " + payload);
+
             String type = (String) obj.get("type");
             long newSeqno = (Long) obj.get("seqno");
             long newRow = (Long) obj.get("row");
@@ -557,21 +671,22 @@ public class NetworkClientFilter implements Filter
             if (newSeqno != seqno)
                 throw new ReplicatorException("Expected to receive seqno "
                         + seqno + ", but server sent " + newSeqno
-                        + " instead: " + message);
+                        + " instead: " + header + payload);
             if (newRow != row)
                 throw new ReplicatorException("Expected to receive row " + row
-                        + ", but server sent " + newRow + " instead: "
-                        + message);
+                        + ", but server sent " + newRow + " instead: " + header
+                        + payload);
             if (!newSchema.equals(schema))
                 throw new ReplicatorException("Expected to receive schema "
                         + schema + ", but server sent " + newSchema
-                        + " instead: " + message);
+                        + " instead: " + header + payload);
             if (!newTable.equals(table))
                 throw new ReplicatorException("Expected to receive table "
                         + table + ", but server sent " + newTable
-                        + " instead: " + message);
+                        + " instead: " + header + payload);
 
-            return payload;
+            // Convert result back to correct data type.
+            return stringToValue(value, payload);
         }
         catch (ParseException e)
         {
@@ -638,18 +753,26 @@ public class NetworkClientFilter implements Filter
         try
         {
             // Send release message.
-            toServer.println(messageGenerator.release());
+            toServer.print(messageGenerator.release());
+            toServer.flush();
 
             // Receive & check acknowledged message.
-            String message = fromServer.readLine();
-            if (message != null)
+            String header = fromServer.readLine();
+            if (header != null)
             {
                 if (logger.isDebugEnabled())
-                    logger.debug("Received: " + message);
-                String payload = NetworkClientFilter.Protocol
-                        .getPayload(message);
-                String json = NetworkClientFilter.Protocol.getHeader(message);
-                JSONObject obj = (JSONObject) parser.parse(json);
+                    logger.debug("Received header: " + header);
+
+                JSONObject obj = (JSONObject) parser.parse(header);
+                long payloadLen = (Long) obj.get("payload");
+                if (logger.isDebugEnabled())
+                    logger.debug("Payload length: " + payloadLen);
+
+                String payload = NetworkClientFilter.Protocol.readPayload(
+                        fromServer, (int) payloadLen);
+                if (logger.isDebugEnabled())
+                    logger.debug("Received payload: " + payload);
+
                 String type = (String) obj.get("type");
                 long returnCode = (Long) obj.get("return");
 
@@ -675,7 +798,7 @@ public class NetworkClientFilter implements Filter
                             + Protocol.TYPE_ACKNOWLEDGED
                             + "\", but returned \""
                             + type
-                            + "\" instead. Full message: " + message);
+                            + "\" instead. Full message: " + header + payload);
                 }
             }
             else
@@ -693,6 +816,11 @@ public class NetworkClientFilter implements Filter
             logger.warn("Sending of release message to the filtering server failed (ignoring): "
                     + e);
         }
+        catch (ReplicatorException e)
+        {
+            logger.warn("Sending of release message to the filtering server failed (ignoring): "
+                    + e);
+    }
     }
 
     /**
@@ -707,12 +835,19 @@ public class NetworkClientFilter implements Filter
 
         try
         {
+            if (socket != null)
+            {
             logger.info("Disconnecting from the server "
                     + socket.getRemoteSocketAddress());
             sendRelease();
+            }
+            if (toServer != null)
             toServer.close();
+            if (fromServer != null)
             fromServer.close();
+            if (socket != null)
             socket.close();
+
         }
         catch (IOException e)
         {
@@ -721,7 +856,13 @@ public class NetworkClientFilter implements Filter
     }
 
     /**
-     * Filtering server protocol.
+     * Filtering server protocol. Protocol defines that message consists of a
+     * header following by a payload. Header is a single-level JSON object
+     * ending with a closing curly brace and a new line feed terminator. Payload
+     * is following afterwards. Payload length is determined from JSON's
+     * "payload" property. Payload may contain new line feeds if required -
+     * protocol does not assume any terminating character for the payload, as
+     * its length is known.
      */
     static class Protocol
     {
@@ -735,28 +876,43 @@ public class NetworkClientFilter implements Filter
         public static final String TYPE_FILTERED     = "filtered";
 
         /**
-         * Protocol assumes that message header is a single-level JSON object
-         * ending with a closing curly brace.
-         * 
-         * @return Returns header or left part (JSON) of the message, i.e. the
-         *         one without payload.
+         * Reads given size payload from a socket. Socket must be open. After
+         * reading checks that payload is of expected length.
          */
-        public static String getHeader(String message)
+        public static String readPayload(BufferedReader socketReader,
+                int payloadLength) throws IOException, ReplicatorException
         {
-            return message.substring(0, message.indexOf('}') + 1);
+            if (payloadLength == 0)
+            {
+                // Don't try to read if payload is an empty string.
+                return "";
         }
+            else if (payloadLength == -1)
+            {
+                // Protocol defines that null is sent as payload of -1 length.
+                return null;
+            }
 
-        /**
-         * Protocol assumes that message header is a single-level JSON object
-         * ending with a closing curly brace.
-         * 
-         * @param message
-         * @return Returns payload or right part of the message.
-         */
-        public static String getPayload(String message)
+            // Read whole payload in a few iterations.
+            char[] buf = new char[1024];
+            StringBuilder payload = new StringBuilder();
+            do
         {
-            return message
-                    .substring(message.indexOf('}') + 1, message.length());
+                int bytesRead = socketReader.read(buf, 0, buf.length);
+                if (bytesRead > 0)
+                    payload.append(new String(buf, 0, bytesRead));
+        }
+            while (payload.length() < payloadLength);
+
+            if (payload.length() != payloadLength)
+            {
+                throw new ReplicatorException(
+                        "Size of received payload is incorrect (expected="
+                                + payloadLength + ", received="
+                                + payload.length() + "):" + payload);
+    }
+
+            return payload.toString();
         }
     }
 
@@ -785,8 +941,8 @@ public class NetworkClientFilter implements Filter
             sb.append("\"protocol\":\"" + Protocol.VERSION + "\",");
             sb.append("\"type\":\"" + Protocol.TYPE_PREPARE + "\",");
             sb.append("\"service\":\"" + service + "\",");
-            sb.append("\"payload\":0");
-            sb.append("}");
+            sb.append("\"payload\":-1");
+            sb.append("}\n");
 
             return sb.toString();
         }
@@ -795,6 +951,17 @@ public class NetworkClientFilter implements Filter
                 String schema, String table, String column, String payload)
         {
             StringBuilder sb = new StringBuilder();
+
+            int payloadLen = 0;
+            if (payload == null)
+            {
+                // Protocol defines that null is sent as payload of -1 length.
+                payloadLen = -1;
+            }
+            else
+            {
+                payloadLen = payload.length();
+            }
 
             sb.append("{");
             sb.append("\"protocol\":\"" + Protocol.VERSION + "\",");
@@ -808,8 +975,8 @@ public class NetworkClientFilter implements Filter
             sb.append("\"column\":\"" + column + "\",");
             sb.append("\"fragment\":1,");
             sb.append("\"fragments\":1,");
-            sb.append("\"payload\":" + payload.length() + "");
-            sb.append("}");
+            sb.append("\"payload\":" + payloadLen + "");
+            sb.append("}\n");
             sb.append(payload);
 
             return sb.toString();
@@ -823,8 +990,8 @@ public class NetworkClientFilter implements Filter
             sb.append("\"protocol\":\"" + Protocol.VERSION + "\",");
             sb.append("\"type\":\"" + Protocol.TYPE_RELEASE + "\",");
             sb.append("\"service\":\"" + service + "\",");
-            sb.append("\"payload\":0");
-            sb.append("}");
+            sb.append("\"payload\":-1");
+            sb.append("}\n");
 
             return sb.toString();
         }
@@ -841,6 +1008,17 @@ public class NetworkClientFilter implements Filter
         {
             StringBuilder sb = new StringBuilder();
 
+            int payloadLen = 0;
+            if (payload == null)
+            {
+                // Protocol defines that null is sent as payload of -1 length.
+                payloadLen = -1;
+            }
+            else
+            {
+                payloadLen = payload.length();
+            }
+
             sb.append("{");
             sb.append("\"protocol\":\"" + Protocol.VERSION + "\",");
             sb.append("\"type\":\"" + Protocol.TYPE_FILTERED + "\",");
@@ -854,8 +1032,8 @@ public class NetworkClientFilter implements Filter
             sb.append("\"column\":\"" + column + "\",");
             sb.append("\"fragment\":1,");
             sb.append("\"fragments\":1,");
-            sb.append("\"payload\":" + payload.length() + "");
-            sb.append("}");
+            sb.append("\"payload\":" + payloadLen + "");
+            sb.append("}\n");
             sb.append(payload);
 
             return sb.toString();
@@ -872,7 +1050,7 @@ public class NetworkClientFilter implements Filter
             sb.append("\"return\":" + returnCode + ",");
             sb.append("\"service\":\"" + service + "\",");
             sb.append("\"payload\":" + payload.length() + "");
-            sb.append("}");
+            sb.append("}\n");
             sb.append(payload);
 
             return sb.toString();

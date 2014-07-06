@@ -54,6 +54,9 @@
 			<include name="*.jar" unless="library.compile.files"/>
 			<include name="${library.compile.files}" if="library.compile.files"/>
 		</fileset>
+    	<fileset dir="lib-ext/">
+			<include name="cloudera-4.4/*.jar"/>
+		</fileset>
     	<fileset dir="lib.tools/">
 			<include name="*.jar" unless="tools.compile.files"/>
 			<include name="${lib.tools.compile.files}" if="lib.tools.compile.files"/>
@@ -64,6 +67,9 @@
         <path refid="compile.classpath"/>
         <path location="${classes.dir}"/>
 		<fileset dir="lib-test/">
+			<include name="*.jar"/>
+		</fileset>
+		<fileset dir="${external.lib.dir}" erroronmissingdir="false">
 			<include name="*.jar"/>
 		</fileset>
     </path>

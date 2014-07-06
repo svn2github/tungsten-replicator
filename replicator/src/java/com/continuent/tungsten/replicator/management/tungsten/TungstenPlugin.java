@@ -192,7 +192,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                         .createDatabase(url, user, password, true);
                 // this is about the only place where we want logging the
                 // queries
-                conn.connect(true);
+                conn.connect();
             }
             catch (Exception e)
             {
@@ -362,7 +362,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                             runtime.getJdbcUrl(null), runtime.getJdbcUser(),
                             runtime.getJdbcPassword(),
                             runtime.getReplicatorSchemaName(),
-                            runtime.getTungstenTableType());
+                            runtime.getTungstenTableType(), runtime);
                     shardManager.advertiseInternal();
                 }
                 catch (Exception e)
@@ -1207,6 +1207,11 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                     props.put("blockCommitRowCount",
                             new Integer(stage.getBlockCommitRowCount())
                                     .toString());
+                    double intervalSecs = (double) stage
+                            .getBlockCommitInterval().longValue() / 1000.0;
+                    props.put("blockCommitInterval",
+                            new Double(intervalSecs).toString() + "s");
+                    props.put("blockCommitPolicy", stage.getBlockCommitPolicy());
 
                     // Add stage components.
                     props.put("applier.name", stage.getApplierSpec().getName());

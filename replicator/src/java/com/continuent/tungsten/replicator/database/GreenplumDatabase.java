@@ -107,19 +107,7 @@ public class GreenplumDatabase extends AbstractDatabase
      */
     public void connect() throws SQLException
     {
-        connect(false);
-    }
-
-    /**
-     * Connect to a PostgreSQL database. {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#connect(boolean)
-     */
-    public void connect(boolean binlog) throws SQLException
-    {
-        // Use superclass method to avoid missing things like loading the
-        // driver class.
-        super.connect(binlog);
+        super.connect();
     }
 
     public boolean supportsReplace()

@@ -36,6 +36,7 @@ import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.consistency.ConsistencyCheck;
 import com.continuent.tungsten.replicator.consistency.ConsistencyException;
+import com.continuent.tungsten.replicator.datasource.UniversalConnection;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 
 /**
@@ -46,7 +47,7 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange;
  * @author <a href="mailto:scott.martin@continuent.com">Scott Martin</a>
  * @version 1.0
  */
-public interface Database
+public interface Database extends UniversalConnection
 {
     /** String to denote MySQL DBMS dialect in metadata. */
     public static String MYSQL      = "mysql";
@@ -59,6 +60,27 @@ public interface Database
 
     /** String to denote PostgreSQL dialect in metadata. */
     public static String UNKNOWN    = "unknown";
+
+    // START UNIVERSALCONNECTOR API.
+    /**
+     * Commit the current transaction.
+     */
+    @Override
+    public void commit() throws SQLException;
+
+    /**
+     * Rollback the current transaction.
+     */
+    @Override
+    public void rollback() throws SQLException;
+
+    /**
+     * Toggles autocommit by calling Connection.setAutocommit().
+     */
+    @Override
+    public void setAutoCommit(boolean autoCommit) throws SQLException;
+
+    // END UNIVERSALCONNECTOR API.
 
     /** Returns the type of DBMS behind the interface */
     public DBMS getType();
@@ -97,15 +119,6 @@ public interface Database
      * do this. Connection does not log queries by default.
      */
     public void connect() throws SQLException;
-
-    /**
-     * Connects to the database. You must set the url, user, and password then
-     * do this.
-     * 
-     * @param binlog log connection updates.
-     * @throws SQLException
-     */
-    public void connect(boolean binlog) throws SQLException;
 
     /**
      * Disconnects from the database. This is also accomplished by close().
@@ -386,21 +399,6 @@ public interface Database
      * Generate a JDBC statement.
      */
     public Statement createStatement() throws SQLException;
-
-    /**
-     * Commit the current transaction.
-     */
-    public void commit() throws SQLException;
-
-    /**
-     * Rollback the current transaction.
-     */
-    public void rollback() throws SQLException;
-
-    /**
-     * Toggles autocommit by calling Connection.setAutocommit().
-     */
-    public void setAutoCommit(boolean autoCommit) throws SQLException;
 
     /**
      * Provides a script file to be executed when initializing connection.

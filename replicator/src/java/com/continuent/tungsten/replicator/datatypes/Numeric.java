@@ -79,4 +79,9 @@ public class Numeric
     {
         return columnSpec;
     }
+    
+    public String toString()
+    {
+        return extractedVal.toString();
+    }
 }

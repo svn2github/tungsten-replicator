@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2010-2011 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -162,6 +162,12 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
     protected Pattern                   alter           = Pattern
                                                                 .compile(
                                                                         "^\\s*alter\\s*(?:online|offline)?\\s*(?:ignore\\s*)?table\\s+(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        Pattern.CASE_INSENSITIVE);
+
+    // RENAME TABLE tbl_name TO ...
+    protected Pattern                   rename           = Pattern
+                                                                .compile(
+                                                                        "^\\s*rename\\s+table\\s+(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
                                                                         Pattern.CASE_INSENSITIVE);
 
     // CREATE [ONLINE|OFFLINE] [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name
@@ -491,6 +497,17 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
             if (m.find())
             {
                 return new SqlOperation(SqlOperation.TABLE, SqlOperation.ALTER,
+                        m.group(1), m.group(2));
+            }
+        }
+
+        // Look for a RENAME statement
+        else if (prefix.startsWith("RENAME"))
+        {
+            m = rename.matcher(statement);
+            if (m.find())
+            {
+                return new SqlOperation(SqlOperation.TABLE, SqlOperation.RENAME,
                         m.group(1), m.group(2));
             }
         }

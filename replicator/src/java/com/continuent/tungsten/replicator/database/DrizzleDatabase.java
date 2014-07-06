@@ -114,20 +114,9 @@ public class DrizzleDatabase extends AbstractDatabase
      */
     public void connect() throws SQLException
     {
-        connect(false);
-    }
-
-    /**
-     * Connect to a Drizzle database, which includes setting the wait_timeout to
-     * a very high value so we don't lose our connection. {@inheritDoc}
-     * 
-     * @see AbstractDatabase#connect(boolean)
-     */
-    public void connect(boolean binlog) throws SQLException
-    {
         // Use superclass method to avoid missing things like loading the
         // driver class.
-        super.connect(binlog);
+        super.connect();
 
         // set connection timeout to maximum to prevent timeout on the
         // server side
@@ -434,7 +423,7 @@ public class DrizzleDatabase extends AbstractDatabase
      */
     public CsvWriter getCsvWriter(BufferedWriter writer)
     {
-        // Need to implement in order to support CSV. 
+        // Need to implement in order to support CSV.
         throw new UnsupportedOperationException(
                 "CSV output is not supported for this database type");
     }

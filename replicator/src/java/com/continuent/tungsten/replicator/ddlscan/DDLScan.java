@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Linas Virbalas
- * Contributor(s): 
+ * Contributor(s): Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.ddlscan;
@@ -27,13 +27,14 @@ import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.LinkedList;
 
-import org.apache.velocity.VelocityContext;
 import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.exception.ResourceNotFoundException;
-import org.apache.velocity.exception.ParseErrorException;
 import org.apache.velocity.exception.MethodInvocationException;
+import org.apache.velocity.exception.ParseErrorException;
+import org.apache.velocity.exception.ResourceNotFoundException;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.log.Log4JLogChute;
 
@@ -45,7 +46,6 @@ import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.MySQLDatabase;
 import com.continuent.tungsten.replicator.database.OracleDatabase;
 import com.continuent.tungsten.replicator.database.Table;
-import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.filter.EnumToStringFilter;
 import com.continuent.tungsten.replicator.filter.RenameDefinitions;
 
@@ -125,22 +125,6 @@ public class DDLScan
         // compatible with the way JAVA methods communicate.
         velocity.setProperty(RuntimeConstants.SET_NULL_ALLOWED, true);
         velocity.init();
-    }
-
-    /**
-     * Prepares table regex matcher.
-     * 
-     * @param filter Regex enabled list of tables.
-     */
-    private TableMatcher extractFilter(String filter)
-    {
-        // If empty, we do nothing.
-        if (filter == null || filter.length() == 0)
-            return null;
-
-        TableMatcher tableMatcher = new TableMatcher();
-        tableMatcher.prepare(filter);
-        return tableMatcher;
     }
 
     /**
@@ -259,11 +243,26 @@ public class DDLScan
         context.put("reservedWordsOracle", reservedWordsOracle);
         context.put("reservedWordsMySQL", reservedWordsMySQL);
         context.put("velocity", velocity);
-
+        
         // Iterate through all available tables in the database.
-        for (Table table : tables)
+        int size = tables.size();
+        for (int i = 0; i < size; i++)
         {
-            // Do the renaming.
+            Table table = tables.get(i);
+
+            // If this is the first table, mark the context appropriately.
+            if (i == 0)
+                context.put("first", true);
+            else
+                context.put("first", false);
+
+            // Similarly for the last table mark the context accordingly.
+            if (i >= size - 1)
+                context.put("last", true);
+            else
+                context.put("last", false);
+
+            // If requested, do the renaming.
             rename(table);
 
             // Velocity merge.

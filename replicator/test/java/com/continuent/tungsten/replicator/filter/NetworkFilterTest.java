@@ -166,6 +166,15 @@ public class NetworkFilterTest extends TestCase
         out.println("    \"pin\"");
         out.println("    ]");
         out.println("}");
+        out.println("],");
+        out.println("\"Make_Null_v1\": [");
+        out.println("{");
+        out.println("  \"schema\": \"*\",");
+        out.println("  \"table\": \"*\",");
+        out.println("  \"columns\": [");
+        out.println("    \"dummy\"");
+        out.println("]");
+        out.println("}");
         out.println("]");
         out.println("}");
         out.close();
@@ -191,16 +200,21 @@ public class NetworkFilterTest extends TestCase
 
             {
                 // Send prepare message.
-                toServer.println(generator.prepare());
+                toServer.print(generator.prepare());
+                toServer.flush();
 
                 // Receive & check acknowledged message.
-                String message = fromServer.readLine();
-                logger.info("Received: " + message);
+                String header = fromServer.readLine();
+                logger.info("Received header: " + header);
 
-                String payload = NetworkClientFilter.Protocol
-                        .getPayload(message);
-                String json = NetworkClientFilter.Protocol.getHeader(message);
-                JSONObject obj = (JSONObject) parser.parse(json);
+                JSONObject obj = (JSONObject) parser.parse(header);
+                long payloadLen = (Long) obj.get("payload");
+                logger.info("Payload length: " + payloadLen);
+
+                String payload = NetworkClientFilter.Protocol.readPayload(
+                        fromServer, (int) payloadLen);
+                logger.info("Received payload: " + payload);
+
                 String type = (String) obj.get("type");
                 String service = (String) obj.get("service");
                 long returnCode = (Long) obj.get("return");
@@ -221,17 +235,22 @@ public class NetworkFilterTest extends TestCase
                 long row = getRandomPositiveInt();
                 String schema = "demo";
                 String table = "testtable";
-                toServer.println(generator.filter("String_to_HEX_v1", seqno,
-                        row, schema, table, "bloby", value));
+                toServer.print(generator.filter("String_to_HEX_v1", seqno, row,
+                        schema, table, "bloby", value));
+                toServer.flush();
 
                 // Receive & check filtered message.
-                String message = fromServer.readLine();
-                logger.info("Received: " + message);
+                String header = fromServer.readLine();
+                logger.info("Received header: " + header);
 
-                String payload = NetworkClientFilter.Protocol
-                        .getPayload(message);
-                String json = NetworkClientFilter.Protocol.getHeader(message);
-                JSONObject obj = (JSONObject) parser.parse(json);
+                JSONObject obj = (JSONObject) parser.parse(header);
+                long payloadLen = (Long) obj.get("payload");
+                logger.info("Payload length: " + payloadLen);
+
+                String payload = NetworkClientFilter.Protocol.readPayload(
+                        fromServer, (int) payloadLen);
+                logger.info("Received payload: " + payload);
+
                 String type = (String) obj.get("type");
                 long newSeqno = (Long) obj.get("seqno");
                 long newRow = (Long) obj.get("row");
@@ -254,14 +273,23 @@ public class NetworkFilterTest extends TestCase
 
             {
                 // Send release message.
-                toServer.println(generator.release());
+                toServer.print(generator.release());
+                toServer.flush();
 
                 // Receive & check acknowledged message.
-                String message = fromServer.readLine();
-                logger.info("Received: " + message);
-                String json = NetworkClientFilter.Protocol.getHeader(message);
-                JSONObject obj = (JSONObject) parser.parse(json);
+                String header = fromServer.readLine();
+                logger.info("Received header: " + header);
+
+                JSONObject obj = (JSONObject) parser.parse(header);
+                long payloadLen = (Long) obj.get("payload");
+                logger.info("Payload length: " + payloadLen);
+
+                String payload = NetworkClientFilter.Protocol.readPayload(
+                        fromServer, (int) payloadLen);
+                logger.info("Received payload: " + payload);
+
                 String type = (String) obj.get("type");
+
                 assertEquals("Server returned unexpected message type",
                         NetworkClientFilter.Protocol.TYPE_ACKNOWLEDGED, type);
             }
@@ -407,9 +435,9 @@ public class NetworkFilterTest extends TestCase
         filterHelper.setContext(replicatorContext);
         filterHelper.setFilter(ncf);
 
-        assertEquals("Incorrect count of transformations from parsed JSON", 2,
+        assertEquals("Incorrect count of transformations from parsed JSON", 3,
                 ncf.getDefinedTransformations());
-        assertEquals("Incorrect count of column entries from parsed JSON", 8,
+        assertEquals("Incorrect count of column entries from parsed JSON", 9,
                 ncf.getDefinedColumnEntries());
 
         filterHelper.done(); // Release the filter.
@@ -424,9 +452,9 @@ public class NetworkFilterTest extends TestCase
         filterHelper.setContext(replicatorContext);
         filterHelper.setFilter(ncf); // Check that prepare works 2nd time too.
 
-        assertEquals("Incorrect count of transformations after 2nd prepare", 2,
+        assertEquals("Incorrect count of transformations after 2nd prepare", 3,
                 ncf.getDefinedTransformations());
-        assertEquals("Incorrect count of column entries after 2nd prepare", 8,
+        assertEquals("Incorrect count of column entries after 2nd prepare", 9,
                 ncf.getDefinedColumnEntries());
 
         filterHelper.done();
@@ -456,8 +484,15 @@ public class NetworkFilterTest extends TestCase
             String values[] = new String[columns.length];
             values[0] = "1";
             values[1] = "Vardenis";
-            values[2] = "1984-01-01";
-            values[3] = "234gi2gu3riu23krj2jr23r2lkj3rlkj123lk2j3rl";
+            values[2] = "Testing\rvarious\nnew line\r\nvariants don't break protocol";
+
+            // Try large payload.
+            StringBuilder largePayload = new StringBuilder();
+            int largePayloadK = 10;
+            for (int i = 0; i < 1024 * largePayloadK; i++)
+                largePayload.append(Character.toChars(i % 256));
+            values[3] = largePayload.toString();
+
             ReplDBMSEvent e = eventHelper.eventFromRowInsert(
                     getRandomPositiveInt(), "vip", "clients", columns, values,
                     0, true);
@@ -486,7 +521,13 @@ public class NetworkFilterTest extends TestCase
                 String expectedNewValue = NetworkFilterServer.toHex(oldValue);
                 String actualNewValue = (String) orc.getColumnValues().get(0)
                         .get(col).getValue();
+                if (col == 2)
                 logger.info(oldValue + " -> " + actualNewValue);
+                else if (col == 3)
+                    logger.info(oldValue.substring(0, 100) + "...("
+                            + oldValue.length() + "B total) -> "
+                            + actualNewValue.substring(0, 100) + "...");
+
                 assertEquals("Server returned unexpected payload",
                         expectedNewValue, actualNewValue);
             }
@@ -520,7 +561,7 @@ public class NetworkFilterTest extends TestCase
             // Column that should have been left as is.
             assertEquals(
                     "Filter changed column which was not requested to be changed",
-                    values[4], orc.getColumnValues().get(0).get(4).getValue());
+                    values[1], orc.getColumnValues().get(0).get(1).getValue());
 
             // Columns that should have been transformed with String_to_HEX_v1.
             for (int col = 2; col <= 3; col++)
@@ -532,6 +573,16 @@ public class NetworkFilterTest extends TestCase
                 logger.info(oldValue + " -String_to_HEX_v1-> " + actualNewValue);
                 assertEquals("Server returned unexpected payload",
                         expectedNewValue, actualNewValue);
+            }
+
+            // Column which should have been transformed with Make_Null_v1.
+            {
+                String oldValue = values[4];
+                String actualNewValue = (String) orc.getColumnValues().get(0)
+                        .get(4).getValue();
+                logger.info(oldValue + " -Make_Null_v1-> " + actualNewValue);
+                assertEquals("Server returned unexpected payload", null,
+                        actualNewValue);
             }
 
             // Column which should have been transformed with Make_Empty_v1.
@@ -600,7 +651,7 @@ public class NetworkFilterTest extends TestCase
         private JSONParser                                 parser     = new JSONParser();
         private NetworkClientFilter.ServerMessageGenerator generator  = new NetworkClientFilter.ServerMessageGenerator();
 
-        private String                                     serverName = "JAVA HEX transformer";
+        private String                                     serverName = "JAVA HEX transformer\nNew line test for payload";
 
         public String getServerName()
         {
@@ -645,15 +696,19 @@ public class NetworkFilterTest extends TestCase
                     while (true)
                     {
                         // Receive message.
-                        String message = fromClient.readLine();
-                        logger.info("Received: " + message);
-                        if (message == null)
+                        String header = fromClient.readLine();
+                        if (header == null)
                             break; // Next client.
+                        logger.info("Received header: " + header);
+
+                        JSONObject obj = (JSONObject) parser.parse(header);
+                        long payloadLen = (Long) obj.get("payload");
+                        logger.info("Payload length: " + payloadLen);
+
                         String payload = NetworkClientFilter.Protocol
-                                .getPayload(message);
-                        String json = NetworkClientFilter.Protocol
-                                .getHeader(message);
-                        JSONObject obj = (JSONObject) parser.parse(json);
+                                .readPayload(fromClient, (int) payloadLen);
+                        logger.info("Received payload: " + payload);
+
                         String type = (String) obj.get("type");
                         String service = (String) obj.get("service");
 
@@ -661,8 +716,9 @@ public class NetworkFilterTest extends TestCase
                         {
                             // Send acknowledged message.
                             int returnCode = 0;
-                            toClient.println(generator.acknowledged(service,
+                            toClient.print(generator.acknowledged(service,
                                     returnCode, serverName));
+                            toClient.flush();
                         }
                         else if (type
                                 .equals(NetworkClientFilter.Protocol.TYPE_FILTER))
@@ -686,6 +742,10 @@ public class NetworkFilterTest extends TestCase
                             {
                                 newValue = toEmpty(payload);
                             }
+                            else if (transformation.equals("Make_Null_v1"))
+                            {
+                                newValue = null;
+                            }
 
                             // An error introduce on purpose for this column.
                             if (column.equals("password"))
@@ -694,17 +754,19 @@ public class NetworkFilterTest extends TestCase
                                 newValue = "Password columns cannot be transformed";
                             }
 
-                            toClient.println(generator.filtered(service,
+                            toClient.print(generator.filtered(service,
                                     transformation, returnCode, seqno, row,
                                     schema, table, column, newValue));
+                            toClient.flush();
                         }
                         else if (type
                                 .equals(NetworkClientFilter.Protocol.TYPE_RELEASE))
                         {
                             // Send acknowledged message.
                             int returnCode = 0;
-                            toClient.println(generator.acknowledged(service,
+                            toClient.print(generator.acknowledged(service,
                                     returnCode, serverName));
+                            toClient.flush();
                         }
                     }
                 }
@@ -721,6 +783,10 @@ public class NetworkFilterTest extends TestCase
             {
                 logger.error("Error parsing JSON: " + pe.getPosition());
                 logger.error(pe);
+            }
+            catch (ReplicatorException e)
+            {
+                logger.error(e);
             }
             finally
             {

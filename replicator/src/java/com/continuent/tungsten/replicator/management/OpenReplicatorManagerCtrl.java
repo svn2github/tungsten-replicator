@@ -2034,7 +2034,7 @@ public class OpenReplicatorManagerCtrl
                 {
                     CsvWriter csvWriter = new CsvWriter(new OutputStreamWriter(
                             System.out));
-                    csvWriter.setSeparator('\t');
+                    csvWriter.setFieldSeparator("\t");
                     csvWriter.addColumnName(ShardTable.SHARD_ID_COL);
                     csvWriter.addColumnName(ShardTable.SHARD_MASTER_COL);
                     csvWriter.addColumnName(ShardTable.SHARD_CRIT_COL);

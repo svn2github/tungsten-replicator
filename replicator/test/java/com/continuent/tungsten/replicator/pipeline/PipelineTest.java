@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-12 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,11 +23,13 @@
 package com.continuent.tungsten.replicator.pipeline;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import org.apache.log4j.Logger;
@@ -43,6 +45,7 @@ import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.extractor.DummyExtractor;
 import com.continuent.tungsten.replicator.extractor.ExtractorWrapper;
 import com.continuent.tungsten.replicator.management.MockEventDispatcher;
@@ -567,6 +570,255 @@ public class PipelineTest extends TestCase
     }
 
     /**
+     * Verify that if an event has the force_commit flag in the header metadata
+     * it will always commit the current block regardless of the block commit
+     * policy.
+     */
+    public void testForcedBlockCommit() throws Exception
+    {
+        // Create events that are marked unsafe for block commit.
+        ArrayList<ReplDBMSEvent> events = new ArrayList<ReplDBMSEvent>();
+        for (int seqno = 0; seqno < 10; seqno++)
+        {
+            ReplDBMSEvent event = helper.createEvent(seqno, "db01");
+            event.getDBMSEvent().setMetaDataOption(
+                    ReplOptionParams.FORCE_COMMIT, "true");
+            events.add(event);
+        }
+
+        // Confirm the transactions are processed in multiple blocks for
+        // both policy types.
+        checkBlockCommitSemantics(events, BlockCommitPolicy.lax, false, null);
+        checkBlockCommitSemantics(events, BlockCommitPolicy.strict, false, null);
+    }
+
+    /**
+     * Verify that filtering an event within a task does not cause an automatic
+     * commit but does cause the block commit row count to be incremented for
+     * the number of filtered events. This case works by setting up a stream of
+     * events, some of which are tagged to force a commit. We then filter those
+     * transactions out and expect everything to commit as a single block.
+     */
+    public void testNoCommitOnFilteredEvent() throws Exception
+    {
+        // Create some vanilla events but put tags to force commit
+        // on events 5 to 7, which we will later filter.
+        ArrayList<ReplDBMSEvent> events = new ArrayList<ReplDBMSEvent>();
+        for (int seqno = 0; seqno < 10; seqno++)
+        {
+            ReplDBMSEvent event = helper.createEvent(seqno, "db01");
+            if (seqno >= 5 && seqno <= 7)
+            {
+                event.getDBMSEvent().setMetaDataOption(
+                        ReplOptionParams.FORCE_COMMIT, "true");
+            }
+            events.add(event);
+        }
+
+        // Add properties to configure a filter to drop events 5 to 7.
+        TungstenProperties filterProps = new TungstenProperties();
+        filterProps.setString("replicator.stage.stage.filters", "myfilter");
+        filterProps.setString("replicator.filter.myfilter",
+                SampleFilter.class.getName());
+        filterProps.setString("replicator.filter.myfilter.skipSeqnoStart", "5");
+        filterProps.setString("replicator.filter.myfilter.skipSeqnoRange", "3");
+
+        // Confirm the transactions so filtered are in a single block. If we
+        // fail to filter or commit improperly, there will be extra commits. If
+        // the task loop counts are off for filtered events we'll get a timeout.
+        List<ReplDBMSEvent> outputs = checkBlockCommitSemantics(events,
+                BlockCommitPolicy.lax, true, filterProps);
+        Assert.assertEquals("Events are filtered, lax policy", 8,
+                outputs.size());
+
+        checkBlockCommitSemantics(events, BlockCommitPolicy.strict, true,
+                filterProps);
+        Assert.assertEquals("Events are filtered, strict policy", 8,
+                outputs.size());
+    }
+
+    /**
+     * Verify that fragmented events cause blocks to commit if the commit policy
+     * is strict and do not cause commits if the policy is lax.
+     */
+    public void testBlockCommitOnFragments() throws Exception
+    {
+        // Create a bunch of fragmented events.
+        LinkedList<ReplDBMSEvent> events = new LinkedList<ReplDBMSEvent>();
+        for (int seqno = 0; seqno < 10; seqno++)
+        {
+            for (short fragNo = 0; fragNo < 3; fragNo++)
+            {
+                ReplDBMSEvent event = helper.createEvent(seqno, "db01", fragNo,
+                        (fragNo == 2));
+                events.add(event);
+            }
+        }
+
+        // Confirm the transactions are processed in a single block when
+        // lax block commit is in effect.
+        checkBlockCommitSemantics(events, BlockCommitPolicy.lax, true, null);
+
+        // Confirm the transactions are processed in multiple blocks when
+        // strict block commit is in effect. Note that since strict is
+        // default if we don't supply it we also get the same result.
+        checkBlockCommitSemantics(events, BlockCommitPolicy.strict, false, null);
+        checkBlockCommitSemantics(events, null, false, null);
+    }
+
+    /**
+     * Verify that events marked unsafe for block commit
+     * (unsafe_for_block_commit tag in header) cause blocks to commit if the
+     * commit policy is strict and do not cause commits if the policy is lax.
+     */
+    public void testBlockCommitOnUnsafeEvents() throws Exception
+    {
+        // Create events that are marked unsafe for block commit.
+        LinkedList<ReplDBMSEvent> events = new LinkedList<ReplDBMSEvent>();
+        for (int seqno = 0; seqno < 10; seqno++)
+        {
+            ReplDBMSEvent event = helper.createEvent(seqno, "db01");
+            event.getDBMSEvent().setMetaDataOption(
+                    ReplOptionParams.UNSAFE_FOR_BLOCK_COMMIT, "");
+            events.add(event);
+        }
+
+        // Confirm the transactions are processed in a single block when
+        // lax block commit is in effect.
+        checkBlockCommitSemantics(events, BlockCommitPolicy.lax, true, null);
+
+        // Confirm the transactions are processed in multiple blocks when
+        // strict block commit is in effect.
+        checkBlockCommitSemantics(events, BlockCommitPolicy.strict, false, null);
+    }
+
+    /**
+     * Verify that events that change service names cause blocks to commit if
+     * the commit policy is strict and do not cause commits if the policy is
+     * lax.
+     */
+    public void testBlockCommitOnServiceChange() throws Exception
+    {
+        // Create events that change the service name with each new event.
+        LinkedList<ReplDBMSEvent> events = new LinkedList<ReplDBMSEvent>();
+        for (int seqno = 0; seqno < 10; seqno++)
+        {
+            ReplDBMSEvent event = helper.createEvent(seqno, "db01");
+            event.getDBMSEvent().setMetaDataOption(ReplOptionParams.SERVICE,
+                    "service_" + seqno);
+            events.add(event);
+        }
+
+        // Confirm the transactions are processed in a single block when
+        // lax block commit is in effect.
+        checkBlockCommitSemantics(events, BlockCommitPolicy.lax, true, null);
+
+        // Confirm the transactions are processed in multiple blocks when
+        // strict block commit is in effect.
+        checkBlockCommitSemantics(events, BlockCommitPolicy.strict, false, null);
+    }
+
+    /**
+     * Confirm that a given queue of inputs either commits as a single block or
+     * not. We do this by preloading the events to the pipeline then counting
+     * the number of blocks that actually commit.
+     * 
+     * @param events Events to feed into the queue.
+     * @param policy Block commit policy
+     * @param singleBlock Whether we expect events under this policy to commit
+     *            as a single block or not
+     * @param extraProperties Additional properties that may be added
+     * @return A list containing events from the output queue
+     */
+    private List<ReplDBMSEvent> checkBlockCommitSemantics(
+            List<ReplDBMSEvent> events, BlockCommitPolicy policy,
+            boolean singleBlock, TungstenProperties extraProperties)
+            throws Exception
+    {
+        // Create config for pipeline with input and output queues
+        // and add in properties from clients set set block commit
+        // policy as well as add optional properties if provided.
+        int queueSize = events.size();
+        TungstenProperties config = helper.createDoubleQueueRuntime(queueSize,
+                queueSize, 60000);
+        if (policy != null)
+        {
+            config.setProperty("replicator.stage.stage.blockCommitPolicy",
+                    policy.toString());
+        }
+        if (extraProperties != null)
+        {
+            for (String key : extraProperties.keyNames())
+            {
+                config.set(key, extraProperties.getObject(key));
+            }
+        }
+
+        // Prepare and retrieve the said pipeline.
+        ReplicatorRuntime runtime = new ReplicatorRuntime(config,
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
+        runtime.configure();
+        runtime.prepare();
+        Pipeline pipeline = runtime.getPipeline();
+
+        // Load data into the pipeline.
+        InMemoryQueueStore q1 = (InMemoryQueueStore) pipeline.getStore("q1");
+        for (ReplDBMSEvent event : events)
+        {
+            q1.put(event);
+        }
+
+        // Find the last event and add a tag to force commit. This ensures a
+        // commit on the final event even if the block is not full.
+        ReplDBMSEvent lastEvent = events.get(queueSize - 1);
+        if (lastEvent.getDBMSEvent().getMetadataOption(
+                ReplOptionParams.FORCE_COMMIT) == null)
+            lastEvent.getDBMSEvent().setMetaDataOption(
+                    ReplOptionParams.FORCE_COMMIT, "true");
+        long lastSeqno = lastEvent.getSeqno();
+        logger.info("Added events; last seqno=" + lastSeqno);
+
+        // Start the pipeline and wait for the last seqno to be commited.
+        pipeline.start(new MockEventDispatcher());
+        Future<ReplDBMSHeader> future = pipeline
+                .watchForCommittedSequenceNumber(lastSeqno, false);
+        ReplDBMSHeader matchingEvent = future.get(5, TimeUnit.SECONDS);
+        assertEquals("Applied sequence number matches", lastSeqno,
+                matchingEvent.getSeqno());
+
+        // Check the number of blocks committed.
+        Stage stage = pipeline.getStages().get(0);
+        TaskProgress progress = stage.getProgressTracker().getTaskProgress(0);
+        long actualBlocks = progress.getBlockCount();
+        logger.info("Processed events, block count=" + actualBlocks);
+        if (singleBlock)
+        {
+            Assert.assertEquals("Expect just one block", 1, actualBlocks);
+        }
+        else
+        {
+            Assert.assertTrue("Expect blocks to be more than 1: blocks="
+                    + actualBlocks, actualBlocks > 1);
+        }
+
+        // Pull out the output values so we can return them to the caller.
+        InMemoryQueueStore q2 = (InMemoryQueueStore) pipeline.getStore("q2");
+        List<ReplDBMSEvent> outputs = new ArrayList<ReplDBMSEvent>(q2.size());
+        while (q2.peek() != null)
+        {
+            outputs.add(q2.get());
+        }
+
+        // Shut it down.
+        pipeline.shutdown(false);
+        pipeline.release(runtime);
+
+        // Return the output values.
+        return outputs;
+    }
+
+    /**
      * Verify that if a block commit interval is defined transactions will not
      * commit at shorter intervals than specified. We can do this by setting
      * block commit to a high number (100) but set the interval to be 1 seconds.
@@ -576,7 +828,7 @@ public class PipelineTest extends TestCase
      * <p/>
      * Note: this case assumes that pipeline threads are scheduled fairly! If
      * you have a tiny VM it might not work as some threads might not get enough
-     * CPU time, which would cause blocks not to commit in a timely fashion.  
+     * CPU time, which would cause blocks not to commit in a timely fashion.
      */
     public void testBlockCommitIntervals() throws Exception
     {

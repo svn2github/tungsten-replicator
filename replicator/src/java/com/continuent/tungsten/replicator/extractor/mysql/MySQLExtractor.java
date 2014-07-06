@@ -92,6 +92,7 @@ public class MySQLExtractor implements RawExtractor
     private boolean                         useRelayLogs              = false;
     private long                            relayLogWaitTimeout       = 0;
     private long                            relayLogReadTimeout       = 0;
+    private boolean                         deterministicIo           = true;
     private int                             relayLogRetention         = 3;
     private String                          relayLogDir               = null;
     private int                             serverId                  = 1;
@@ -132,7 +133,11 @@ public class MySQLExtractor implements RawExtractor
 
     private HashMap<Integer, String>        loadDataSchemas;
 
+    // Header for JDBC, which allows us to switch driver.
     private String                          jdbcHeader;
+
+    // JDBC URL options.
+    private String                          urlOptions;
 
     private int                             bufferSize                = 32768;
 
@@ -320,6 +325,16 @@ public class MySQLExtractor implements RawExtractor
         this.jdbcHeader = jdbcHeader;
     }
 
+    public String getUrlOptions()
+    {
+        return urlOptions;
+    }
+
+    public void setUrlOptions(String urlOptions)
+    {
+        this.urlOptions = urlOptions;
+    }
+
     public String getBinlogMode()
     {
         return binlogMode;
@@ -448,9 +463,9 @@ public class MySQLExtractor implements RawExtractor
             conn = DatabaseFactory.createDatabase(url, user, password, true);
             conn.connect();
             st = conn.createStatement();
-            if (flush)
+            if (flush && runtime.isPrivilegedMaster())
             {
-                logger.debug("Flushing logs");
+                logger.debug("Flushing logs for fast start");
                 st.executeUpdate("FLUSH LOGS");
             }
             logger.debug("Seeking head position in binlog");
@@ -1297,17 +1312,15 @@ public class MySQLExtractor implements RawExtractor
     {
         runtime = (ReplicatorRuntime) context;
 
-        // Compute our MySQL dbms URL.
-        StringBuffer sb = new StringBuffer();
-        if (jdbcHeader == null)
-            sb.append("jdbc:mysql://");
-        else
-            sb.append(jdbcHeader);
-        sb.append(host);
-        sb.append(":");
-        sb.append(port);
-        sb.append("/");
-        url = sb.toString();
+        // Compute our MySQL DBMS URL.
+        url = generateUrl(false);
+
+        // If url options include ssl, the stream's availability() method cannot
+        // be trusted.
+        if (urlOptions != null && urlOptions.toLowerCase().contains("ssl"))
+        {
+            this.deterministicIo = false;
+        }
 
         // See if we are operating in native slave takeover mode.
         nativeSlaveTakeover = context.nativeSlaveTakeover();
@@ -1390,6 +1403,46 @@ public class MySQLExtractor implements RawExtractor
     }
 
     /**
+     * Generates a URL with or without the createDB=true option. This option
+     * should *only* be used the first time we connect.
+     */
+    private String generateUrl(boolean createDB)
+    {
+        // Compute our MySQL DBMS URL.
+        StringBuffer sb = new StringBuffer();
+        if (jdbcHeader == null)
+            sb.append("jdbc:mysql:thin://");
+        else
+            sb.append(jdbcHeader);
+        sb.append(host);
+        sb.append(":");
+        sb.append(port);
+        sb.append("/");
+        sb.append(runtime.getReplicatorSchemaName());
+        if (urlOptions != null && urlOptions.length() > 0)
+        {
+            // Prepend ? if needed to make the URL options syntactically
+            // correct, then add the option string.
+            if (!urlOptions.startsWith("?"))
+                sb.append("?");
+            sb.append(urlOptions);
+
+            if (createDB)
+            {
+                sb.append("&createDB=true");
+            }
+        }
+        else
+        {
+            if (createDB)
+            {
+                sb.append("?createDB=true");
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
      * If strictVersionChecking is enabled we ensure this database is a
      * supported version. {@inheritDoc}
      * 
@@ -1413,7 +1466,9 @@ public class MySQLExtractor implements RawExtractor
 
         try
         {
-            conn = DatabaseFactory.createDatabase(url, user, password, true);
+            String firstUrl = generateUrl(true);
+            conn = DatabaseFactory.createDatabase(firstUrl, user, password,
+                    true);
             conn.connect();
 
             String version = getDatabaseVersion(conn);
@@ -1580,6 +1635,7 @@ public class MySQLExtractor implements RawExtractor
         relayClient.setServerId(serverId);
         relayClient.setLogQueue(relayLogQueue);
         relayClient.setReadTimeout(relayLogReadTimeout);
+        relayClient.setDeterministicIo(deterministicIo);
         relayClient.connect();
 
         // Start the relay log task.

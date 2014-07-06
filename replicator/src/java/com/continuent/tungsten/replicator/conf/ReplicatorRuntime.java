@@ -171,7 +171,7 @@ public class ReplicatorRuntime implements PluginContext
         {
             if (!ReplicatorConf.ROLE_MASTER.equals(roleName))
                 throw new ReplicatorException(
-                        "Provisionning can happen only on master");
+                        "Provisioning can happen only on master");
             roleName = ReplicatorConf.ROLE_MASTER + "-provision";
         }
         else if (ReplicatorConf.ROLE_MASTER.equals(roleName))
@@ -1233,7 +1233,7 @@ public class ReplicatorRuntime implements PluginContext
         catch (Throwable t)
         {
             String message = "Unable to configure plugin: class name="
-                    + pluginClassName;
+                    + pluginClassName + " message=[" + t.getMessage() + "]";
 
             logger.error(message, t);
             throw new ReplicatorException(message, t);
@@ -1263,7 +1263,7 @@ public class ReplicatorRuntime implements PluginContext
         catch (Throwable t)
         {
             String message = "Unable to prepare plugin: class name="
-                    + pluginClassName;
+                    + pluginClassName + " message=[" + t.getMessage() + "]";
 
             logger.error(message, t);
             throw new ReplicatorException(message, t);
@@ -1308,12 +1308,23 @@ public class ReplicatorRuntime implements PluginContext
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.plugin.PluginContext#isPrivilegedSlaveUpdate()
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#isPrivilegedSlave()
      */
-    public boolean isPrivilegedSlaveUpdate()
+    public boolean isPrivilegedSlave()
     {
-        return properties.getBoolean(ReplicatorConf.PRIVILEGED_SLAVE_UPDATE,
-                ReplicatorConf.PRIVILEGED_SLAVE_UPDATE_DEFAULT, true);
+        return properties.getBoolean(ReplicatorConf.PRIVILEGED_SLAVE,
+                ReplicatorConf.PRIVILEGED_SLAVE_DEFAULT, true);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#isPrivilegedMaster()
+     */
+    public boolean isPrivilegedMaster()
+    {
+        return properties.getBoolean(ReplicatorConf.PRIVILEGED_MASTER,
+                ReplicatorConf.PRIVILEGED_MASTER_DEFAULT, true);
     }
 
     /**

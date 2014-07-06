@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -39,7 +39,8 @@ import java.util.Map;
 public class CsvReader
 {
     // Properties.
-    private String               inputSeparators    = ", \t";
+    private String               fieldSeparator     = ",";
+    private String               recordSeparator    = "\n";
     private boolean              collapseSeparators = false;
     private boolean              useHeaders         = true;
 
@@ -67,19 +68,19 @@ public class CsvReader
     }
 
     /**
-     * Sets the input separator characters.
+     * Sets the field separator character.
      */
-    public void setInputSeparators(String inputSeparators)
+    public void setFieldSeparator(String inputSeparator)
     {
-        this.inputSeparators = inputSeparators;
+        this.fieldSeparator = inputSeparator;
     }
 
     /**
-     * Returns input separate characters.
+     * Returns field separator character.
      */
-    public String getInputSeparators()
+    public String getFieldSeparator()
     {
-        return inputSeparators;
+        return fieldSeparator;
     }
 
     /**
@@ -97,6 +98,22 @@ public class CsvReader
     public void setCollapseSeparators(boolean collapseSeparators)
     {
         this.collapseSeparators = collapseSeparators;
+    }
+
+    /**
+     * Sets the record separator character.
+     */
+    public void setRecordSeparator(String inputSeparator)
+    {
+        this.recordSeparator = inputSeparator;
+    }
+
+    /**
+     * Returns record separator character.
+     */
+    public String getRecordSeparator()
+    {
+        return recordSeparator;
     }
 
     /**
@@ -221,7 +238,8 @@ public class CsvReader
     // Reads a single row.
     private List<String> read() throws IOException
     {
-        String regex = "[" + inputSeparators + "]";
+        String regex = "[" + fieldSeparator + "]";
+        // TODO: Should use record separator.
         String s = reader.readLine();
         if (s != null && s.length() != 0)
         {

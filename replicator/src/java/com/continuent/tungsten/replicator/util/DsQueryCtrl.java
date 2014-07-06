@@ -145,7 +145,7 @@ public class DsQueryCtrl
             Database database = DatabaseFactory.createDatabase(url, user,
                     password);
 
-            database.connect(false);
+            database.connect();
 
             String sql = null;
 
@@ -353,10 +353,10 @@ public class DsQueryCtrl
                 output.append("null");
             else
             {
-	            output.append('\"');
+                output.append('\"');
                 String out = obj.toString().replaceAll("\"", "\\\\\"");
                 output.append(out);
-	            output.append('\"');
+                output.append('\"');
             }
         }
         output.append('}');

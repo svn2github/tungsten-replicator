@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -169,7 +169,7 @@ public class TestSqlOperationMatcher
     }
 
     /**
-     * Test create table with and without db name.
+     * Test drop table with and without db name.
      */
     @Test
     public void testDropTable() throws Exception
@@ -180,9 +180,8 @@ public class TestSqlOperationMatcher
                 "drop   table   `bar`.`foo` /* hello*/",
                 "drop table  if  exists bar.foo",
                 "DROP TABLE IF EXISTS TUNGSTEN_INFO.bravo, `bar`.`foo`"};
-        String[] cmds3 = {"drop temporary  table   `foo` /* hello*/",
+        String[] cmds3 = {"drop temporary  table   `bar`.`foo` /* hello*/",
                 "DRop TemporarY TabLE \"bar\".\"foo\""};
-
         SqlOperationMatcher m = new MySQLOperationMatcher();
         for (String cmd : cmds1)
         {
@@ -223,8 +222,95 @@ public class TestSqlOperationMatcher
                 Assert.assertEquals("Found database: " + cmd, "bar",
                         sqlName.getSchema());
             Assert.assertFalse("Is autocommit: " + cmd, sqlName.isAutoCommit());
+            Assert.assertEquals("Found database: " + cmd, "bar",
+                    sqlName.getSchema());
         }
 
+    }
+
+    /**
+     * Test alter table commands.
+     */
+    @Test
+    public void testAlterTable() throws Exception
+    {
+        String[] cmds1 = {
+                "alter ignore table foo drop column ts1",
+                "AlTeR IGNORE   table `foo` drop primary key",
+                "alter table /* hello */ \"foo\"   add constraint primary key (id)",
+                "alter table foo add column ts1 timestamp default now()"};
+        String[] cmds2 = {
+                "alter ignore table bar.foo drop column ts1",
+                "AlTeR IGNORE   table `bar`.`foo` drop primary key",
+                "alter table /* hello */ \"bar\".\"foo\"   add constraint primary key (id)",
+                "alter table bar.foo add column ts1 timestamp default now()"};
+        SqlOperationMatcher m = new MySQLOperationMatcher();
+        for (String cmd : cmds1)
+        {
+            SqlOperation sqlName = m.match(cmd);
+            Assert.assertNotNull("Matched: " + cmd, sqlName);
+            Assert.assertEquals("Found object: " + cmd, SqlOperation.TABLE,
+                    sqlName.getObjectType());
+            Assert.assertEquals("Found operation: " + cmd, SqlOperation.ALTER,
+                    sqlName.getOperation());
+            Assert.assertEquals("Found name: " + cmd, "foo", sqlName.getName());
+            Assert.assertNull("Found database: " + cmd, sqlName.getSchema());
+            Assert.assertTrue("Is autocommit: " + cmd, sqlName.isAutoCommit());
+        }
+
+        for (String cmd : cmds2)
+        {
+            SqlOperation sqlName = m.match(cmd);
+            Assert.assertNotNull("Matched: " + cmd, sqlName);
+            Assert.assertEquals("Found object: " + cmd, SqlOperation.TABLE,
+                    sqlName.getObjectType());
+            Assert.assertEquals("Found operation: " + cmd, SqlOperation.ALTER,
+                    sqlName.getOperation());
+            Assert.assertEquals("Found name: " + cmd, "foo", sqlName.getName());
+            Assert.assertEquals("Found database: " + cmd, "bar",
+                    sqlName.getSchema());
+        }
+    }
+
+    /**
+     * Test rename table with and without db name. Samples include standard
+     * commands from pt-online-schema-change.
+     */
+    @Test
+    public void testRenameTable() throws Exception
+    {
+        String[] cmds1 = {"rename table foo to test.bar",
+                "rename table foo to bar",
+                "RENAME TABLE `foo` TO `_foo_old`, `_foo_new` TO `foo`"};
+        String[] cmds2 = {"rename table bar.foo to bar.bar",
+                "rename table bar.foo to bar",
+                "RENAME TABLE `bar`.`foo` TO `bar`.`_foo_old`, `bar`.`_foo_new` TO `bar`.`foo`"};
+        SqlOperationMatcher m = new MySQLOperationMatcher();
+        for (String cmd : cmds1)
+        {
+            SqlOperation sqlName = m.match(cmd);
+            Assert.assertNotNull("Matched: " + cmd, sqlName);
+            Assert.assertEquals("Found object: " + cmd, SqlOperation.TABLE,
+                    sqlName.getObjectType());
+            Assert.assertEquals("Found operation: " + cmd, SqlOperation.RENAME,
+                    sqlName.getOperation());
+            Assert.assertEquals("Found name: " + cmd, "foo", sqlName.getName());
+            Assert.assertNull("Found database: " + cmd, sqlName.getSchema());
+            Assert.assertTrue("Is autocommit: " + cmd, sqlName.isAutoCommit());
+        }
+
+        for (String cmd : cmds2)
+        {
+            SqlOperation sqlName = m.match(cmd);
+            Assert.assertNotNull("Matched: " + cmd, sqlName);
+            Assert.assertEquals("Found object: " + cmd, SqlOperation.TABLE,
+                    sqlName.getObjectType());
+            Assert.assertEquals("Found operation: " + cmd, SqlOperation.RENAME,
+                    sqlName.getOperation());
+            Assert.assertEquals("Found name: " + cmd, "foo", sqlName.getName());
+            Assert.assertEquals("Found database: " + cmd, "bar",
+                    sqlName.getSchema());
+        }
     }
 
     /**

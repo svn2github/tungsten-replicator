@@ -141,9 +141,13 @@ public class ReplicatorConf
     static public final String   LOG_SLAVE_UPDATES                     = "replicator.log.slave.updates";
     static public final String   LOG_SLAVE_UPDATES_DEFAULT             = "false";
 
-    /** Whether slave updates use a privileged account. */
-    static public final String   PRIVILEGED_SLAVE_UPDATE               = "replicator.privileged.slave.update";
-    static public final String   PRIVILEGED_SLAVE_UPDATE_DEFAULT       = "true";
+    /** Whether slave updates can assume a privileged account. */
+    static public final String   PRIVILEGED_SLAVE                      = "replicator.privileged.slave";
+    static public final String   PRIVILEGED_SLAVE_DEFAULT              = "true";
+
+    /** Whether master extracts can assume a privileged account. */
+    static public final String   PRIVILEGED_MASTER                     = "replicator.privileged.master";
+    static public final String   PRIVILEGED_MASTER_DEFAULT             = "true";
 
     /**
      * Whether to allow SQL comments to distinguish statements for different
@@ -189,6 +193,10 @@ public class ReplicatorConf
     /** Store parameter names. */
     static public final String   STORE                                 = "store";
     static public final String   STORE_ROOT                            = "replicator.store";
+
+    /** Data source parameter names. */
+    static public final String   DATASOURCE                            = "datasource";
+    static public final String   DATASOURCE_ROOT                       = "replicator.datasource";
 
     /** Applier failure policy */
     static public final String   APPLIER_FAILURE_POLICY                = "replicator.applier.failure_policy";

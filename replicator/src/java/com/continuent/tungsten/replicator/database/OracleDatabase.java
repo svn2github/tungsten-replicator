@@ -79,7 +79,7 @@ public class OracleDatabase extends AbstractDatabase
             "VALUES", "VARCHAR", "VARCHAR2", "VIEW", "WHENEVER", "WHERE",
             "WITH"                                                            }));
 
-    private static final List<String> SYSTEM_SCHEMAS             = Arrays.asList(new String[]{
+    private static final List<String>      SYSTEM_SCHEMAS             = Arrays.asList(new String[]{
             "SYS", "SYSMAN", "SYSTEM", "TSMSYS", "WMSYS", "XDB",
             "SI_INFORMTN_SCHEMA", "ANONYMOUS", "CTXSYS", "DBSNMP", "DIP",
             "DMSYS", "EXFSYS", "MDDATA", "MDSYS", "MGMT_VIEW", "OLAPSYS",
@@ -115,9 +115,9 @@ public class OracleDatabase extends AbstractDatabase
      * @see com.continuent.tungsten.replicator.database.AbstractDatabase#connect(boolean)
      */
     @Override
-    public synchronized void connect(boolean binlog) throws SQLException
+    public synchronized void connect() throws SQLException
     {
-        super.connect(binlog);
+        super.connect();
         ResultSet res = null;
         Statement statement = createStatement();
         String timeZone = "00:00";

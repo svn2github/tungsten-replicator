@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.replicator.database;
 
+import java.io.Serializable;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -33,6 +34,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -152,16 +154,6 @@ public abstract class AbstractDatabase implements Database
      */
     public synchronized void connect() throws SQLException
     {
-        connect(false);
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.database.Database#connect(boolean)
-     */
-    public synchronized void connect(boolean binlog) throws SQLException
-    {
         if (dbConn == null)
         {
             if (dbDriver != null && drivers.get(dbDriver) == null)
@@ -181,14 +173,6 @@ public abstract class AbstractDatabase implements Database
 
             dbConn = DriverManager.getConnection(dbUri, dbUser, dbPassword);
             connected = (dbConn != null);
-
-            if (connected)
-            {
-                if (supportsControlSessionLevelLogging())
-                {
-                    this.controlSessionLevelLogging(!binlog);
-                }
-            }
         }
     }
 
@@ -536,7 +520,14 @@ public abstract class AbstractDatabase implements Database
         return c.getName() + "= ?";
     }
 
-    private int executePrepareStatement(List<Column> columns,
+    /**
+     * Executes a prepared statement using values supplied as arguments.
+     * 
+     * @param columns List of values
+     * @param statement The prepared statement instance
+     * @return Number of rows updated
+     */
+    protected int executePrepareStatement(List<Column> columns,
             PreparedStatement statement) throws SQLException
     {
         int bindNo = 1;
@@ -545,28 +536,39 @@ public abstract class AbstractDatabase implements Database
         {
             statement.setObject(bindNo++, c.getValue());
         }
-        // System.out.format("%s (%d binds)\n", SQL, bindNo - 1);
+
         return statement.executeUpdate();
     }
 
-    private int executePrepareStatement(Table table, PreparedStatement statement)
-            throws SQLException
+    protected int executePrepareStatement(Table table,
+            PreparedStatement statement) throws SQLException
     {
         return executePrepareStatement(table.getAllColumns(), statement);
     }
 
-    private int executePrepare(Table table, List<Column> columns, String SQL)
+    protected int executePrepare(Table table, List<Column> columns, String SQL)
             throws SQLException
     {
         return executePrepare(table, columns, SQL, false, -1);
     }
 
-    private int executePrepare(Table table, String SQL) throws SQLException
+    protected int executePrepare(Table table, String SQL) throws SQLException
     {
         return executePrepare(table, table.getAllColumns(), SQL, false, -1);
     }
 
-    private int executePrepare(Table table, List<Column> columns, String SQL,
+    /**
+     * Executes a prepared statement using values supplied as arguments.
+     * 
+     * @param table Table on which to run
+     * @param columns List of values
+     * @param SQL The SQL statement to execute
+     * @param keep If true cache prepared statement in table instance
+     * @param type Statement type assigned by caller (and used to tag
+     *            statements)
+     * @return Number of rows updated
+     */
+    protected int executePrepare(Table table, List<Column> columns, String SQL,
             boolean keep, int type) throws SQLException
     {
         int bindNo = 1;
@@ -580,7 +582,8 @@ public abstract class AbstractDatabase implements Database
 
             for (Column c : columns)
             {
-                statement.setObject(bindNo++, c.getValue());
+                Serializable val = c.getValue();
+                statement.setObject(bindNo++, val);
             }
             affectedRows = statement.executeUpdate();
         }
@@ -971,51 +974,61 @@ public abstract class AbstractDatabase implements Database
         Table table = null;
 
         ResultSet rsc = getColumnsResultSet(md, schemaName, tableName);
-        if (rsc.isBeforeFirst())
+        List<Column> columns = new LinkedList<Column>();
+        while (rsc.next())
         {
-            // found columns
-            Map<String, Column> cm = new HashMap<String, Column>();
-            table = new Table(schemaName, tableName);
-            while (rsc.next())
-            {
-                String colName = rsc.getString("COLUMN_NAME");
-                int colType = rsc.getInt("DATA_TYPE");
-                long colLength = rsc.getLong("COLUMN_SIZE");
-                boolean isNotNull = rsc.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls;
-                String valueString = rsc.getString("COLUMN_DEF");
-                String typeDesc = rsc.getString("TYPE_NAME").toUpperCase();
-                // Issue 798. Mimicking MySQLApplier.
-                boolean isSigned = !typeDesc.contains("UNSIGNED");
+            String colName = rsc.getString("COLUMN_NAME");
+            int colType = rsc.getInt("DATA_TYPE");
+            long colLength = rsc.getLong("COLUMN_SIZE");
+            boolean isNotNull = rsc.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls;
+            String valueString = rsc.getString("COLUMN_DEF");
+            String typeDesc = rsc.getString("TYPE_NAME").toUpperCase();
+            // Issue 798. Mimicking MySQLApplier.
+            boolean isSigned = !typeDesc.contains("UNSIGNED");
 
-                Column column = new Column(colName, colType, colLength,
-                        isNotNull, valueString);
-                column.setPosition(rsc.getInt("ORDINAL_POSITION"));
-                column.setTypeDescription(typeDesc);
-                column.setSigned(isSigned);
-                table.AddColumn(column);
-                cm.put(column.getName(), column);
-            }
-
-            ResultSet rsk = getPrimaryKeyResultSet(md, schemaName, tableName);
-            if (rsk.isBeforeFirst())
-            {
-                // primary key found
-                Key pKey = new Key(Key.Primary);
-                while (rsk.next())
-                {
-                    String colName = rsk.getString("COLUMN_NAME");
-                    Column column = cm.get(colName);
-                    // Adding columns in the primary key order
-                    pKey.AddColumn(column, rsk.getShort("KEY_SEQ"));
-                }
-                table.AddKey(pKey);
-            }
-            rsk.close();
-
-            if (withUniqueIndex)
-                findUniqueIndexes(md, schemaName, tableName, cm, table);
+            Column column = new Column(colName, colType, colLength, isNotNull,
+                    valueString);
+            column.setPosition(rsc.getInt("ORDINAL_POSITION"));
+            column.setTypeDescription(typeDesc);
+            column.setSigned(isSigned);
+            columns.add(column);
         }
         rsc.close();
+
+        // If we found no columns, the table does not exist.
+        if (columns.size() == 0)
+            return null;
+
+        // Create the table instance and add the columns.
+        Map<String, Column> cm = new HashMap<String, Column>();
+        table = new Table(schemaName, tableName);
+        for (Column col : columns)
+        {
+            table.AddColumn(col);
+            cm.put(col.getName(), col);
+        }
+
+        // Look for primary key columns.
+        ResultSet rsk = getPrimaryKeyResultSet(md, schemaName, tableName);
+        Key pKey = new Key(Key.Primary);
+        while (rsk.next())
+        {
+            String colName = rsk.getString("COLUMN_NAME");
+            Column column = cm.get(colName);
+            // Adding columns in the primary key order
+            pKey.AddColumn(column, rsk.getShort("KEY_SEQ"));
+        }
+        rsk.close();
+
+        // Add the Primary key if we found any columns.
+        if (pKey.columns.size() > 0)
+        {
+            table.AddKey(pKey);
+        }
+
+        // Find unique indexes.
+        if (withUniqueIndex)
+            findUniqueIndexes(md, schemaName, tableName, cm, table);
 
         return table;
     }
@@ -1409,6 +1422,7 @@ public abstract class AbstractDatabase implements Database
      * {@inheritDoc}
      * 
      * @throws SQLException
+     * @see com.continuent.tungsten.replicator.database.Database#dropTungstenCatalog(java.lang.String)
      */
     @Override
     public void dropTungstenCatalog(String schemaName,

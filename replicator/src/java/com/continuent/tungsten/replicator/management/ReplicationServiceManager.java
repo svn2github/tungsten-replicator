@@ -462,7 +462,7 @@ public class ReplicationServiceManager
         try
         {
             db = DatabaseFactory.createDatabase(url, userName, password, true);
-            db.connect(false);
+            db.connect();
             progress.put("drop schema", schemaName);
             db.dropTungstenCatalog(schemaName,
                     serviceProps.getString(ReplicatorConf.METADATA_TABLE_TYPE),

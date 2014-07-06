@@ -7,6 +7,7 @@ replicator.extractor.dbms.port=${replicator.global.extract.db.port}
 replicator.extractor.dbms.user=${replicator.global.extract.db.user}
 replicator.extractor.dbms.password=${replicator.global.extract.db.password}
 replicator.extractor.dbms.jdbcHeader=jdbc:mysql:thin://
+replicator.extractor.dbms.urlOptions=${replicator.global.db.sslOptions}
 
 # Parse statements for binary data.
 replicator.extractor.dbms.parseStatements=true

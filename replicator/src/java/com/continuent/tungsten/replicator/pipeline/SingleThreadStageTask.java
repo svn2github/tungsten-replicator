@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -59,26 +59,27 @@ import com.continuent.tungsten.replicator.plugin.ShutdownHook;
  */
 public class SingleThreadStageTask implements Runnable
 {
-    private static Logger      logger          = Logger.getLogger(SingleThreadStageTask.class);
+    private static Logger      logger            = Logger.getLogger(SingleThreadStageTask.class);
     private Stage              stage;
     private int                taskId;
     private Extractor          extractor;
     private List<Filter>       filters;
     private Applier            applier;
-    private List<ShutdownHook> shutdownHooks   = new LinkedList<ShutdownHook>();
+    private List<ShutdownHook> shutdownHooks     = new LinkedList<ShutdownHook>();
     private boolean            usingBlockCommit;
     private int                blockCommitRowsCount;
     private EventDispatcher    eventDispatcher;
     private Schedule           schedule;
     private String             name;
 
-    private long               blockEventCount = 0;
+    private long               blockEventCount   = 0;
     private TaskProgress       taskProgress;
     private PluginContext      context;
     private long               lastCommitMillis;
     private long               blockCommitIntervalMillis;
+    private boolean            strictBlockCommit = true;
 
-    private volatile boolean   cancelled       = false;
+    private volatile boolean   cancelled         = false;
 
     public SingleThreadStageTask(Stage stage, int taskId)
     {
@@ -91,6 +92,8 @@ public class SingleThreadStageTask implements Runnable
         else
             this.blockCommitIntervalMillis = stage.getBlockCommitInterval()
                     .longValue();
+        if (stage.getCommitPolicy() == BlockCommitPolicy.lax)
+            this.strictBlockCommit = false;
         this.usingBlockCommit = (blockCommitRowsCount > 1);
         this.taskProgress = stage.getProgressTracker().getTaskProgress(taskId);
     }
@@ -211,6 +214,7 @@ public class SingleThreadStageTask implements Runnable
         ReplDBMSEvent currentEvent = null;
         ReplDBMSEvent firstFilteredEvent = null;
         ReplDBMSEvent lastFilteredEvent = null;
+        long filteredEventCount = 0;
 
         ReplEvent genericEvent = null;
         ReplDBMSEvent event = null;
@@ -281,7 +285,8 @@ public class SingleThreadStageTask implements Runnable
                 // different services in block commit. However, we need to
                 // ignore this rule for filtered events, as they are gaps
                 // rather than real transactions.
-                if (usingBlockCommit && genericEvent instanceof ReplDBMSEvent
+                if (usingBlockCommit && strictBlockCommit
+                        && genericEvent instanceof ReplDBMSEvent
                         && !(genericEvent instanceof ReplDBMSFilteredEvent))
                 {
                     ReplDBMSEvent re = (ReplDBMSEvent) genericEvent;
@@ -397,15 +402,22 @@ public class SingleThreadStageTask implements Runnable
                     {
                         firstFilteredEvent = currentEvent;
                         lastFilteredEvent = currentEvent;
+                        filteredEventCount = 1;
                     }
                     else
+                    {
                         lastFilteredEvent = currentEvent;
+                        filteredEventCount++;
+                    }
                     continue;
                 }
                 else
                 {
                     // This event is not filtered. Check if there are pending
-                    // filtered events that should be stored.
+                    // filtered events that should be stored. Filtered
+                    // events do not by themselves cause a commit but do
+                    // increment the block commit count, which may trigger a
+                    // commit.
                     if (firstFilteredEvent != null)
                     {
                         if (logger.isDebugEnabled())
@@ -413,10 +425,15 @@ public class SingleThreadStageTask implements Runnable
                             logger.debug("Applying filtered event");
                         }
                         apply(new ReplDBMSFilteredEvent(firstFilteredEvent,
-                                lastFilteredEvent), true, false,
+                                lastFilteredEvent), false, false,
                                 syncTHLWithExtractor);
+                        if (this.usingBlockCommit)
+                        {
+                            blockEventCount += filteredEventCount;
+                        }
                         firstFilteredEvent = null;
                         lastFilteredEvent = null;
+                        filteredEventCount = 0;
                     }
                 }
 
@@ -424,36 +441,44 @@ public class SingleThreadStageTask implements Runnable
                 boolean unsafeForBlockCommit = event.getDBMSEvent()
                         .getMetadataOptionValue(
                                 ReplOptionParams.UNSAFE_FOR_BLOCK_COMMIT) != null;
+                boolean forceCommit = event.getDBMSEvent()
+                        .getMetadataOptionValue(ReplOptionParams.FORCE_COMMIT) != null;
 
-                // Handle implicit commit, if next transaction is fragmented, if
-                // next transaction is a DDL or if next transaction rollbacks.
-                if (event.getFragno() == 0 && !event.getLastFrag())
+                // The following rules take effect if strict block commit is in
+                // effect.
+                if (strictBlockCommit)
                 {
-                    // Starting a new fragmented transaction
-                    commit();
-                }
-                else
-                {
-                    boolean isRollback = event.getDBMSEvent()
-                            .getMetadataOptionValue(ReplOptionParams.ROLLBACK) != null;
-                    if (event.getFragno() == 0 && isRollback)
+                    // Handle implicit commit, if next transaction is
+                    // fragmented, if next transaction is a DDL or if next
+                    // transaction is a rollback.
+                    if (event.getFragno() == 0 && !event.getLastFrag())
                     {
-                        // This is a transaction that rollbacks at the end :
-                        // commit previous work, but only if it is not a
-                        // fragmented transaction, as if it is fragmented
-                        // transaction, previous work was already committed
-                        // and the whole current transaction should be rolled
-                        // back
-                        commit();
-                        doRollback = true;
-                    }
-                    else if (unsafeForBlockCommit)
-                    {
-                        // Commit previous work and force transaction to commit
-                        // afterwards.
+                        // Starting a new fragmented transaction
                         commit();
                     }
-
+                    else
+                    {
+                        boolean isRollback = event.getDBMSEvent()
+                                .getMetadataOptionValue(
+                                        ReplOptionParams.ROLLBACK) != null;
+                        if (event.getFragno() == 0 && isRollback)
+                        {
+                            // This is a transaction that rollbacks at the end :
+                            // commit previous work, but only if it is not a
+                            // fragmented transaction, as if it is fragmented
+                            // transaction, previous work was already committed
+                            // and the whole current transaction should be
+                            // rolled back.
+                            commit();
+                            doRollback = true;
+                        }
+                        else if (unsafeForBlockCommit)
+                        {
+                            // Commit previous work and force transaction to
+                            // commit afterwards.
+                            commit();
+                        }
+                    }
                 }
 
                 // Should commit when :
@@ -464,7 +489,11 @@ public class SingleThreadStageTask implements Runnable
                 // AND this is the last fragment of the transaction
                 boolean doCommit = false;
 
-                if (unsafeForBlockCommit)
+                if (unsafeForBlockCommit && strictBlockCommit)
+                {
+                    doCommit = true;
+                }
+                else if (forceCommit)
                 {
                     doCommit = true;
                 }

@@ -70,10 +70,10 @@ public class VerticaDatabase extends PostgreSQLDatabase
      * 
      * @see com.continuent.tungsten.replicator.database.Database#connect(boolean)
      */
-    public synchronized void connect(boolean binlog) throws SQLException
+    public synchronized void connect() throws SQLException
     {
         // Connect first.
-        super.connect(binlog);
+        super.connect();
 
         // Issue call to define projections.
         // if (connected)
@@ -221,7 +221,7 @@ public class VerticaDatabase extends PostgreSQLDatabase
                 return "VARCHAR(65000)";
 
                 // Vertica does not have a true BLOB type, so we use biggest
-                // allowed varbinary. 
+                // allowed varbinary.
             case Types.BLOB :
                 return "VARBINARY(65000)";
 

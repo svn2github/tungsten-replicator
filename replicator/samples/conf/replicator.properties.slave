@@ -1,6 +1,6 @@
-#################################
-# REPLICATOR.PROPERTIES.DIRECT  #
-#################################
+###############################
+# REPLICATOR.PROPERTIES.SLAVE #
+###############################
 #
 # This file contains properties for MySQL replication.
 #
@@ -20,6 +20,10 @@ replicator.global.db.host=@{APPLIER.REPL_DBHOST}
 replicator.global.db.port=@{APPLIER.REPL_DBPORT}
 replicator.global.db.user=@{APPLIER.REPL_DBLOGIN}
 replicator.global.db.password=@{APPLIER.REPL_DBPASSWORD}
+
+# Properties for SSL. To enable SSL add an option like the following:
+#   useSSL=true
+replicator.global.db.sslOptions=
 
 # Replicator role.  You must specify a value that corresponds to a 
 # pipeline name like master, slave, direct, etc.  There is no default 
@@ -82,13 +86,14 @@ local.service.name=@{SERVICE.DSNAME}
 # Whether to log slave updates or not.  This is normally false but can
 # be enabled so that updates inserted into the slave can be extracted again
 # by another replicator.  This can be useful for multi-master and some
-# chained replication topologies.
+# chained replication topologies.  (Note: setting to false on MySQL
+# requires a privileged login on the slave.) 
 replicator.log.slave.updates=@{LOG_SLAVE_UPDATES}
 
-# Whether slave updates have a privileged account for updates.  Certain 
-# stores such as Amazon RDS do not allow slave to have superuser privileges. 
-# If this values is false we try to apply using non-superuser capabilites. 
-replicator.privileged.slave.update=@{SLAVE_PRIVILEGED_UPDATES}
+# Whether slave updates have a privileged account for updates.  Certain
+# stores such as Amazon RDS do not allow slave to have superuser privileges.
+# If this values is false we try to apply using non-superuser capabilites.
+replicator.privileged.slave=@{PRIVILEGED_SLAVE}
 
 # Schema to store Replicator catalog tables. 
 replicator.schema=@{REPL_SVC_SCHEMA}
@@ -148,10 +153,18 @@ replicator.plugin=tungsten
 #   reached or stage runs out of in-coming transactions
 #   blockCommitInterval -- Commit when time interval elapses *or* number of
 #   transactions for blockCommitRowCount is reached.
-# If neither setting is in effect, replicators commit each transaciton
+#   blockCommitPolicy -- Values are strict and lax. 
+#
+# If neither block commit setting is in effect, we commit transactions
 # individually.  Interval settings are milliseconds by default.  You can also
 # apply settings in seconds, minutes, hours, and days, as in 10s, 30m, 2h, 
-# or 1d respectively.
+# or 1d respectively. 
+#
+# Strict block commit forces a commit on fragmented events, service changes
+# and events marked as unsafe for block commit.  It is default and required
+# for correct operation on RDBMS.  Lax block commit ignores these hence allows
+# consistently large blocks.  It is the best setting for data warehouse 
+# loading where updates are idempotent (e.g., Hadoop). 
 
 # Generic pipelines.
 replicator.pipelines=slave
@@ -160,7 +173,7 @@ replicator.pipelines=slave
 # extract from local THL to queue; apply from queue to DBMS.
 replicator.pipeline.slave=remote-to-thl,thl-to-q,q-to-dbms
 replicator.pipeline.slave.stores=thl,parallel-queue
-replicator.pipeline.slave.services=channel-assignment
+replicator.pipeline.slave.services=datasource,channel-assignment
 replicator.pipeline.slave.syncTHLWithExtractor=false
 
 replicator.stage.remote-to-thl=com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask
@@ -181,6 +194,7 @@ replicator.stage.q-to-dbms.filters=@{REPL_SVC_APPLIER_FILTERS}
 replicator.stage.q-to-dbms.taskCount=${replicator.global.apply.channels}
 replicator.stage.q-to-dbms.blockCommitRowCount=@{REPL_SVC_APPLIER_BLOCK_COMMIT_SIZE}
 replicator.stage.q-to-dbms.blockCommitInterval=@{REPL_SVC_APPLIER_BLOCK_COMMIT_INTERVAL}
+replicator.stage.q-to-dbms.blockCommitPolicy=strict
 
 #################################
 # TRANSACTION HISTORY LOG (THL) #
@@ -338,7 +352,7 @@ replicator.extractor.parallel-q-extractor.storeName=parallel-queue
 # APPLIERS #
 ############
 
-@{include(REPL_SVC_APPLIER_CONFIG)}}
+@{include(REPL_SVC_APPLIER_CONFIG)}
 
 # Local THL applier. 
 replicator.applier.thl-applier=com.continuent.tungsten.replicator.thl.THLStoreApplier
@@ -370,6 +384,19 @@ replicator.service.channel-assignment=com.continuent.tungsten.replicator.channel
 replicator.service.channel-assignment.url=@{APPLIER.REPL_DBTHLURL}
 replicator.service.channel-assignment.channels=${replicator.global.apply.channels}
 replicator.service.channel-assignment.reconnectTimeoutInSeconds=60
+
+##########################
+# DATA SOURCE MANAGEMENT #
+##########################
+
+# Data sources encapsulate connections and catalog data for DBMS types
+# ranging from relational DBMS to file systems.
+replicator.service.datasource=com.continuent.tungsten.replicator.datasource.DataSourceService
+
+# Data sources we know about. 
+replicator.datasources=applier
+
+@{include(REPL_SVC_APPLIER_DATASOURCE_CONFIG)}
 
 ################################
 # BACKUP/RESTORE CONFIGURATION #

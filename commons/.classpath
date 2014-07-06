@@ -28,5 +28,6 @@
 	<classpathentry kind="lib" path="lib/commons-logging-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections-3.2.1.jar"/>
 	<classpathentry kind="lib" path="lib/jsr311-api-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib-ext/cloudera-4.4/hadoop-common-2.0.0-cdh4.4.0.jar"/>
 	<classpathentry kind="output" path="build/java/classes"/>
 </classpath>

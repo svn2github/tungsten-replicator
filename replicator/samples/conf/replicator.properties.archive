@@ -105,10 +105,18 @@ replicator.plugin=tungsten
 #   reached or stage runs out of in-coming transactions
 #   blockCommitInterval -- Commit when time interval elapses *or* number of
 #   transactions for blockCommitRowCount is reached.
-# If neither setting is in effect, replicators commit each transaciton 
+#   blockCommitPolicy -- Values are strict and lax. 
+#
+# If neither block commit setting is in effect, we commit transactions
 # individually.  Interval settings are milliseconds by default.  You can also
 # apply settings in seconds, minutes, hours, and days, as in 10s, 30m, 2h, 
 # or 1d respectively. 
+#
+# Strict block commit forces a commit on fragmented events, service changes
+# and events marked as unsafe for block commit.  It is default and required
+# for correct operation on RDBMS.  Lax block commit ignores these hence allows
+# consistently large blocks.  It is the best setting for data warehouse 
+# loading where updates are idempotent (e.g., Hadoop). 
 
 # Generic pipelines.
 replicator.pipelines=archive

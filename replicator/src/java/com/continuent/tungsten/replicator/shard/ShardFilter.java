@@ -60,22 +60,22 @@ public class ShardFilter implements Filter
     }
 
     // Plugin properties.
-    private boolean    enabled                  = false;
-    private boolean    autoCreate               = false;
-    private boolean    enforceHome              = false;
-    
+    private boolean    enabled                   = false;
+    private boolean    autoCreate                = false;
+    private boolean    enforceHome               = false;
+
     @SuppressWarnings("unused")
-    private boolean    allowWhitelisted         = false;
-    
-    private Policy     unknownShardPolicy       = Policy.error;
-    private String     unknownShardPolicyString = null;
+    private boolean    allowWhitelisted          = false;
+
+    private Policy     unknownShardPolicy        = Policy.error;
+    private String     unknownShardPolicyString  = null;
     private Policy     unwantedShardPolicy       = Policy.drop;
     private String     unwantedShardPolicyString = null;
 
     PluginContext      context;
     Map<String, Shard> shards;
 
-    Database           conn                     = null;
+    Database           conn                      = null;
 
     private String     user;
     private String     url;
@@ -129,8 +129,6 @@ public class ShardFilter implements Filter
                                 + unwantedShardPolicyString);
             }
         }
-
-
     }
 
     /**
@@ -149,7 +147,7 @@ public class ShardFilter implements Filter
         // Read shard catalog
         // Load defaults for connection
         if (url == null)
-            url = context.getJdbcUrl("tungsten_" + context.getServiceName());
+            url = context.getJdbcUrl(null);
         if (user == null)
             user = context.getJdbcUser();
         if (password == null)
@@ -299,11 +297,11 @@ public class ShardFilter implements Filter
             if (remote)
             {
                 /*
-                 * The master service should be compared with the service that originated the event, 
-                 * rather than the service that is applying it.
-                 * Otherwise, star topologies (where the hub service applies data originated from
-                 * the spokes master services) could not work.
-                 *
+                 * The master service should be compared with the service that
+                 * originated the event, rather than the service that is
+                 * applying it. Otherwise, star topologies (where the hub
+                 * service applies data originated from the spokes master
+                 * services) could not work.
                  */
                 String shardService = event.getDBMSEvent()
                         .getMetadataOptionValue(ReplOptionParams.SERVICE);
@@ -327,22 +325,22 @@ public class ShardFilter implements Filter
                 {
                     /*
                      * Provisional fix for issue 443.
-                     *
                      */
 
                     /*
-                     * We need to exclude tungsten_* schemas from the evaluation.
-                     * Tungsten schema DDL events are passed from master service to slave services
-                     * and safely ignored (they are qualified by "IF EXISTS").
-                     * This should not be a problem, except that the shard filter recognizes these events as 
-                     * unknown, and thus rejects them.
-                     *
-                     * In the previous implementation, where 'drop' is the only action for 
-                     * enforceHome, the problem does not occur.
-                     * If the policy is 'error', instead of drop, the result is not what we want.
-                     * Replication stops, and when we skip the event it will propagate to 
-                     * the other services, resulting in a loop.
-                     * Therefore, we drop all events that affect tungsten_* schemas.
+                     * We need to exclude tungsten_* schemas from the
+                     * evaluation. Tungsten schema DDL events are passed from
+                     * master service to slave services and safely ignored (they
+                     * are qualified by "IF EXISTS"). This should not be a
+                     * problem, except that the shard filter recognizes these
+                     * events as unknown, and thus rejects them. In the previous
+                     * implementation, where 'drop' is the only action for
+                     * enforceHome, the problem does not occur. If the policy is
+                     * 'error', instead of drop, the result is not what we want.
+                     * Replication stops, and when we skip the event it will
+                     * propagate to the other services, resulting in a loop.
+                     * Therefore, we drop all events that affect tungsten_*
+                     * schemas.
                      */
                     Policy tempShardPolicy = this.unwantedShardPolicy;
                     String filterRemarks = "";
@@ -350,7 +348,7 @@ public class ShardFilter implements Filter
                      * Remove events that come from the replicator itself.
                      */
                     if (event.getDBMSEvent().getMetadataOptionValue(
-                               ReplOptionParams.TUNGSTEN_METADATA) != null)
+                            ReplOptionParams.TUNGSTEN_METADATA) != null)
                     {
                         tempShardPolicy = Policy.drop;
                         filterRemarks = " (Event is used for Tungsten Replicator)";
@@ -361,7 +359,7 @@ public class ShardFilter implements Filter
                      */
                     if (shard.getMaster().equals("whitelisted"))
                     {
-                        tempShardPolicy = Policy.accept; 
+                        tempShardPolicy = Policy.accept;
                         filterRemarks = " (Event was whitelisted)";
                     }
 
@@ -371,76 +369,71 @@ public class ShardFilter implements Filter
                         {
                             if (logger.isDebugEnabled())
                                 logger.debug("Accepting event from wrong shard: seqno="
-                                        + event.getSeqno() 
-                                        + " shard ID=" + eventShard 
-                                        + " shard master=" + shard.getMaster()
-                                        + " service=" + service
-                                        + filterRemarks
-                                        );
+                                        + event.getSeqno()
+                                        + " shard ID="
+                                        + eventShard
+                                        + " shard master="
+                                        + shard.getMaster()
+                                        + " service="
+                                        + service + filterRemarks);
                             return event;
                         }
                         case drop :
                         {
                             if (logger.isDebugEnabled())
                                 logger.debug("Event master does not match this service; dropping event: seqno="
-                                    + event.getSeqno()
-                                    + " shard ID=" + event.getShardId()
-                                    + " shard master=" + shard.getMaster() 
-                                    + " service=" + service
-                                    + filterRemarks
-                                    );
-     
+                                        + event.getSeqno()
+                                        + " shard ID="
+                                        + event.getShardId()
+                                        + " shard master="
+                                        + shard.getMaster()
+                                        + " service="
+                                        + service + filterRemarks);
+
                             return null;
                         }
                         case warn :
                         {
                             logger.warn("Dropping event from wrong shard: seqno="
-                                    + event.getSeqno() + " shard ID=" + eventShard
-                                    + " shard ID=" + event.getShardId()
-                                    + " shard master=" + shard.getMaster() 
-                                    + " service=" + service
-                                    );
+                                    + event.getSeqno()
+                                    + " shard ID="
+                                    + eventShard
+                                    + " shard ID="
+                                    + event.getShardId()
+                                    + " shard master="
+                                    + shard.getMaster() + " service=" + service);
                             return null;
                         }
                         case error :
                         {
                             throw new ReplicatorException(
                                     "Rejected event from wrong shard: seqno="
-                                            + event.getSeqno() 
-                                            + " shard ID="
+                                            + event.getSeqno() + " shard ID="
                                             + event.getShardId()
                                             + " shard master="
-                                            + shard.getMaster() 
-                                            + " service=" + service
-                                            );
+                                            + shard.getMaster() + " service="
+                                            + service);
                         }
                         default :
                         {
                             throw new ReplicatorException(
                                     "No policy for wrong shard: seqno="
-                                            + event.getSeqno() 
-                                            + " shard ID="
+                                            + event.getSeqno() + " shard ID="
                                             + event.getShardId()
                                             + " shard master="
-                                            + shard.getMaster() 
-                                            + " service=" + service
-                                            );
+                                            + shard.getMaster() + " service="
+                                            + service);
                         }
                     }
                     /*
-                     * Old code. Replaced by the above switch statement
-                    // Shard home does not match, discard this event
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("Event master does not match this service; dropping event: seqno="
-                                + event.getSeqno()
-                                + " shard ID="
-                                + event.getShardId()
-                                + " shard master="
-                                + shard.getMaster() + " service=" + service);
-                    }
-                    return null;
-                    */
+                     * Old code. Replaced by the above switch statement // Shard
+                     * home does not match, discard this event if
+                     * (logger.isDebugEnabled()) { logger.debug(
+                     * "Event master does not match this service; dropping event: seqno="
+                     * + event.getSeqno() + " shard ID=" + event.getShardId() +
+                     * " shard master=" + shard.getMaster() + " service=" +
+                     * service); } return null;
+                     */
                 }
 
             }
@@ -479,7 +472,7 @@ public class ShardFilter implements Filter
                     + shardService);
 
         ShardManager manager = new ShardManager(service, url, user, password,
-                schemaName, tableType);
+                schemaName, tableType, context);
         List<Map<String, String>> params = new ArrayList<Map<String, String>>();
         Map<String, String> newShard = new HashMap<String, String>();
         newShard.put(ShardTable.SHARD_ID_COL, eventShard);
@@ -494,7 +487,7 @@ public class ShardFilter implements Filter
         {
             throw new ReplicatorException(e);
         }
-        
+
         return shards.get(eventShard);
     }
 
@@ -513,7 +506,6 @@ public class ShardFilter implements Filter
     {
         this.enforceHome = enforceHome;
     }
-
 
     /**
      * If true, we allow whitelisted shards in remote services.

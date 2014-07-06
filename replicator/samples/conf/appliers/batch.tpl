@@ -1,35 +1,51 @@
 # Batch applier basic configuration information. 
 replicator.applier.dbms=com.continuent.tungsten.replicator.applier.batch.SimpleBatchApplier
-replicator.applier.dbms.url=@{APPLIER.REPL_DBTHLURL}
-replicator.applier.dbms.user=${replicator.global.db.user}
-replicator.applier.dbms.password=${replicator.global.db.password}
 @{#(APPLIER.REPL_SVC_DATASOURCE_APPLIER_INIT_SCRIPT)}replicator.applier.dbms.initScript=@{APPLIER.REPL_SVC_DATASOURCE_APPLIER_INIT_SCRIPT}
 
-# Template file to execute when connecting initially.  
-replicator.applier.dbms.startupScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-connect.sql
+# Data source to which to apply. 
+replicator.applier.dbms.dataSource=applier
+
+# Location of the load script. 
+replicator.applier.dbms.loadScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}.js
+
+# Number of threads to use for loading.  The default is 1.  Values greater 
+# than 1 are recommended only for idempotent data sources like Hadoop whose 
+# load scripts automatically clean up partially loaded data.  
+replicator.applier.dbms.parallelization=1
 
 # Timezone and character set.  
 replicator.applier.dbms.timezone=GMT+0:00
 #replicator.applier.dbms.charset=UTF-8
 
-# Parameters for loading and merging via stage tables.  
-replicator.applier.dbms.stageColumnPrefix=tungsten_
+# Location for writing CSV files. 
+replicator.applier.dbms.stageDirectory=/tmp/staging/${service.name}
+
+# Prefixes for stage table and schema names.  These are added to the base
+# table and schema respectively. 
 replicator.applier.dbms.stageTablePrefix=stage_xxx_
 replicator.applier.dbms.stageSchemaPrefix=
-replicator.applier.dbms.stageDirectory=/tmp/staging
-replicator.applier.dbms.stageMergeScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}-merge.@{SERVICE.BATCH_LOAD_LANGUAGE}
 
-# Fail if there is a discrepancy between the number of rows loaded and the 
-# number of rows in CSV.  This is somewhat obsolete at this point. 
-replicator.applier.dbms.onLoadMismatch=fail
+# Staging header columns to apply.  Changing these can cause incompatibilities
+# with generated SQL for Hive tables. 
+replicator.applier.dbms.stageColumnNames=opcode,seqno,row_id,commit_timestamp
+
+# Prefix for Tungsten staging column names.  This is added to header 
+# column names and prevents naming clashes with user tables. 
+replicator.applier.dbms.stageColumnPrefix=tungsten_
+
+# Properties to enable 'partition by' support, which splits CSV files for a 
+# single table based on a key generated from one of the tungsten header files.
+# To partition files by commit hour including date, set the partitionBy
+# property to tungsten_commit_timestamp.  Note that the full name including 
+# prefix must be used here. 
+replicator.applier.dbms.partitionBy=
+replicator.applier.dbms.partitionByClass=com.continuent.tungsten.replicator.applier.batch.DateTimeValuePartitioner
+replicator.applier.dbms.partitionByFormat='commit_hour='yyyy-MM-dd-HH
 
 # Clear files after each transaction.  
-replicator.applier.dbms.cleanUpFiles=false
+replicator.applier.dbms.cleanUpFiles=true
 
-# Enable to log batch script commands as they are executed.  (Generates
-# potentially large amount of output.)
-replicator.applier.dbms.showCommands=false
-
-# Included to provide default pkey for tables that omit such.  This is not 
-# a good practice in general. 
-#replicator.applier.dbms.stagePkeyColumn=id
+# If true, use update opcode (U) instead of splitting updates into insert
+# followed by delete.  This setting is not recommended for standard batch
+# loading as it may not work for row changes that do not have keys. 
+replicator.applier.dbms.useUpdateOpcode=false
