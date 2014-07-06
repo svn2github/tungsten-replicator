@@ -127,7 +127,7 @@ public class MySQLPacket
      * @return a MySQLPacket object or null if the MySQL packet cannot be read
      */
     public static MySQLPacket readPacket(InputStream in,
-            boolean dropLargePackets, boolean consistentAvailability)
+            boolean dropLargePackets)
     {
         try
         {
