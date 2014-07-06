@@ -51,6 +51,9 @@
     <property name="deploy.host" value="localhost"/>
     <property name="deploy.dir" value="${user.home}/tungsten"/>
 
+    <!-- Dummy entry for cases where directory does not exist. -->
+    <property name="external.lib.dir" value="lib"/>
+
     <path id="compile.classpath">
     	<path location="${common.classes.dir}"/>
 	<fileset dir="lib/">
@@ -70,7 +73,7 @@
 	<fileset dir="${project.common}/lib-test/">
         <include name="*.jar"/>
 	</fileset>
-    <fileset dir="${external.lib.dir}" erroronmissingdir="false">
+    <fileset dir="${external.lib.dir}">
         <include name="*.jar"/>
     </fileset>
 
