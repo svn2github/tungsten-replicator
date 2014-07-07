@@ -805,8 +805,7 @@ public class OracleDatabase extends AbstractDatabase
                         + "', capture_values => 'both', rs_id => 'y', row_id => 'n', "
                         + "user_id => 'n', timestamp => 'n', object_id => 'n', "
                         + "target_colmap => 'y', source_colmap => 'n', ddl_markers=>'n', "
-                        + "options_string=>'TABLESPACE " + table.getSchema()
-                        + "'); END;";
+                        + "options_string=>''); END;";
 
             }
             else
@@ -827,8 +826,7 @@ public class OracleDatabase extends AbstractDatabase
                         + "', capture_values => 'both', rs_id => 'y', row_id => 'n', "
                         + "user_id => 'n', timestamp => 'n', object_id => 'n', "
                         + "target_colmap => 'y', source_colmap => 'n', "
-                        + "options_string=>'TABLESPACE " + table.getSchema()
-                        + "'); END;";
+                        + "options_string=>''); END;";
 
             try
             {
