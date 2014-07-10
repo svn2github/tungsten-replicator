@@ -856,7 +856,7 @@ module ConfigureCommand
         # Look to see if there is INI file to use to drive configurations
         [
           "#{ENV['HOME']}/tungsten.ini",
-          "/etc/tungsten/*.ini",
+          "/etc/tungsten/tungsten*.ini",
           "/etc/tungsten.ini"
         ].each{
           |path|
