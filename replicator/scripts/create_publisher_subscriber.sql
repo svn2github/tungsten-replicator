@@ -24,7 +24,7 @@ v_cdc_type varchar(30) := '&6';
 v_sync boolean := (v_cdc_type = 'SYNC_SOURCE');
 
 i_pub_tablespace number := '&7';
-v_tablespace varchar2(30) := ' DEFAULT TABLESPACE '||v_pub_user;
+v_tablespace varchar2(50) := ' DEFAULT TABLESPACE '||v_pub_user;
 
 v_table_name varchar2(30);
 
