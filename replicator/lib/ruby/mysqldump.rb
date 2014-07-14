@@ -46,7 +46,7 @@ class TungstenMySQLdumpScript < TungstenBackupScript
       end
 
       # Change the directory ownership if run with sudo
-      if ENV.has_key?('SUDO_USER')
+      if ENV.has_key?('SUDO_USER') && TU.whoami() == "root"
         TU.cmd_result("chown -R #{ENV['SUDO_USER']}: #{mysqldump_file}")
       end
 

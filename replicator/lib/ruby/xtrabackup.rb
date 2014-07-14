@@ -71,7 +71,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
       end
 
       # Change the directory ownership if run with sudo
-      if ENV.has_key?('SUDO_USER')
+      if ENV.has_key?('SUDO_USER') && TU.whoami() == "root"
         TU.cmd_result("chown -R #{ENV['SUDO_USER']}: #{tar_file}")
       end
 
@@ -124,7 +124,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
       }  
 
       # Change the directory ownership if run with sudo
-      if ENV.has_key?('SUDO_USER')
+      if ENV.has_key?('SUDO_USER') && TU.whoami() == "root"
         TU.cmd_result("chown -R #{ENV['SUDO_USER']}: #{@storage_dir}")
       end
 
@@ -386,7 +386,7 @@ class TungstenXtrabackupScript < TungstenBackupScript
     else
       FileUtils.mkdir_p(@options[:directory])
       # Change the directory ownership if run with sudo
-      if ENV.has_key?('SUDO_USER')
+      if ENV.has_key?('SUDO_USER') && TU.whoami() == "root"
         TU.cmd_result("chown -R #{ENV['SUDO_USER']}: #{@options[:directory]}")
       end
     end
