@@ -1421,7 +1421,7 @@ class MySQLBinlogDoDbCheck < ConfigureValidationCheck
 
   def validate
     do_db = get_applier_datasource.get_value("SHOW MASTER STATUS", "Binlog_Do_DB")
-    unless do_db.empty?
+    unless do_db.to_s() == ""
       error("MySQL configuration variable 'Binlog_Do_DB' is set. This setting prevents proper operation of Tungsten Replicator.")
     end
   end
