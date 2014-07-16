@@ -130,16 +130,34 @@ module ConfigureDeploymentStepDeployment
     
     debug("Write INSTALLED cookbook scripts")
     
+    dscount=1
     dsids={}
+    dscommands={}
+    nodeid=1
+    listed_nodes = []
+	  
+	  # Go through all dataservices and set the composite master to DS_NAME1
+    @config.getPropertyOr(DATASERVICES, []).each_key{
+      |ds_alias|
+      if ds_alias == DEFAULTS
+        next
+      end
+      
+      
+      if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_PARENT_DATASERVICE]) != nil
+        if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_RELAY_SOURCE]) == nil
+          ds_name=@config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
+          dsids[ds_name] = dscount
+          dscount = dscount+1
+        end
+      end
+    }
+    
     host_transformer("cookbook/INSTALLED_USER_VALUES.sh") {
       |t|
       t.mode(0755)
       t.set_template("cookbook/samples/INSTALLED_USER_VALUES.tpl")
       
-      nodeid=1
-      listed_nodes = []
-
-  	  dsid=1
       @config.getPropertyOr(DATASERVICES, []).each_key{
         |ds_alias|
         if ds_alias == DEFAULTS
@@ -149,20 +167,27 @@ module ConfigureDeploymentStepDeployment
         if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_IS_COMPOSITE]) == "true"
           ds_name=@config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
           t << "export COMPOSITE_DS=#{ds_name}"
-          dsids[ds_name] = "configure $COMPOSITE_DS"
+          dscommands[ds_name] = "configure $COMPOSITE_DS"
         else
           ds_name=@config.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])
           master=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_MASTER_MEMBER])
           slaves=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_REPLICATION_MEMBERS]).split(",")-[master]
           connectors=@config.getProperty([DATASERVICES, ds_alias, DATASERVICE_CONNECTORS])
 
+          if dsids.has_key?(ds_name)
+            dsid = dsids[ds_name]
+          else
+            dsid = dscount
+            dsids[ds_name] = dscount
+            dscount = dscount+1
+          end
+          
+          dscommands[ds_name] = "configure $DS_NAME#{dsid}"
+          
           t << "export DS_NAME#{dsid}=#{ds_name}"
           t << "export MASTER#{dsid}=#{master}"
           t << "export SLAVES#{dsid}=#{slaves.join(",")}"
           t << "export CONNECTORS#{dsid}=#{connectors}"
-
-          dsids[ds_name] = "configure $DS_NAME#{dsid}"
-          dsid = dsid+1
 
           [
             DATASERVICE_MASTER_MEMBER,
@@ -205,8 +230,8 @@ EOF
         |cmd|
         cmd.gsub(/configure ([a-zA-Z0-9_]+)/){
           |match|
-          if dsids.has_key?($1)
-            dsids[$1]
+          if dscommands.has_key?($1)
+            dscommands[$1]
           else
             "configure #{$1}"
           end
