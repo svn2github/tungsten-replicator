@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -67,8 +67,6 @@ public class VerticaDatabase extends PostgreSQLDatabase
     /**
      * Overload connect method to issue call to ensure default projections are
      * enabled.
-     * 
-     * @see com.continuent.tungsten.replicator.database.Database#connect(boolean)
      */
     public synchronized void connect() throws SQLException
     {

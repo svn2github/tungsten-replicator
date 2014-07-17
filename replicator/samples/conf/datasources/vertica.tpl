@@ -1,25 +1,23 @@
-# MySQL datasource. 
+# Vertica datasource. 
 replicator.datasource.applier=com.continuent.tungsten.replicator.datasource.SqlDataSource
 
-# Service name of the replicator.
+# Service name of the replicator. 
 replicator.datasource.applier.serviceName=${service.name}
 
-# Connection information for MySQL. 
-replicator.datasource.applier.connectionSpec=com.continuent.tungsten.replicator.datasource.SqlConnectionSpecMySQL
+# Connection information for Vertica. 
+replicator.datasource.applier.connectionSpec=com.continuent.tungsten.replicator.datasource.SqlConnectionSpecVertica
 replicator.datasource.applier.connectionSpec.host=@{APPLIER.REPL_DBHOST}
 replicator.datasource.applier.connectionSpec.port=@{APPLIER.REPL_DBPORT}
 replicator.datasource.applier.connectionSpec.user=@{APPLIER.REPL_DBLOGIN}
 replicator.datasource.applier.connectionSpec.password=@{APPLIER.REPL_DBPASSWORD}
+replicator.datasource.applier.connectionSpec.databaseName=@{REPL_VERTICA_DBNAME}
 replicator.datasource.applier.connectionSpec.schema=${replicator.schema}
-
-# Number of channels for replication. 
-replicator.datasource.applier.channels=${replicator.global.apply.channels}
 
 # CSV specification type.  This is the conventions for writing CSV files,
 # which tend to be slightly different for each data source.  If set to 
 # custom, use the custom CSV settings.  Other supported settings are 
 # default, hive, etc.
-replicator.datasource.applier.csvType=custom
+replicator.datasource.applier.csvType=vertica
 
 # CSV type settings.  These are used if the csv type is custom.
 replicator.datasource.applier.csv=com.continuent.tungsten.common.csv.CsvSpecification

@@ -39,7 +39,8 @@ import com.continuent.tungsten.replicator.database.Table;
  */
 public class CsvInfo
 {
-    // Struct fields.
+    // Struct fields. These are public to simplify access from
+    // Javascript.
     public String schema;
     public String table;
     public String key;
@@ -57,7 +58,9 @@ public class CsvInfo
     }
 
     /**
-     * Returns SQL substitution parameters for this CSV file.
+     * Returns SQL substitution parameters for this CSV file. These are somewhat
+     * deprecated as merge scripts can query this instance directly using
+     * Javascript.
      */
     public Map<String, Object> getSqlParameters() throws ReplicatorException
     {
@@ -65,24 +68,15 @@ public class CsvInfo
         List<String> pkey = getPKColumns();
         String basePkey = baseTableMetadata.getName() + "." + pkey;
         String stagePkey = stageTableMetadata.getName() + "." + pkey;
-        StringBuffer colNames = new StringBuffer();
-        for (Column col : baseTableMetadata.getAllColumns())
-        {
-            if (colNames.length() > 0)
-                colNames.append(",");
-            colNames.append(col.getName());
-        }
 
         // Create map containing parameters.
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("%%CSV_FILE%%", file.getAbsolutePath());
-        parameters
-                .put("%%BASE_TABLE%%", baseTableMetadata.fullyQualifiedName());
-        parameters.put("%%BASE_COLUMNS%%", colNames.toString());
+        parameters.put("%%BASE_TABLE%%", this.getBaseTableFQN());
+        parameters.put("%%BASE_COLUMNS%%", this.getBaseColumnList());
         parameters.put("%%STAGE_TABLE%%", stageTableMetadata.getName());
         parameters.put("%%STAGE_SCHEMA%%", stageTableMetadata.getSchema());
-        parameters.put("%%STAGE_TABLE_FQN%%",
-                stageTableMetadata.fullyQualifiedName());
+        parameters.put("%%STAGE_TABLE_FQN%%", this.getStageTableFQN());
         parameters.put("%%PKEY%%", pkey);
         parameters.put("%%BASE_PKEY%%", basePkey);
         parameters.put("%%STAGE_PKEY%%", stagePkey);
@@ -92,13 +86,44 @@ public class CsvInfo
     }
 
     /**
+     * Returns the fully qualified name of the base table.
+     */
+    public String getBaseTableFQN()
+    {
+        return baseTableMetadata.fullyQualifiedName();
+    }
+
+    /**
+     * Returns the fully qualified name of the staging table.
+     */
+    public String getStageTableFQN()
+    {
+        return stageTableMetadata.fullyQualifiedName();
+    }
+
+    /**
+     * Returns the base table column names as a comma-separated list suitable
+     * for use in SQL commands.
+     */
+    public String getBaseColumnList()
+    {
+        StringBuffer colNames = new StringBuffer();
+        for (Column col : baseTableMetadata.getAllColumns())
+        {
+            if (colNames.length() > 0)
+                colNames.append(",");
+            colNames.append(col.getName());
+        }
+        return colNames.toString();
+    }
+
+    /**
      * Determines primary key names for the given CsvInfo object. If underlying
      * metadata table contains a primary key, it is used.
      * 
      * @return Primary key column names.
-     * @throws ReplicatorException Thrown if primary key cannot be found
      */
-    public List<String> getPKColumns() throws ReplicatorException
+    public List<String> getPKColumns()
     {
         LinkedList<String> primaryKeyColumns = new LinkedList<String>();
 
@@ -115,5 +140,58 @@ public class CsvInfo
             }
         }
         return primaryKeyColumns;
+    }
+
+    /**
+     * Returns a comma separated list of primary key columns.
+     */
+    public String getPKColumnList()
+    {
+        StringBuffer keyColList = new StringBuffer();
+        List<String> pkeys = this.getPKColumns();
+        for (int i = 0; i < pkeys.size(); i++)
+        {
+            String pkey = pkeys.get(i);
+            if (i > 0)
+                keyColList.append(",");
+            keyColList.append(pkey);
+        }
+        return keyColList.toString();
+    }
+
+    /**
+     * Returns a list of joined keys suitable for plunking into a SQL where
+     * clause. If the keys are just one name e.g. id, you'll get
+     * 
+     * <pre>"stage.id = base.id"</pre>
+     * 
+     * where "base" and "stage" are prefixes for the table names. If there are
+     * two names e.g., id and cust_id, you'll get
+     * 
+     * <pre>"stage.id = base.id AND stage.cust_id = base.cust_id"</pre>
+     * 
+     * @param stagePrefix Table alias to prefix on stage table names
+     * @param basePrefix Table alias to prefix on base table names
+     * @return Where clause fragment or empty string if there are no primary
+     *         keys
+     */
+    public String getPKColumnJoinList(String stagePrefix, String basePrefix)
+    {
+        StringBuffer joinBuf = new StringBuffer();
+        List<String> pkeys = this.getPKColumns();
+        for (int i = 0; i < pkeys.size(); i++)
+        {
+            String pkey = pkeys.get(i);
+            if (i > 0)
+                joinBuf.append(" AND ");
+            joinBuf.append(stagePrefix);
+            joinBuf.append(".");
+            joinBuf.append(pkey);
+            joinBuf.append(" = ");
+            joinBuf.append(basePrefix);
+            joinBuf.append(".");
+            joinBuf.append(pkey);
+        }
+        return joinBuf.toString();
     }
 }

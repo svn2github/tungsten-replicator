@@ -51,15 +51,17 @@ public class DataSourceManager
     }
 
     /**
-     * Configures and adds a new data source.
+     * Adds a new data source. Clients <em>must</em> configure and prepare the
+     * data source through the corresponding methods to make use of it.
      * 
      * @param name Name of the data source
      * @param className Name of the implementing class.
      * @param attributes TungstenProperties instance containing values to assign
      *            to data source instance. If the instance uses embedded beans,
      *            the properties should have bean property support enabled
-     * @return Returns instantiated and prepared data source
+     * @return Returns instantiated data source
      * @see TungstenProperties#setBeanSupportEnabled(boolean)
+     * @see #addAndPrepare(String, String, TungstenProperties)
      */
     public UniversalDataSource add(String name, String className,
             TungstenProperties attributes) throws ReplicatorException,
@@ -82,25 +84,73 @@ public class DataSourceManager
             UniversalDataSource datasource = (UniversalDataSource) Class
                     .forName(className).newInstance();
             attributes.applyProperties(datasource);
-            datasource.configure();
-            datasource.prepare();
+            datasource.setName(name);
             datasources.put(name, datasource);
             return datasource;
         }
-        catch (ReplicatorException e)
-        {
-            // Data source operations will throw this, so we don't need to wrap
-            // it.
-            throw e;
-        }
         catch (Exception e)
         {
-            // Any other exception is bad and must be wrapped.
             throw new ReplicatorException(
-                    "Unable to instantiate and configure data source: name="
-                            + name + " className=" + className + " message="
+                    "Unable to instantiate data source: name=" + name
+                            + " className=" + className + " message="
                             + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Configures a data source.
+     * 
+     * @param name Name of the data source.
+     */
+    public void configure(String name) throws ReplicatorException,
+            InterruptedException
+    {
+        UniversalDataSource ds = find(name);
+        ds.configure();
+    }
+
+    /**
+     * Prepares a data source.
+     * 
+     * @param name Name of the data source.
+     */
+    public void prepare(String name) throws ReplicatorException,
+            InterruptedException
+    {
+        UniversalDataSource ds = find(name);
+        ds.prepare();
+    }
+
+    /**
+     * Adds configures, and prepares a data source in a single step.
+     * 
+     * @param name Name of the data source
+     * @param className Name of the implementing class.
+     * @param attributes TungstenProperties instance containing values to assign
+     *            to data source instance. If the instance uses embedded beans,
+     *            the properties should have bean property support enabled
+     * @return Returns instantiated data source
+     */
+    public UniversalDataSource addAndPrepare(String name, String className,
+            TungstenProperties attributes) throws InterruptedException,
+            ReplicatorException
+    {
+        UniversalDataSource ds = this.add(name, className, attributes);
+        ds.configure();
+        ds.prepare();
+        return ds;
+    }
+
+    /**
+     * Releases a data source.
+     * 
+     * @param name Name of the data source.
+     */
+    public void release(String name) throws ReplicatorException,
+            InterruptedException
+    {
+        UniversalDataSource ds = find(name);
+        ds.release();
     }
 
     /**
@@ -121,34 +171,48 @@ public class DataSourceManager
     }
 
     /**
+     * Removes a data source.
+     * 
+     * @param name Name of the data source to remove
+     * @return Return data source or null if not found
+     */
+    public UniversalDataSource remove(String name) throws InterruptedException
+    {
+        return datasources.remove(name);
+    }
+
+    /**
      * Removes and deallocates a data source.
      * 
      * @param name Name of the data source to remove
-     * @return Return true if the data source is found and removed
+     * @return Return data source or null if not found
      */
-    public boolean remove(String name) throws InterruptedException,
-            ReplicatorException
+    public UniversalDataSource removeAndRelease(String name)
+            throws InterruptedException, ReplicatorException
     {
-        UniversalDataSource datasource = datasources.remove(name);
-        if (datasource == null)
-            return false;
-        else
-        {
-            logger.info("Releasing data source: name=" + name);
-            datasource.release();
-            return true;
-        }
+        UniversalDataSource ds = remove(name);
+        if (name != null)
+            ds.release();
+        return ds;
     }
 
     /**
      * Removes and deallocates all data sources. This should be called to ensure
      * data source resources are properly freed.
      */
-    public void removeAll() throws InterruptedException, ReplicatorException
+    public void removeAndReleaseAll() throws InterruptedException
     {
         for (String name : names())
         {
-            remove(name);
+            UniversalDataSource ds = remove(name);
+            try
+            {
+                ds.release();
+            }
+            catch (ReplicatorException e)
+            {
+                logger.warn("Unable to release data source: name=" + name, e);
+            }
         }
     }
 }

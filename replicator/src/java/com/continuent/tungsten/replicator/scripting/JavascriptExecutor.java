@@ -76,7 +76,7 @@ public class JavascriptExecutor implements ScriptExecutor
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.applier.batch.ScriptExecutor#setScript(java.lang.String)
+     * @see com.continuent.tungsten.replicator.scripting.ScriptExecutor#setScript(java.lang.String)
      */
     @Override
     public void setScript(String script)
@@ -87,7 +87,7 @@ public class JavascriptExecutor implements ScriptExecutor
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.applier.batch.ScriptExecutor#getScript()
+     * @see com.continuent.tungsten.replicator.scripting.ScriptExecutor#getScript()
      */
     public String getScript()
     {
@@ -107,7 +107,7 @@ public class JavascriptExecutor implements ScriptExecutor
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.applier.batch.ScriptExecutor#setDefaultDataSourceName(java.lang.String)
+     * @see com.continuent.tungsten.replicator.scripting.ScriptExecutor#setDefaultDataSourceName(java.lang.String)
      */
     public void setDefaultDataSourceName(String defaultDataSourceName)
     {
@@ -131,7 +131,7 @@ public class JavascriptExecutor implements ScriptExecutor
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.applier.batch.ScriptExecutor#prepare(com.continuent.tungsten.replicator.plugin.PluginContext)
+     * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#prepare(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
     public void prepare(PluginContext context) throws ReplicatorException
     {
@@ -193,7 +193,7 @@ public class JavascriptExecutor implements ScriptExecutor
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.applier.batch.ScriptExecutor#release(com.continuent.tungsten.replicator.plugin.PluginContext)
+     * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#release(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
     @Override
     public void release(PluginContext context)
@@ -218,7 +218,7 @@ public class JavascriptExecutor implements ScriptExecutor
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.applier.batch.ScriptExecutor#register(java.lang.String)
+     * @see com.continuent.tungsten.replicator.scripting.ScriptExecutor#register(java.lang.String)
      */
     public boolean register(String method)
     {
@@ -242,7 +242,8 @@ public class JavascriptExecutor implements ScriptExecutor
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.applier.batch.ScriptExecutor#execute(com.continuent.tungsten.replicator.applier.batch.CsvInfo)
+     * @see com.continuent.tungsten.replicator.scripting.ScriptExecutor#execute(java.lang.String,
+     *      java.lang.Object)
      */
     public Object execute(String method, Object value)
             throws ReplicatorException

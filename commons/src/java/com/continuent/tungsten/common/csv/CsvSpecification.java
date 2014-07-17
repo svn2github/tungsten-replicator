@@ -82,6 +82,19 @@ public class CsvSpecification
             spec.setUseQuotes(false);
             spec.setSuppressedChars("\n");
         }
+        else if ("vertica".equals(type))
+        {
+            spec = new CsvSpecification();
+            spec.setFieldSeparator(",");
+            spec.setRecordSeparator("\n");
+            spec.setEscape("\\");
+            spec.setEscapedChars("\\");
+            spec.setNullPolicy(NullPolicy.skip);
+            spec.setUseHeaders(false);
+            spec.setUseQuotes(true);
+            spec.setQuote("\"");
+            spec.setSuppressedChars("\n");
+        }
         return spec;
     }
 
@@ -219,8 +232,6 @@ public class CsvSpecification
 
     /**
      * Sets character used to escape quotes and other escaped characters.
-     * 
-     * @see #setQuote(char)
      */
     public synchronized void setEscape(String quoteEscapeChar)
     {

@@ -38,14 +38,14 @@ import com.continuent.tungsten.replicator.datasource.SqlDataSource;
  */
 public class SqlDataSourceTest extends AbstractDataSourceTest
 {
-    private static Logger      logger         = Logger.getLogger(SqlDataSourceTest.class);
+    private static Logger logger = Logger.getLogger(SqlDataSourceTest.class);
 
     // Properties used in SQL access.
-    private static String      driver;
-    private static String      url;
-    private static String      user;
-    private static String      password;
-    private static String      schema;
+    private static String driver;
+    private static String url;
+    private static String user;
+    private static String password;
+    private static String schema;
 
     /**
      * Make sure we have expected test properties.
@@ -93,14 +93,20 @@ public class SqlDataSourceTest extends AbstractDataSourceTest
     @Before
     public void setUp() throws Exception
     {
-        // Create the data source definition.
+        // Create the data source properties instance. This must have bean
+        // support as we will be setting bean values.
         datasourceProps = new TungstenProperties();
+        datasourceProps.setBeanSupportEnabled(true);
+
+        // Add values.
         datasourceProps.setString("serviceName", "sqlcatalog");
         datasourceProps.setLong("channels", 10);
-        datasourceProps.setString("url", url);
-        datasourceProps.setString("user", user);
-        datasourceProps.setString("password", password);
-        datasourceProps.setString("schema", schema);
+        datasourceProps.setString("connectionSpec",
+                SqlConnectionSpecGeneric.class.getName());
+        datasourceProps.setString("connectionSpec.url", url);
+        datasourceProps.setString("connectionSpec.user", user);
+        datasourceProps.setString("connectionSpec.password", password);
+        datasourceProps.setString("connectionSpec.schema", schema);
 
         // Set the data source class.
         datasourceClass = SqlDataSource.class.getName();

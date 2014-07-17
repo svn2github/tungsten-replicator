@@ -37,12 +37,7 @@ import com.continuent.tungsten.replicator.database.DatabaseFactory;
 public class SqlConnectionManager
 {
     // Properties.
-    private String  url;
-    private String  user;
-    private String  password;
-    private String  tableType;
-    private boolean logSlaveUpdates;
-    private boolean privilegedSlaveUpdate;
+    private SqlConnectionSpec connectionSpec;
 
     /**
      * Creates a new instance.
@@ -51,64 +46,14 @@ public class SqlConnectionManager
     {
     }
 
-    public String getUrl()
+    public SqlConnectionSpec getConnectionSpec()
     {
-        return url;
+        return connectionSpec;
     }
 
-    public void setUrl(String url)
+    public void setConnectionSpec(SqlConnectionSpec connectionSpec)
     {
-        this.url = url;
-    }
-
-    public String getUser()
-    {
-        return user;
-    }
-
-    public void setUser(String user)
-    {
-        this.user = user;
-    }
-
-    public String getPassword()
-    {
-        return password;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
-    }
-
-    public String getTableType()
-    {
-        return tableType;
-    }
-
-    public void setTableType(String tableType)
-    {
-        this.tableType = tableType;
-    }
-
-    public boolean isLogSlaveUpdates()
-    {
-        return logSlaveUpdates;
-    }
-
-    public void setLogSlaveUpdates(boolean logSlaveUpdates)
-    {
-        this.logSlaveUpdates = logSlaveUpdates;
-    }
-
-    public boolean isPrivilegedSlaveUpdate()
-    {
-        return privilegedSlaveUpdate;
-    }
-
-    public void setPrivilegedSlaveUpdate(boolean privilegedSlaveUpdate)
-    {
-        this.privilegedSlaveUpdate = privilegedSlaveUpdate;
+        this.connectionSpec = connectionSpec;
     }
 
     /**
@@ -128,12 +73,32 @@ public class SqlConnectionManager
     }
 
     /**
-     * Gets a JDBC connection wrapped in a Database instance.
+     * Returns a JDBC connection.
      */
     public Database getWrappedConnection() throws ReplicatorException
     {
+        return this.getWrappedConnection(false);
+    }
+
+    /**
+     * Gets a JDBC connection wrapped in a Database instance.
+     * 
+     * @param createDB If true and the JDBC driver supports such an option, add
+     *            URL option to create schema
+     */
+    public Database getWrappedConnection(boolean createDB)
+            throws ReplicatorException
+    {
+        String url = connectionSpec.createUrl(createDB);
+        String user = connectionSpec.getUser();
+        String password = connectionSpec.getPassword();
+        boolean privilegedSlaveUpdate = connectionSpec
+                .isPrivilegedSlaveUpdate();
+        boolean logSlaveUpdates = connectionSpec.isLogSlaveUpdates();
+
         try
         {
+
             Database conn = DatabaseFactory.createDatabase(url, user, password,
                     privilegedSlaveUpdate);
             conn.connect();

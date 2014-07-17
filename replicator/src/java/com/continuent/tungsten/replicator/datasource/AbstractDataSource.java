@@ -41,6 +41,7 @@ public abstract class AbstractDataSource implements UniversalDataSource
     private static final Logger logger       = Logger.getLogger(AbstractDataSource.class);
 
     // Shared properties of all data sources.
+    protected String            name;
     protected String            serviceName;
     protected int               channels     = 1;
     protected String            csvType;
@@ -50,6 +51,16 @@ public abstract class AbstractDataSource implements UniversalDataSource
 
     // Shared variables.
     protected Class<?>          csvFormatterClass;
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public void setName(String name)
+    {
+        this.name = name;
+    }
 
     public String getCsvType()
     {

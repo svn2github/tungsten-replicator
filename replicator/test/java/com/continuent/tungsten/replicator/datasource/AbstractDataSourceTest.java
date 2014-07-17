@@ -68,7 +68,7 @@ public class AbstractDataSourceTest
 
         // Create a separate data source for this test.
         datasourceProps.setString("serviceName", "test_initialization");
-        datasourceManager.add("testInitialization", datasourceClass,
+        datasourceManager.addAndPrepare("testInitialization", datasourceClass,
                 datasourceProps);
 
         // Get the data source and ensure tables are cleared.
@@ -228,7 +228,7 @@ public class AbstractDataSourceTest
         Assert.assertEquals("Expect initial number of channels", 10, channels);
 
         // Shut down.
-        datasourceManager.remove("testChangingChannels");
+        datasourceManager.removeAndRelease("testChangingChannels");
 
         // Start again with 20 channels.
         datasourceProps.setInt("channels", 20);
@@ -238,7 +238,7 @@ public class AbstractDataSourceTest
         Assert.assertEquals("Expect updated number of channels", 20, channels2);
 
         // Shut down.
-        datasourceManager.remove("testChangingChannels");
+        datasourceManager.removeAndRelease("testChangingChannels");
     }
 
     /**
@@ -271,7 +271,7 @@ public class AbstractDataSourceTest
         // Close the data source and add a new one.
         c.release();
         datasourceManager.remove("testSeqnoPersistence");
-        datasourceManager.add("testSeqnoPersistence", datasourceClass,
+        datasourceManager.addAndPrepare("testSeqnoPersistence", datasourceClass,
                 datasourceProps);
         UniversalDataSource c2 = datasourceManager.find("testSeqnoPersistence");
 
@@ -355,7 +355,7 @@ public class AbstractDataSourceTest
             throws ReplicatorException, InterruptedException
     {
         datasourceProps.setString("serviceName", name);
-        datasourceManager.add(name, datasourceClass, datasourceProps);
+        datasourceManager.addAndPrepare(name, datasourceClass, datasourceProps);
 
         // Get the data source and ensure tables are cleared.
         UniversalDataSource c = datasourceManager.find(name);

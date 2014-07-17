@@ -53,8 +53,8 @@ import com.continuent.tungsten.replicator.datasource.UniversalConnection;
 import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 
 /**
- * Tests operations on CSV file set instances.  This checks end-to-end
- * loading and writing of data. 
+ * Tests operations on CSV file set instances. This checks end-to-end loading
+ * and writing of data.
  */
 public class TestCsvFileSet
 {
@@ -75,7 +75,7 @@ public class TestCsvFileSet
     public void teardown() throws Exception
     {
         if (mgr != null)
-            mgr.removeAll();
+            mgr.removeAndReleaseAll();
     }
 
     /**
@@ -234,8 +234,8 @@ public class TestCsvFileSet
         datasourceProps.setString("csvType", "default");
 
         // Create a separate data source for this test.
-        DataSourceManager mgr = new DataSourceManager();
-        mgr.add(name, FileDataSource.class.getName(), datasourceProps);
+        mgr = new DataSourceManager();
+        mgr.addAndPrepare(name, FileDataSource.class.getName(), datasourceProps);
 
         // Get the data source and ensure tables are cleared.
         UniversalDataSource ds = mgr.find(name);

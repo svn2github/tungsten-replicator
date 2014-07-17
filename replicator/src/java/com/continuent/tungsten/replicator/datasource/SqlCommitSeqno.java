@@ -185,7 +185,7 @@ public class SqlCommitSeqno implements CommitSeqno
      * Create the trep_commit_seqno table, if necessary, and ensure the number
      * of channels matches the number of channels.
      * 
-     * @see com.continuent.tungsten.replicator.datasource.CommitSeqnoData#initialize()
+     * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#initialize()
      */
     public void initialize() throws ReplicatorException, InterruptedException
     {
@@ -351,7 +351,7 @@ public class SqlCommitSeqno implements CommitSeqno
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#createAccessor(int,
-     *      com.continuent.tungsten.replicator.database.Database)
+     *      com.continuent.tungsten.replicator.datasource.UniversalConnection)
      */
     public CommitSeqnoAccessor createAccessor(int taskId,
             UniversalConnection conn) throws ReplicatorException

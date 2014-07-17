@@ -415,6 +415,7 @@ public class BufferedFileDataInputTest extends TestCase
         // Construct file and add 2 bytes of output.
         File f = this.initFile("testInputWaitInterruption");
         FileOutputStream fos = new FileOutputStream(f);
+        @SuppressWarnings("resource")
         DataOutputStream dos = new DataOutputStream(fos);
         dos.writeShort(13);
         dos.flush();

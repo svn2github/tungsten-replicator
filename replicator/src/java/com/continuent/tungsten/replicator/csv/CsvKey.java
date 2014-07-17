@@ -33,9 +33,7 @@ public class CsvKey implements Comparable<CsvKey>
     public String               key;
 
     /**
-     * Instantiates a new instance.
-     * 
-     * @param stagePkeyColumn Name of the primary key column
+     * Instantiates a new CSV key.
      */
     public CsvKey(String key)
     {

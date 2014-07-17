@@ -74,17 +74,14 @@ public class TestDataSourceManager
                 c.getServiceName());
 
         // Remove the data source and confirm that it succeeds.
-        Assert.assertEquals("Testing data source removal", true,
+        Assert.assertEquals("Testing data source removal", c,
                 cm.remove("test"));
 
         // Confirm that attempts to remove or get the data source now fail.
         Assert.assertNull("Ensuring data source does not exist after removal",
                 cm.find("test"));
-        Assert.assertFalse("Ensuring data source cannot be removed twice",
+        Assert.assertNull("Ensuring data source cannot be removed twice",
                 cm.remove("test"));
-
-        // Clean up data source.
-        cm.removeAll();
     }
 
     /**
@@ -109,12 +106,13 @@ public class TestDataSourceManager
 
         // Add data sources and confirm that both names are present and that the
         // count of names is 2.
-        cm.add("test1", SampleDataSource.class.getName(), props1);
-        cm.add("test2", SampleDataSource.class.getName(), props2);
+        cm.addAndPrepare("test1", SampleDataSource.class.getName(), props1);
+        cm.addAndPrepare("test2", SampleDataSource.class.getName(), props2);
         Assert.assertEquals("Checking number of names", 2, cm.names().size());
 
         SampleDataSource c1 = (SampleDataSource) cm.find("test1");
         Assert.assertNotNull("Data source should be available", c1);
+        Assert.assertEquals("Data source name set", "test1", c1.getName());
         Assert.assertEquals("Comparing service name", "mytest1",
                 c1.getServiceName());
 
@@ -124,7 +122,7 @@ public class TestDataSourceManager
                 c2.getServiceName());
 
         // Remove one data source and confirm that it succeeds.
-        Assert.assertEquals("Testing data source removal", true,
+        Assert.assertEquals("Testing data source removal", c1,
                 cm.remove("test1"));
         Assert.assertEquals("Checking number of names", 1, cm.names().size());
         Assert.assertNull("Data source not should be available",
@@ -133,7 +131,7 @@ public class TestDataSourceManager
                 cm.find("test2"));
 
         // Confirm that removeAll removes the remaining data source.
-        cm.removeAll();
+        cm.removeAndReleaseAll();
         Assert.assertEquals("Checking number of names", 0, cm.names().size());
         Assert.assertNull("Data source should not be available",
                 cm.find("test2"));
@@ -163,7 +161,7 @@ public class TestDataSourceManager
                 cm.find("test"));
 
         // Add new data source, then fetch it back.
-        cm.add("test", SampleDataSource.class.getName(), props);
+        cm.addAndPrepare("test", SampleDataSource.class.getName(), props);
         SampleDataSource c = (SampleDataSource) cm.find("test");
         Assert.assertNotNull("Data source should be available", c);
 
@@ -177,7 +175,7 @@ public class TestDataSourceManager
         Assert.assertEquals("Checking use quotes", true, csv.isUseQuotes());
 
         // Clean up data source.
-        cm.removeAll();
+        cm.removeAndRelease("test");
     }
 
 }

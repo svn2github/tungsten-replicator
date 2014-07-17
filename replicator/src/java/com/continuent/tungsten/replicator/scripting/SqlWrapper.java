@@ -60,6 +60,36 @@ public class SqlWrapper
     }
 
     /**
+     * Begins a DBMS transaction.
+     */
+    public void begin() throws SQLException
+    {
+        if (logger.isDebugEnabled())
+            logger.debug("Beginning transaction");
+        connection.setAutoCommit(false);
+    }
+
+    /**
+     * Commits a DBMS transaction.
+     */
+    public void commit() throws SQLException
+    {
+        if (logger.isDebugEnabled())
+            logger.debug("Committing transaction");
+        connection.commit();
+    }
+
+    /**
+     * Rolls back a DBMS transaction.
+     */
+    public void rollback() throws SQLException
+    {
+        if (logger.isDebugEnabled())
+            logger.debug("Rolling back transaction");
+        connection.rollback();
+    }
+
+    /**
      * Releases the statement.
      */
     public void close()

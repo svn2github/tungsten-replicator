@@ -44,12 +44,12 @@ public class ScriptMethodResponse
      *            false in which case we also return the exception
      */
     public ScriptMethodResponse(ScriptMethodRequest request, Object value,
-            Throwable throwable, boolean succeeded)
+            Throwable throwable, boolean successful)
     {
         this.request = request;
         this.value = value;
         this.throwable = throwable;
-        this.successful = succeeded;
+        this.successful = successful;
     }
 
     public ScriptMethodRequest getRequest()

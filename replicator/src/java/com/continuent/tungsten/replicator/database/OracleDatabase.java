@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -110,9 +110,7 @@ public class OracleDatabase extends AbstractDatabase
     /**
      * In Oracle, to support timestamp with local time zone replication we need
      * to set the session level time zone to be the same as the database time
-     * zone. {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#connect(boolean)
+     * zone. 
      */
     @Override
     public synchronized void connect() throws SQLException

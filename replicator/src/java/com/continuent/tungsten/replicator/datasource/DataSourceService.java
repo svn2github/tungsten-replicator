@@ -70,6 +70,22 @@ public class DataSourceService implements PipelineService
     public void configure(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
+        // Find names of data sources.
+        TungstenProperties replicatorProps = context.getReplicatorProperties();
+        List<String> datasourceNames = replicatorProps
+                .getStringList("replicator.datasources");
+
+        // Instantiate and configure each data source.
+        for (String name : datasourceNames)
+        {
+            String dsPrefix = "replicator.datasource." + name;
+            String className = replicatorProps.get(dsPrefix);
+            TungstenProperties attributes = replicatorProps.subset(dsPrefix
+                    + ".", true);
+            attributes.setBeanSupportEnabled(true);
+            UniversalDataSource ds = manager.add(name, className, attributes);
+            ds.configure();
+        }
     }
 
     /**
@@ -80,20 +96,11 @@ public class DataSourceService implements PipelineService
     public void prepare(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
-        // Find names of data sources.
-        TungstenProperties replicatorProps = context.getReplicatorProperties();
-        List<String> datasourceNames = replicatorProps
-                .getStringList("replicator.datasources");
-
-        // Instantiate and initialize each data source.
-        for (String name : datasourceNames)
+        // Instantiate and configure each data source.
+        for (String name : manager.names())
         {
-            String dsPrefix = "replicator.datasource." + name;
-            String className = replicatorProps.get(dsPrefix);
-            TungstenProperties attributes = replicatorProps.subset(dsPrefix
-                    + ".", true);
-            attributes.setBeanSupportEnabled(true);
-            UniversalDataSource ds = manager.add(name, className, attributes);
+            UniversalDataSource ds = manager.find(name);
+            ds.prepare();
             ds.initialize();
         }
     }
@@ -107,7 +114,7 @@ public class DataSourceService implements PipelineService
     public void release(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
-        manager.removeAll();
+        manager.removeAndReleaseAll();
     }
 
     /**

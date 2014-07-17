@@ -29,7 +29,7 @@ import com.continuent.tungsten.replicator.csv.CsvDataFormat;
 
 /**
  * Denotes a generic data source that a replicator may connect at either end of
- * a pipeline. Data source implementions encapsulate the following data:
+ * a pipeline. Data source implementations encapsulate the following data:
  * <ul>
  * <li>Replicator catalogs, which consist of a set of "tables" that hold
  * metadata used to control replication. Data sources may implement such tables
@@ -47,6 +47,12 @@ import com.continuent.tungsten.replicator.csv.CsvDataFormat;
  */
 public interface UniversalDataSource extends CatalogEntity
 {
+    /** Set the data source name. */
+    public void setName(String name);
+
+    /** Return the data source name. */
+    public String getName();
+
     /**
      * Set the name of the replicator service that is using this data source.
      */
@@ -91,6 +97,6 @@ public interface UniversalDataSource extends CatalogEntity
      * 
      * @param tz A time zone to use in date/time conversions
      */
-    public CsvDataFormat getCsvStringFormatter(TimeZone tzs)
+    public CsvDataFormat getCsvStringFormatter(TimeZone tz)
             throws ReplicatorException;
 }

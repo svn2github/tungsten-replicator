@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-2013 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,6 +22,8 @@
 
 package com.continuent.tungsten.replicator.datasource;
 
+import java.sql.SQLException;
+
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -38,14 +40,7 @@ public class SqlDataSource extends AbstractDataSource
     private static Logger logger = Logger.getLogger(SqlDataSource.class);
 
     // Properties.
-    private String        url;
-    private String        user;
-    private String        password;
-    private String        host;
-    private int           port;
-    private String        tableType;
-    private boolean       privilegedSlaveUpdate;
-    private String        schema;
+    SqlConnectionSpec     connectionSpec;
 
     // Catalog tables.
     SqlCommitSeqno        commitSeqno;
@@ -58,104 +53,32 @@ public class SqlDataSource extends AbstractDataSource
     {
     }
 
-    public String getUrl()
+    public SqlConnectionSpec getConnectionSpec()
     {
-        return url;
+        return connectionSpec;
     }
 
-    public void setUrl(String url)
+    public void setConnectionSpec(SqlConnectionSpec connectionSpec)
     {
-        this.url = url;
-    }
-
-    public String getUser()
-    {
-        return user;
-    }
-
-    public void setUser(String user)
-    {
-        this.user = user;
-    }
-
-    public String getPassword()
-    {
-        return password;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
-    }
-
-    public String getHost()
-    {
-        return host;
-    }
-
-    public void setHost(String host)
-    {
-        this.host = host;
-    }
-
-    public int getPort()
-    {
-        return port;
-    }
-
-    public void setPort(int port)
-    {
-        this.port = port;
-    }
-
-    public String getTableType()
-    {
-        return tableType;
-    }
-
-    public void setTableType(String tableType)
-    {
-        this.tableType = tableType;
-    }
-
-    public boolean isPrivilegedSlaveUpdate()
-    {
-        return privilegedSlaveUpdate;
-    }
-
-    public void setPrivilegedSlaveUpdate(boolean privilegedSlaveUpdate)
-    {
-        this.privilegedSlaveUpdate = privilegedSlaveUpdate;
-    }
-
-    public String getSchema()
-    {
-        return schema;
-    }
-
-    public void setSchema(String schema)
-    {
-        this.schema = schema;
+        this.connectionSpec = connectionSpec;
     }
 
     /**
      * Instantiate and configure all data source tables.
      */
     @Override
-    public void configure() throws ReplicatorException, InterruptedException
+    public void configure() throws ReplicatorException,
+            InterruptedException
     {
         super.configure();
 
         // Configure connection manager.
         connectionManager = new SqlConnectionManager();
-        connectionManager.setUrl(url);
-        connectionManager.setUser(user);
-        connectionManager.setPassword(password);
-        connectionManager.setPrivilegedSlaveUpdate(privilegedSlaveUpdate);
-        connectionManager.setTableType(tableType);
+        connectionManager.setConnectionSpec(connectionSpec);
 
         // Configure tables.
-        commitSeqno = new SqlCommitSeqno(connectionManager, schema, tableType);
+        commitSeqno = new SqlCommitSeqno(connectionManager,
+                connectionSpec.getSchema(), connectionSpec.getTableType());
         commitSeqno.setChannels(channels);
     }
 
@@ -165,7 +88,29 @@ public class SqlDataSource extends AbstractDataSource
     @Override
     public void prepare() throws ReplicatorException, InterruptedException
     {
-        // First of course prepare the connection manager.
+        // Create an initial connection to ensure we can reach the DBMS.
+        Database conn = null;
+        try
+        {
+            conn = connectionManager.getWrappedConnection(true);
+            conn.connect();
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(
+                    "Unable to connect to data source: url="
+                            + this.connectionSpec.createUrl(true));
+        }
+        finally
+        {
+            if (conn != null)
+            {
+                connectionManager.releaseWrappedConnection(conn);
+                conn = null;
+            }
+        }
+
+        // First of course prepare the usual manager.
         connectionManager.prepare();
 
         // Now prepare all tables.
@@ -201,7 +146,7 @@ public class SqlDataSource extends AbstractDataSource
     public void initialize() throws ReplicatorException, InterruptedException
     {
         logger.info("Initializing data source tables: service=" + serviceName
-                + " schema=" + schema);
+                + " schema=" + connectionSpec.getSchema());
         commitSeqno.initialize();
     }
 

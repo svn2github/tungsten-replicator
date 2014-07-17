@@ -62,11 +62,6 @@ public class FileCommitSeqno implements CommitSeqno
         this.fileIO = fileIO;
     }
 
-    /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.datasource.CommitSeqnoData#setChannels(int)
-     */
     public void setChannels(int channels)
     {
         this.channels = channels;
