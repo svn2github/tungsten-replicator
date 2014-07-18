@@ -372,6 +372,42 @@ class TungstenXtrabackupScript < TungstenBackupScript
         set_mysql_defaults_value("datadir=#{@options[:mysqldatadir]}")
       end
     end
+
+    if @options[:action] == ACTION_BACKUP
+      # Read innodb_log_file_size from the my.cnf file
+      @options[:innodb_log_file_size] = get_mysql_option("innodb_log_file_size")
+      if @options[:innodb_log_file_size].to_s() == ""
+        # The configuration file doesn't have a innodb_log_file_size value
+        # See if MySQL will give one and store it in wrapper config file
+        @options[:innodb_log_file_size] = get_mysql_variable("innodb_log_file_size")
+        if @options[:innodb_log_file_size].to_s() != ""
+          set_mysql_defaults_value("innodb_log_file_size=#{@options[:innodb_log_file_size]}")
+        end
+      end
+  
+      if @options[:innodb_log_file_size].to_s() == ""
+        TU.info "The configuration file at #{@options[:my_cnf]} does not define a innodb_log_file_size value - this can cause problems with xtrabackup."
+      end
+    end
+    
+    if @options[:action] == ACTION_RESTORE
+      # Read innodb_log_file_size from the my.cnf file
+      @options[:innodb_log_file_size] = get_mysql_option("innodb_log_file_size")
+      if @options[:innodb_log_file_size].to_s() == ""
+        # The configuration file doesn't have a innodb_log_file_size value
+        # get it from the actual file and store it in wrapper config file
+        if File.exist?("#{@options[:mysqldatadir]}/ib_logfile0")
+          @options[:innodb_log_file_size] = File.size("#{@options[:mysqldatadir]}/ib_logfile0")
+        end
+        if @options[:innodb_log_file_size].to_s() != ""
+          set_mysql_defaults_value("innodb_log_file_size=#{@options[:innodb_log_file_size]}")
+        end
+      end
+  
+      if @options[:innodb_log_file_size].to_s() == ""
+        TU.info "The configuration file at #{@options[:my_cnf]} does not define a innodb_log_file_size value - this can cause problems with xtrabackup."
+      end
+    end            
     
     @options[:mysqlibdatadir] = get_mysql_option("innodb_data_home_dir")
     @options[:mysqliblogdir] = get_mysql_option("innodb_log_group_home_dir")

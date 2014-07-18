@@ -1559,6 +1559,18 @@ class XtrabackupSettingsCheck < ConfigureValidationCheck
       help("Fix the datadir value in my.cnf or use '--datasource-mysql-data-directory=#{datadir}'")
     end
     
+    info("Check that innodb_log_file_size is set")
+    if File.exists?(conf_file) && File.readable?(conf_file)
+      begin
+        conf_file_results = cmd_result("#{my_print_defaults} --config-file=#{conf_file} mysqld | grep 'innodb_log_file_size='").split("=")[-1].strip()
+      rescue
+        warning("The MySQL config file '#{conf_file}' does not include a value for innodb_log_file_size. This can cause problems with xtrabackup")
+        help("Check the file to ensure a value is given and that it is not commented out")
+      end
+    else
+      error("The MySQL config file '#{conf_file}' is not readable")
+    end
+    
     info("Check for binary logs")
     binary_count = cmd_result("#{@config.getTemplateValue(get_member_key(ROOT_PREFIX))} ls #{@config.getProperty(get_applier_key(REPL_MASTER_LOGDIR))}/#{@config.getProperty(get_applier_key(REPL_MASTER_LOGPATTERN))}.* 2>/dev/null | wc -l")
     unless binary_count.to_i > 0
