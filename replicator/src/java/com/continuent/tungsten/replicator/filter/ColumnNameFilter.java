@@ -71,6 +71,7 @@ public class ColumnNameFilter implements Filter
     private String                                      url;
     private String                                      password;
     private boolean                                     addSignedFlag       = true;
+    private boolean                                     addTypeDescriptor   = true;
     private boolean                                     ignoreMissingTables = true;
 
     // SQL parser.
@@ -317,6 +318,11 @@ public class ColumnNameFilter implements Filter
             type.setName(columns.get(index).getName());
             if (addSignedFlag)
                 type.setSigned(columns.get(index).isSigned()); // Issue 798.
+            if (addTypeDescriptor)
+            {
+                String typeDesc = columns.get(index).getTypeDescription();
+                type.setTypeDescription(typeDesc);
+            }
             index++;
         }
 
@@ -328,9 +334,14 @@ public class ColumnNameFilter implements Filter
             type.setName(columns.get(index).getName());
             if (addSignedFlag)
                 type.setSigned(columns.get(index).isSigned()); // Issue 798.
+            if (addTypeDescriptor)
+            {
+                String typeDesc = columns.get(index).getTypeDescription();
+                type.setTypeDescription(typeDesc);
+            }
             index++;
         }
-        // We could retrieve primary keys at this point
+        // We could retrieve primary keys at this point.
     }
 
     public void setUser(String user)
@@ -355,6 +366,17 @@ public class ColumnNameFilter implements Filter
     public void setAddSignedFlag(boolean addSignedFlag)
     {
         this.addSignedFlag = addSignedFlag;
+    }
+
+    /**
+     * If true convert columns type as java.sql.Types.VARCHAR that actually come
+     * from binary columns to Types.BINARY or Types.VARBINARY. This works around
+     * improper typing in the MySQL binlog, which types [VAR]BINARY columns as
+     * VARCHAR.
+     */
+    public void setAddTypeDescriptor(boolean addTypeDescriptor)
+    {
+        this.addTypeDescriptor = addTypeDescriptor;
     }
 
     /**

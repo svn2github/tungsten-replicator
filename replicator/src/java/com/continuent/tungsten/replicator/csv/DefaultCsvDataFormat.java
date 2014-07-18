@@ -22,6 +22,8 @@
 
 package com.continuent.tungsten.replicator.csv;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
@@ -134,15 +136,47 @@ public class DefaultCsvDataFormat implements CsvDataFormat
 
             if (isBlob)
             {
-                // If it's really a blob, the following will not work correctly,
-                // but let's not eat the value, if there's a possibility of one.
-                return value.toString();
+                // If it's really a blob, convert to hex values.
+                InputStream blobStream = null;
+                try
+                {
+                    StringBuffer sb = new StringBuffer();
+                    blobStream = blob.getBinaryStream();
+                    int nextByte = -1;
+                    while ((nextByte = blobStream.read()) > -1)
+                    {
+                        sb.append(String.format("%02x", nextByte));
+                    }
+                    return sb.toString();
+                }
+                catch (IOException e)
+                {
+                    throw new ReplicatorException(
+                            "Exception while reading blob data", e);
+                }
+                catch (SerialException e)
+                {
+                    throw new ReplicatorException(
+                            "Exception while reading blob data", e);
+                }
+                finally
+                {
+                    if (blobStream != null)
+                    {
+                        try
+                        {
+                            blobStream.close();
+                        }
+                        catch (IOException e)
+                        {
+                        }
+                    }
+                }
             }
             else
             {
                 // Expect a textual field.
                 String toString = null;
-
                 if (blob != null)
                 {
                     try
@@ -156,7 +190,6 @@ public class DefaultCsvDataFormat implements CsvDataFormat
                                 "Exception while getting blob.getBytes(...)", e);
                     }
                 }
-
                 return toString;
             }
         }
