@@ -1473,6 +1473,14 @@ class ReplicationHeterogenousSlave < ConfigurePrompt
   end
 end
 
+class ReplicationServiceDropStaticColumns < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(DROP_STATIC_COLUMNS, "This will modify UPDATE transactions in row-based replication and eliminate any columns that were not modified.", PV_BOOLEAN, false)
+  end
+end
+
 class ReplicationServiceRepositionOnSourceIDChange < ConfigurePrompt
   include ReplicationServicePrompt
   

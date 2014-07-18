@@ -57,6 +57,9 @@ class ConfigureDatabasePlatform
 	    unless extractor_provides_colnames?()
 	      filters << "colnames"
 	    end
+	    if @config.getProperty(@prefix + [DROP_STATIC_COLUMNS]) == "true"
+	      filters << "optimizeupdates"
+	    end
 	    filters << "pkey"
 	  end
 	  
@@ -70,6 +73,9 @@ class ConfigureDatabasePlatform
 	def get_applier_filters()
 	  filters = []
 	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_SLAVE]) == "false"
+	    if @config.getProperty(@prefix + [DROP_STATIC_COLUMNS]) == "true"
+	      filters << "optimizeupdates"
+	    end
 	    filters << "pkey"
 	  end
 	  
