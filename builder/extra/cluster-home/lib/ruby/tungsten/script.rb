@@ -47,6 +47,9 @@ module TungstenScript
     # The collected option values from the script input
     @options = {}
     
+    # Parameters loaded from INI files to be parsed
+    @ini_parameters = []
+    
     TU.debug("Begin #{$0} #{ARGV.join(' ')}")
     
     begin
@@ -63,8 +66,11 @@ module TungstenScript
         cleanup(0)
       end
       
+      # Load parameters from the available INI files
+      load_ini_files()
+      # Parse parameters loaded from the INI files and on command line
       parse_options()
-    
+      
       if @options[:autocomplete] == true
         display_autocomplete()
         cleanup(0)
@@ -203,6 +209,69 @@ module TungstenScript
     end
     
     @option_definitions[option_key][:default] = default
+  end
+  
+  def load_ini_files
+    # Calculate the INI section name to use
+    section_names = [script_name()]
+    matches = script_name().to_s().match("tungsten_(.*)")
+    if matches && matches.size() > 0
+      script_ini_file = "#{matches[1]}.ini"
+      section_names << matches[1]
+    else
+      script_ini_file = nil
+    end
+    
+    load_ini_parameters("/etc/tungsten/scripts.ini", 
+      section_names)
+    
+    if script_ini_file != nil
+      load_ini_parameters("/etc/tungsten/#{script_ini_file}", 
+        ["__anonymous__"] + section_names)
+    end
+    
+    # Add these arguments to the beginging of the TungstenUtil stack
+    # When the script processes command line options it will read these 
+    # and then be overwritten by and command line options.
+    TU.remaining_arguments = @ini_parameters + TU.remaining_arguments
+  end
+  
+  # Convert the parsed INI contents into the command line argument style
+  def load_ini_parameters(file, section_name)
+    unless File.exists?(file)
+      return
+    end
+    
+    unless section_name.is_a?(Array)
+      section_name = [section_name]
+    end
+    section_name.delete_if{|n| n.to_s() == ""}
+    
+    if section_name.size() == 0
+      return
+    end
+    
+    parameters = TU.parse_ini_file(file, false)
+    section_name.each{
+      |section|
+      if section.to_s() == ""
+        next
+      end
+      
+      unless parameters.has_key?(section)
+        next
+      end
+      
+      parameters[section].each{
+        |line|
+        # Single character parameters get a single dash
+        if line.length() == 1
+          @ini_parameters << "-#{line}"
+        else
+          @ini_parameters << "--#{line}"
+        end
+      }
+    }
   end
   
   def parse_options

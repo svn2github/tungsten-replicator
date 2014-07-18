@@ -533,4 +533,97 @@ class TungstenUtil
       singular
     end
   end
+  
+  # Read an INI file and return a hash of the arguments for each section
+  def parse_ini_file(file, convert_to_hash = true)
+    unless defined?(IniParse)
+      require 'tungsten/iniparse'
+    end
+    
+    unless File.exists?(file)
+      return
+    end
+    
+    # Read each section and turn the lines into an array of arguments as
+    # they would appear in the INI file
+    options = {}
+    ini = IniParse.open(file)
+    ini.each{
+      |section|
+      key = section.key
+      
+      # Initialize the array only if it doesn't exist
+      # Doing otherwise would overwrite old sections
+      unless options.has_key?(key)
+        options[key] = []
+      end
+      
+      section.each{
+        |line|
+        unless line.is_a?(Array)
+          values = [line]
+        else
+          values = line
+        end
+      
+        values.each{
+          |value|
+          if value.value == nil
+            options[key] << "#{value.key}"
+          else
+            options[key] << "#{value.key}=#{value.value.to_s()}"
+          end
+        }
+      }
+    }
+    
+    # Most users will want a Hash, but this will allow the main
+    # TungstenScript class to see the parameters in order
+    if convert_to_hash == true
+      return convert_ini_array_to_hash(options)
+    else
+      return options
+    end
+  end
+  
+  # Convert the information returned by parse_ini_file into a
+  # nested hash of values
+  def convert_ini_array_to_hash(options)
+    hash = {}
+    
+    options.each{
+      |section,lines|
+      unless hash.has_key?(section)
+        hash[section] = {}
+      end
+      
+      lines.each{
+        |line|
+        parts = line.split("=")
+        
+        # The first part is the argument name
+        argument = parts.shift()
+        # Any remaining values will be returned as a single string
+        # A nil value means there was no value after the '='
+        if parts.size() == 0
+          v = nil
+        else
+          v = parts.join("=")
+        end
+        
+        # Return repeat arguments as an array of values
+        if hash[section].has_key?(argument)
+          unless hash[section][argument].is_a?(Array)
+            hash[section][argument] = [hash[section][argument]]
+          end
+          
+          hash[section][argument] << v
+        else
+          hash[section][argument] = v
+        end
+      }
+    }
+    
+    return hash
+  end
 end
