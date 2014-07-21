@@ -505,7 +505,10 @@ replicator.service.channel-assignment.reconnectTimeoutInSeconds=60
 replicator.service.datasource=com.continuent.tungsten.replicator.datasource.DataSourceService
 
 # Data sources we know about. 
-replicator.datasources=applier
+#
+# Temporary workaround for Issue#974
+#
+# replicator.datasources=applier
 
 @{include(REPL_SVC_APPLIER_DATASOURCE_CONFIG)}
 
