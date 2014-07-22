@@ -1305,6 +1305,9 @@ public class TungstenProperties implements Serializable
         return null;
     }
 
+    /**
+     * Returns the value as a String or null if not found
+     */
     public String getString(String key)
     {
         return getString(key, null, false);
