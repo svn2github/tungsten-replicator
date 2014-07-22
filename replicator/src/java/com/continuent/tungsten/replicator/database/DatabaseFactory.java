@@ -86,6 +86,9 @@ public class DatabaseFactory
         else if (url.startsWith("jdbc:postgresql")
                 && (vendor != null && vendor.equals("greenplum")))
             database = new GreenplumDatabase();
+        else if (url.startsWith("jdbc:postgresql")
+                && (vendor != null && vendor.equals("redshift")))
+            database = new RedshiftDatabase();
         else if (url.startsWith("jdbc:vertica"))
             database = new VerticaDatabase();
         else

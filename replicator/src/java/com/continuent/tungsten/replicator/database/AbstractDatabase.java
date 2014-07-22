@@ -250,6 +250,16 @@ public abstract class AbstractDatabase implements Database
     /**
      * {@inheritDoc}
      * 
+     * @see com.continuent.tungsten.replicator.database.Database#supportsBLOB()
+     */
+    public boolean supportsBLOB()
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.database.Database#useDefaultSchema(java.lang.String)
      */
     public void useDefaultSchema(String schema) throws SQLException

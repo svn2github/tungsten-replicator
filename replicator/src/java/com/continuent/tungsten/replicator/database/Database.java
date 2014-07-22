@@ -364,6 +364,11 @@ public interface Database extends UniversalConnection
      * Returns true if the implementation supports a SQL REPLACE command.
      */
     public boolean supportsReplace();
+    
+    /**
+     * Returns true if the implementation supports a SQL REPLACE command.
+     */
+    public boolean supportsBLOB();
 
     /**
      * Replaces a row in the table using the data supplied by the Table

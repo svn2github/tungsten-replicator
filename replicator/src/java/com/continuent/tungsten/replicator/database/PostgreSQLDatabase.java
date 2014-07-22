@@ -179,7 +179,8 @@ public class PostgreSQLDatabase extends AbstractDatabase
      */
     public void dropSchema(String schema) throws SQLException
     {
-        if (getSchemas().contains(schema))
+        // JDBC driver returns schema names in lower case.
+        if (getSchemas().contains(schema.toLowerCase()))
         {
             String SQL = "DROP SCHEMA " + schema;
             execute(SQL);
