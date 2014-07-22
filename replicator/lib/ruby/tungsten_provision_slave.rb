@@ -37,7 +37,7 @@ class TungstenReplicatorProvisionSlave
         staging_dir = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_backup_directory")) + "/" + id
       end
       FileUtils.mkdir_p(staging_dir)
-      TU.cmd_result("#{sudo_prefix()}chown -R #{TI.user()} #{staging_dir}")
+      TU.cmd_result("#{sudo_prefix()}chown -RL #{TI.user()} #{staging_dir}")
 
       # SSH to the source server and run the backup. It will place the snapshot
       # into the staging_dir directory
@@ -117,7 +117,7 @@ class TungstenReplicatorProvisionSlave
       # If the backup/restore failed, the MySQL data directory ownership may
       # be left in a broken state
       if @options[:direct] == true
-        TU.cmd_result("#{sudo_prefix()}chown -R #{@options[:mysqluser]}: #{staging_dir}")
+        TU.cmd_result("#{sudo_prefix()}chown -RL #{@options[:mysqluser]}: #{staging_dir}")
       end
     end
   end
