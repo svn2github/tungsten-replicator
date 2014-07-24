@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): 
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.datasource;
@@ -46,6 +46,7 @@ public class SqlDataSourceTest extends AbstractDataSourceTest
     private static String user;
     private static String password;
     private static String schema;
+    private static String vendor;
 
     /**
      * Make sure we have expected test properties.
@@ -82,6 +83,7 @@ public class SqlDataSourceTest extends AbstractDataSourceTest
         user = tp.getString("database.user");
         password = tp.getString("database.password");
         schema = tp.getString("database.schema", "testdb", true);
+        vendor = tp.getString("database.vendor");
 
         // Load driver.
         Class.forName(driver);
@@ -107,6 +109,7 @@ public class SqlDataSourceTest extends AbstractDataSourceTest
         datasourceProps.setString("connectionSpec.user", user);
         datasourceProps.setString("connectionSpec.password", password);
         datasourceProps.setString("connectionSpec.schema", schema);
+        datasourceProps.setString("connectionSpec.vendor", vendor);
 
         // Set the data source class.
         datasourceClass = SqlDataSource.class.getName();

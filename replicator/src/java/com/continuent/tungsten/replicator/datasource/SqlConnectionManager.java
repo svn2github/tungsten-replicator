@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2013 Continuent Inc.
+ * Copyright (C) 2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): 
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.datasource;
@@ -94,13 +94,13 @@ public class SqlConnectionManager
         String password = connectionSpec.getPassword();
         boolean privilegedSlaveUpdate = connectionSpec
                 .isPrivilegedSlaveUpdate();
+        String vendor = connectionSpec.getVendor();
         boolean logSlaveUpdates = connectionSpec.isLogSlaveUpdates();
 
         try
         {
-
             Database conn = DatabaseFactory.createDatabase(url, user, password,
-                    privilegedSlaveUpdate);
+                    privilegedSlaveUpdate, vendor);
             conn.connect();
             if (!logSlaveUpdates && privilegedSlaveUpdate)
             {

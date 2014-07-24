@@ -97,13 +97,19 @@ public class RedshiftDatabase extends PostgreSQLDatabase
             case Types.BIGINT :
                 return "BIGINT";
 
+            case Types.BOOLEAN :
+                return "BOOLEAN";
+
             case Types.CHAR :
             {
                 if (c.getLength() == 1)
-                    // TODO: remove this dirty hack, written to support storing
-                    // boolean values into "character(1)" type "last_frag" field
-                    // of "trep_commit_seqno" and "history" tables.
-                    return "CHAR(5)";
+                    // TODO: remove this dirty hack and fix it in the callers.
+                    // Historically, as MySQL doesn't have a BOOLEAN type,
+                    // callers create tables with CHAR(1) instead (though then
+                    // use set/getBoolean), but having a CHAR and then use
+                    // set/getBoolean won't work for Redshift, hence we change
+                    // it to correct type here.
+                    return "BOOLEAN";
                 else
                     return "CHAR(" + c.getLength() + ")";
             }

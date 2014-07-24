@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): 
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.datasource;
@@ -38,6 +38,12 @@ public interface SqlConnectionSpec
 
     /** Returns true if we are updating and this is a privileged slave. */
     public boolean isPrivilegedSlaveUpdate();
+
+    /**
+     * Returns vendor for some DBMS types which share the same URL beginning
+     * (eg. PostgreSQL, Greenplum and Redshift). Can be null if not applicable.
+     */
+    public String getVendor();
 
     /** Returns true if we should log updates on the replication log. */
     public boolean isLogSlaveUpdates();

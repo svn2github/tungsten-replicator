@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): 
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.datasource;
@@ -29,6 +29,7 @@ package com.continuent.tungsten.replicator.datasource;
 public class SqlConnectionSpecGeneric implements SqlConnectionSpec
 {
     // Properties.
+    protected String  vendor;
     protected String  user;
     protected String  password;
     protected String  host;
@@ -110,6 +111,21 @@ public class SqlConnectionSpecGeneric implements SqlConnectionSpec
     public void setTableType(String tableType)
     {
         this.tableType = tableType;
+    }
+    
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.SqlConnectionSpec#getVendor()
+     */
+    public String getVendor()
+    {
+        return vendor;
+    }
+
+    public void setVendor(String vendor)
+    {
+        this.vendor = vendor;
     }
 
     /**
