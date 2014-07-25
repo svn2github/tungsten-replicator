@@ -61,6 +61,16 @@ public class MySQLConstants
     public static final int                       COM_DROP_DB                     = 6;
 
     public static final int                       COM_REFRESH                     = 7;
+    // COM_REFRESH sub_command.
+    // http://dev.mysql.com/doc/internals/en/com-refresh.html
+    public static final int                       REFRESH_GRANT                   = 0x01;
+    public static final int                       REFRESH_LOG                     = 0x02;
+    public static final int                       REFRESH_TABLES                  = 0x04;
+    public static final int                       REFRESH_HOSTS                   = 0x08;
+    public static final int                       REFRESH_STATUS                  = 0x10;
+    public static final int                       REFRESH_THREADS                 = 0x20;
+    public static final int                       REFRESH_SLAVE                   = 0x40;
+    public static final int                       REFRESH_MASTER                  = 0x80;
 
     public static final int                       COM_SHUTDOWN                    = 8;
 
@@ -106,17 +116,15 @@ public class MySQLConstants
 
     /** String equivalents of above commands for display purposes */
     static final String                           commandStrings[]                = {
-            "COM_SLEEP",
-            "COM_QUIT",
-            "COM_INIT_DB", "COM_QUERY", "COM_FIELD_LIST",
-            "COM_CREATE_DB", "COM_DROP_DB", "COM_REFRESH", "COM_SHUTDOWN",
-            "COM_STATISTICS", "COM_PROCESS_INFO", "COM_CONNECT",
-            "COM_PROCESS_KILL", "COM_DEBUG", "COM_PING", "COM_TIME",
-            "COM_DELAYED_INSERT", "COM_CHANGE_USER", "COM_BINLOG_DUMP",
-            "COM_TABLE_DUMP", "COM_CONNECT_OUT", "COM_REGISTER_SLAVE",
-            "COM_STMT_PREPARE", "COM_STMT_EXECUTE", "COM_STMT_SEND_LONG_DATA",
-            "COM_STMT_CLOSE", "COM_STMT_RESET", "COM_SET_OPTION",
-            "COM_STMT_FETCH"                                                      };
+            "COM_SLEEP", "COM_QUIT", "COM_INIT_DB", "COM_QUERY",
+            "COM_FIELD_LIST", "COM_CREATE_DB", "COM_DROP_DB", "COM_REFRESH",
+            "COM_SHUTDOWN", "COM_STATISTICS", "COM_PROCESS_INFO",
+            "COM_CONNECT", "COM_PROCESS_KILL", "COM_DEBUG", "COM_PING",
+            "COM_TIME", "COM_DELAYED_INSERT", "COM_CHANGE_USER",
+            "COM_BINLOG_DUMP", "COM_TABLE_DUMP", "COM_CONNECT_OUT",
+            "COM_REGISTER_SLAVE", "COM_STMT_PREPARE", "COM_STMT_EXECUTE",
+            "COM_STMT_SEND_LONG_DATA", "COM_STMT_CLOSE", "COM_STMT_RESET",
+            "COM_SET_OPTION", "COM_STMT_FETCH"                                    };
 
     /* Client flags from include/mysql_com.h. */
     public static final int                       CLIENT_LONG_PASSWORD            = 1;
@@ -324,6 +332,29 @@ public class MySQLConstants
                                                                                       }
                                                                                   };
 
+    /* Define SQL queries values for corresponding MySQL commands */
+    private static final HashMap<Integer, String> mapCommandToSQL                 = new HashMap<Integer, String>()
+                                                                                  {
+                                                                                      private static final long serialVersionUID = 1L;
+
+                                                                                      {
+                                                                                          put(REFRESH_GRANT,
+                                                                                                  "flush privileges");
+                                                                                          put(REFRESH_LOG,
+                                                                                                  "flush logs");
+                                                                                          put(REFRESH_TABLES,
+                                                                                                  "flush tables");
+                                                                                          put(REFRESH_HOSTS,
+                                                                                                  "flush hosts");
+                                                                                          put(REFRESH_STATUS,
+                                                                                                  "flush status");
+                                                                                          put(REFRESH_SLAVE,
+                                                                                                  "reset slave");
+                                                                                          put(REFRESH_MASTER,
+                                                                                                  "reset master");
+                                                                                      }
+                                                                                  };
+
     public static final String                    MSG_SERVER_SHUTDOWN             = "Server shutdown in progress...";
     public static final String                    MSG_UNKNOWN_SYSTEM_VARIABLE     = "Unknown system variable '%s'";
 
@@ -355,5 +386,17 @@ public class MySQLConstants
     public static String getSqlState(Integer mysqlErrorCode)
     {
         return mapSqlStates.get(mysqlErrorCode);
+    }
+
+    /**
+     * Get the SQL query corresponding to the MySQL command.
+     * 
+     * @param command the command for which we want the corresponding sql
+     * @return String for the corresponding sql query. null if the command is
+     *         not defined in our constants.
+     */
+    public static String getSqlQueryForCommand(Integer command)
+    {
+        return mapCommandToSQL.get(command);
     }
 }
