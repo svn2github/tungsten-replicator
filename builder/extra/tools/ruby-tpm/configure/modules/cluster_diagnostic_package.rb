@@ -97,6 +97,8 @@ module ClusterDiagnosticPackage
         if @promotion_settings.getProperty([c_key, MANAGER_ENABLED]) == "true"
           write_file("#{diag_dir}/#{h_alias}/cctrl.txt",@promotion_settings.getProperty([c_key, "cctrl_status"]))
           write_file("#{diag_dir}/#{h_alias}/cctrl_simple.txt",@promotion_settings.getProperty([c_key, "cctrl_status_simple"]))
+          write_file("#{diag_dir}/#{h_alias}/cctrl_ping.txt",@promotion_settings.getProperty([c_key, "cctrl_ping"]))
+          write_file("#{diag_dir}/#{h_alias}/cctrl_validate.txt",@promotion_settings.getProperty([c_key, "cctrl_validate"]))
         end
       
         write_file("#{diag_dir}/#{h_alias}/trepctl.json", @promotion_settings.getProperty([c_key, "replicator_json_status"]))
@@ -269,6 +271,8 @@ class ClusterDiagnosticCheck < ConfigureValidationCheck
         cmd_result("echo 'physical;*/*/router/RouterManager/diag' | #{cctrl_cmd} -expert", true)
         output_property("cctrl_status", cmd_result("echo 'ls -l' | #{cctrl_cmd} -expert", true))
         output_property("cctrl_status_simple", cmd_result("echo 'ls ' | #{cctrl_cmd} -expert", true))
+        output_property("cctrl_ping", cmd_result("echo 'ping ' | #{cctrl_cmd} -expert", true))
+        output_property("cctrl_validate", cmd_result("echo 'cluster validate ' | #{cctrl_cmd} -expert", true))
       end
       
       if c.svc_is_running?(c.get_svc_path("replicator", c.get_base_path()))
