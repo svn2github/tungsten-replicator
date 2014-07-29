@@ -45,6 +45,7 @@ import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.common.csv.NullPolicy;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
+import com.continuent.tungsten.replicator.extractor.ExtractorException;
 
 /**
  * Implements DBMS-specific operations for MySQL.
@@ -464,7 +465,7 @@ public class MySQLDatabase extends AbstractDatabase
     {
         return md.getPrimaryKeys(schemaName, null, tableName);
     }
-    
+
     protected ResultSet getIndexResultSet(DatabaseMetaData md,
             String schemaName, String tableName, boolean unique)
             throws SQLException
@@ -835,5 +836,67 @@ public class MySQLDatabase extends AbstractDatabase
     public ArrayList<String> getReservedWords()
     {
         return reservedWords;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws ExtractorException
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#getCurrentPosition()
+     */
+    @Override
+    public String getCurrentPosition(boolean flush) throws ReplicatorException
+    {
+        Statement st = null;
+        ResultSet rs = null;
+        try
+        {
+            st = createStatement();
+            if (flush)
+            {
+                logger.debug("Flushing logs");
+                st.executeUpdate("FLUSH LOGS");
+            }
+            logger.debug("Seeking head position in binlog");
+            rs = st.executeQuery("SHOW MASTER STATUS");
+            if (!rs.next())
+                throw new ReplicatorException(
+                        "Error getting master status; is the MySQL binlog enabled?");
+            String binlogFile = rs.getString(1);
+            long binlogOffset = rs.getLong(2);
+
+            logger.info("Starting from current position: " + binlogFile + ":"
+                    + binlogOffset);
+            return binlogFile + ":" + binlogOffset;
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(
+                    "Error getting master status; is the MySQL binlog enabled?",
+                    e);
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try
+                {
+                    rs.close();
+                }
+                catch (SQLException ignore)
+                {
+                }
+            }
+            if (st != null)
+            {
+                try
+                {
+                    st.close();
+                }
+                catch (SQLException ignore)
+                {
+                }
+            }
+        }
     }
 }

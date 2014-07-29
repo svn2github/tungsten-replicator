@@ -648,5 +648,36 @@ public interface Database extends UniversalConnection
     public void dropTungstenCatalog(String schemaName,
             String tungstenTableType, String serviceName) throws SQLException;
 
+    /**
+     * Returns true if the given schema is a system schema.
+     * 
+     * @param schemaName a schema
+     * @return true if schemaName matches a system schema
+     */
     public boolean isSystemSchema(String schemaName);
+
+    /**
+     * Returns the current position of the database (binary log position for
+     * MySQL, SCN for Oracle, for example).
+     * 
+     * @param flush Should the database be flushed before reading the position?
+     * @return The current position as a string
+     * @throws ReplicatorException if an error occurs
+     */
+    public String getCurrentPosition(boolean flush) throws ReplicatorException;
+
+    /**
+     * Does the database support flashback query?
+     * 
+     * @return true if the database support flashback queries, false otherwise
+     */
+    public boolean supportsFlashbackQuery();
+
+    /**
+     * Returns the flashback clause based on the given position
+     * 
+     * @param position The position to be used for the flashback query
+     * @return the generated flashback clause based on the position
+     */
+    public String getFlashbackQuery(String position);
 }

@@ -120,11 +120,7 @@ public abstract class AbstractChunk implements Chunk
         sql.append('.');
         sql.append(connection.getDatabaseObjectName(getTable().getName()));
 
-        if (eventId != null)
-        {
-            sql.append(" AS OF SCN ");
-            sql.append(eventId);
-        }
+        sql.append(AbstractChunk.getFlashbackQueryClause(connection, eventId));
 
         String where = getWhereClause();
         if (where != null)
@@ -136,7 +132,7 @@ public abstract class AbstractChunk implements Chunk
 
         return sql.toString();
     }
-    
+
     /**
      * Returns the order by clause, if any.
      */
@@ -156,4 +152,19 @@ public abstract class AbstractChunk implements Chunk
     {
         return null;
     }
+
+    /**
+     * TODO: getFlashbackQueryClause definition.
+     * 
+     * @param conn
+     */
+    protected static String getFlashbackQueryClause(Database conn,
+            String eventId)
+    {
+        if (eventId != null && conn.supportsFlashbackQuery())
+            return conn.getFlashbackQuery(eventId);
+
+        return "";
+    }
+
 }

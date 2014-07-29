@@ -873,7 +873,8 @@ public class OracleDatabase extends AbstractDatabase
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropTungstenCatalog(String, String, String)
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropTungstenCatalog(String,
+     *      String, String)
      */
     @Override
     public void dropTungstenCatalog(String schemaName,
@@ -1012,6 +1013,89 @@ public class OracleDatabase extends AbstractDatabase
     {
         // TODO Auto-generated method stub
         return '\"' + name + '\"';
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#getCurrentPosition(boolean)
+     */
+    @Override
+    public String getCurrentPosition(boolean flush) throws ReplicatorException
+    {
+        Statement st = null;
+        ResultSet rs = null;
+        try
+        {
+            st = createStatement();
+            logger.debug("Seeking current SCN from database");
+            rs = st.executeQuery("SELECT current_scn FROM V$DATABASE");
+            if (!rs.next())
+                throw new ReplicatorException(
+                        "Error getting current SCN from database");
+            String scn = rs.getString(1);
+
+            return scn;
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(
+                    "Error getting current SCN from database", e);
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try
+                {
+                    rs.close();
+                }
+                catch (SQLException ignore)
+                {
+                }
+            }
+            if (st != null)
+            {
+                try
+                {
+                    st.close();
+                }
+                catch (SQLException ignore)
+                {
+                }
+            }
+        }
+
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#supportsFlashbackQuery()
+     */
+    @Override
+    public boolean supportsFlashbackQuery()
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#getFlashbackQuery(java.lang.String)
+     */
+    @Override
+    public String getFlashbackQuery(String position)
+    {
+        // position is either of the form ora:<SCN> or <SCN>, but only the SCN
+        // part needs to get used in the query
+        OracleEventId eventId = new OracleEventId(position);
+        if (eventId.isValid())
+        {
+            return " AS OF SCN " + eventId.getSCN();
+        }
+        else
+            return " AS OF SCN " + position;
     }
 
 }

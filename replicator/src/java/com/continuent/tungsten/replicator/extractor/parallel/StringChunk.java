@@ -148,7 +148,7 @@ public class StringChunk extends AbstractChunk implements Chunk
 
     protected String getOrderByClause()
     {
-        return "ORDER BY "
+        return " ORDER BY "
                 + getTable().getPrimaryKey().getColumns().get(0).getName();
     }
 

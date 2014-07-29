@@ -45,6 +45,7 @@ import com.continuent.tungsten.replicator.consistency.ConsistencyCheck;
 import com.continuent.tungsten.replicator.consistency.ConsistencyException;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
+import com.continuent.tungsten.replicator.extractor.ExtractorException;
 
 /**
  * Provides a generic implementation for Database interface. Subclasses must
@@ -1450,6 +1451,40 @@ public abstract class AbstractDatabase implements Database
     {
         // TODO Auto-generated method stub
         return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws ExtractorException
+     * @see com.continuent.tungsten.replicator.database.Database#getCurrentPosition()
+     */
+    @Override
+    public String getCurrentPosition(boolean flush) throws ReplicatorException
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.database.Database#supportsFlashbackQuery()
+     */
+    @Override
+    public boolean supportsFlashbackQuery()
+    {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see com.continuent.tungsten.replicator.database.Database#getFlashbackQuery(java.lang.String)
+     */
+    @Override
+    public String getFlashbackQuery(String position)
+    {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

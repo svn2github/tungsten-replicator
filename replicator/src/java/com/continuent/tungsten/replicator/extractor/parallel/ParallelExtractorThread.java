@@ -41,6 +41,8 @@ import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
+import com.continuent.tungsten.replicator.database.OracleDatabase;
+import com.continuent.tungsten.replicator.database.OracleEventId;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
@@ -346,10 +348,8 @@ public class ParallelExtractorThread extends Thread
                                 eventSent = true;
                                 try
                                 {
-                                    DBMSEvent ev = new DBMSEvent("ora:"
-                                            + eventId, dataArray,
-                                            new Timestamp(
-                                                    System.currentTimeMillis()));
+                                    DBMSEvent ev = buildDBMSEvent(dataArray);
+
                                     ev.addMetadataOption("schema", chunk
                                             .getTable().getSchema());
                                     ev.addMetadataOption("table", chunk
@@ -379,9 +379,8 @@ public class ParallelExtractorThread extends Thread
                             try
 
                             {
-                                DBMSEvent ev = new DBMSEvent("ora:" + eventId,
-                                        dataArray, new Timestamp(
-                                                System.currentTimeMillis()));
+                                DBMSEvent ev = buildDBMSEvent(dataArray);
+
                                 ev.addMetadataOption("schema", chunk.getTable()
                                         .getSchema());
                                 ev.addMetadataOption("table", chunk.getTable()
@@ -439,6 +438,32 @@ public class ParallelExtractorThread extends Thread
             }
             // 3. Get to next available table, if any
         }
+    }
+
+    /**
+     * TODO: buildDBMSEvent definition.
+     * 
+     * @param dataArray
+     * @return
+     */
+    private DBMSEvent buildDBMSEvent(ArrayList<DBMSData> dataArray)
+    {
+        DBMSEvent ev;
+        if (connection instanceof OracleDatabase)
+        {
+            OracleEventId evId = new OracleEventId(eventId);
+
+            if (evId.isValid())
+                ev = new DBMSEvent(evId.toString(), dataArray, new Timestamp(
+                        System.currentTimeMillis()));
+            else
+                ev = new DBMSEvent("ora:" + eventId, dataArray, new Timestamp(
+                        System.currentTimeMillis()));
+        }
+        else
+            ev = new DBMSEvent(eventId, dataArray, new Timestamp(
+                    System.currentTimeMillis()));
+        return ev;
     }
 
     private int setValues(PreparedStatement pstmt, Object[] values,

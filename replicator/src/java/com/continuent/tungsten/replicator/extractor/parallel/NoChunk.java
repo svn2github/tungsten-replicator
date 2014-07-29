@@ -37,12 +37,13 @@ public class NoChunk extends AbstractChunk implements Chunk
 {
 
     private Table        table;
-    private List<String> columns;
+    private List<String> columns = null;
 
     public NoChunk(Table table, String[] columns)
     {
         this.table = table;
-        this.columns = Arrays.asList(columns);
+        if (columns != null)
+            this.columns = Arrays.asList(columns);
     }
 
     /**

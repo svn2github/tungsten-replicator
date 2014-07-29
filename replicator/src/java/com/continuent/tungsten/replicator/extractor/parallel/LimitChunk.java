@@ -188,11 +188,7 @@ public class LimitChunk extends AbstractChunk implements Chunk
         sql.append(" FROM ");
         sql.append(fqnTable);
 
-        if (eventId != null)
-        {
-            sql.append(" AS OF SCN ");
-            sql.append(eventId);
-        }
+        sql.append(AbstractChunk.getFlashbackQueryClause(connection, eventId));
 
         if (fromValues != null || toValues != null)
         {

@@ -29,6 +29,7 @@ import com.continuent.tungsten.replicator.database.Table;
 
 /**
  * Defines a chunk based on single numeric column primary key.
+ * 
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
  * @version 1.0
  */
@@ -169,7 +170,7 @@ public class NumericChunk extends AbstractChunk implements Chunk
 
     protected String getOrderByClause()
     {
-        return "ORDER BY "
+        return " ORDER BY "
                 + getTable().getPrimaryKey().getColumns().get(0).getName();
     }
 }
