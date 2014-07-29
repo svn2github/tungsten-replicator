@@ -121,9 +121,7 @@ IF tableCount > 0 THEN
             DBMS_CAPTURE_ADM.PREPARE_TABLE_INSTANTIATION(TABLE_NAME => '"' || v_user || '"."' || v_table_name || '"'  );
          END IF;
          
-   
          EXECUTE IMMEDIATE 'GRANT SELECT,FLASHBACK ON "'|| v_user || '"."' || v_table_name ||'" TO '||v_tungsten_user;
-
       END LOOP;
       CLOSE C;
    END;
@@ -155,6 +153,10 @@ ELSE
       CLOSE C;
    END;
 END IF;
+
+-- GRANT SELECT on v$_database to tungsten user in order to read current SCN, if needed
+EXECUTE IMMEDIATE 'GRANT SELECT ON v_$database TO  '||v_tungsten_user;
+
 
 END;
 /
