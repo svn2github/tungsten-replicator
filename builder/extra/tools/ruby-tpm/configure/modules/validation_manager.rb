@@ -142,7 +142,7 @@ class ManagerListenerAddressCheck < ConfigureValidationCheck
   def validate
     addr = @config.getProperty(get_member_key(MGR_LISTEN_ADDRESS))
     if addr.to_s() == ""
-      error("Unable to determine the listening address for the manager")
+      error("Unable to determine the manager listening IP address for interface #{@config.getProperty(get_member_key(MGR_LISTEN_INTERFACE))}")
     end
   end
 end
