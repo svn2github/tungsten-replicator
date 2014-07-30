@@ -94,7 +94,7 @@ function apply(csvinfo)
 
   // Remove deleted rows from base table. 
   delete_sql = runtime.sprintf(
-    "DELETE FROM %s WHERE EXISTS (SELECT * FROM %s WHERE %s AND %s.tungsten_opcode = 'D')",
+    "DELETE FROM %s WHERE EXISTS (SELECT * FROM %s WHERE %s AND %s.tungsten_opcode IN ('D', 'UD'))",
     base_table_fqn, 
     stage_table_fqn, 
     where_clause, 
@@ -106,7 +106,7 @@ function apply(csvinfo)
   // Insert non-deleted INSERT rows, i.e. rows not followed by another INSERT
   // or a DELETE.
   insert_sql = runtime.sprintf(
-    "INSERT INTO %s (%s) SELECT %s FROM %s WHERE tungsten_opcode='I' AND tungsten_row_id IN (SELECT MAX(tungsten_row_id) FROM %s GROUP BY %s)", 
+    "INSERT INTO %s (%s) SELECT %s FROM %s WHERE tungsten_opcode IN ('I', 'UI') AND tungsten_row_id IN (SELECT MAX(tungsten_row_id) FROM %s GROUP BY %s)", 
     base_table_fqn, 
     base_columns, 
     base_columns, 

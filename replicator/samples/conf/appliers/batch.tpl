@@ -49,3 +49,8 @@ replicator.applier.dbms.cleanUpFiles=true
 # followed by delete.  This setting is not recommended for standard batch
 # loading as it may not work for row changes that do not have keys. 
 replicator.applier.dbms.useUpdateOpcode=false
+
+# If true, use 'UI' and 'UD' opcodes for update operations, as opposed to
+# plain 'I' and 'D'. Useful to be able to distinguish updates from regular
+# inserts and deletes.
+replicator.applier.dbms.distinguishUpdates=false

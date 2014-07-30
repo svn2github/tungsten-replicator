@@ -110,6 +110,16 @@ public class SimpleBatchApplier implements RawApplier
      * followed by INSERT unless update opcodes are enabled.
      */
     public static String                UPDATE              = "U";
+    
+    /**
+     * Denotes a delete operation resulting from an update.
+     */
+    public static String                UPDATE_DELETE              = "UD";
+
+    /**
+     * Denotes an insert operation resulting from an update.
+     */
+    public static String                UPDATE_INSERT              = "UI";
 
     // Names of staging header columns. These are prefixed when writing data.
     public static String                OPCODE              = "opcode";
@@ -137,6 +147,7 @@ public class SimpleBatchApplier implements RawApplier
     protected String                    partitionByFormat;
     protected int                       parallelization     = 1;
     protected boolean                   useUpdateOpcode     = false;
+    protected boolean                   distinguishUpdates  = false;
 
     // Replication context
     PluginContext                       context;
@@ -302,6 +313,15 @@ public class SimpleBatchApplier implements RawApplier
     }
 
     /**
+     * If true, use 'UI' and 'UD' opcodes for update operations, as opposed to
+     * plain 'I' and 'D'.
+     */
+    public void setDistinguishUpdates(boolean distinguishUpdates)
+    {
+        this.distinguishUpdates = distinguishUpdates;
+    }
+
+    /**
      * Applies row updates using a batch loading scheme. Statements are
      * discarded. {@inheritDoc}
      * 
@@ -452,10 +472,24 @@ public class SimpleBatchApplier implements RawApplier
                         {
                             // Split update into delete followed by update.
                             // Write keys for deletion and columns for insert.
-                            writeValues(seqno, commitTimestamp, service,
-                                    tableMetadata, keySpecs, keyValues, DELETE);
-                            writeValues(seqno, commitTimestamp, service,
-                                    tableMetadata, colSpecs, colValues, INSERT);
+                            if (distinguishUpdates)
+                            {
+                                writeValues(seqno, commitTimestamp, service,
+                                        tableMetadata, keySpecs, keyValues,
+                                        UPDATE_DELETE);
+                                writeValues(seqno, commitTimestamp, service,
+                                        tableMetadata, colSpecs, colValues,
+                                        UPDATE_INSERT);
+                            }
+                            else
+                            {
+                                writeValues(seqno, commitTimestamp, service,
+                                        tableMetadata, keySpecs, keyValues,
+                                        DELETE);
+                                writeValues(seqno, commitTimestamp, service,
+                                        tableMetadata, colSpecs, colValues,
+                                        INSERT);
+                            }
                         }
                     }
                     else if (action.equals(ActionType.DELETE))
