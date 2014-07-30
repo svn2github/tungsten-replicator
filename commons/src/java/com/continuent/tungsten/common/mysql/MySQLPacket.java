@@ -30,10 +30,12 @@ import java.math.BigInteger;
 import java.net.SocketTimeoutException;
 import java.sql.Date;
 import java.sql.Time;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.io.WrappedInputStream;
@@ -521,6 +523,28 @@ public class MySQLPacket
         // 2bytes - status flags
         // So the data is never larger than 5 bytes
         return this.byteBuffer[4] == (byte) 0xFE && this.getDataLength() <= 5;
+    }
+    
+    /**
+     * Whether or not this packet has the SERVER_STATUS_IN_TRANS flag. See:
+     * http://dev.mysql.com/doc/internals/en/status-flags.html
+     * 
+     * @return true if it has. flase otherwise
+     */
+    public boolean isSERVER_STATUS_IN_TRANS()
+    {
+        return this.isServerFlagSet(MySQLConstants.SERVER_STATUS_IN_TRANS);
+    }
+
+    /**
+     * Whether or not this packet has the SERVER_STATUS_AUTOCOMMIT flag. See:
+     * http://dev.mysql.com/doc/internals/en/status-flags.html
+     * 
+     * @return true if it has. flase otherwise
+     */
+    public boolean isSERVER_STATUS_AUTOCOMMIT()
+    {
+        return this.isServerFlagSet(MySQLConstants.SERVER_STATUS_AUTOCOMMIT);
     }
 
     /**
@@ -1552,6 +1576,45 @@ public class MySQLPacket
         }
     }
 
+    /**
+     * Print debug information on status received from the server
+     */
+    public void printServerStatus()
+    {
+        String statusMessageString = "";
+        if (this.isServerFlagSet(MySQLConstants.SERVER_STATUS_IN_TRANS))
+            statusMessageString = statusMessageString
+                    + "SERVER_STATUS_IN_TRANS | ";
+
+        if (this.isServerFlagSet(MySQLConstants.SERVER_STATUS_AUTOCOMMIT))
+            statusMessageString = statusMessageString
+                    + "SERVER_STATUS_AUTOCOMMIT | ";
+
+        if (this.isServerFlagSet(MySQLConstants.SERVER_MORE_RESULTS_EXISTS))
+            statusMessageString = statusMessageString
+                    + "SERVER_MORE_RESULTS_EXISTS | ";
+
+        if (this.isServerFlagSet(MySQLConstants.SERVER_QUERY_NO_GOOD_INDEX_USED))
+            statusMessageString = statusMessageString
+                    + "SERVER_QUERY_NO_GOOD_INDEX_USED | ";
+
+        if (this.isServerFlagSet(MySQLConstants.SERVER_QUERY_NO_INDEX_USED))
+            statusMessageString = statusMessageString
+                    + "SERVER_QUERY_NO_INDEX_USED | ";
+
+        if (this.isServerFlagSet(MySQLConstants.SERVER_STATUS_CURSOR_EXISTS))
+            statusMessageString = statusMessageString
+                    + "SERVER_STATUS_CURSOR_EXISTS | ";
+
+        if (this.isServerFlagSet(MySQLConstants.SERVER_STATUS_LAST_ROW_SENT))
+            statusMessageString = statusMessageString
+                    + "SERVER_STATUS_LAST_ROW_SENT | ";
+
+        statusMessageString = StringUtils.removeEnd(statusMessageString, "| ");
+        logger.debug(MessageFormat.format("Server Status= {0}",
+                statusMessageString));
+    }
+    
     @Override
     public String toString()
     {
