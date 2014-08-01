@@ -69,7 +69,7 @@ INT##
 #elseif ( $col.getTypeDescription().startsWith("INT") )
 INT##
 #elseif ( $col.getTypeDescription().startsWith("BIGINT") )
-INT##
+NUMBER##
 #elseif ( $col.getTypeDescription().startsWith("DECIMAL(") )
 $col.getTypeDescription()##
 #elseif ( $col.getTypeDescription().startsWith("VARCHAR") )
