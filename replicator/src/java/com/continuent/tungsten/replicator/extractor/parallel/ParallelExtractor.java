@@ -302,6 +302,7 @@ public class ParallelExtractor implements RawExtractor
                     StatementData sd = new StatementData("TRUNCATE TABLE "
                             + event.getMetadataOptionValue("table"), null,
                             event.getMetadataOptionValue("schema"));
+                    sd.addOption("foreign_key_checks", "0");
                     event.getData().add(0, sd);
 
                     blk = Long
