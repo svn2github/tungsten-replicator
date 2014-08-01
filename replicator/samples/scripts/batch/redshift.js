@@ -86,7 +86,7 @@ function apply(csvinfo)
   // Create and execute copy command.
   copy_sql = runtime.sprintf("COPY %s FROM '" + awsS3Path + "/%s' "
       + "CREDENTIALS 'aws_access_key_id=" + awsAccessKey
-      + ";aws_secret_access_key=" + awsSecretKey + "' CSV", stage_table_fqn,
+      + ";aws_secret_access_key=" + awsSecretKey + "' CSV NULL AS 'null'", stage_table_fqn,
       csv_filename);
   logger.info("COPY: " + copy_sql);
   expected_copy_rows = runtime.exec("cat " + csv_file + " |wc -l");

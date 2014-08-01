@@ -28,8 +28,8 @@ import java.sql.Types;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.csv.CsvSpecification;
 import com.continuent.tungsten.common.csv.CsvWriter;
-import com.continuent.tungsten.common.csv.NullPolicy;
 
 /**
  * Implements DBMS-specific operations for Amazon Redshift.
@@ -140,14 +140,7 @@ public class RedshiftDatabase extends PostgreSQLDatabase
      */
     public CsvWriter getCsvWriter(BufferedWriter writer)
     {
-        CsvWriter csv = new CsvWriter(writer);
-        csv.setQuoteChar('"');
-        csv.setQuoted(true);
-        csv.setNullPolicy(NullPolicy.skip);
-        csv.setEscapedChars("\\");
-        csv.setSuppressedChars("\n");
-        csv.setEscapeChar('\\');
-        csv.setWriteHeaders(false);
-        return csv;
+        return CsvSpecification.getSpecification("redshift").createCsvWriter(
+                writer);
     }
 }
