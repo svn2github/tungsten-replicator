@@ -126,7 +126,6 @@ public class ChunksGeneratorThread extends Thread
     private int                  extractChannels;
     private long                 chunkSize = 1000;
     private String               eventId   = null;
-    private PreparedStatement    pStmt;
     private String               whereClause;
 
     /**
@@ -776,6 +775,8 @@ public class ChunksGeneratorThread extends Thread
 
     private void chunkLimit(Table table) throws InterruptedException
     {
+        PreparedStatement pStmt = null;
+
         // Table does not have a primary key. Let's chunk using limit.
         String fqnTable = connection.getDatabaseObjectName(table.getSchema())
                 + '.' + connection.getDatabaseObjectName(table.getName());
@@ -848,7 +849,7 @@ public class ChunksGeneratorThread extends Thread
 
         try
         {
-            generateChunkingPreparedStatement(table, blockSize);
+            pStmt = generateChunkingPreparedStatement(table, blockSize);
             if (pStmt == null)
             {
                 chunks.put(new NoChunk(table, null));
@@ -931,9 +932,12 @@ public class ChunksGeneratorThread extends Thread
         }
     }
 
-    private void generateChunkingPreparedStatement(Table table, long blockSize)
-            throws SQLException
+    private PreparedStatement generateChunkingPreparedStatement(Table table,
+            long blockSize) throws SQLException
     {
+        if (logger.isDebugEnabled())
+            logger.debug("Handling table " + table.toExtendedString());
+
         String fqnTable = connection.getDatabaseObjectName(table.getSchema())
                 + '.' + connection.getDatabaseObjectName(table.getName());
 
@@ -941,50 +945,52 @@ public class ChunksGeneratorThread extends Thread
         StringBuffer colBuf = new StringBuffer();
         whereClause = new String();
 
+        Key key;
+
         if (table.getPrimaryKey() != null)
         {
             // TODO
             // No dedicated chunking algorithm for this type of pk (either
             // composite or datatype not handled)
+            key = table.getPrimaryKey();
         }
         else
         {
-            if (logger.isDebugEnabled())
-                logger.debug("Handling table " + table.toExtendedString());
             // This is a unique key that can be used
-            Key key = table.getPKFromUniqueIndex();
+            key = table.getPKFromUniqueIndex();
 
             if (key == null)
             {
                 logger.info("getPKFromUniqueIndex returned null key for table "
                         + table);
-                return;
+                return null;
             }
-            ArrayList<Column> colsList = key.getColumns();
-
-            if (logger.isDebugEnabled())
-                logger.debug("colsList = " + colsList);
-
-            Column[] columns = new Column[colsList.size()];
-            int i = 0;
-            for (Column column : colsList)
-            {
-                columns[i] = column;
-                i++;
-            }
-
-            whereClause = buildWhereClause(columns, 0);
-
-            for (int j = 0; j < columns.length; j++)
-            {
-                if (j > 0)
-                {
-                    colBuf.append(", ");
-                }
-                colBuf.append(columns[j].getName());
-            }
-            sqlBuffer.append(colBuf);
         }
+        ArrayList<Column> colsList = key.getColumns();
+
+        if (logger.isDebugEnabled())
+            logger.debug("colsList = " + colsList);
+
+        Column[] columns = new Column[colsList.size()];
+        int i = 0;
+        for (Column column : colsList)
+        {
+            columns[i] = column;
+            i++;
+        }
+
+        whereClause = buildWhereClause(columns, 0);
+
+        for (int j = 0; j < columns.length; j++)
+        {
+            if (j > 0)
+            {
+                colBuf.append(", ");
+            }
+            colBuf.append(columns[j].getName());
+        }
+        
+        sqlBuffer.append(colBuf);
 
         sqlBuffer.append(" FROM ");
         sqlBuffer.append(fqnTable);
@@ -998,10 +1004,10 @@ public class ChunksGeneratorThread extends Thread
         String sql = sqlBuffer.toString();
         if (logger.isDebugEnabled())
             logger.debug("Generated statement :" + sql);
-        pStmt = connection.prepareStatement(sql);
-
+        PreparedStatement pStmt = connection.prepareStatement(sql);
         // TODO : have a setting ?
         pStmt.setFetchSize(100);
+        return pStmt;
     }
 
     private String buildWhereClause(Column[] columns, int index)
