@@ -22,7 +22,6 @@
 
 package com.continuent.tungsten.replicator.database;
 
-import java.io.BufferedWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -30,9 +29,6 @@ import java.sql.Types;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
-
-import com.continuent.tungsten.common.csv.CsvWriter;
-import com.continuent.tungsten.common.csv.NullPolicy;
 
 /**
  * Implements DBMS-specific operations for Vertica.
@@ -226,23 +222,5 @@ public class VerticaDatabase extends PostgreSQLDatabase
             default :
                 return "UNKNOWN";
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.database.Database#getCsvWriter(java.io.BufferedWriter)
-     */
-    public CsvWriter getCsvWriter(BufferedWriter writer)
-    {
-        CsvWriter csv = new CsvWriter(writer);
-        csv.setQuoteChar('"');
-        csv.setQuoted(true);
-        csv.setNullPolicy(NullPolicy.skip);
-        csv.setEscapedChars("\\");
-        csv.setSuppressedChars("\n");
-        csv.setEscapeChar('\\');
-        csv.setWriteHeaders(false);
-        return csv;
     }
 }

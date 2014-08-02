@@ -37,6 +37,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.csv.CsvWriter;
+import com.continuent.tungsten.common.csv.NullPolicy;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.channel.ShardChannelTable;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
@@ -680,9 +681,20 @@ public class OracleDatabase extends AbstractDatabase
      */
     public CsvWriter getCsvWriter(BufferedWriter writer)
     {
-        // Need to implement in order to support CSV.
-        throw new UnsupportedOperationException(
-                "CSV output is not supported for this database type");
+        if (this.csvSpec == null)
+        {
+            CsvWriter csv = new CsvWriter(writer);
+            csv.setQuoteChar('"');
+            csv.setQuoted(true);
+            csv.setEscapeChar('\\');
+            csv.setEscapedChars("\\");
+            csv.setNullPolicy(NullPolicy.nullValue);
+            csv.setNullValue("\\N");
+            csv.setWriteHeaders(false);
+            return csv;
+        }
+        else
+            return csvSpec.createCsvWriter(writer);
     }
 
     /**

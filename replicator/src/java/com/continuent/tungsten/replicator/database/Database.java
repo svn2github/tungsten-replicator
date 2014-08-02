@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -32,6 +32,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.continuent.tungsten.common.csv.CsvSpecification;
 import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.consistency.ConsistencyCheck;
@@ -113,6 +114,11 @@ public interface Database extends UniversalConnection
 
     /** Returns true if this account is a super user. */
     public boolean isPrivileged();
+
+    /**
+     * Sets the CSV specification use to generate CSV output parameters.
+     */
+    public void setCsvSpecification(CsvSpecification csvSpecification);
 
     /**
      * Connects to the database. You must set the url, user, and password then
@@ -364,7 +370,7 @@ public interface Database extends UniversalConnection
      * Returns true if the implementation supports a SQL REPLACE command.
      */
     public boolean supportsReplace();
-    
+
     /**
      * Returns true if the implementation supports a SQL REPLACE command.
      */

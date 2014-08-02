@@ -11,6 +11,8 @@ replicator.datasource.applier.connectionSpec.port=@{APPLIER.REPL_DBPORT}
 replicator.datasource.applier.connectionSpec.user=@{APPLIER.REPL_DBLOGIN}
 replicator.datasource.applier.connectionSpec.password=@{APPLIER.REPL_DBPASSWORD}
 replicator.datasource.applier.connectionSpec.schema=${replicator.schema}
+replicator.datasource.applier.connectionSpec.privilegedSlaveUpdate=${replicator.log.slave.updates}
+replicator.datasource.applier.connectionSpec.logSlaveUpdates=${replicator.schema}
 
 # Number of channels for replication. 
 replicator.datasource.applier.channels=${replicator.global.apply.channels}
@@ -19,7 +21,7 @@ replicator.datasource.applier.channels=${replicator.global.apply.channels}
 # which tend to be slightly different for each data source.  If set to 
 # custom, use the custom CSV settings.  Other supported settings are 
 # default, hive, etc.
-replicator.datasource.applier.csvType=custom
+replicator.datasource.applier.csvType=mysql
 
 # CSV type settings.  These are used if the csv type is custom.
 replicator.datasource.applier.csv=com.continuent.tungsten.common.csv.CsvSpecification

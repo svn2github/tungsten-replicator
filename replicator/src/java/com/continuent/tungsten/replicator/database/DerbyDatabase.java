@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -223,13 +223,18 @@ public class DerbyDatabase extends AbstractDatabase
      */
     public CsvWriter getCsvWriter(BufferedWriter writer)
     {
-        CsvWriter csv = new CsvWriter(writer);
-        csv.setQuoteChar('"');
-        csv.setQuoted(true);
-        csv.setEscapeChar('\\');
-        csv.setEscapedChars("\\");
-        csv.setNullPolicy(NullPolicy.skip);
-        csv.setWriteHeaders(false);
-        return csv;
+        if (this.csvSpec == null)
+        {
+            CsvWriter csv = new CsvWriter(writer);
+            csv.setQuoteChar('"');
+            csv.setQuoted(true);
+            csv.setEscapeChar('\\');
+            csv.setEscapedChars("\\");
+            csv.setNullPolicy(NullPolicy.skip);
+            csv.setWriteHeaders(false);
+            return csv;
+        }
+        else
+            return csvSpec.createCsvWriter(writer);
     }
 }

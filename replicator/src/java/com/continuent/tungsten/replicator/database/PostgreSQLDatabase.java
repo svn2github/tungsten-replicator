@@ -506,13 +506,18 @@ public class PostgreSQLDatabase extends AbstractDatabase
      */
     public CsvWriter getCsvWriter(BufferedWriter writer)
     {
-        CsvWriter csv = new CsvWriter(writer);
-        csv.setQuoteChar('"');
-        csv.setQuoted(true);
-        csv.setNullPolicy(NullPolicy.skip);
-        csv.setEscapedChars("\\");
-        csv.setEscapeChar('"');
-        csv.setWriteHeaders(false);
-        return csv;
+        if (this.csvSpec == null)
+        {
+            CsvWriter csv = new CsvWriter(writer);
+            csv.setQuoteChar('"');
+            csv.setQuoted(true);
+            csv.setNullPolicy(NullPolicy.skip);
+            csv.setEscapedChars("\\");
+            csv.setEscapeChar('"');
+            csv.setWriteHeaders(false);
+            return csv;
+        }
+        else
+            return csvSpec.createCsvWriter(writer);
     }
 }

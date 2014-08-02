@@ -82,6 +82,32 @@ public class CsvSpecification
             spec.setUseQuotes(false);
             spec.setSuppressedChars("\n");
         }
+        else if ("mysql".equals(type))
+        {
+            spec = new CsvSpecification();
+            spec.setFieldSeparator(",");
+            spec.setRecordSeparator("\n");
+            spec.setEscape("\\");
+            spec.setEscapedChars("\\");
+            spec.setNullPolicy(NullPolicy.nullValue);
+            spec.setNullValue("\\N");
+            spec.setUseHeaders(false);
+            spec.setUseQuotes(true);
+            spec.setQuote("\"");
+        }
+        else if ("oracle".equals(type))
+        {
+            spec = new CsvSpecification();
+            spec.setFieldSeparator(",");
+            spec.setRecordSeparator("\n");
+            spec.setEscape("\\");
+            spec.setEscapedChars("\\");
+            spec.setNullPolicy(NullPolicy.nullValue);
+            spec.setNullValue("\\N");
+            spec.setUseHeaders(false);
+            spec.setUseQuotes(true);
+            spec.setQuote("\"");
+        }
         else if ("vertica".equals(type))
         {
             spec = new CsvSpecification();

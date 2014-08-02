@@ -22,14 +22,10 @@
 
 package com.continuent.tungsten.replicator.database;
 
-import java.io.BufferedWriter;
 import java.sql.SQLException;
 import java.sql.Types;
 
 import org.apache.log4j.Logger;
-
-import com.continuent.tungsten.common.csv.CsvSpecification;
-import com.continuent.tungsten.common.csv.CsvWriter;
 
 /**
  * Implements DBMS-specific operations for Amazon Redshift.
@@ -46,7 +42,7 @@ public class RedshiftDatabase extends PostgreSQLDatabase
         // Redshift uses PostgreSQL driver.
         dbDriver = "org.postgresql.Driver";
     }
-    
+
     /**
      * {@inheritDoc}
      * 
@@ -69,7 +65,7 @@ public class RedshiftDatabase extends PostgreSQLDatabase
                 logger.debug("Unable to drop table; this may be expected", e);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -77,7 +73,7 @@ public class RedshiftDatabase extends PostgreSQLDatabase
     {
         return false;
     }
-    
+
     /**
      * Converts column types according to standard Vertica names.
      */
@@ -131,16 +127,5 @@ public class RedshiftDatabase extends PostgreSQLDatabase
             default :
                 return "UNKNOWN";
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.database.Database#getCsvWriter(java.io.BufferedWriter)
-     */
-    public CsvWriter getCsvWriter(BufferedWriter writer)
-    {
-        return CsvSpecification.getSpecification("redshift").createCsvWriter(
-                writer);
     }
 }

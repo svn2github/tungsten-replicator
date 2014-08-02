@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.replicator.database;
 
+import java.io.BufferedWriter;
 import java.io.Serializable;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -40,6 +41,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.continuent.tungsten.common.csv.CsvSpecification;
+import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.consistency.ConsistencyCheck;
 import com.continuent.tungsten.replicator.consistency.ConsistencyException;
@@ -76,6 +79,8 @@ public abstract class AbstractDatabase implements Database
     protected boolean                      connected     = false;
 
     protected String                       initScript    = null;
+
+    protected CsvSpecification             csvSpec       = null;
 
     /**
      * Create a new database instance. To use the database instance you must at
@@ -121,6 +126,16 @@ public abstract class AbstractDatabase implements Database
     public void setPrivileged(boolean privileged)
     {
         this.privileged = privileged;
+    }
+
+    public CsvSpecification getCsvSpecification()
+    {
+        return csvSpec;
+    }
+
+    public void setCsvSpecification(CsvSpecification csvSpec)
+    {
+        this.csvSpec = csvSpec;
     }
 
     public String getPlaceHolder(OneRowChange.ColumnSpec col, Object colValue,
@@ -1467,6 +1482,7 @@ public abstract class AbstractDatabase implements Database
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.database.Database#supportsFlashbackQuery()
      */
     @Override
@@ -1478,6 +1494,7 @@ public abstract class AbstractDatabase implements Database
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.database.Database#getFlashbackQuery(java.lang.String)
      */
     @Override
@@ -1487,4 +1504,19 @@ public abstract class AbstractDatabase implements Database
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.Database#getCsvWriter(java.io.BufferedWriter)
+     */
+    public CsvWriter getCsvWriter(BufferedWriter writer)
+    {
+        if (this.csvSpec == null)
+        {
+            throw new UnsupportedOperationException(
+                    "CSV output specification is not configured");
+        }
+        else
+            return csvSpec.createCsvWriter(writer);
+    }
 }

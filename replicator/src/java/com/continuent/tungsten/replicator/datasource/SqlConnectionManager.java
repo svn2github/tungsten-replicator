@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.continuent.tungsten.common.csv.CsvSpecification;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Database;
 import com.continuent.tungsten.replicator.database.DatabaseFactory;
@@ -38,6 +39,7 @@ public class SqlConnectionManager
 {
     // Properties.
     private SqlConnectionSpec connectionSpec;
+    private CsvSpecification  csvSpec;
 
     /**
      * Creates a new instance.
@@ -54,6 +56,16 @@ public class SqlConnectionManager
     public void setConnectionSpec(SqlConnectionSpec connectionSpec)
     {
         this.connectionSpec = connectionSpec;
+    }
+
+    public CsvSpecification getCsvSpec()
+    {
+        return csvSpec;
+    }
+
+    public void setCsvSpec(CsvSpecification csvSpec)
+    {
+        this.csvSpec = csvSpec;
     }
 
     /**
@@ -102,6 +114,7 @@ public class SqlConnectionManager
             Database conn = DatabaseFactory.createDatabase(url, user, password,
                     privilegedSlaveUpdate, vendor);
             conn.connect();
+            conn.setCsvSpecification(csvSpec);
             if (!logSlaveUpdates && privilegedSlaveUpdate)
             {
                 // If we are a slave with super power and we do not want to

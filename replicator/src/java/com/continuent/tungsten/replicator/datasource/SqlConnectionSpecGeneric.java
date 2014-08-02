@@ -35,8 +35,8 @@ public class SqlConnectionSpecGeneric implements SqlConnectionSpec
     protected String  host;
     protected int     port;
     protected String  tableType;
-    protected boolean privilegedSlaveUpdate;
-    protected boolean logSlaveUpdates;
+    protected boolean privilegedSlaveUpdate = true;
+    protected boolean logSlaveUpdates       = false;
     protected boolean sslEnabled;
     protected String  schema;
 

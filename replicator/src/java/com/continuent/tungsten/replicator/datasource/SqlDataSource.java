@@ -67,14 +67,14 @@ public class SqlDataSource extends AbstractDataSource
      * Instantiate and configure all data source tables.
      */
     @Override
-    public void configure() throws ReplicatorException,
-            InterruptedException
+    public void configure() throws ReplicatorException, InterruptedException
     {
         super.configure();
 
         // Configure connection manager.
         connectionManager = new SqlConnectionManager();
         connectionManager.setConnectionSpec(connectionSpec);
+        connectionManager.setCsvSpec(csv);
 
         // Configure tables.
         commitSeqno = new SqlCommitSeqno(connectionManager,
@@ -88,6 +88,9 @@ public class SqlDataSource extends AbstractDataSource
     @Override
     public void prepare() throws ReplicatorException, InterruptedException
     {
+        // First of course prepare the usual manager.
+        connectionManager.prepare();
+
         // Create an initial connection to ensure we can reach the DBMS.
         Database conn = null;
         try
@@ -109,9 +112,6 @@ public class SqlDataSource extends AbstractDataSource
                 conn = null;
             }
         }
-
-        // First of course prepare the usual manager.
-        connectionManager.prepare();
 
         // Now prepare all tables.
         commitSeqno.prepare();
