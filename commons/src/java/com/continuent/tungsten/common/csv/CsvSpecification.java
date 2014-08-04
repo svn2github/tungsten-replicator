@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): 
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.common.csv;
@@ -115,6 +115,19 @@ public class CsvSpecification
             spec.setRecordSeparator("\n");
             spec.setEscape("\\");
             spec.setEscapedChars("\\");
+            spec.setNullPolicy(NullPolicy.skip);
+            spec.setUseHeaders(false);
+            spec.setUseQuotes(true);
+            spec.setQuote("\"");
+            spec.setSuppressedChars("\n");
+        }
+        else if ("redshift".equals(type))
+        {
+            spec = new CsvSpecification();
+            spec.setFieldSeparator(",");
+            spec.setRecordSeparator("\n");
+            spec.setEscape("\""); // Escaped a quote with a quote in Redshift.
+            spec.setEscapedChars(""); // Nothing to escape apart quotes.
             spec.setNullPolicy(NullPolicy.skip);
             spec.setUseHeaders(false);
             spec.setUseQuotes(true);
