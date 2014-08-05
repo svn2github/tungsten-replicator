@@ -359,6 +359,17 @@ module TungstenScript
     if require_command?() && @command_definitions.size() > 0 && @command == nil
       TU.error("A command was not given for this script. Valid commands are #{@command_definitions.keys().join(', ')} and must be the first argument.")
     end
+    
+    @option_definitions.each{
+      |option_key,definition|
+      
+      if definition[:required] == true
+        if opt(option_key).to_s() == ""
+          arg = definition[:on][0].split(" ")[0]
+          TU.error("Missing value for the #{arg} option")
+        end
+      end
+    }
   end
   
   def script_name

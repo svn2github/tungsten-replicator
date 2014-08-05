@@ -197,7 +197,7 @@ replicator.plugin=tungsten
 # loading where updates are idempotent (e.g., Hadoop). 
 
 # Generic pipelines.
-replicator.pipelines=master,slave,relay
+replicator.pipelines=master,slave,relay,archive
 
 # MASTER PIPELINE:  Two stages with an intervening queue:  extract from binlog
 # and place events in THL.
@@ -267,6 +267,13 @@ replicator.pipeline.relay=remote-to-thl,thl-to-q,q-to-dbms
 replicator.pipeline.relay.stores=thl,parallel-queue
 replicator.pipeline.relay.services=datasource,channel-assignment
 replicator.pipeline.relay.syncTHLWithExtractor=false
+
+# ARCHIVE PIPELINE:  three stages:  extract from remote THL to local THL;
+# extract from local THL to queue; apply from queue to DBMS.
+replicator.pipeline.archive=remote-to-thl
+replicator.pipeline.archive.stores=thl
+replicator.pipeline.archive.services=
+replicator.pipeline.archive.syncTHLWithExtractor=false
 
 #################################
 # TRANSACTION HISTORY LOG (THL) #

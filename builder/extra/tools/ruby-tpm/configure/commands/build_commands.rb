@@ -24,10 +24,12 @@ class ReverseEngineerCommand
     end
     
     @public_arguments = false
+    @ini_format = false
   
     # Define extra option to load event.  
     opts=OptionParser.new
-    opts.on("--public") { @public_arguments = true }
+    opts.on("--public")     { @public_arguments = true }
+    opts.on("--ini-format") { @ini_format = true }
     remainder = Configurator.instance.run_option_parser(opts, arguments)
 
     # Return remaining options. 
@@ -263,16 +265,26 @@ class ReverseEngineerCommand
     
     if default_arguments.length > 0
       commands << "# Defaults for all data services and hosts"
-      commands << "tools/tpm configure defaults \\"
-      commands << default_arguments.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+      if @ini_format == false
+        commands << "tools/tpm configure defaults \\"
+        commands << default_arguments.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+      else
+        commands << "[defaults]"
+        commands << default_arguments.sort().join("\n")
+      end
     end
     
     dataservice_arguments.each{
       |ds_alias,args|
       if args.length > 0
         commands << "# Options for the #{ds_alias} data service"
-        commands << "tools/tpm configure #{ds_alias} \\"
-        commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+        if @ini_format == false
+          commands << "tools/tpm configure #{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])} \\"
+          commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+        else
+          commands << "[#{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])}]"
+          commands << args.sort().join(" \\\n")
+        end
       end
     }
     
@@ -280,8 +292,13 @@ class ReverseEngineerCommand
       |ds_alias,args|
       if args.length > 0
         commands << "# Options for the #{ds_alias} data service"
-        commands << "tools/tpm configure #{ds_alias} \\"
-        commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+        if @ini_format == false
+          commands << "tools/tpm configure #{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])} \\"
+          commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+        else
+          commands << "[#{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])}]"
+          commands << args.sort().map{|s| Escape.shell_single_word(s)}.join("\n")
+        end
       end
     }
     
@@ -289,8 +306,13 @@ class ReverseEngineerCommand
       |h_alias,args|
       if args.length > 0
         commands << "# Options for #{command_host_alias(cfg, h_alias)}"
-        commands << "tools/tpm configure --hosts=#{command_host_alias(cfg, h_alias)} \\"
-        commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+        if @ini_format == false
+          commands << "tools/tpm configure --hosts=#{command_host_alias(cfg, h_alias)} \\"
+          commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+        else
+          commands << "[defaults]"
+          commands << args.sort().map{|s| Escape.shell_single_word(s)}.join("\n")
+        end
       end
     }
     
@@ -300,8 +322,13 @@ class ReverseEngineerCommand
         |ds_alias,args|
         if args.length > 0
           commands << "# Options for #{command_host_alias(cfg, h_alias)}"
-          commands << "tools/tpm configure #{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])} \\\n--hosts=#{command_host_alias(cfg, h_alias)} \\"
-          commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+          if @ini_format == false
+            commands << "tools/tpm configure #{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])} \\\n--hosts=#{command_host_alias(cfg, h_alias)} \\"
+            commands << args.sort().map{|s| Escape.shell_single_word(s)}.join(" \\\n")
+          else
+            commands << "[#{cfg.getProperty([DATASERVICES, ds_alias, DATASERVICENAME])}]"
+            commands << args.sort().map{|s| Escape.shell_single_word(s)}.join("\n")
+          end
         end
       }
     }
