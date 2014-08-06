@@ -1,11 +1,10 @@
 require 'tempfile'
 
+# TODO : Add an option to provision the schema creation into THL as well
 class TungstenReplicatorProvisionTHL
   include TungstenScript
   include MySQLServiceScript
   include OfflineSingleServiceScript
-  
-  # TODO : Add an option to provision the schema creation into THL as well
   
   def main
     case command()
@@ -42,6 +41,9 @@ class TungstenReplicatorProvisionTHL
       raise "There were issues configure the sandbox MySQL server"
     end
     
+    # Calculate the base directory for the binaries so we can include it as
+    # a --preferred-path option. This will prevent any version conflict issues
+    # in the binaries we use.
     begin
       opt(:mysql_basedir, TU.cmd_result("grep ^BASEDIR #{opt(:mysql_dir)}/use | awk -F= '{print $2}'"))
       
@@ -74,7 +76,7 @@ class TungstenReplicatorProvisionTHL
     sandbox_my_cnf.puts("password=#{opt(:sandbox_password)}")
     sandbox_my_cnf.close()
     
-    mysqldump = "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_direct_datasource_host"))} --port=#{TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_direct_datasource_port"))}"
+    mysqldump = "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{opt(:extraction_host)} --port=#{opt(:extraction_port)}"
     mysql = "mysql --defaults-file=#{sandbox_my_cnf.path()} -h#{TI.hostname()} --port=#{opt(:sandbox_mysql_port)}"
     
     # Dump and load the schema structure for all entries listed in --schemas
@@ -97,15 +99,14 @@ class TungstenReplicatorProvisionTHL
       raise "Unable to apply MySQL schema to the staging MySQL server"
     end
     
-    change_master = "#{opt(:tmp_dir)}/change_master.sql"
-    begin
-      # Run the mysqldump command and load the contents directly into mysql
-      # The output is parsed by egrep to find the CHANGE MASTER statement
-      # and write it to another file      
+    # Run the mysqldump command and load the contents directly into mysql
+    # The output is parsed by egrep to find the CHANGE MASTER statement
+    # and write it to another file
+    begin      
       cmd = "#{mysqldump} --opt --single-transaction --master-data=2 --no-create-db --no-create-info #{opt(:schemas)}"
       script = File.open("#{opt(:tmp_dir)}/mysqldump.sh", "w")
       script.puts("#!/bin/bash")
-      script.puts("#{cmd} | tee >(egrep \"^-- CHANGE MASTER\" > #{change_master}) | #{mysql}")
+      script.puts("#{cmd} | tee >(egrep \"^-- CHANGE MASTER\" > #{opt(:change_master_file)}) | #{mysql}")
       script.close()
       File.chmod(0755, script.path())
       TU.cmd_result("#{script.path()}")
@@ -113,13 +114,13 @@ class TungstenReplicatorProvisionTHL
       TU.debug(ce)
       raise "Unable to extract and apply the MySQL data for provisioning"
     end
-
-    change_master_line = TU.cmd_result("cat #{change_master}")
     
-    binlog_file = nil
-    binlog_position = nil
     # Parse the CHANGE MASTER information for the file number and position
+    change_master_line = TU.cmd_result("cat #{opt(:change_master_file)}")
     if change_master_line != nil
+      binlog_file = nil
+      binlog_position = nil
+      
       m = change_master_line.match(/MASTER_LOG_FILE='([a-zA-Z0-9\.\-\_]*)', MASTER_LOG_POS=([0-9]*)/)
       if m
         binlog_file = m[1]
@@ -127,11 +128,11 @@ class TungstenReplicatorProvisionTHL
       else
         raise "Unable to parse CHANGE MASTER data"
       end
+      
+      TU.notice("The THL has been provisioned to #{binlog_file}:#{binlog_position} on #{opt(:extraction_host)}:#{opt(:extraction_port)}")
     else
       raise "Unable to find CHANGE MASTER data"
     end
-    
-    TU.notice("The THL has been provisioned to #{binlog_file}:#{binlog_position} on #{@options[:mysqlhost]}")
   end
 
   def configure
@@ -253,6 +254,12 @@ class TungstenReplicatorProvisionTHL
     opt(:replicator_dir, "#{opt(:working_dir)}/replicator")
     opt(:mysql_dir, "#{opt(:working_dir)}/mysql")
     opt(:tmp_dir, "#{opt(:working_dir)}/tmp")
+    
+    # File to store the CHANGE MASTER statement from mysqldump
+    opt(:change_master_file, "#{opt(:tmp_dir)}/change_master.sql")
+    
+    opt(:extraction_host, TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_direct_datasource_host")))
+    opt(:extraction_port, TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_direct_datasource_port")))
   end
   
   def get_mysql_options
@@ -276,35 +283,49 @@ class TungstenReplicatorProvisionTHL
   end
   
   def get_tungsten_replicator_options
+    # Static properties file for the replication service
+    static = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_svc_config_file"))
+    # Additional --property options for the staging replicator
     additional_properties = []
     
-    static = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_svc_config_file"))
-    
-    role = TI.trepctl_value(opt(:service), "role")
-    stages = TI.trepctl_property(opt(:service), "replicator.pipeline.#{role}")
-    stages.split(",").each{
-      |stage|
-      key = "replicator.stage.#{stage}.filters"
-      additional_properties << "--property=#{key}=#{TI.trepctl_property(opt(:service), key)}"
-    }
-    
-    key = "replicator.extractor.dbms.usingBytesForString"
-    additional_properties << "--property=#{key}=#{TI.trepctl_property(opt(:service), key)}"
-    
-    TU.cmd_result("egrep '^replicator\.filter\..*\..*=' #{static}").split("\n").each{
-      |line|
-      additional_properties << "--property=#{line}"
-    }
-    
-    {
+    # Options to read from the existing tpm configuration
+    tpm_options = {
       "repl-java-file-encoding" => "repl_java_file_encoding",
       "repl-java-user-timezone" => "repl_java_user_timezone"
-    }.each{
+    }
+    # Settings to read directly from the replication service configuration
+    replicator_settings = {
+      "replicator.extractor.dbms.usingBytesForString" => "replicator.extractor.dbms.usingBytesForString"
+    }
+    
+    case TI.trepctl_value(opt(:service), "role")
+    when "master"
+      replicator_settings["replicator.stage.binlog-to-q.filters"] = "replicator.stage.binlog-to-q.filters"
+      replicator_settings["replicator.stage.q-to-thl.filters"] = "replicator.stage.q-to-thl.filters"
+    when "direct"
+      replicator_settings["replicator.stage.binlog-to-q.filters"] = "replicator.stage.d-binlog-to-q.filters"
+      replicator_settings["replicator.stage.q-to-thl.filters"] = "replicator.stage.d-q-to-thl.filters"
+    end    
+    
+    # Read settings from tpm and include them using the tpm option
+    tpm_options.each{
       |prop,key|
       value = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), key))
       if value != ""
         additional_properties << "#{prop}=#{value}"
       end
+    }
+    
+    # Read settings from the static properties and include them with --property
+    replicator_settings.each{
+      |setting,match|
+      additional_properties << "--property=#{setting}=#{TI.trepctl_property(opt(:service), match)}"
+    }
+    
+    # Include all filter configuration settings
+    TU.cmd_result("egrep '^replicator\.filter\..*\..*=' #{static}").split("\n").each{
+      |line|
+      additional_properties << "--property=#{line}"
     }
     
     [
