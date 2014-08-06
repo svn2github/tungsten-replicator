@@ -92,10 +92,24 @@ function apply(csvinfo)
       + ";aws_secret_access_key=" + awsSecretKey + "' CSV NULL AS 'null'", stage_table_fqn,
       csv_filename);
   logger.info("COPY: " + copy_sql);
-  expected_copy_rows = runtime.exec("cat " + csv_file + " |wc -l");
-  rows = sql.execute(copy_sql);
+  sql.execute(copy_sql);
 
-  // Remove deleted rows from base table. 
+  // Check loaded row count.
+  expected_copy_rows = runtime.exec("cat " + csv_file + " |wc -l");
+  rows = sql.retrieveRowCount(stage_table_fqn);
+  if (rows != expected_copy_rows)
+  {
+    message = "Row count in staging table does not match: sql=" + copy_sql
+        + " expected_copy_rows=" + expected_copy_rows + " rows=" + rows;
+    logger.error(message);
+    throw new com.continuent.tungsten.replicator.ReplicatorException(message);
+  }
+  else
+  {
+    logger.info("COUNT: " + rows);
+  }
+
+  // Remove deleted rows from base table.
   delete_sql = runtime.sprintf(
     "DELETE FROM %s WHERE EXISTS (SELECT * FROM %s WHERE %s AND %s.tungsten_opcode IN ('D', 'UD'))",
     base_table_fqn, 

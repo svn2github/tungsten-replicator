@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2013 Continuent Inc.
+ * Copyright (C) 2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 
 package com.continuent.tungsten.replicator.scripting;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -57,6 +58,32 @@ public class SqlWrapper
         if (logger.isDebugEnabled())
             logger.debug("Executing SQL: " + sql);
         return statement.executeUpdate(sql);
+    }
+
+    /**
+     * Does a COUNT on a given table.
+     * 
+     * @param tableName Fully qualified table name (with schema name).
+     * @return Row count in the table.
+     */
+    public int retrieveRowCount(String tableName) throws SQLException
+    {
+        ResultSet rs = null;
+        int rowCount = -1;
+        try
+        {
+            rs = statement.executeQuery("SELECT COUNT(*) FROM " + tableName);
+            rs.next();
+            rowCount = rs.getInt(1);
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                rs.close();
+            }
+        }
+        return rowCount;
     }
 
     /**
