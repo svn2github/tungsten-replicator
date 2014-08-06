@@ -1104,7 +1104,15 @@ module ConfigureCommand
             next
           end
           if use_external_configuration?()
-            if cfg.getProperty([HOSTS, h_alias, HOST]) != Configurator.instance.hostname()
+            local_configuration = false
+            if cfg.getProperty([HOSTS, h_alias, HOST]) == Configurator.instance.hostname()
+              local_configuration = true
+            end
+            if Configurator.instance.is_localhost?(cfg.getProperty([HOSTS, h_alias, HOST]))
+              local_configuration = true
+            end
+
+            if local_configuration == false
               next
             end
           end

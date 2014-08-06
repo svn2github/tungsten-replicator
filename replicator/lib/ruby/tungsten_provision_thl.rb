@@ -5,6 +5,9 @@ class TungstenReplicatorProvisionTHL
   include MySQLServiceScript
   include OfflineSingleServiceScript
   
+  # TODO : Test with multiple services
+  # TODO : Add an option to provision the schema creation into THL as well
+  
   def main
     case command()
     when "provision"
