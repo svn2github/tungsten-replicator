@@ -178,21 +178,14 @@ class TungstenReplicatorProvisionTHL
       :required => true
     })
     
-    add_option(:manage_slave_status, {
-      :on => "--manage-slave-status String",
-      :parse => method(:parse_boolean_option),
-      :help => "Allow this script to run STOP SLAVE and START SLAVE on the source database",
-      :default => false
-    })
-    
     add_option(:schemas, {
       :on => "--schemas String",
       :help => "The provision process will be limited to these schemas",
       :required => true
     })
     
-    add_option(:cleanup_on_exit, {
-      :on => "--cleanup-on-exit String",
+    add_option(:cleanup_on_failure, {
+      :on => "--cleanup-on-failure String",
       :parse => method(:parse_boolean_option),
       :default => false
     })
@@ -357,8 +350,10 @@ class TungstenReplicatorProvisionTHL
   end
   
   def cleanup(code = 0)
-    if opt(:cleanup_on_exit) == true
+    if code == 0 || opt(:cleanup_on_failure) == true
       cleanup_sandbox()
+    else
+      TU.notice("The sandbox services were left in place. Run `#{script_name()} cleanup` to remove them.")
     end
     
     super(code)
