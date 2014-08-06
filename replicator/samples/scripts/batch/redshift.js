@@ -4,7 +4,7 @@
  * Contact: tungsten@continuent.org
  *
  * Load script for Redshift through S3. Uses AWS credentials from
- * share/aws-config.json configuration file.
+ * share/s3-config-{service}.json configuration file.
  *
  * @author <a href="mailto:linas.virbalas@continuent.com">Linas Virbalas</a>
  */
@@ -17,16 +17,19 @@ var awsSecretKey
 /** Reads AWS configuration file into a string. */
 function readAWSConfigFile()
 {
-  var awsConfigFile = "../../../../share/aws-config.json";
+  var serviceName = runtime.getContext().getServiceName();
+  var awsConfigFileName = "s3-config-" + serviceName + ".json";
+  var awsConfigFile = "../../../../share/" + awsConfigFileName;
   var f = new java.io.File(awsConfigFile);
   if (!f.isFile())
   {
-    message = "AWS configuration file (share/aws-config.json) does not exist, "
-        + "create one by using a sample (tungsten/cluster-home/samples/conf/aws-config.json)";
+    message = "AWS S3 configuration file (share/" + awsConfigFileName
+    ") does not exist, "
+        + "create one by using a sample (tungsten/cluster-home/samples/conf/s3-config.json)";
     throw new com.continuent.tungsten.replicator.ReplicatorException(message);
   }
 
-  logger.info("redshift.js using AWS configuration: " + awsConfigFile);
+  logger.info("redshift.js using AWS S3 configuration: " + awsConfigFile);
   var file = new java.io.BufferedReader(new java.io.FileReader(f));
   var sb = new java.lang.StringBuffer();
   while ((line = file.readLine()) != null)
