@@ -500,8 +500,16 @@ module TungstenScript
   end
   
   def cleanup(code = 0)
+    if code != 0
+      log_path = TU.log().path()
+      if log_path.to_s() != "" && File.exist?(log_path)
+        TU.notice("See #{script_log_path()} for more information")
+      end
+    end
+    
     TU.debug("Finish #{$0} #{ARGV.join(' ')}")
     TU.debug("RC: #{code}")
+    
     TU.exit(code)
   end
   
