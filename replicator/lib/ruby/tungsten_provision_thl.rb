@@ -5,7 +5,6 @@ class TungstenReplicatorProvisionTHL
   include MySQLServiceScript
   include OfflineSingleServiceScript
   
-  # TODO : Test with multiple services
   # TODO : Add an option to provision the schema creation into THL as well
   
   def main
@@ -296,9 +295,23 @@ class TungstenReplicatorProvisionTHL
       additional_properties << "--property=#{key}=#{TI.trepctl_property(opt(:service), key)}"
     }
     
+    key = "replicator.extractor.dbms.usingBytesForString"
+    additional_properties << "--property=#{key}=#{TI.trepctl_property(opt(:service), key)}"
+    
     TU.cmd_result("egrep '^replicator\.filter\..*\..*=' #{static}").split("\n").each{
       |line|
       additional_properties << "--property=#{line}"
+    }
+    
+    {
+      "repl-java-file-encoding" => "repl_java_file_encoding",
+      "repl-java-user-timezone" => "repl_java_user_timezone"
+    }.each{
+      |prop,key|
+      value = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), key))
+      if value != ""
+        additional_properties << "#{prop}=#{value}"
+      end
     }
     
     [
