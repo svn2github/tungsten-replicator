@@ -43,10 +43,20 @@ class TungstenReplicatorProvisionTHL
       raise "There were issues configure the sandbox MySQL server"
     end
     
+    begin
+      opt(:mysql_basedir, TU.cmd_result("grep ^BASEDIR #{opt(:mysql_dir)}/use | awk -F= '{print $2}'"))
+      
+      if opt(:mysql_basedir).to_s() == ""
+        raise "Unable to find the binary base directory for the MySQL sandbox"
+      end
+    rescue CommandError => ce
+      TU.debug(ce)
+      raise "Unable to find the binary base directory for the MySQL sandbox"
+    end
+    
     # Install the Tungsten Replicator to the sandbox directory using a
     # modified version of the configuration for this Tungsten Replicator
     f = File.open("#{opt(:tmp_dir)}/tungsten.ini", "w")
-    f.puts(TU.cmd_result("#{TI.root()}/tungsten/tools/tpm reverse --ini-format"))
     f.puts("[#{opt(:service)}]")
     f.puts(get_tungsten_replicator_options().join("\n"))
     f.close()
@@ -274,28 +284,52 @@ class TungstenReplicatorProvisionTHL
   end
   
   def get_tungsten_replicator_options
+    additional_properties = []
+    
+    static = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), "repl_svc_config_file"))
+    
+    role = TI.trepctl_value(opt(:service), "role")
+    stages = TI.trepctl_property(opt(:service), "replicator.pipeline.#{role}")
+    stages.split(",").each{
+      |stage|
+      key = "replicator.stage.#{stage}.filters"
+      additional_properties << "--property=#{key}=#{TI.trepctl_property(opt(:service), key)}"
+    }
+    
+    TU.cmd_result("egrep '^replicator\.filter\..*\..*=' #{static}").split("\n").each{
+      |line|
+      additional_properties << "--property=#{line}"
+    }
+    
     [
       "topology=master-slave",
       "home-directory=#{opt(:replicator_dir)}",
-      "datasource-mysql-conf=#{opt(:mysql_dir)}/my.sandbox.cnf",
-      "rmi-port=#{opt(:sandbox_rmi_port)}",
-      "thl-directory=#{TI.setting(TI.setting_key(HOSTS, "repl_thl_directory"))}",
-      "replication-host=#{TI.hostname()}",
+      "master=#{TI.hostname()}",
       "replication-port=#{opt(:sandbox_mysql_port)}",
-      "direct-replication-host=#{TI.hostname()}",
-      "direct-replication-port=#{opt(:sandbox_mysql_port)}",
       "replication-user=#{opt(:sandbox_user)}",
       "replication-password=#{opt(:sandbox_password)}",
-      "profile-script=",
-      "start=true",
-      "auto-enable=true",
+      "datasource-mysql-conf=#{opt(:mysql_dir)}/my.sandbox.cnf",
+      "rmi-port=#{opt(:sandbox_rmi_port)}",
       "disable-relay-logs=true",
       "repl-java-mem-size=4096",
-      "auto-recovery-max-attempts=5",
+      "auto-recovery-max-attempts=5",    
+      "start=true",
+      
+      # Use the same THL port so slaves can start applying while we provision
+      "--thl-port=#{TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), 'repl_thl_port'))}",
+
+      # Use the MySQL::Sandbox path for any necessary scripts
+      "--preferred-path=#{opt(:mysql_basedir)}/bin",
+
+      # Use the same THL directory so the existing replicator will use
+      # the new THL entries
+      "thl-directory=#{TI.setting(TI.setting_key(HOSTS, "repl_thl_directory"))}",
+      "skip-validation-check=THLStorageCheck",
+
       # Use a unique source-id for each iteration so the extractor starts
       # from the current binary log position
       "property=replicator.source_id=#{TI.hostname()}.sandbox.#{Process.pid}"
-    ]
+    ] + additional_properties
   end
   
   def get_sandbox_options
