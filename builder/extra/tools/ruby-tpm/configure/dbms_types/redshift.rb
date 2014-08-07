@@ -45,6 +45,10 @@ class RedshiftDatabasePlatform < ConfigureDatabasePlatform
     "jdbc:postgresql://${replicator.global.db.host}:${replicator.global.db.port}/#{@config.getProperty(REPL_REDSHIFT_DBNAME)}?tcpKeepAlive=true"
   end
   
+  def getJdbcQueryUrl
+    "jdbc:postgresql://#{@host}:#{@port}/#{@config.getProperty(REPL_REDSHIFT_DBNAME)}?tcpKeepAlive=true"
+  end
+  
   def getJdbcDriver()
     "org.postgresql.Driver"
   end

@@ -326,6 +326,8 @@ class TungstenInstall
     case datasource_type(service, use_direct_extractor)
     when "mysql"
       return true
+    when "redshift"
+      return true
     else
       return false
     end

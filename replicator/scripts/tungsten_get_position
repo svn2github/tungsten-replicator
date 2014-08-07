@@ -10,7 +10,15 @@ class TungstenReplicatorGetPosition
   include SingleServiceScript
   
   def main
-    service_schema = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_svc_schema"))
+    if TI.can_sql?(opt(:service))
+      service_schema = TI.setting(TI.setting_key(REPL_SERVICES, @options[:service], "repl_svc_schema"))
+      get_position_from_schema(service_schema)
+    else
+      TU.error("Unable to run #{script_name()} because the #{TI.datasource_type(opt(:service))} datasource for #{opt(:service)} is not supported.")
+    end
+  end
+  
+  def get_position_from_schema(service_schema)
     sql = "SELECT * FROM #{service_schema}.trep_commit_seqno;"
     
     begin
@@ -21,12 +29,12 @@ class TungstenReplicatorGetPosition
     end
     
     if position.size() == 0
-      puts JSON.pretty_generate({})
+      TU.output JSON.pretty_generate({})
     elsif position.size() == 1
-      puts JSON.pretty_generate(position[0])
+      TU.output JSON.pretty_generate(position[0])
     else
       if opt(:all) == true
-        puts JSON.pretty_generate(position)
+        TU.output JSON.pretty_generate(position)
       else
         TU.error("Unable to print position information because there are multiple positions. Add the '--all' option to display all records.")
       end
