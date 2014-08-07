@@ -87,11 +87,11 @@ function apply(csvinfo)
   sql.execute(clear_sql);
 
   // Create and execute copy command.
-  copy_sql = runtime.sprintf("COPY %s FROM '" + awsS3Path + "/%s' "
-      + "CREDENTIALS 'aws_access_key_id=" + awsAccessKey
-      + ";aws_secret_access_key=" + awsSecretKey + "' CSV NULL AS 'null'", stage_table_fqn,
-      csv_filename);
-  logger.info("COPY: " + copy_sql);
+  copy_sql = runtime.sprintf(
+          "COPY %s FROM '%s/%s' CSV NULL AS 'null' CREDENTIALS 'aws_access_key_id=%s;aws_secret_access_key=%s'",
+          stage_table_fqn, awsS3Path, csv_filename, awsAccessKey, awsSecretKey);
+  logger.info("COPY: "
+      + copy_sql.substring(0, copy_sql.indexOf("CREDENTIALS") + 12) + "...");
   sql.execute(copy_sql);
 
   // Check loaded row count.
@@ -106,7 +106,10 @@ function apply(csvinfo)
   }
   else
   {
-    logger.info("COUNT: " + rows);
+    if (logger.isDebugEnabled())
+    {
+      logger.debug("COUNT: " + rows);
+    }
   }
 
   // Remove deleted rows from base table.
