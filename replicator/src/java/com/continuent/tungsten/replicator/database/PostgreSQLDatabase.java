@@ -173,7 +173,8 @@ public class PostgreSQLDatabase extends AbstractDatabase
 
     /**
      * Checks whether the schema exists and, if it does, drops it. This mimics
-     * MySQLDatabase's behavior "DROP DATABASE IF EXISTS". {@inheritDoc}
+     * MySQLDatabase's behavior "DROP DATABASE IF EXISTS". Also drops objects
+     * inside of it too. {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropSchema(java.lang.String)
      */
@@ -182,7 +183,7 @@ public class PostgreSQLDatabase extends AbstractDatabase
         // JDBC driver returns schema names in lower case.
         if (getSchemas().contains(schema.toLowerCase()))
         {
-            String SQL = "DROP SCHEMA " + schema;
+            String SQL = "DROP SCHEMA " + schema + " CASCADE";
             execute(SQL);
         }
         else if (logger.isDebugEnabled())
