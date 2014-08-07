@@ -1,6 +1,7 @@
 require 'tempfile'
 
 # TODO : Add an option to provision the schema creation into THL as well
+# TODO : Include any encryption settings from the installed replicator
 class TungstenReplicatorProvisionTHL
   include TungstenScript
   include MySQLServiceScript
@@ -201,7 +202,21 @@ class TungstenReplicatorProvisionTHL
     })
   end
   
+  def get_offline_services_list
+    if command() == "cleanup"
+      []
+    else
+      super()
+    end
+  end
+  
   def validate
+    if command() == "cleanup"
+      @option_definitions[:tungsten_replicator_package][:required] = false
+      @option_definitions[:mysql_package][:required] = false
+      @option_definitions[:schemas][:required] = false
+    end
+    
     super()
     
     unless TU.is_valid?()
@@ -215,28 +230,30 @@ class TungstenReplicatorProvisionTHL
       TU.error("Unable to write to #{opt(:sandbox_dir)}")
     end
     
-    unless TI.is_running?("replicator")
-      TU.error("The replicator must be running with the #{opt(:service)} service OFFLINE. Try running `#{TI.service_path("replicator")} start offline`.")
-    else
-      unless ["master", "direct"].include?(TI.trepctl_value(opt(:service), "role"))
-        TU.error("The #{script_name()} script may only be run on a master replication service.")
+    if command() == "provision"
+      unless TI.is_running?("replicator")
+        TU.error("The replicator must be running with the #{opt(:service)} service OFFLINE. Try running `#{TI.service_path("replicator")} start offline`.")
+      else
+        unless ["master", "direct"].include?(TI.trepctl_value(opt(:service), "role"))
+          TU.error("The #{script_name()} script may only be run on a master replication service.")
+        end
       end
-    end
     
-    if File.exist?(opt(:tungsten_replicator_package))
-      unless opt(:tungsten_replicator_package)[-7,7] == ".tar.gz"
-        TU.error("The --tungsten-replicator-package option must be the path to a .tar.gz file")
+      if File.exist?(opt(:tungsten_replicator_package))
+        unless opt(:tungsten_replicator_package)[-7,7] == ".tar.gz"
+          TU.error("The --tungsten-replicator-package option must be the path to a .tar.gz file")
+        end
+      else
+        TU.error("Unable to find a file at #{opt(:tungsten_replicator_package)}")
       end
-    else
-      TU.error("Unable to find a file at #{opt(:tungsten_replicator_package)}")
-    end
     
-    if File.exist?(opt(:mysql_package))
-      unless opt(:mysql_package)[-7,7] == ".tar.gz"
-        TU.error("The --mysql-package option must be the path to a .tar.gz file")
+      if File.exist?(opt(:mysql_package))
+        unless opt(:mysql_package)[-7,7] == ".tar.gz"
+          TU.error("The --mysql-package option must be the path to a .tar.gz file")
+        end
+      else
+        TU.error("Unable to find a file at #{opt(:mysql_package)}")
       end
-    else
-      TU.error("Unable to find a file at #{opt(:mysql_package)}")
     end
     
     if TU.which("make_sandbox") == nil
