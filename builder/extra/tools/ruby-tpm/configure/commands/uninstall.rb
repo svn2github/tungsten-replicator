@@ -86,6 +86,14 @@ module UninstallClusterDeploymentStep
     end
     
     if is_replicator?()
+      # Start the replicator in OFFLINE mode so we can reset services
+      replicator_started = false
+      begin
+        cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/replicator start offline")
+        replicator_started = true
+      rescue CommandError
+      end
+      
       Configurator.instance.command.build_topologies(@config)
       @config.getPropertyOr([REPL_SERVICES], {}).each_key{
         |rs_alias|
@@ -93,6 +101,7 @@ module UninstallClusterDeploymentStep
           next
         end
         
+        rs_name = @config.getProperty([REPL_SERVICES, rs_alias, DEPLOYMENT_SERVICE])
         ds = get_applier_datasource(rs_alias)
         if ds.is_a?(MySQLDatabasePlatform)
           mysql_result = ds.get_value("select @@read_only")
@@ -106,7 +115,16 @@ module UninstallClusterDeploymentStep
           if mysql_result == "1"
             ds.run("set global read_only=0")
           end
-          ds.run("drop schema if exists #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA])}")
+        end
+        
+        if replicator_started == true
+          begin
+            cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl -service #{rs_name} reset -all -y")
+          rescue CommandError
+            warning("There was a problem resetting the #{rs_name} replication service")
+          end
+        else
+          warning("Unable to reset the #{rs_name} replication service")
         end
         
         [
@@ -123,6 +141,10 @@ module UninstallClusterDeploymentStep
           end
         }
       }
+      
+      if replicator_started == true
+        cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/replicator stop")
+      end
     end
     
     # Only remove the files in the share directory that we put in place
