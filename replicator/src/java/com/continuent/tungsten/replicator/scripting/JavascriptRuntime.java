@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): 
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.scripting;
@@ -155,11 +155,11 @@ public class JavascriptRuntime
         }
         if (!pe.isSuccessful())
         {
-            logger.error("OS command failed: command=" + command + " rc="
+            String msg = "OS command failed: command=" + command + " rc="
                     + pe.getExitValue() + " stdout=" + pe.getStdout()
-                    + " stderr=" + pe.getStderr());
-            throw new ReplicatorException("OS command failed: command="
-                    + command);
+                    + " stderr=" + pe.getStderr();
+            logger.error(msg);
+            throw new ReplicatorException(msg);
         }
         return pe.getStdout();
     }
