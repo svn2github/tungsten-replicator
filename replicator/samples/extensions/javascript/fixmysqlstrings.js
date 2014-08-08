@@ -99,7 +99,7 @@ function fixUpStrings(schema, table, columns, columnValues)
     // See if we have a string that needs sorting out.  12 is VARCHAR
     // from java.sql.Type.VARCHAR. 
     if (colType == 12) {
-      logger.info("Found a VARCHAR column that may need sorting: column=" + colName + ' table=' + schema + '.' + table);
+      logger.debug("Found a VARCHAR column that may need sorting: column=" + colName + ' table=' + schema + '.' + table);
       // Iterate through the rows.
       for (row = 0; row < columnValues.size(); row++) {
         values = columnValues.get(row);
