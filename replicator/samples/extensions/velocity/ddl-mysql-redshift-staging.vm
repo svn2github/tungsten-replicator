@@ -18,7 +18,7 @@ generally map to those used by Tungsten Replicator.
 
 Options:
   -opt schemaPrefix prefix - prefix to add to schema name
-                             (default: stage_xxx_)
+                             (default - no prefix)
   -opt tablePrefix prefix  - prefix to add to table names
                              (default: stage_xxx_)
 #else
@@ -32,13 +32,17 @@ Options:
 
 ## Set defaul prefix values.
 #if ( !$schemaPrefix )
-#set ( $schemaPrefix = "stage_xxx_" )
+#set ( $schemaPrefix = "" )
 #end
 #if( !$tablePrefix )
 #set ( $tablePrefix = "stage_xxx_" )
 #end
 $table.setSchema($schemaPrefix.concat($table.getSchema()))## 
 $table.setTable($tablePrefix.concat($table.getName()))##
+#if ( $counter == 1 )
+CREATE SCHEMA ${table.getSchema()};
+
+#end
 ## Tungsten transaction identification columns.
 #set ( $customColumns = "  tungsten_opcode CHAR(2),
   tungsten_seqno INT,

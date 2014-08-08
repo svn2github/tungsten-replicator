@@ -17,6 +17,8 @@ base tables. Reports errors (ERROR) and warnings (WARN). Column
 mappings generally map to those used by Tungsten Replicator.
 #else
 #parse("includes/ddl-header.vm")
+
+CREATE SCHEMA ${table.getSchema()};
 #end
 #end
 ## Stop processing if help requested.
