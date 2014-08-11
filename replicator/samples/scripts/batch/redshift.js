@@ -12,12 +12,12 @@
 // AWS details.
 var awsS3Path;
 var awsAccessKey;
-var awsSecretKey
+var awsSecretKey;
+var serviceName;
 
 /** Reads AWS configuration file into a string. */
 function readAWSConfigFile()
 {
-  var serviceName = runtime.getContext().getServiceName();
   var awsConfigFileName = "s3-config-" + serviceName + ".json";
   var awsConfigFile = "../../../../share/" + awsConfigFileName;
   var f = new java.io.File(awsConfigFile);
@@ -44,6 +44,8 @@ function readAWSConfigFile()
 /** Called once when applier goes online. */
 function prepare()
 {
+  serviceName = runtime.getContext().getServiceName();
+  
   // Read AWS details from configuration file.
   var json = readAWSConfigFile();
   awsConfig = eval("(" + json + ")");
@@ -79,7 +81,7 @@ function apply(csvinfo)
   where_clause = csvinfo.getPKColumnJoinList(stage_table_fqn, base_table_fqn);
 
   // Upload CSV to S3.
-  runtime.exec("s3cmd put " + csv_file + " " + awsS3Path + "/");
+  runtime.exec("s3cmd put " + csv_file + " " + awsS3Path + "/" + serviceName + "/");
 
   // Clear the staging table.
   clear_sql = runtime.sprintf("DELETE FROM %s", stage_table_fqn);
@@ -88,8 +90,9 @@ function apply(csvinfo)
 
   // Create and execute copy command.
   copy_sql = runtime.sprintf(
-          "COPY %s FROM '%s/%s' CSV NULL AS 'null' CREDENTIALS 'aws_access_key_id=%s;aws_secret_access_key=%s'",
-          stage_table_fqn, awsS3Path, csv_filename, awsAccessKey, awsSecretKey);
+          "COPY %s FROM '%s/%s/%s' CSV NULL AS 'null' CREDENTIALS 'aws_access_key_id=%s;aws_secret_access_key=%s'",
+          stage_table_fqn, awsS3Path, serviceName, csv_filename, awsAccessKey,
+          awsSecretKey);
   logger.info("COPY: "
       + copy_sql.substring(0, copy_sql.indexOf("CREDENTIALS") + 12) + "...");
   sql.execute(copy_sql);
