@@ -318,11 +318,22 @@ class Transformer
   def find_template_addons(pattern)
     addons = []
     
+    # Include a simple search path for use with --template-search-path
+    simple_pattern = pattern.gsub(/\/samples\/conf/, "")
+    if simple_pattern == pattern
+      patterns = [pattern]
+    else
+      patterns = [simple_pattern, pattern]
+    end
+    
     get_search_directories().each {
       |dir|
-      Dir.glob("#{dir}/#{pattern}.addon*").each {
-        |file|
-        addons << file
+      patterns.each{
+        |p|
+        Dir.glob("#{dir}/#{p}.addon*").each {
+          |file|
+          addons << file
+        }
       }
     }
     
@@ -339,14 +350,26 @@ class Transformer
       |dir|
       search.each {
         |pattern|
-        Dir.glob("#{dir}/#{pattern}") {
-          |file|
-          base = File.basename(file)
-          
-          # Do not store the file if it is a duplicate of another template
-          unless templates.has_key?(base)
-            templates[base] = [file] + find_template_addons(file[dir.length+1, file.length])
-          end
+        
+        # Include a simple search path for use with --template-search-path
+        simple_pattern = pattern.gsub(/\/samples\/conf/, "")
+        if simple_pattern == pattern
+          patterns = [pattern]
+        else
+          patterns = [simple_pattern, pattern]
+        end
+        
+        patterns.each {
+          |p|
+          Dir.glob("#{dir}/#{p}") {
+            |file|
+            base = File.basename(file)
+
+            # Do not store the file if it is a duplicate of another template
+            unless templates.has_key?(base)
+              templates[base] = [file] + find_template_addons(file[dir.length+1, file.length])
+            end
+          }
         }
       }
     }

@@ -461,8 +461,14 @@ class ReplicationServiceAutoEnable < ConfigurePrompt
   include AdvancedPromptModule
   
   def initialize
+    if Configurator.instance.is_enterprise?()
+      default = "true"
+    else
+      default = "true"
+    end
+    
     super(REPL_AUTOENABLE, "Put replication services ONLINE after the replicator starts", 
-      PV_BOOLEAN, "true")
+      PV_BOOLEAN, default)
   end
 end
 
@@ -1246,6 +1252,7 @@ class ReplicationServiceFilterConfig < ConfigurePrompt
   
   def get_template_value
     patterns = []
+    patterns << "tungsten-replicator/filters/*.tpl"
     patterns << "tungsten-replicator/samples/conf/filters/default/*.tpl"
     
     if get_applier_datasource().class != get_extractor_datasource.class
@@ -1267,6 +1274,7 @@ class ReplicationServiceBackupConfig < ConfigurePrompt
   
   def get_template_value
     patterns = []
+    patterns << "tungsten-replicator/backup_methods/*.tpl"
     patterns << "tungsten-replicator/samples/conf/backup_methods/default/*.tpl"
     patterns << "tungsten-replicator/samples/conf/backup_methods/#{get_applier_datasource().get_uri_scheme()}/*.tpl"
     patterns
