@@ -411,6 +411,15 @@ class TungstenInstall
     end
   end
   
+  def check_sql_results(results)
+    results.each{
+      |r|
+      if r["error"] != nil
+        raise r["error"]
+      end
+    }
+  end
+  
   def self.get(path)
     @@instances ||= {}
     unless @@instances.has_key?(path)
