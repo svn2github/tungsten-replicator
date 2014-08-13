@@ -32,13 +32,13 @@ CREATE TABLE trep_commit_seqno
   task_id INT,
   seqno BIGINT,
   fragno SMALLINT,
-  last_frag CHAR(1),
-  source_id VARCHAR(512) /* VARCHAR(128) */,
+  last_frag BOOLEAN,
+  source_id VARCHAR(128) /* VARCHAR(128) */,
   epoch_number BIGINT,
-  eventid VARCHAR(512) /* VARCHAR(128) */,
+  eventid VARCHAR(128) /* VARCHAR(128) */,
   applied_latency INT,
   update_timestamp TIMESTAMP,
-  shard_id VARCHAR(512) /* VARCHAR(128) */,
+  shard_id VARCHAR(128) /* VARCHAR(128) */,
   extract_timestamp TIMESTAMP,
   PRIMARY KEY (task_id)
 );
