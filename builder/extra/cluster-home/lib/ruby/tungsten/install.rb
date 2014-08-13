@@ -75,8 +75,8 @@ class TungstenInstall
   def dataservices
     ds_list = TU.cmd_result("egrep \"^service.name\" #{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/conf/static-* | awk -F \"=\" '{print $2}'").split("\n")
     
-    if use_tpm?()
-      ds_list = ds_list + TU.cmd_result("#{tpm()} query dataservices | grep COMPOSITE | awk -F \" \" '{print $1}'").split("\n")
+    if use_tpm?() && is_manager?()
+      ds_list = ds_list + TU.cmd_result("#{tpm()} query dataservices | awk -F \" \" '{print $1}'").split("\n")
     end
     
     ds_list.uniq()
