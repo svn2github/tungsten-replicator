@@ -94,8 +94,13 @@ fi
 
 printHeader "REPLICATOR BUILD SCRIPT"
 
-echo "Did you update config.local? (press enter to continue)"
-read ignored_answer
+if [ -n "$SKIP_PROMPT" ]
+then
+    echo "Skipping confirmation, as the variable SKIP_PROMPT is set"
+else
+    echo "Did you update config.local? (press enter to continue)"
+    read ignored_answer
+fi
 
 source ./$config
 
@@ -155,19 +160,23 @@ if [ -z $SVN_USER ]; then
   export SVN_USER=anonymous
 # else use $SVN_USER environment variable
 fi
-echo "OK to set code.google.com <http://code.google.com> SVN_USER to $SVN_USER?"
-echo "Press enter to continue.  Otherwise quit and set SVN_USER in your environment"
-read ignored_answer
 
-if [ -z $SVN_USER ]; then
-  export SVN_USER=`whoami`
-  echo "OK to set code.google.com SVN_USER to $SVN_USER?"
-  echo "Press enter to continue.  Otherwise quit and set SVN_USER in your environment"
-  read ignored_answer
+if [ -n "$SKIP_PROMPT" ]
+then
+    echo "Using SVN_USER=$SVN_USER"
 else
-  export SVN_USER=anonymous
+    echo "OK to set code.google.com <http://code.google.com> SVN_USER to $SVN_USER?"
+    echo "Press enter to continue.  Otherwise quit and set SVN_USER in your environment"
+    read ignored_answer
+    if [ -z $SVN_USER ]; then
+      export SVN_USER=`whoami`
+      echo "OK to set code.google.com SVN_USER to $SVN_USER?"
+      echo "Press enter to continue.  Otherwise quit and set SVN_USER in your environment"
+      read ignored_answer
+    else
+      export SVN_USER=anonymous
+    fi
 fi
-
 
 # Release name.
 product="Tungsten Replicator"
