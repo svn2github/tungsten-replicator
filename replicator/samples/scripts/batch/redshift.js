@@ -53,8 +53,10 @@ function prepare()
   awsS3Path = awsConfig["awsS3Path"];
   awsAccessKey = awsConfig["awsAccessKey"];
   awsSecretKey = awsConfig["awsSecretKey"];
+  cleanUpS3Files = awsConfig["cleanUpS3Files"];
 
   logger.info("AWS S3 CSV staging path: " + awsS3Path);
+  logger.info("Remove CSV files after upload: " + cleanUpS3Files);
 }
 
 /** Called at start of batch transaction. */
@@ -81,7 +83,13 @@ function apply(csvinfo)
   where_clause = csvinfo.getPKColumnJoinList(stage_table_fqn, base_table_fqn);
 
   // Upload CSV to S3.
-  runtime.exec("s3cmd put " + csv_file + " " + awsS3Path + "/" + serviceName + "/");
+  s3PutCmd = runtime.sprintf("s3cmd put %s %s/%s/", csv_file, awsS3Path,
+      serviceName);
+  runtime.exec(s3PutCmd);
+  if (logger.isDebugEnabled())
+  {
+    logger.debug(s3PutCmd);
+  }
 
   // Clear the staging table.
   clear_sql = runtime.sprintf("DELETE FROM %s", stage_table_fqn);
@@ -139,6 +147,18 @@ function apply(csvinfo)
   );
   logger.info("INSERT: " + insert_sql);
   sql.execute(insert_sql);
+
+  // Clean-up CSV file from S3 if desired.
+  if (cleanUpS3Files)
+  {
+    s3DelCmd = runtime.sprintf("s3cmd del %s/%s/%s", awsS3Path, serviceName,
+        csv_filename);
+    if (logger.isDebugEnabled())
+    {
+      logger.debug(s3DelCmd);
+    }
+    runtime.exec(s3DelCmd);
+  }
 }
 
 /** Called at commit time for a batch. */
