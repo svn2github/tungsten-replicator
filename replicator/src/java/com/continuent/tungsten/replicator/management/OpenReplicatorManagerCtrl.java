@@ -45,6 +45,7 @@ import java.util.TreeSet;
 import javax.management.remote.JMXConnector;
 
 import org.apache.log4j.Logger;
+import org.json.simple.JSONValue;
 
 import com.continuent.tungsten.common.cluster.resource.OpenReplicatorParams;
 import com.continuent.tungsten.common.cluster.resource.physical.Replicator;
@@ -1648,29 +1649,9 @@ public class OpenReplicatorManagerCtrl
     private static void printPropertiesJSON(Map<String, String> props,
             int propIdx)
     {
-        // Construct formating strings.
-        String format = "\"%s\": \"%s\"";
-
-        println("{");
-
-        Object[] keys = props.keySet().toArray();
-        for (int i = 0; i < keys.length; i++)
-        {
-            String key = (String) keys[i];
-            String value = props.get(key);
-            if (value != null)
-                printf(format, key, value);
-            else
-                printf(format, key, "");
-            if (i < (keys.length - 1))
-                println(",");
-            else
-                println("");
-        }
-
-        print("}");
-        if (propIdx < 0)
-            println("");
+        // Using a JSON library to escape various special characters.
+        String jsonText = JSONValue.toJSONString(props);
+        println(jsonText);
     }
 
     /**
