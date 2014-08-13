@@ -286,6 +286,60 @@ class TungstenReplicatorProvisionSlave
       end
     end
     
+    valid_service_option = false
+    if opt(:service) != nil
+      if TI.dataservices().include?(opt(:service))
+        valid_service_option = true
+      end
+    end
+    # Look at services on the source and suggest a proper value
+    if valid_service_option == false && opt(:source) != nil
+      begin
+        local_services = TI.dataservices()
+        master_services = []
+        service_names = []
+        raw = TU.ssh_result("#{TI.root()}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/trepctl services -json", 
+          opt(:source), TI.user())
+        services = JSON.parse(raw)
+        services.each{
+          |s|
+          svc = s["serviceName"]
+          
+          # Only suggest this service if it is part of the local replicator
+          unless local_services.include?(svc)
+            next
+          end
+          
+          service_names << svc
+          if s["role"] == "master"
+            master_services << svc
+          end
+        }
+        
+        if opt(:service) == nil
+          error = "The --service option was not given."
+        else
+          error = "The --service option provided does not exist."
+        end
+        
+        case master_services.size()
+        when 0
+          TU.error("#{error} You must specify it as one of #{service_names.join(',')}.")
+        when 1
+          svc = master_services[0]
+          TU.error("#{error} You must specify it as #{svc} which is the master on #{opt(:source)}.")
+        else
+          TU.error("#{error} You must specify it as one of #{master_services.join(',')}.")
+        end
+      rescue ParserError => pe
+        TU.debug(pe)
+        TU.error("Unable to suggest a value for --service due to parsing issues.")
+      rescue CommandError => ce
+        TU.debug(ce)
+        TU.error("Unable to suggest a value for --service due to issues on #{opt(:source)}")
+      end
+    end
+    
     # This section evaluates :mysqldump and :xtrabackup to determine the best
     # mechanism to use. This will need to be more generic as we support
     # more platforms
@@ -308,7 +362,7 @@ class TungstenReplicatorProvisionSlave
       end
     end
     
-    if TI
+    if opt(:service) && TI
       topology = TI.setting(TI.setting_key(DATASERVICES, opt(:service), "dataservice_topology"))
     else
       topology = nil
