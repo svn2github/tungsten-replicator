@@ -141,10 +141,7 @@ module ClusterCommandModule
     
     each_prompt(ReplicationServices){
       |prompt|
-      if prompt.is_a?(MySQLServerID)
-        next
-      end
-      
+
       add_prompt(opts, prompt, @replication_options, [REPL_SERVICES])
     }
     
