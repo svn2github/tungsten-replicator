@@ -432,6 +432,34 @@ public abstract class LogEvent
                         }
 
                     }
+                    else if (tmpHeader[MysqlBinlog.EVENT_TYPE_OFFSET] == MysqlBinlog.ROTATE_EVENT)
+                    {
+                        // Found a log rotate event : this can happen with
+                        // MyISAM table for example.
+                        fullEvent = new byte[tmpHeader.length + eventLength];
+                        readDataFromBinlog(runtime, tempPosition, fullEvent,
+                                tmpHeader.length, eventLength, 120);
+
+                        System.arraycopy(tmpHeader, 0, fullEvent, 0,
+                                tmpHeader.length);
+
+                        LogEvent tempEvent = readLogEvent(parseStatements,
+                                tempPos, fullEvent, fullEvent.length,
+                                descriptionEvent, useBytesForString);
+
+                        if (tempEvent instanceof RotateLogEvent)
+                        { // It's real so we need to rotate the log.
+                            tempPosition.close();
+                            tempPosition
+                                    .setFileName(((RotateLogEvent) tempEvent)
+                                            .getNewBinlogFilename());
+                            tempPosition.open();
+                        }
+                        else
+                            throw new ExtractorException(
+                                    "Failed to extract RotateLogEvent"
+                                            + tempPosition);
+                    }
                     else
                     {
                         long skip = 0;

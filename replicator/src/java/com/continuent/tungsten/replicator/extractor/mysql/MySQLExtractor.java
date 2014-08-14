@@ -922,6 +922,11 @@ public class MySQLExtractor implements RawExtractor
                         if (useRelayLogs)
                             purgeRelayLogs(false);
                     }
+                    if (inTransaction)
+                    {
+                        doCommit = true;
+                        inTransaction = !autocommitMode;
+                    }
                 }
                 else if (logEvent.getClass() == TableMapLogEvent.class)
                 {
@@ -1019,6 +1024,9 @@ public class MySQLExtractor implements RawExtractor
                     statement.setErrorCode(event.getErrorCode());
                     dataArray.add(statement);
                     doFileFragment = true;
+
+                    if (!inTransaction)
+                        doCommit = true;
                 }
                 else if (logEvent instanceof DeleteFileLogEvent)
                 {
