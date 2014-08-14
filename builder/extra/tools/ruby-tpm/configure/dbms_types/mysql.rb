@@ -1714,9 +1714,6 @@ module ConfigureDeploymentStepMySQL
 	  end
     
     if is_manager?() && (get_applier_datasource().is_a?(MySQLDatabasePlatform) || get_extractor_datasource().is_a?(MySQLDatabasePlatform))
-      transform_service_template("tungsten-manager/conf/checker.mysqlserver.properties",
-        "tungsten-manager/samples/conf/checker.mysqlserver.properties.tpl")
-      
       write_svc_properties("mysql", @config.getProperty(REPL_BOOT_SCRIPT))
       
       if @config.getProperty(REPL_MYSQL_RO_SLAVE) == "true"

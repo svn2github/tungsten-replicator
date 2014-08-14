@@ -33,11 +33,14 @@ module ConfigureDeploymentStepManager
     transform_host_template("tungsten-manager/conf/monitor.properties",
       "tungsten-manager/samples/conf/monitor.properties.tpl")
     
+    transform_host_template("tungsten-manager/conf/checker.tungstenreplicator.properties",
+      "tungsten-manager/samples/conf/checker.tungstenreplicator.properties.tpl")
+    
+    transform_service_template("tungsten-manager/conf/checker.mysqlserver.properties",
+      "tungsten-manager/samples/conf/checker.mysqlserver.properties.tpl")
+    
     unless @config.getProperty(MGR_IS_WITNESS) == "true"
-      transform_host_template("tungsten-manager/conf/checker.tungstenreplicator.properties",
-        "tungsten-manager/samples/conf/checker.tungstenreplicator.properties.tpl")
-
-	    transform_host_template("tungsten-manager/conf/checker.instrumentation.properties",
+      transform_host_template("tungsten-manager/conf/checker.instrumentation.properties",
 	      "tungsten-manager/samples/conf/checker.instrumentation.properties.tpl")
     end
     

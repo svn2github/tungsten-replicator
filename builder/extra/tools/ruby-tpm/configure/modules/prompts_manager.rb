@@ -52,6 +52,8 @@ MGR_REPL_DBLOGIN = "mgr_repl_user"
 MGR_REPL_DBPASSWORD = "mgr_repl_password"
 MGR_REPL_DBPORT = "mgr_repl_port"
 MGR_REPL_SCHEMA = "mgr_repl_schema"
+MGR_REPL_RMI_PORT = "mgr_repl_rmi_port"
+MGR_REPL_JDBC_DRIVER = "mgr_repl_jdbc_driver"
 
 class Managers < GroupConfigurePrompt
   def initialize
@@ -820,5 +822,35 @@ class ManagerReplicationDBSchema < ConfigurePrompt
     master = @config.getProperty(get_dataservice_key(DATASERVICE_MASTER_MEMBER)).split(",")[0]
     rs_alias = to_identifier("#{get_dataservice()}_#{master}")
     @default = @config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA])
+  end
+end
+
+class ManagerReplicationRMIPort < ConfigurePrompt
+  include ManagerPrompt
+  include HiddenValueModule
+  
+  def initialize
+    super(MGR_REPL_RMI_PORT, "Replication RMI port for the manager to check replication hosts", PV_INTEGER)
+  end
+  
+  def load_default_value
+    master = @config.getProperty(get_dataservice_key(DATASERVICE_MASTER_MEMBER)).split(",")[0]
+    h_alias = to_identifier(master)
+    @default = @config.getProperty([HOSTS, h_alias, REPL_RMI_PORT])
+  end
+end
+
+class ManagerReplicationJDBCDriver < ConfigurePrompt
+  include ManagerPrompt
+  include HiddenValueModule
+  
+  def initialize
+    super(MGR_REPL_JDBC_DRIVER, "Replication JDBC driver for the manager to check replication hosts", PV_ANY)
+  end
+  
+  def load_default_value
+    master = @config.getProperty(get_dataservice_key(DATASERVICE_MASTER_MEMBER)).split(",")[0]
+    rs_alias = to_identifier("#{get_dataservice()}_#{master}")
+    @default = @config.getTemplateValue([REPL_SERVICES, rs_alias, REPL_DBJDBCDRIVER])
   end
 end
