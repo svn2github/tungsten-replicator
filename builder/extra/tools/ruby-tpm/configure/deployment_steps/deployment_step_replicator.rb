@@ -37,12 +37,6 @@ module ConfigureDeploymentStepReplicator
       info("Configure the #{ds_alias} replication service")
       
       if @config.getProperty([REPL_SERVICES, hs_alias, REPL_SVC_CLUSTER_ENABLED]) == "true"
-        service_transformer("tungsten-manager/conf/mysql_checker_query.sql") {
-          |t|
-          t.timestamp?(false)
-          t.set_template("tungsten-manager/samples/conf/mysql_checker_query.sql.tpl")
-        }
-        
         write_replication_monitor_extension()
       end
       

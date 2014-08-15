@@ -20,6 +20,12 @@ module ConfigureDeploymentStepManager
     transform_host_template("tungsten-manager/conf/mysql.service.properties",
       "tungsten-manager/samples/conf/mysql.service.properties.tpl")
     
+    host_transformer("tungsten-manager/conf/mysql_checker_query.sql") {
+      |t|
+      t.timestamp?(false)
+      t.set_template("tungsten-manager/samples/conf/mysql_checker_query.sql.tpl")
+    }
+    
     group_communication_config = @config.getProperty(MGR_GROUP_COMMUNICATION_CONFIG)
     host_transformer("tungsten-manager/conf/#{group_communication_config}") {
       |t|
