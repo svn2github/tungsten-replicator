@@ -865,6 +865,7 @@ class RestartComponentsCheck < ConfigureValidationCheck
         output_property(RESTART_REPLICATORS, false)
         output_property(RESTART_MANAGERS, false)
         output_property(RESTART_CONNECTORS, false)
+        output_property(RECONFIGURE_CONNECTORS_ALLOWED, true)
         
         updated_keys.each{
           |k|
@@ -882,17 +883,28 @@ class RestartComponentsCheck < ConfigureValidationCheck
           unless get_output_property(RESTART_CONNECTORS) == true
             output_property(RESTART_CONNECTORS, p.require_connector_restart?())
           end
+          unless get_output_property(RECONFIGURE_CONNECTORS_ALLOWED) == false
+            output_property(RECONFIGURE_CONNECTORS_ALLOWED, p.allow_connector_reconfigure?())
+          end
         }
+        
+        if get_output_property(RESTART_CONNECTORS) == true
+          output_property(RESTART_CONNECTORS_NEEDED, true)
+        end
       else
         output_property(RESTART_REPLICATORS, true)
         output_property(RESTART_MANAGERS, true)
         output_property(RESTART_CONNECTORS, true)
+        output_property(RESTART_CONNECTORS_NEEDED, true)
+        output_property(RECONFIGURE_CONNECTORS_ALLOWED, false)
       end
     else
       # No effect since there isn't an existing directory
       output_property(RESTART_REPLICATORS, nil)
       output_property(RESTART_MANAGERS, nil)
       output_property(RESTART_CONNECTORS, nil)
+      output_property(RESTART_CONNECTORS_NEEDED, nil)
+      output_property(RECONFIGURE_CONNECTORS_ALLOWED, nil)
     end
   end
 end

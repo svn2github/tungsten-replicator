@@ -60,15 +60,43 @@ module ConfigureDeploymentStepServices
       return
     end
     
-    if get_additional_property(ACTIVE_DIRECTORY_PATH) && get_additional_property(CONNECTOR_IS_RUNNING) == "true"
-      info("Stopping the old connector")
-      info(cmd_result("#{get_additional_property(ACTIVE_DIRECTORY_PATH)}/tungsten-connector/bin/connector stop"))
-    end
-    
     if get_additional_property(ACTIVE_DIRECTORY_PATH) && get_additional_property(CONNECTOR_ENABLED) == "true"
       if get_additional_property(CONNECTOR_IS_RUNNING) == "true"
-        info("Starting the connector")
-        info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector start"))
+        if get_additional_property(ACTIVE_DIRECTORY_PATH) == File.readlink(@config.getProperty(CURRENT_RELEASE_DIRECTORY))
+          if get_additional_property(RECONFIGURE_CONNECTORS_ALLOWED) == true
+            # We are updating the existing directory so `connector reconfigure` can be used
+            info("Tell the connector to update its configuration")
+            info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector reconfigure"))
+          else
+            # Stop the connector and start it again so that the full configuration, including ports, are reloaded
+            begin
+              info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector graceful-stop 30"))
+            ensure
+              sleep(1)
+              info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector start"))
+            end
+          end
+        else
+          # We are switching to a new active directory. Start the new connector 
+          # so it goes into a loop trying to bind the connector port
+          info("Starting the new connector")
+          info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector start"))
+          
+          # Attempt to use the graceful-stop command but fail back to a regular stop
+          info("Stopping the old connector")
+          begin
+            info(cmd_result("#{get_additional_property(ACTIVE_DIRECTORY_PATH)}/tungsten-connector/bin/connector graceful-stop 30"))
+          rescue CommandError => ce
+            if ce.result =~ /Usage:/
+              debug("The running version doesn't support graceful-stop")
+              # The running version of the connector doesn't support graceful-stop
+              info(cmd_result("#{get_additional_property(ACTIVE_DIRECTORY_PATH)}/tungsten-connector/bin/connector stop"))
+            else
+              # The graceful-stop command failed for another reason so we should bubble that up
+              raise ce
+            end
+          end
+        end
       end
     elsif @config.getProperty(SVC_START) == "true"
       info("Starting the connector")

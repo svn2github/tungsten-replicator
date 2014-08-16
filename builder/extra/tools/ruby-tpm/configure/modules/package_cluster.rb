@@ -1565,7 +1565,9 @@ module ClusterCommandModule
 
       if cfg.getProperty(HOST_ENABLE_CONNECTOR) == "true"
         if @promotion_settings.getProperty([c_key, RESTART_CONNECTORS]) == false
-          display_promote_connectors = true
+          if @promotion_settings.getProperty([c_key, RESTART_CONNECTORS_NEEDED]) == true
+            display_promote_connectors = true
+          end
         end
       
         if @promotion_settings.getProperty([c_key, ACTIVE_DIRECTORY_PATH]) && @promotion_settings.getProperty([c_key, CONNECTOR_ENABLED]) == "true"

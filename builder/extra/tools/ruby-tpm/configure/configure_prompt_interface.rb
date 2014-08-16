@@ -242,6 +242,10 @@ module ConfigurePromptInterface
   def require_connector_restart?
     true
   end
+  
+  def allow_connector_reconfigure?
+    true
+  end
 
   def output_update_components
     unless enabled_for_command_line?()
@@ -299,9 +303,21 @@ module NoConnectorRestart
   end
 end
 
+module NoConnectorReconfigure
+  def allow_connector_reconfigure?
+    false
+  end
+end
+
 module ConnectorRestart
   def require_connector_restart?
     true
+  end
+end
+
+module ConnectorReconfigure
+  def allow_connector_reconfigure?
+    false
   end
 end
 

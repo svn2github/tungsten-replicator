@@ -246,7 +246,7 @@ EOF
     prepare_dir = @config.getProperty(PREPARE_DIRECTORY)
     target_dir = @config.getProperty(TARGET_DIRECTORY)
     
-    if @config.getProperty(PROFILE_SCRIPT) != ""
+    if @config.getProperty(PROFILE_SCRIPT).to_s() != ""
       profile_path = File.expand_path(@config.getProperty(PROFILE_SCRIPT), @config.getProperty(HOME_DIRECTORY))
 
       if File.exist?(profile_path)

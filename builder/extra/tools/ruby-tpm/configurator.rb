@@ -131,6 +131,8 @@ DELETE_REPLICATION_POSITION = "delete_replication_position"
 RESTART_REPLICATORS = "restart_replicators"
 RESTART_MANAGERS = "restart_managers"
 RESTART_CONNECTORS = "restart_connectors"
+RESTART_CONNECTORS_NEEDED = "restart_connectors_needed"
+RECONFIGURE_CONNECTORS_ALLOWED = "reconfigure_connectors_allowed"
 PROVISION_NEW_SLAVES = "provision_new_slaves"
 
 TPM_COMMAND_NAME = "tpm"
