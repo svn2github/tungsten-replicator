@@ -331,7 +331,7 @@ class TungstenReplicatorProvisionSlave
         else
           TU.error("#{error} You must specify it as one of #{master_services.join(',')}.")
         end
-      rescue ParserError => pe
+      rescue JSON::ParserError => pe
         TU.debug(pe)
         TU.error("Unable to suggest a value for --service due to parsing issues.")
       rescue CommandError => ce

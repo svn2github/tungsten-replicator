@@ -86,7 +86,10 @@ class TungstenReplicatorProvisionTHL
     schema.close()
     
     begin
-      cmd = "#{mysqldump} --no-data --skip-triggers --add-drop-database #{opt(:schemas)} | perl -pe 's/(myisam|innodb)/Blackhole/i'"
+      transforms = []
+      transforms << "| perl -pe 's/(myisam|innodb)/Blackhole/i'"
+      
+      cmd = "#{mysqldump} --no-data --skip-triggers --add-drop-database #{opt(:schemas)} #{transforms.join('')}"
       TU.cmd_result("#{cmd} >> #{schema.path()}")
     rescue CommandError => ce
       TU.debug(ce)
@@ -263,7 +266,7 @@ class TungstenReplicatorProvisionTHL
     if opt(:schemas) == nil
       opt(:schemas, "--all-databases")
     else
-      opt(:schemas, "--databases #{opt(:schemas)}")
+      opt(:schemas, "--databases #{opt(:schemas).split(',').join(' ')}")
     end
     
     opt(:working_dir, "#{opt(:sandbox_dir)}/#{script_name()}")
@@ -295,7 +298,8 @@ class TungstenReplicatorProvisionTHL
       "innodb-log-buffer-size=50M",
       "sync_binlog=0",
       "innodb-thread-concurrency=0",
-      "binlog-format=ROW"
+      "binlog-format=ROW",
+      "default-storage-engine=innodb"
     ]
   end
   
@@ -403,7 +407,8 @@ class TungstenReplicatorProvisionTHL
         begin
           TU.cmd_result("sbtool -o delete -s #{opt(:mysql_dir)}")
         rescue CommandError
-          TU.debug("There were issues removing the sandbox. Operation will continue.")
+          TU.debug("There were issues removing the sandbox. Trying again before continuing operation.")
+          TU.cmd_result("sbtool -o delete -s #{opt(:mysql_dir)}", true)
         end
       end
       
