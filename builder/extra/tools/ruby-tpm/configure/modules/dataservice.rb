@@ -1441,11 +1441,59 @@ class ReplicationServiceRelayLogStorageDirectory < ConfigurePrompt
   end
 end
 
+class ReplicationBatchService < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(ENABLE_BATCH_SERVICE, "Enable batch operation", PV_BOOLEAN, "false")
+  end
+end
+
+class ReplicationBatchMaster < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(ENABLE_BATCH_MASTER, "Enable batch operation for the master", PV_BOOLEAN, "false")
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(ENABLE_BATCH_SERVICE)) == "true"
+      @default = "true"
+    else
+      super()
+    end
+  end
+end
+
+class ReplicationBatchSlave < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(ENABLE_BATCH_SLAVE, "Enable batch operation for the slave", PV_BOOLEAN, "false")
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(ENABLE_BATCH_SERVICE)) == "true"
+      @default = "true"
+    else
+      super()
+    end
+  end
+end
+
 class ReplicationHeterogenousService < ConfigurePrompt
   include ReplicationServicePrompt
   
   def initialize
     super(ENABLE_HETEROGENOUS_SERVICE, "Enable heterogenous operation", PV_BOOLEAN, "false")
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(ENABLE_BATCH_SERVICE)) == "true"
+      @default = "true"
+    else
+      super()
+    end
   end
 end
 
@@ -1458,6 +1506,8 @@ class ReplicationHeterogenousMaster < ConfigurePrompt
   
   def load_default_value
     if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SERVICE)) == "true"
+      @default = "true"
+    elsif @config.getProperty(get_member_key(ENABLE_BATCH_MASTER)) == "true"
       @default = "true"
     else
       super()
@@ -1474,6 +1524,8 @@ class ReplicationHeterogenousSlave < ConfigurePrompt
   
   def load_default_value
     if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SERVICE)) == "true"
+      @default = "true"
+    elsif @config.getProperty(get_member_key(ENABLE_BATCH_SLAVE)) == "true"
       @default = "true"
     else
       super()

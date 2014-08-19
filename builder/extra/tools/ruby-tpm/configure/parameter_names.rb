@@ -80,6 +80,10 @@ ENABLE_HETEROGENOUS_SERVICE = "enable_heterogenous_service"
 ENABLE_HETEROGENOUS_MASTER = "enable_heterogenous_master"
 ENABLE_HETEROGENOUS_SLAVE = "enable_heterogenous_slave"
 
+ENABLE_BATCH_SERVICE = "enable_batch_service"
+ENABLE_BATCH_MASTER = "enable_batch_master"
+ENABLE_BATCH_SLAVE = "enable_batch_slave"
+
 DROP_STATIC_COLUMNS = "drop_static_columns_in_updates"
 
 # Operating system service parameters.
