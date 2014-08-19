@@ -164,6 +164,10 @@ function filterRowChangeData(d)
       {
         columns.remove(specToDrop[i]);
       }
+      
+      // Queue drop of the row change if we removed all columns (Issue 985).
+      if (columns.size() == 0 && rowToDrop.indexOf(j) < 0)
+        rowToDrop[rowToDrop.length] = j;
     }
     
     // Drop key values.
@@ -191,10 +195,6 @@ function filterRowChangeData(d)
         keys.remove(specToDrop[i]);
       }
     }
-    
-    // Queue drop of the row change if there are no columns left (Issue 985).
-    if (columns.size() == 0 && rowToDrop.indexOf(j) < 0)
-      rowToDrop[rowToDrop.length] = j;
   }
   
   // Drop the row changes if needed.
