@@ -25,7 +25,6 @@ package com.continuent.tungsten.replicator.applier;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -142,7 +141,21 @@ public class JdbcApplier implements RawApplier
 
     private String                    initScript                 = null;
 
+    // Indicates whether ROW events should be optimized (grouping inserts or
+    // deletes) -- only supported by MySQL appliers for now
+    protected boolean                 optimizeRowEvents          = false;
+
     // Setters.
+
+    /**
+     * Sets the optimizeRowEvents value.
+     * 
+     * @param optimizeRowEvents The optimizeRowEvents to set.
+     */
+    public void setOptimizeRowEvents(boolean optimizeRowEvents)
+    {
+        this.optimizeRowEvents = optimizeRowEvents;
+    }
 
     /**
      * {@inheritDoc}
@@ -427,54 +440,9 @@ public class JdbcApplier implements RawApplier
     protected int fillColumnNames(OneRowChange data) throws SQLException,
             ApplierException
     {
-        Table t = tableMetadataCache.retrieve(data.getSchemaName(),
-                data.getTableName());
-        if (t == null)
-        {
-            // Not yet in cache
-            t = new Table(data.getSchemaName(), data.getTableName());
-            DatabaseMetaData meta = conn.getDatabaseMetaData();
-            ResultSet rs = null;
+        Table t;
 
-            try
-            {
-                rs = conn.getColumnsResultSet(meta, data.getSchemaName(),
-                        data.getTableName());
-                if (rs.next())
-                {
-                    do
-                    {
-                        String columnName = rs.getString("COLUMN_NAME");
-                        int columnIdx = rs.getInt("ORDINAL_POSITION");
-
-                        Column column = addColumn(rs, columnName);
-                        column.setPosition(columnIdx);
-                        t.AddColumn(column);
-                    }
-                    while (rs.next());
-                    tableMetadataCache.store(t);
-                }
-                else
-                {
-                    // Empty resultset, i.e. table not found in database : it
-                    // won't be possible to generate a correct statement for
-                    // this row update
-                    throw new ApplierException(
-                            "Table "
-                                    + data.getSchemaName()
-                                    + "."
-                                    + data.getTableName()
-                                    + " not found in database. Unable to generate a valid statement.");
-                }
-            }
-            finally
-            {
-                if (rs != null)
-                {
-                    rs.close();
-                }
-            }
-        }
+        t = getTableMetadata(data);
 
         // Set column names.
         for (Column column : t.getAllColumns())
@@ -530,6 +498,44 @@ public class JdbcApplier implements RawApplier
 
         }
         return t.getColumnCount();
+    }
+
+    /**
+     * Returns metadata for table concerned by the ROW event, either from the
+     * cache or by reading it from database
+     * 
+     * @param data ROW event which is being applied
+     * @return the table metadata, as a Table object
+     * @throws SQLException
+     * @throws ApplierException
+     */
+    protected Table getTableMetadata(OneRowChange data) throws SQLException,
+            ApplierException
+    {
+        Table t;
+        t = tableMetadataCache.retrieve(data.getSchemaName(),
+                data.getTableName());
+        if (t == null)
+        {
+            logger.warn("Table " + data.getSchemaName() + " "
+                    + data.getTableName() + " not found in cache");
+            // Not yet in cache
+            t = conn.findTable(data.getSchemaName(), data.getTableName(), false);
+
+            if (t == null)
+                // Empty resultset, i.e. table not found in database : it
+                // won't be possible to generate a correct statement for
+                // this row update
+                throw new ApplierException(
+                        "Table "
+                                + data.getSchemaName()
+                                + "."
+                                + data.getTableName()
+                                + " not found in database. Unable to generate a valid statement.");
+
+            tableMetadataCache.store(t);
+        }
+        return t;
     }
 
     /**
@@ -969,22 +975,8 @@ public class JdbcApplier implements RawApplier
     {
         PreparedStatement prepStatement = null;
 
-        try
-        {
-            if (getColumnInformationFromDB)
-            {
-                int colCount = fillColumnNames(oneRowChange);
-                if (colCount <= 0)
-                    logger.warn("No column information found for table (perhaps table is missing?): "
-                            + oneRowChange.getSchemaName()
-                            + "."
-                            + oneRowChange.getTableName());
-            }
-        }
-        catch (SQLException e1)
-        {
-            logger.error("column name information could not be retrieved");
-        }
+        getColumnInfomation(oneRowChange);
+
         StringBuffer stmt = null;
 
         ArrayList<OneRowChange.ColumnSpec> key = oneRowChange.getKeySpec();
@@ -1099,6 +1091,34 @@ public class JdbcApplier implements RawApplier
         }
     }
 
+    /**
+     * Gets column information (name, etc) from database depending on the
+     * getColumnMetadataFromDB setting
+     * 
+     * @param oneRowChange
+     * @throws ApplierException
+     */
+    protected void getColumnInfomation(OneRowChange oneRowChange)
+            throws ApplierException
+    {
+        try
+        {
+            if (getColumnInformationFromDB)
+            {
+                int colCount = fillColumnNames(oneRowChange);
+                if (colCount <= 0)
+                    logger.warn("No column information found for table (perhaps table is missing?): "
+                            + oneRowChange.getSchemaName()
+                            + "."
+                            + oneRowChange.getTableName());
+            }
+        }
+        catch (SQLException e1)
+        {
+            logger.error("column name information could not be retrieved");
+        }
+    }
+
     private String logFailedRowChangeSQL(StringBuffer stmt,
             OneRowChange oneRowChange, int row)
     {
@@ -1141,7 +1161,7 @@ public class JdbcApplier implements RawApplier
      * @param stmt SQL template for PreparedStatement
      * @return
      */
-    private String logFailedRowChangeSQL(StringBuffer stmt,
+    protected String logFailedRowChangeSQL(StringBuffer stmt,
             OneRowChange oneRowChange)
     {
         // TODO: use THLManagerCtrl for logging exact failing SQL after
