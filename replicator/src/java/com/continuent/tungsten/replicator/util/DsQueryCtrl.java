@@ -31,6 +31,10 @@ import java.io.InputStreamReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedHashMap;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.exec.ArgvIterator;
@@ -71,18 +75,24 @@ public class DsQueryCtrl
      * 
      * @param argv optional command string
      */
+    @SuppressWarnings("unchecked")
     public static void main(String argv[])
     {
         try
         {
             // Command line parameters and options.
             String configFile = null;
-            // String command = null;
             String fileName = null;
             String user = null, password = null, url = null;
 
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
+            if (!argvIterator.hasNext())
+            {
+                printHelp();
+                System.exit(0);
+            }
+
             String curArg = null;
             while (argvIterator.hasNext())
             {
@@ -101,6 +111,9 @@ public class DsQueryCtrl
                 }
                 else if ("-password".equals(curArg))
                 {
+                    if (System.console() == null)
+                        fatal("Console not available. Unable to type password interactively.",
+                                null);
                     System.out.print("Enter password: ");
                     password = new String(System.console().readPassword());
                 }
@@ -108,16 +121,19 @@ public class DsQueryCtrl
                 {
                     url = argvIterator.next();
                 }
+
                 else if (curArg.startsWith("-"))
                     fatal("Unrecognized option: " + curArg, null);
-                // else
-                // command = curArg;
             }
 
             if (configFile != null)
             {
+                File file = new File(configFile);
+                if (!file.exists() || !file.canRead())
+                    fatal("Unable to read config file (" + configFile + ")",
+                            null);
                 TungstenProperties props = new TungstenProperties();
-                props.load(new FileInputStream(new File(configFile)));
+                props.load(new FileInputStream(file));
 
                 if (user == null)
                     user = props.getString("user", "", true);
@@ -129,6 +145,9 @@ public class DsQueryCtrl
                     url = props.getString("url", "", true);
             }
 
+            if (url == null)
+                fatal("URL must be provided (either using -url option or in configuration file)",
+                        null);
             BufferedReader br = null;
 
             boolean readingFromStdIn = false;
@@ -139,7 +158,11 @@ public class DsQueryCtrl
             }
             else
             {
-                br = new BufferedReader(new FileReader(new File(fileName)));
+                File file = new File(fileName);
+                if (!file.exists() || !file.canRead())
+                    fatal("Unable to read sql file (" + fileName + ")", null);
+
+                br = new BufferedReader(new FileReader(file));
             }
 
             Database database = DatabaseFactory.createDatabase(url, user,
@@ -150,9 +173,8 @@ public class DsQueryCtrl
             String sql = null;
 
             SQLException sqlEx;
-            StringBuilder output = new StringBuilder();
-            output.append('[');
-            int queryNum = 1;
+
+            JSONArray jsonArr = new JSONArray();
 
             while ((sql = br.readLine()) != null)
             {
@@ -162,9 +184,9 @@ public class DsQueryCtrl
                     break;
                 else if (sql.startsWith("#") || sql.length() == 0)
                     continue;
-                if (queryNum > 1)
-                    output.append(",\n");
-                output.append('{');
+
+                LinkedHashMap<String, Object> jsonObj = new LinkedHashMap<String, Object>();
+                jsonArr.add(jsonObj);
                 Statement stmt = null;
                 int rc = 0;
                 try
@@ -172,10 +194,7 @@ public class DsQueryCtrl
                     stmt = database.createStatement();
 
                     boolean isRS = false;
-
-                    logStatement(output, sql);
-
-                    output.append(',');
+                    jsonObj.put("statement", sql);
 
                     try
                     {
@@ -189,16 +208,15 @@ public class DsQueryCtrl
                     }
                     finally
                     {
-                        logRC(output, rc);
+                        jsonObj.put("rc", rc);
                     }
 
-                    output.append(',');
                     if (rc == 0)
-                        logResults(output, stmt, isRS);
+                        jsonObj.put("results", logResults(stmt, isRS));
                     else
-                        logEmptyResults(output);
-                    output.append(',');
-                    logError(output, sqlEx);
+                        jsonObj.put("results", new JSONArray());
+                    jsonObj.put("error", sqlEx);
+
                 }
                 catch (Exception e)
                 {
@@ -209,11 +227,8 @@ public class DsQueryCtrl
                     if (stmt != null)
                         stmt.close();
                 }
-                queryNum++;
-                output.append('}');
             }
-            output.append(']');
-            DsQueryCtrl.println(output.toString());
+            DsQueryCtrl.println(jsonArr.toJSONString());
         }
         catch (Exception e)
         {
@@ -221,43 +236,23 @@ public class DsQueryCtrl
         }
     }
 
-    private static void logEmptyResults(StringBuilder output)
-    {
-        output.append("\"results\":[");
-        output.append(']');
-    }
-
-    private static void logError(StringBuilder output, SQLException sqlEx)
-    {
-        output.append("\"error\":");
-        if (sqlEx != null)
-        {
-            output.append('\"');
-            output.append(sqlEx.toString());
-            output.append('\"');
-        }
-        else
-            output.append("\"\"");
-    }
-
     /**
      * TODO: logResults definition.
      * 
-     * @param output
      * @param stmt
      * @param isRS
+     * @return
      * @throws SQLException
      */
-    private static void logResults(StringBuilder output, Statement stmt,
-            boolean isRS) throws SQLException
+    @SuppressWarnings("unchecked")
+    private static JSONArray logResults(Statement stmt, boolean isRS)
+            throws SQLException
     {
         int result = 1;
-        output.append("\"results\":[");
+        JSONArray json = new JSONArray();
+
         while (isRS || stmt.getUpdateCount() > -1)
         {
-            if (result > 1)
-                output.append(",\n");
-
             if (isRS)
             {
                 ResultSet rs = null;
@@ -265,7 +260,7 @@ public class DsQueryCtrl
                 try
                 {
                     rs = stmt.getResultSet();
-                    logResultsetResult(output, rs);
+                    json.add(logResultsetResult(rs));
                 }
                 finally
                 {
@@ -274,123 +269,81 @@ public class DsQueryCtrl
                         rs.close();
                         rs = null;
                     }
-
                 }
             }
             else
             {
                 int updateCount = stmt.getUpdateCount();
-                logUpdateCount(output, updateCount);
+                logUpdateCount(updateCount);
             }
 
             isRS = stmt.getMoreResults();
             result++;
         }
-        output.append(']');
+        return json;
     }
 
     /**
      * TODO: logResultsetResult definition.
      * 
-     * @param output
      * @param rs
      * @throws SQLException
      */
-    private static void logResultsetResult(StringBuilder output, ResultSet rs)
+    @SuppressWarnings("unchecked")
+    private static JSONArray logResultsetResult(ResultSet rs)
             throws SQLException
     {
-        output.append('[');
-        boolean firstRowDone = false;
+        JSONArray json = new JSONArray();
         if (rs != null)
             while (rs.next())
             {
-                if (firstRowDone)
-                {
-                    output.append(",\n");
-                }
-                else
-                    firstRowDone = true;
-                logRow(output, rs);
+                json.add(logRow(rs));
             }
-        output.append(']');
+        return json;
     }
 
     /**
      * TODO: logUpdateCount definition.
      * 
-     * @param output
      * @param updateCount
      */
-    private static void logUpdateCount(StringBuilder output, int updateCount)
+    @SuppressWarnings("unchecked")
+    private static JSONObject logUpdateCount(int updateCount)
     {
-        output.append('{');
-        output.append("\"rowcount\":");
-        output.append(updateCount);
-        output.append('}');
+        JSONObject json = new JSONObject();
+        json.put("rowcount", updateCount);
+        return json;
     }
 
     /**
      * TODO: logRow definition.
      * 
-     * @param output
      * @param rs
      * @throws SQLException
      */
-    private static void logRow(StringBuilder output, ResultSet rs)
+    private static LinkedHashMap<String, Object> logRow(ResultSet rs)
             throws SQLException
     {
-        output.append('{');
+        LinkedHashMap<String, Object> json = new LinkedHashMap<String, Object>();
         for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++)
         {
-            if (i > 1)
-                output.append(",");
-            output.append('\"');
-            output.append(rs.getMetaData().getColumnLabel(i));
-            output.append('\"');
-            output.append(':');
-            Object obj = rs.getObject(i);
-            if (rs.wasNull())
-                output.append("null");
-            else
-            {
-                output.append('\"');
-                String out = obj.toString().replaceAll("\"", "\\\\\"");
-                output.append(out);
-                output.append('\"');
-            }
+            json.put(rs.getMetaData().getColumnLabel(i), rs.getObject(i));
         }
-        output.append('}');
-    }
-
-    /**
-     * TODO: logRC definition.
-     * 
-     * @param output
-     * @param rc
-     */
-    private static void logRC(StringBuilder output, int rc)
-    {
-        output.append("\"rc\":");
-        output.append(rc);
-    }
-
-    /**
-     * TODO: logStatement definition.
-     * 
-     * @param output
-     * @param sql
-     */
-    private static void logStatement(StringBuilder output, String sql)
-    {
-        output.append("\"statement\":");
-        output.append('\"');
-        output.append(sql);
-        output.append('\"');
+        return json;
     }
 
     protected static void printHelp()
     {
-        println("Not implemented");
+        println("Query Utility");
+        println("Syntax:  query {-url <jdbc_url> [-user <jdbc_user>] [-password] | -conf <path_to_file>} [-file <path_to_sql_file>] ");
+        println("Options:");
+        println("  -url <jdbc_url>              - JDBC url of the database to connect to");
+        println("  -user <jdbc_user>            - User used to connect to the database");
+        println("  -password                    - Prompt for password");
+        println("");
+        println("  -conf <path_to_file>         - Configuration file that contains values for connection properties (url, user and password)");
+        println("  -file <path_to_sql_file>    - File containing the SQL commands to run.");
+        println("                                 If missing, read SQL commands from STDIN");
     }
 
     /**
