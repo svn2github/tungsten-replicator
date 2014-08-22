@@ -82,6 +82,9 @@ public class DerbyDatabase extends AbstractDatabase
             case Types.SMALLINT :
                 return "SMALLINT";
 
+            case Types.TINYINT :
+                return "SMALLINT";
+
             case Types.CHAR :
                 return "CHAR(" + c.getLength() + ")";
 
