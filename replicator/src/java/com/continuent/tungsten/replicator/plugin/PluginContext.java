@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,8 +27,10 @@ import java.util.concurrent.Future;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
+import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.FailurePolicy;
 import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.pipeline.Stage;
 import com.continuent.tungsten.replicator.service.PipelineService;
@@ -133,6 +135,9 @@ public interface PluginContext
 
     /** Returns a named pipeline service component. */
     public abstract PipelineService getService(String name);
+
+    /** Returns the named data source or null if it cannot be found. */
+    public UniversalDataSource getDataSource(String name) throws ReplicatorException;
 
     /** Returns all pipeline service components. */
     public abstract List<PipelineService> getServices();

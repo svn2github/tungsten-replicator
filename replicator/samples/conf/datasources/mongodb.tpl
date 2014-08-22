@@ -1,7 +1,4 @@
-# MongoDB data source.  This is a temporary hack and should be replaced by
-# a proper MongoDB-specific implementation. 
-replicator.datasource.applier=com.continuent.tungsten.replicator.datasource.FileDataSource
-replicator.datasource.applier.serviceName=${service.name}
-
-# Storage location for replication catalog data. 
-replicator.datasource.applier.directory=${replicator.home.dir}/data
+# MongoDB data source.  This uses a dummy implementation until we develop a
+# data source specific to MongoDB. 
+replicator.datasource.global=com.continuent.tungsten.replicator.datasource.DummyDataSource
+replicator.datasource.global.serviceName=${service.name}

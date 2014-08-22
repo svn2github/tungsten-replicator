@@ -130,9 +130,12 @@ public class HeartbeatTable
         if (logger.isDebugEnabled())
             logger.debug("Initializing heartbeat table");
 
-        // Replace the table.
-        database.createTable(this.hbTable, false, this.hbTable.getSchema(),
-                tableType, serviceName);
+        // Create the table if it does not exist.
+        if (database.findTable(hbTable.getSchema(), hbTable.getName()) == null)
+        {
+            database.createTable(this.hbTable, false, this.hbTable.getSchema(),
+                    tableType, serviceName);
+        }
 
         // Add an initial heartbeat value if needed
         ResultSet res = null;

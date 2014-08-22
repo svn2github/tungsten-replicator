@@ -41,10 +41,10 @@ import com.continuent.tungsten.common.csv.NullPolicy;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.channel.ShardChannelTable;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
+import com.continuent.tungsten.replicator.datasource.SqlCommitSeqno;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
 import com.continuent.tungsten.replicator.shard.ShardTable;
-import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
 
 /**
  * Defines an interface to the Oracle database
@@ -894,7 +894,7 @@ public class OracleDatabase extends AbstractDatabase
     {
         // In Oracle, Tungsten user is not dropped automatically.
         // However, all Tungsten tables will be dropped.
-        dropTable(new Table(schemaName, CommitSeqnoTable.TABLE_NAME));
+        dropTable(new Table(schemaName, SqlCommitSeqno.TABLE_NAME));
         dropTable(new Table(schemaName, ConsistencyTable.TABLE_NAME));
         dropTable(new Table(schemaName, ShardChannelTable.TABLE_NAME));
         dropTable(new Table(schemaName, ShardTable.TABLE_NAME));

@@ -27,7 +27,12 @@ import java.sql.SQLException;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.channel.ShardChannelTable;
+import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.database.Database;
+import com.continuent.tungsten.replicator.database.Table;
+import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
+import com.continuent.tungsten.replicator.shard.ShardTable;
 
 /**
  * Implements a data source based on a relational DBMS. This supersedes class
@@ -37,13 +42,18 @@ public class SqlDataSource extends AbstractDataSource
         implements
             UniversalDataSource
 {
-    private static Logger logger = Logger.getLogger(SqlDataSource.class);
+    private static Logger logger        = Logger.getLogger(SqlDataSource.class);
 
     // Properties.
     SqlConnectionSpec     connectionSpec;
+    private String        initScript    = null;
+    boolean               createCatalog = true;
+    boolean               logOperations = false;
+    boolean               privileged    = false;
 
     // Catalog tables.
     SqlCommitSeqno        commitSeqno;
+    ShardChannelTable     channelTable;
 
     // SQL connection manager.
     SqlConnectionManager  connectionManager;
@@ -63,6 +73,56 @@ public class SqlDataSource extends AbstractDataSource
         this.connectionSpec = connectionSpec;
     }
 
+    public String getInitScript()
+    {
+        return initScript;
+    }
+
+    public void setInitScript(String initScript)
+    {
+        this.initScript = initScript;
+    }
+
+    public boolean isCreateCatalog()
+    {
+        return createCatalog;
+    }
+
+    /** If this is true, create catalog tables. */
+    public void setCreateCatalog(boolean createCatalog)
+    {
+        this.createCatalog = createCatalog;
+    }
+
+    public boolean isLogOperations()
+    {
+        return logOperations;
+    }
+
+    /**
+     * If this is true, enable logging of operations on catalog. Otherwise
+     * disable logging. This determines whether catalog DDL and updates goes
+     * into the MySQL binlog.
+     */
+    public void setLogOperations(boolean logOperations)
+    {
+        this.logOperations = logOperations;
+    }
+
+    public boolean isPrivileged()
+    {
+        return privileged;
+    }
+
+    /**
+     * If this is true, assume account has privileges. This is necessary to
+     * control logging.
+     */
+    public void setPrivileged(boolean privileged)
+    {
+        this.privileged = privileged;
+    }
+
     /**
      * Instantiate and configure all data source tables.
      */
@@ -70,16 +130,6 @@ public class SqlDataSource extends AbstractDataSource
     public void configure() throws ReplicatorException, InterruptedException
     {
         super.configure();
-
-        // Configure connection manager.
-        connectionManager = new SqlConnectionManager();
-        connectionManager.setConnectionSpec(connectionSpec);
-        connectionManager.setCsvSpec(csv);
-
-        // Configure tables.
-        commitSeqno = new SqlCommitSeqno(connectionManager,
-                connectionSpec.getSchema(), connectionSpec.getTableType());
-        commitSeqno.setChannels(channels);
     }
 
     /**
@@ -88,32 +138,19 @@ public class SqlDataSource extends AbstractDataSource
     @Override
     public void prepare() throws ReplicatorException, InterruptedException
     {
-        // First of course prepare the usual manager.
+        // Initialize connection manager.
+        connectionManager = new SqlConnectionManager();
+        connectionManager.setConnectionSpec(connectionSpec);
+        connectionManager.setCsvSpec(csv);
+        connectionManager.setPrivileged(privileged);
+        connectionManager.setLogOperations(logOperations);
         connectionManager.prepare();
 
-        // Create an initial connection to ensure we can reach the DBMS.
-        Database conn = null;
-        try
-        {
-            conn = connectionManager.getWrappedConnection(true);
-            conn.connect();
-        }
-        catch (SQLException e)
-        {
-            throw new ReplicatorException(
-                    "Unable to connect to data source: url="
-                            + this.connectionSpec.createUrl(true));
-        }
-        finally
-        {
-            if (conn != null)
-            {
-                connectionManager.releaseWrappedConnection(conn);
-                conn = null;
-            }
-        }
-
-        // Now prepare all tables.
+        // Prepare commit seqno table. Channels must be set here as they
+        // are unsafe to set earlier as the pipeline does not know the value.
+        commitSeqno = new SqlCommitSeqno(connectionManager,
+                connectionSpec.getSchema(), connectionSpec.getTableType());
+        commitSeqno.setChannels(channels);
         commitSeqno.prepare();
     }
 
@@ -123,12 +160,36 @@ public class SqlDataSource extends AbstractDataSource
     @Override
     public void release() throws ReplicatorException, InterruptedException
     {
-        // Release tables first...
-        if (commitSeqno != null)
+        // Reduce tasks restart points in trep_commit_seqno table if possible.
+        // If tasks are reduced, clear the channel table.
+        Database conn = null;
+        try
         {
-            commitSeqno.reduceTasks();
-            commitSeqno.release();
-            commitSeqno = null;
+            // Connect to DBMS.
+            conn = connectionManager.getCatalogConnection();
+
+            // Only release if this is not null.
+            if (commitSeqno != null)
+            {
+                boolean reduced = commitSeqno.reduceTasks();
+                commitSeqno.release();
+                commitSeqno = null;
+
+                if (reduced && channelTable != null)
+                {
+                    channelTable.reduceAssignments(conn, channels);
+                }
+            }
+        }
+
+        catch (Exception e)
+        {
+            logger.warn("Unable to reduce tasks information", e);
+        }
+        finally
+        {
+            if (conn != null)
+                connectionManager.releaseCatalogConnection(conn);
         }
 
         // Followed by the connection manager.
@@ -145,9 +206,130 @@ public class SqlDataSource extends AbstractDataSource
     @Override
     public void initialize() throws ReplicatorException, InterruptedException
     {
-        logger.info("Initializing data source tables: service=" + serviceName
-                + " schema=" + connectionSpec.getSchema());
-        commitSeqno.initialize();
+        // Now ensure catalog tables are created and ready to go, but only
+        // if that is desired.
+        if (createCatalog)
+        {
+            logger.info("Initializing data source tables: service="
+                    + serviceName + " schema=" + connectionSpec.getSchema());
+            Database conn = null;
+            try
+            {
+                // Check connectivity to ensure DBMS is available.
+                if (this.connectionSpec.supportsCreateDB())
+                {
+                    // Check connectivity without createDB but tolerate errors.
+                    if (checkDBConnectivity(false, true))
+                    {
+                        logger.info("Confirmed DBMS connection");
+                    }
+                    else
+                    {
+                        // Now try to create schema via JDBC URL.
+                        logger.info("Attempting to create schema via JDBC");
+                        checkDBConnectivity(true, false);
+                    }
+                }
+                else
+                {
+                    checkDBConnectivity(false, false);
+                    logger.info("Confirmed DBMS connection");
+                }
+
+                // Connect to DBMS.
+                conn = connectionManager.getCatalogConnection();
+
+                // Set default schema if supported. This also creates the schema
+                // if possible.
+                String schema = connectionSpec.getSchema();
+                if (conn.supportsUseDefaultSchema() && schema != null)
+                {
+                    if (conn.supportsCreateDropSchema())
+                    {
+                        conn.createSchema(schema);
+                    }
+                    conn.useDefaultSchema(schema);
+                }
+
+                // Create commit seqno table if it does not already exist.
+                commitSeqno.initialize();
+
+                // Create consistency table but only if it does not exist.
+                Table consistency = ConsistencyTable
+                        .getConsistencyTableDefinition(schema);
+                if (conn.findTable(consistency.getSchema(),
+                        consistency.getName()) == null)
+                {
+                    conn.createTable(consistency, false,
+                            connectionSpec.getTableType());
+                }
+
+                // Create heartbeat table if it does not exist.
+                HeartbeatTable heartbeatTable = new HeartbeatTable(schema,
+                        connectionSpec.getTableType(), serviceName);
+                heartbeatTable.initializeHeartbeatTable(conn);
+
+                // Create shard table if it does not exist
+                ShardTable shardTable = new ShardTable(schema,
+                        connectionSpec.getTableType());
+                shardTable.initializeShardTable(conn);
+
+                // Create channel table.
+                channelTable = new ShardChannelTable(schema,
+                        connectionSpec.getTableType());
+                channelTable.initializeShardTable(conn, this.channels);
+            }
+            catch (SQLException e)
+            {
+                throw new ReplicatorException(
+                        "Unable to create catalog tables", e);
+            }
+            finally
+            {
+                if (conn != null)
+                {
+                    connectionManager.releaseCatalogConnection(conn);
+                }
+            }
+        }
+    }
+
+    /**
+     * Checks ability to connect to DBMS using JDBC.
+     * 
+     * @param createDB If true createDB via JDBC URL
+     * @param ignoreError If true, ignore JDBC error
+     * @return True if able to connect successfully, otherwise false
+     */
+    private boolean checkDBConnectivity(boolean createDB, boolean ignoreError)
+            throws ReplicatorException
+    {
+        Database conn = null;
+        try
+        {
+            // Try to connect to DBMS, returning true if successful.
+            conn = connectionManager.getRawConnection(createDB);
+            conn.connect();
+            return true;
+        }
+        catch (SQLException e)
+        {
+            if (!ignoreError)
+            {
+                throw new ReplicatorException("Unable to connect to DBMS: url="
+                        + connectionSpec.createUrl(createDB));
+            }
+        }
+        finally
+        {
+            if (conn != null)
+            {
+                connectionManager.releaseConnection(conn);
+            }
+        }
+
+        // Connection test failed if we get here.
+        return false;
     }
 
     @Override
@@ -184,6 +366,6 @@ public class SqlDataSource extends AbstractDataSource
      */
     public void releaseConnection(UniversalConnection conn)
     {
-        connectionManager.releaseWrappedConnection((Database) conn);
+        connectionManager.releaseConnection((Database) conn);
     }
 }

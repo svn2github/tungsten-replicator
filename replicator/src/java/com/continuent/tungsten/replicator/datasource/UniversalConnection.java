@@ -25,6 +25,7 @@ package com.continuent.tungsten.replicator.datasource;
 import java.io.BufferedWriter;
 
 import com.continuent.tungsten.common.csv.CsvWriter;
+import com.continuent.tungsten.replicator.ReplicatorException;
 
 /**
  * Denotes a generic connection to a data source.
@@ -58,13 +59,35 @@ public interface UniversalConnection
     public void rollback() throws Exception;
 
     /**
-     * Sets the commit semantics operations on the connection.
+     * Sets the commit semantics operations on the connection. This method has
+     * no effect on connections that do not support transactions.
      * 
      * @param autoCommit If true each operation commits automatically; if false
      *            any further operations are enclosed in a transaction
      * @throws Exception Thrown if the operation fails
      */
     public void setAutoCommit(boolean autoCommit) throws Exception;
+
+    /**
+     * Sets the logging semantics on the connection if the data source is
+     * logged. This method has no effect on data sources that do not support
+     * logging.
+     * 
+     * @param logged If true operations on this connection are logged; if false
+     *            connections are not logged
+     */
+    public void setLogged(boolean logged) throws ReplicatorException;
+
+    /**
+     * Sets the level of privileges that will be used on the connection. This
+     * may be necessary to do root or superuser operations. This method is
+     * harmless on data sources that do not have a notion of privileges.
+     * 
+     * @param privileged If true this connection is allowed to perform
+     *            operations requiring super user operations; if false this
+     *            operation is allowed only non-privileged operations
+     */
+    public void setPrivileged(boolean privileged);
 
     /**
      * Closes the connection and releases resource.

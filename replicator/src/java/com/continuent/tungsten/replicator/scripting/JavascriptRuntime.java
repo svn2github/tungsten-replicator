@@ -83,6 +83,7 @@ public class JavascriptRuntime
      * @param name Name of the data source
      */
     public UniversalDataSource getDataSource(String name)
+            throws ReplicatorException
     {
         DataSourceService dss = (DataSourceService) context.getService(name);
         if (dss == null)

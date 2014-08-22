@@ -186,7 +186,8 @@ public class MySQLDatabase extends AbstractDatabase
         {
             // Load the file : one sql statement per line
             File file = new File(initScript);
-            FileReader reader;
+            FileReader reader = null;
+            Statement stmt = null;
             try
             {
                 reader = new FileReader(file);
@@ -196,13 +197,13 @@ public class MySQLDatabase extends AbstractDatabase
                 throw new SQLException("Init script not found", e);
             }
 
-            BufferedReader br = new BufferedReader(reader);
-
-            String sql = null;
-            Statement stmt = dbConn.createStatement();
-
             try
             {
+                @SuppressWarnings("resource")
+                BufferedReader br = new BufferedReader(reader);
+                String sql = null;
+                stmt = dbConn.createStatement();
+
                 while ((sql = br.readLine()) != null)
                 {
                     sql = sql.trim();
@@ -220,6 +221,16 @@ public class MySQLDatabase extends AbstractDatabase
             }
             finally
             {
+                if (reader != null)
+                {
+                    try
+                    {
+                        reader.close();
+                    }
+                    catch (IOException e)
+                    {
+                    }
+                }
                 if (stmt != null)
                     stmt.close();
             }
@@ -259,7 +270,10 @@ public class MySQLDatabase extends AbstractDatabase
 
     public boolean supportsCreateDropSchema()
     {
-        return true;
+        // MySQL allows schema creation but setting this to true creates extra
+        // transactions in the binlog. So we set it to false, since any needed
+        // schema will be created via the JDBC URL.
+        return false;
     }
 
     public void createSchema(String schema) throws SQLException

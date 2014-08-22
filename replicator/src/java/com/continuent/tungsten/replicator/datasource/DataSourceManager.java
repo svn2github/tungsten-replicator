@@ -51,6 +51,14 @@ public class DataSourceManager
     }
 
     /**
+     * Returns the number of data sources currently under management.
+     */
+    public int count()
+    {
+        return datasources.size();
+    }
+
+    /**
      * Adds a new data source. Clients <em>must</em> configure and prepare the
      * data source through the corresponding methods to make use of it.
      * 

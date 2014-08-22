@@ -339,6 +339,24 @@ public class FileCommitSeqno implements CommitSeqno
     /**
      * {@inheritDoc}
      * 
+     * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#maxCommitSeqno()
+     */
+    public ReplDBMSHeader maxCommitSeqno() throws ReplicatorException,
+            InterruptedException
+    {
+        ReplDBMSHeader maxHeader = null;
+        for (String seqnoFileName : listSeqnoFileNames())
+        {
+            ReplDBMSHeader header = retrieve(seqnoFileName);
+            if (maxHeader == null || header.getSeqno() > maxHeader.getSeqno())
+                maxHeader = header;
+        }
+        return maxHeader;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#createAccessor(int,
      *      com.continuent.tungsten.replicator.datasource.UniversalConnection)
      */

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -48,7 +48,6 @@ import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowIdData;
 import com.continuent.tungsten.replicator.event.ReplOption;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
-import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
  * Stub applier class that automatically constructs url from Oracle-specific
@@ -87,38 +86,6 @@ public class MySQLApplier extends JdbcApplier
     public void setUrlOptions(String urlOptions)
     {
         this.urlOptions = urlOptions;
-    }
-
-    /**
-     * Generate URL suitable for MySQL and then delegate remaining configuration
-     * to superclass.
-     * 
-     * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#configure(PluginContext
-     *      context)
-     */
-    public void configure(PluginContext context) throws ReplicatorException
-    {
-        if (url == null)
-        {
-            StringBuffer sb = new StringBuffer();
-            sb.append("jdbc:mysql://");
-            sb.append(host);
-            if (port > 0)
-            {
-                sb.append(":");
-                sb.append(port);
-            }
-            sb.append("/");
-            if (context.getReplicatorSchemaName() != null)
-                sb.append(context.getReplicatorSchemaName());
-            if (urlOptions != null)
-                sb.append(urlOptions);
-
-            url = sb.toString();
-        }
-        else if (logger.isDebugEnabled())
-            logger.debug("Property url already set; ignoring host and port properties");
-        super.configure(context);
     }
 
     protected void applyRowIdData(RowIdData data) throws ReplicatorException

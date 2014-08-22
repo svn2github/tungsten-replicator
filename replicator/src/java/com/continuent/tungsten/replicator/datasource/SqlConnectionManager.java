@@ -40,6 +40,8 @@ public class SqlConnectionManager
     // Properties.
     private SqlConnectionSpec connectionSpec;
     private CsvSpecification  csvSpec;
+    private boolean           logOperations;
+    private boolean           privileged;
 
     /**
      * Creates a new instance.
@@ -68,6 +70,26 @@ public class SqlConnectionManager
         this.csvSpec = csvSpec;
     }
 
+    public boolean isLogOperations()
+    {
+        return logOperations;
+    }
+
+    public void setLogOperations(boolean logOperations)
+    {
+        this.logOperations = logOperations;
+    }
+
+    public boolean isPrivileged()
+    {
+        return privileged;
+    }
+
+    public void setPrivileged(boolean privileged)
+    {
+        this.privileged = privileged;
+    }
+
     /**
      * Prepares connection pool for use. This must be called before requesting
      * any connections.
@@ -93,7 +115,8 @@ public class SqlConnectionManager
     }
 
     /**
-     * Gets a JDBC connection wrapped in a Database instance.
+     * Gets a JDBC connection wrapped in a Database instance and properly
+     * configured as well as connected.
      * 
      * @param createDB If true and the JDBC driver supports such an option, add
      *            URL option to create schema
@@ -101,45 +124,68 @@ public class SqlConnectionManager
     public Database getWrappedConnection(boolean createDB)
             throws ReplicatorException
     {
-        String url = connectionSpec.createUrl(createDB);
-        String user = connectionSpec.getUser();
-        String password = connectionSpec.getPassword();
-        boolean privilegedSlaveUpdate = connectionSpec
-                .isPrivilegedSlaveUpdate();
-        String vendor = connectionSpec.getVendor();
-        boolean logSlaveUpdates = connectionSpec.isLogSlaveUpdates();
-
         try
         {
-            Database conn = DatabaseFactory.createDatabase(url, user, password,
-                    privilegedSlaveUpdate, vendor);
+            Database conn = getRawConnection(createDB);
             conn.connect();
+            conn.setInitScript(connectionSpec.getInitScript());
             conn.setCsvSpecification(csvSpec);
-            if (!logSlaveUpdates && privilegedSlaveUpdate)
-            {
-                // If we are a slave with super power and we do not want to
-                // log updates, turn off logging.
-                if (conn.supportsControlSessionLevelLogging())
-                {
-                    conn.controlSessionLevelLogging(true);
-                }
-            }
             return conn;
         }
         catch (SQLException e)
         {
             throw new ReplicatorException("Unable to connect to DBMS: url="
-                    + url, e);
+                    + connectionSpec.createUrl(createDB), e);
         }
     }
 
     /**
-     * Releases a wrapped connection.
+     * Gets a raw connection that user must configure and connect.
+     * 
+     * @param createDB If true and the JDBC driver supports such an option, add
+     *            URL option to create schema
      */
-    public void releaseWrappedConnection(Database conn)
+    public Database getRawConnection(boolean createDB) throws SQLException
+    {
+        String url = connectionSpec.createUrl(createDB);
+        String user = connectionSpec.getUser();
+        String password = connectionSpec.getPassword();
+        String vendor = connectionSpec.getVendor();
+
+        Database conn = DatabaseFactory.createDatabase(url, user, password,
+                false, vendor);
+        return conn;
+    }
+
+    /**
+     * Releases a connection.
+     */
+    public void releaseConnection(Database conn)
     {
         if (conn != null)
             conn.close();
+    }
+
+    /**
+     * Returns a connection used for operations on the catalog.
+     */
+    public Database getCatalogConnection() throws ReplicatorException,
+            SQLException
+    {
+        // Connect to DBMS.
+        Database conn = (Database) getWrappedConnection(false);
+        conn.connect();
+        conn.setPrivileged(privileged);
+        conn.setLogged(logOperations);
+        return conn;
+    }
+
+    /**
+     * Returns a connection used for operations on the catalog.
+     */
+    public void releaseCatalogConnection(Database conn)
+    {
+        conn.disconnect();
     }
 
     /**

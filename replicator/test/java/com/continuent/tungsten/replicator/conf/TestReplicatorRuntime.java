@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -177,10 +177,7 @@ public class TestReplicatorRuntime extends TestCase
         String mysqlApplier = ReplicatorConf.APPLIER_ROOT + ".mysql";
         tp.setString(ReplicatorConf.APPLIER_ROOT, "mysql");
         tp.setString(mysqlApplier, MySQLApplier.class.getName());
-        tp.setString(mysqlApplier + ".host", "localhost");
-        tp.setString(mysqlApplier + ".port", "3306");
-        tp.setString(mysqlApplier + ".user", "tungsten");
-        tp.setString(mysqlApplier + ".password", "secret");
+        tp.setString(mysqlApplier + ".dataSource", "global");
 
         // Configure runtime.
         ReplicatorRuntime runtime = new ReplicatorRuntime(tp,

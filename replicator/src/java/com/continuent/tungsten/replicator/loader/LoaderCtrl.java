@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2012 Continuent Inc.
+ * Copyright (C) 2012-14 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -39,8 +39,6 @@ import com.continuent.tungsten.replicator.extractor.ExtractorWrapper;
 import com.continuent.tungsten.replicator.management.MockEventDispatcher;
 import com.continuent.tungsten.replicator.management.MockOpenReplicatorContext;
 import com.continuent.tungsten.replicator.pipeline.Pipeline;
-import com.continuent.tungsten.replicator.storage.Store;
-import com.continuent.tungsten.replicator.thl.THL;
 import com.continuent.tungsten.replicator.thl.THLManagerCtrl;
 
 public class LoaderCtrl
@@ -267,7 +265,6 @@ public class LoaderCtrl
         ReplicatorRuntime runtime = null;
         Pipeline pipeline = null;
         Class<?> headExtractorClass = null;
-        Class<?> storeClass = null;
 
         try
         {
@@ -285,21 +282,6 @@ public class LoaderCtrl
                 throw new Exception("Unable to start the loader because "
                         + headExtractorClass + " does not extend "
                         + Loader.class);
-            }
-
-            Loader extractor = (Loader) ew.getExtractor();
-            if (extractor.getLockTables() == true)
-            {
-                for (String storeName : pipeline.getStoreNames())
-                {
-                    Store store = pipeline.getStore(storeName);
-                    storeClass = store.getClass();
-                    if (THL.class.isAssignableFrom(storeClass) == true)
-                    {
-                        THL thlStore = (THL) store;
-                        thlStore.setUrl(null);
-                    }
-                }
             }
 
             runtime.prepare();

@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.csv.CsvSpecification;
+import com.continuent.tungsten.replicator.ReplicatorException;
 
 /**
  * Runs tests on the data source manager to ensure we can add, find, and remove
@@ -74,8 +75,7 @@ public class TestDataSourceManager
                 c.getServiceName());
 
         // Remove the data source and confirm that it succeeds.
-        Assert.assertEquals("Testing data source removal", c,
-                cm.remove("test"));
+        Assert.assertEquals("Testing data source removal", c, cm.remove("test"));
 
         // Confirm that attempts to remove or get the data source now fail.
         Assert.assertNull("Ensuring data source does not exist after removal",
@@ -91,7 +91,7 @@ public class TestDataSourceManager
     @Test
     public void testAddTwoDataSources() throws Exception
     {
-        // Create the data source definitions using a single properties file.
+        // Create the data source definitions using different prop files.
         TungstenProperties props1 = new TungstenProperties();
         props1.setString("serviceName", "mytest1");
         TungstenProperties props2 = new TungstenProperties();
@@ -178,4 +178,37 @@ public class TestDataSourceManager
         cm.removeAndRelease("test");
     }
 
+    /**
+     * Verify that we can add an alias data source and look up through it to the
+     * source.
+     */
+    @Test
+    public void testAddRemoveAliasDataSource() throws Exception
+    {
+        // Create a data source.
+        DataSourceManager cm = new DataSourceManager();
+
+        // Add the alias but without the source.
+        TungstenProperties alias = new TungstenProperties();
+        alias.setString("serviceName", "test");
+        alias.setString("dataSource", "source");
+        cm.addAndPrepare("alias", AliasDataSource.class.getName(), alias);
+
+        // Look up alias and expect to get the alias but no source.
+        AliasDataSource a1 = (AliasDataSource) cm.find("alias");
+        Assert.assertNotNull("Expect to find an alias", a1);
+        UniversalDataSource u1 = cm.find(a1.getDataSource());
+        Assert.assertNull("Don't expect to find a source", u1);
+
+        // Add the source data set.
+        TungstenProperties source = new TungstenProperties();
+        source.setString("serviceName", "test");
+        cm.addAndPrepare("source", SampleDataSource.class.getName(), source);
+
+        // Now look up alias and expect to get the source.
+        AliasDataSource a2 = (AliasDataSource) cm.find("alias");
+        Assert.assertNotNull("Expect to find an alias", a2);
+        UniversalDataSource u2 = cm.find(a2.getDataSource());
+        Assert.assertNotNull("We do expect to find a source", u2);
+    }
 }

@@ -193,7 +193,7 @@ public class SqlCommitSeqno implements CommitSeqno
         CommitSeqnoAccessor accessor = null;
         try
         {
-            database = connectionManager.getWrappedConnection();
+            database = connectionManager.getCatalogConnection();
 
             // Create the table if it does not exist.
             if (database.findTable(commitSeqnoTable.getSchema(),
@@ -268,7 +268,7 @@ public class SqlCommitSeqno implements CommitSeqno
         {
             if (accessor != null)
                 accessor.close();
-            connectionManager.releaseWrappedConnection(database);
+            connectionManager.releaseCatalogConnection(database);
         }
     }
 
@@ -282,25 +282,28 @@ public class SqlCommitSeqno implements CommitSeqno
         Database database = null;
         try
         {
-            database = connectionManager.getWrappedConnection();
+            database = connectionManager.getCatalogConnection();
 
             // Drop the table if it exists.
             if (logger.isDebugEnabled())
                 logger.debug("Dropping " + TABLE_NAME + " table");
             database.dropTable(commitSeqnoTable);
         }
+        catch (SQLException e)
+        {
+            logger.warn("Unable to connect to DBMS to drop table: name="
+                    + commitSeqnoTable.fullyQualifiedName() + " message="
+                    + e.getMessage());
+        }
         catch (ReplicatorException e)
         {
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Unable to connect to DBMS to drop table: name="
-                        + commitSeqnoTable.fullyQualifiedName() + " message="
-                        + e.getMessage());
-            }
+            logger.warn("Unable to connect to DBMS to drop table: name="
+                    + commitSeqnoTable.fullyQualifiedName() + " message="
+                    + e.getMessage());
         }
         finally
         {
-            connectionManager.releaseWrappedConnection(database);
+            connectionManager.releaseCatalogConnection(database);
         }
     }
 
@@ -343,7 +346,50 @@ public class SqlCommitSeqno implements CommitSeqno
         {
             if (accessor != null)
                 accessor.close();
-            connectionManager.releaseWrappedConnection(database);
+            connectionManager.releaseConnection(database);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#maxCommitSeqno()
+     */
+    public ReplDBMSHeader maxCommitSeqno() throws ReplicatorException,
+            InterruptedException
+    {
+        Database database = null;
+        CommitSeqnoAccessor accessor = null;
+        try
+        {
+            database = connectionManager.getWrappedConnection();
+            accessor = this.createAccessor(0, database);
+
+            ReplDBMSHeaderData maxHeader = null;
+            Statement stmt = database.createStatement();
+            ResultSet res = stmt.executeQuery(allSeqnoQuery);
+            while (res.next())
+            {
+                ReplDBMSHeaderData header = headerFromResult(res);
+                if (maxHeader == null
+                        || header.getSeqno() > maxHeader.getSeqno())
+                    maxHeader = header;
+            }
+
+            // Return whatever we found, including null value.
+            return maxHeader;
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(
+                    "Unabled to determine maximum commit seqno: "
+                            + e.getMessage(), e);
+        }
+        finally
+        {
+            if (accessor != null)
+                accessor.close();
+            connectionManager.releaseConnection(database);
         }
     }
 
@@ -376,7 +422,7 @@ public class SqlCommitSeqno implements CommitSeqno
         CommitSeqnoAccessor accessor = null;
         try
         {
-            database = connectionManager.getWrappedConnection();
+            database = connectionManager.getCatalogConnection();
             accessor = this.createAccessor(0, database);
 
             // Fetch the task 0 position.
@@ -406,6 +452,7 @@ public class SqlCommitSeqno implements CommitSeqno
                             + taskId);
                 }
                 database.insert(commitSeqnoTable);
+                accessor.setTaskId(taskId);
                 accessor.updateLastCommitSeqno(task0CommitSeqno, 0);
             }
         }
@@ -419,7 +466,7 @@ public class SqlCommitSeqno implements CommitSeqno
         {
             if (accessor != null)
                 accessor.close();
-            connectionManager.releaseWrappedConnection(database);
+            connectionManager.releaseCatalogConnection(database);
         }
     }
 
@@ -441,7 +488,7 @@ public class SqlCommitSeqno implements CommitSeqno
         Database database = null;
         try
         {
-            database = connectionManager.getWrappedConnection();
+            database = connectionManager.getCatalogConnection();
 
             // Scan task positions.
             allSeqnosQuery = database
@@ -497,6 +544,7 @@ public class SqlCommitSeqno implements CommitSeqno
                 int reducedRows = deleteQuery.executeUpdate();
                 logger.info("Reduced " + reducedRows + " task entries: "
                         + schema + "." + TABLE_NAME);
+                reduced = true;
             }
         }
         catch (SQLException e)
@@ -507,7 +555,7 @@ public class SqlCommitSeqno implements CommitSeqno
         }
         finally
         {
-            connectionManager.releaseWrappedConnection(database);
+            connectionManager.releaseCatalogConnection(database);
         }
 
         return reduced;

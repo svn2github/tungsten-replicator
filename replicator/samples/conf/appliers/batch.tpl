@@ -3,7 +3,7 @@ replicator.applier.dbms=com.continuent.tungsten.replicator.applier.batch.SimpleB
 @{#(APPLIER.REPL_SVC_DATASOURCE_APPLIER_INIT_SCRIPT)}replicator.applier.dbms.initScript=@{APPLIER.REPL_SVC_DATASOURCE_APPLIER_INIT_SCRIPT}
 
 # Data source to which to apply. 
-replicator.applier.dbms.dataSource=applier
+replicator.applier.dbms.dataSource=global
 
 # Location of the load script. 
 replicator.applier.dbms.loadScript=${replicator.home.dir}/samples/scripts/batch/@{SERVICE.BATCH_LOAD_TEMPLATE}.js

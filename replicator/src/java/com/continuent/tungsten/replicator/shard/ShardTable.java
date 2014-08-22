@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -86,7 +86,9 @@ public class ShardTable
     {
         shardTable = new Table(schema, TABLE_NAME);
         shardMaster = new Column(SHARD_MASTER_COL, Types.VARCHAR, 128);
-        shardName = new Column(SHARD_ID_COL, Types.VARCHAR, 128, true); // true => isNotNull
+        shardName = new Column(SHARD_ID_COL, Types.VARCHAR, 128, true); // true
+                                                                        // =>
+                                                                        // isNotNull
         shardCritical = new Column(SHARD_CRIT_COL, Types.TINYINT, 1);
 
         Key shardKey = new Key(Key.Primary);
@@ -103,11 +105,13 @@ public class ShardTable
      */
     public void initializeShardTable(Database database) throws SQLException
     {
-        if (logger.isDebugEnabled())
-            logger.debug("Initializing shard table");
-
-        // Replace the table.
-        database.createTable(this.shardTable, false, tableType);
+        // Create the table.
+        if (database.findTable(shardTable.getSchema(), shardTable.getName()) == null)
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("Creating shard table");
+            database.createTable(this.shardTable, false, tableType);
+        }
     }
 
     /**

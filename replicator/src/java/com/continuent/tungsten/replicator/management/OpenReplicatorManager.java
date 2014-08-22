@@ -1194,6 +1194,15 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 throw new TransitionFailureException(pendingError, event,
                         entity, transition, actionType, e);
             }
+            catch (Exception e)
+            {
+                pendingError = "Replicator configuration failed";
+                pendingExceptionMessage = e.getMessage();
+                if (logger.isDebugEnabled())
+                    logger.debug(pendingError, e);
+                throw new TransitionFailureException(pendingError, event,
+                        entity, transition, actionType, e);
+            }
         }
     }
 

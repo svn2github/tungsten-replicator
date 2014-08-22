@@ -39,6 +39,8 @@ import com.continuent.tungsten.common.config.TungstenPropertiesIO;
 import com.continuent.tungsten.common.file.FileIOException;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.datasource.DataSourceService;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.filter.FilterManualProperties;
 import com.continuent.tungsten.replicator.management.OpenReplicatorContext;
@@ -871,6 +873,7 @@ public class ReplicatorRuntime implements PluginContext
 
     /**
      * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.plugin.PluginContext#isProvisioning()
      */
     public boolean isProvisioning()
@@ -1087,6 +1090,26 @@ public class ReplicatorRuntime implements PluginContext
         for (String name : pipeline.getServiceNames())
             services.add(pipeline.getService(name));
         return services;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.plugin.PluginContext#getDataSource(java.lang.String)
+     */
+    public UniversalDataSource getDataSource(String name)
+            throws ReplicatorException
+    {
+        DataSourceService datasourceService = (DataSourceService) getService("datasource");
+        if (datasourceService == null)
+        {
+            throw new ReplicatorException(
+                    "Unable to locate data source service; check replicator properties file to ensure it is running in pipeline");
+        }
+        else
+        {
+            return datasourceService.find(name);
+        }
     }
 
     /**

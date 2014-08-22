@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -37,17 +37,13 @@ import oracle.sql.CLOB;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.AdditionalTypes;
 import com.continuent.tungsten.replicator.database.Column;
-import com.continuent.tungsten.replicator.database.DBMS;
-import com.continuent.tungsten.replicator.database.JdbcURL;
 import com.continuent.tungsten.replicator.datatypes.MySQLUnsignedNumeric;
 import com.continuent.tungsten.replicator.datatypes.Numeric;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
-import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 public class OracleApplier extends JdbcApplier
 {
@@ -70,25 +66,6 @@ public class OracleApplier extends JdbcApplier
     public void setService(String service)
     {
         this.service = service;
-    }
-
-    /**
-     * Generate URL suitable for MySQL and then delegate remaining configuration
-     * to superclass.
-     * 
-     * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#configure(PluginContext
-     *      context)
-     */
-    public void configure(PluginContext context) throws ReplicatorException
-    {
-        if (url == null)
-        {
-            url = JdbcURL.generate(DBMS.ORACLE, host, port, service);
-        }
-        else
-            logger.info("Property url already set; ignoring host, port, and service properties");
-
-        super.configure(context);
     }
 
     private CLOB getCLOB(String xmlData) throws SQLException
@@ -145,13 +122,14 @@ public class OracleApplier extends JdbcApplier
         {
             if (value.getValue() == null)
                 prepStatement.setObject(bindLoc, null);
-                /*prepStatement.setNull(bindLoc, type);
-            else if (type == Types.FLOAT)
-                ((OraclePreparedStatement) prepStatement).setBinaryFloat(
-                        bindLoc, ((Float) value.getValue()).floatValue());
-            else if (type == Types.DOUBLE)
-                ((OraclePreparedStatement) prepStatement).setBinaryDouble(
-                        bindLoc, ((Double) value.getValue()).doubleValue());*/
+            /*
+             * prepStatement.setNull(bindLoc, type); else if (type ==
+             * Types.FLOAT) ((OraclePreparedStatement)
+             * prepStatement).setBinaryFloat( bindLoc, ((Float)
+             * value.getValue()).floatValue()); else if (type == Types.DOUBLE)
+             * ((OraclePreparedStatement) prepStatement).setBinaryDouble(
+             * bindLoc, ((Double) value.getValue()).doubleValue());
+             */
             else if (type == AdditionalTypes.XML)
             {
                 CLOB clob = getCLOB((String) (value.getValue()));

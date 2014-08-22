@@ -1321,7 +1321,7 @@ public class MySQLExtractor implements RawExtractor
         runtime = (ReplicatorRuntime) context;
 
         // Compute our MySQL DBMS URL.
-        url = generateUrl(false);
+        url = generateUrl();
 
         // If url options include ssl, the stream's availability() method cannot
         // be trusted.
@@ -1414,7 +1414,7 @@ public class MySQLExtractor implements RawExtractor
      * Generates a URL with or without the createDB=true option. This option
      * should *only* be used the first time we connect.
      */
-    private String generateUrl(boolean createDB)
+    private String generateUrl()
     {
         // Compute our MySQL DBMS URL.
         StringBuffer sb = new StringBuffer();
@@ -1434,18 +1434,6 @@ public class MySQLExtractor implements RawExtractor
             if (!urlOptions.startsWith("?"))
                 sb.append("?");
             sb.append(urlOptions);
-
-            if (createDB)
-            {
-                sb.append("&createDB=true");
-            }
-        }
-        else
-        {
-            if (createDB)
-            {
-                sb.append("?createDB=true");
-            }
         }
         return sb.toString();
     }
@@ -1474,7 +1462,7 @@ public class MySQLExtractor implements RawExtractor
 
         try
         {
-            String firstUrl = generateUrl(true);
+            String firstUrl = generateUrl();
             conn = DatabaseFactory.createDatabase(firstUrl, user, password,
                     true);
             conn.connect();

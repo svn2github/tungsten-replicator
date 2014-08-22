@@ -144,10 +144,8 @@ replicator.stage.remote-to-thl.filters=
 # a single implementation. 
 replicator.store.thl=com.continuent.tungsten.replicator.thl.THL
 
-# All THL implementations require database access to store metadata. 
-replicator.store.thl.url=
-replicator.store.thl.user=
-replicator.store.thl.password=
+# THL implementations require database access to store metadata.
+replicator.store.thl.dataSource=
 
 # Uncomment the following properties to control disk log storage location
 # and size of files.  These are default values.  NOTE:  naming the logs by 
@@ -306,6 +304,4 @@ replicator.applier.consistency_policy=@{REPL_CONSISTENCY_POLICY}
 # Should consistency check be sensitive to column names and/or types? Settings
 # on a slave must be identical to master's. Values are 'true' or 'false'.
 replicator.applier.consistency_column_names=true
-# TUC-20:  Must disable column type checking when going from
-# Connector/J on master to drizzle on slave.
-replicator.applier.consistency_column_types=false
+replicator.applier.consistency_column_types=true

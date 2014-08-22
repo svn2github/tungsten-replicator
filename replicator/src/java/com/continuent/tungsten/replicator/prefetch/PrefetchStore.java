@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-2012 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,23 +22,19 @@
 
 package com.continuent.tungsten.replicator.prefetch;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
-import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
+import com.continuent.tungsten.replicator.datasource.CommitSeqno;
+import com.continuent.tungsten.replicator.datasource.SqlDataSource;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
-import com.continuent.tungsten.replicator.event.ReplDBMSHeaderData;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 import com.continuent.tungsten.replicator.storage.InMemoryQueueStore;
-import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
 
 /**
  * Implements a specialized store for handling slave prefetch from another
@@ -48,23 +44,19 @@ import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
  */
 public class PrefetchStore extends InMemoryQueueStore
 {
-    private static Logger     logger         = Logger.getLogger(PrefetchStore.class);
+    private static Logger logger       = Logger.getLogger(PrefetchStore.class);
 
     // Prefetch store parameters.
-    private String            user;
-    private String            url;
-    private String            password;
-    private String            slaveCatalogSchema;
+    private String        datasource;
 
-    private long              interval       = 1000;
-    private int               maxTimeAhead   = 60;
-    private int               minTimeAhead   = 0;
-    private int               sleepTime      = 500;
-    private boolean           allowAll       = false;
+    private long          interval     = 1000;
+    private int           maxTimeAhead = 60;
+    private int           minTimeAhead = 0;
+    private int           sleepTime    = 500;
+    private boolean       allowAll     = false;
 
     // Database connection information.
-    private Database          conn           = null;
-    private PreparedStatement seqnoStatement = null;
+    private CommitSeqno   commitSeqno;
 
     // Prefetch coordination information.
 
@@ -89,31 +81,6 @@ public class PrefetchStore extends InMemoryQueueStore
 
     private long          slaveLatency;
     private long          prefetchLatency;
-
-    /** Sets the JDBC URL to connect to the slave server. */
-    public void setUrl(String url)
-    {
-        this.url = url;
-    }
-
-    public void setUser(String user)
-    {
-        this.user = user;
-    }
-
-    /** Sets the password of the database login to check slave position. */
-    public void setPassword(String password)
-    {
-        this.password = password;
-    }
-
-    /**
-     * Sets the catalog schema name of the slave for which we are prefetching.
-     */
-    public void setSlaveCatalogSchema(String slaveCatalogSchema)
-    {
-        this.slaveCatalogSchema = slaveCatalogSchema;
-    }
 
     /**
      * Sets the number of milliseconds between slave position checks.
@@ -177,7 +144,7 @@ public class PrefetchStore extends InMemoryQueueStore
     /**
      * Returns the position of the slave on which we are handling prefetch.
      */
-    public ReplDBMSHeader getLastHeader()
+    public ReplDBMSHeader getLastHeader() throws ReplicatorException, InterruptedException
     {
         return this.getCurrentSlaveHeader();
     }
@@ -235,32 +202,24 @@ public class PrefetchStore extends InMemoryQueueStore
             logger.warn("PrefetchStore allowAll property set--all transactions will be allowed");
         }
 
-        logger.info("Preparing PrefetchStore for slave catalog schema: "
-                + slaveCatalogSchema);
-        // Load defaults for connection
-        if (url == null)
-            url = context.getJdbcUrl(null);
-        if (user == null)
-            user = context.getJdbcUser();
-        if (password == null)
-            password = context.getJdbcPassword();
-
-        // Connect.
-        try
+        // Find the data source.
+        UniversalDataSource dataSourceImpl = context.getDataSource(datasource);
+        if (dataSourceImpl == null)
         {
-            conn = DatabaseFactory.createDatabase(url, user, password);
-            conn.connect();
-
-            seqnoStatement = conn
-                    .prepareStatement("select seqno, fragno, last_Frag, source_id, epoch_number, eventid, applied_latency from "
-                            + slaveCatalogSchema
-                            + "."
-                            + CommitSeqnoTable.TABLE_NAME);
+            throw new ReplicatorException("Unable to locate data source: name="
+                    + datasource);
         }
-        catch (SQLException e)
+        else if (!(dataSourceImpl instanceof SqlDataSource))
         {
-            throw new ReplicatorException(e);
+            throw new ReplicatorException(
+                    "Invalid data source type for prefetch: name=" + datasource
+                            + " type=" + dataSourceImpl.getClass().getName());
         }
+
+        // Remember the details of the data source.
+        logger.info("Preparing PrefetchStore for slave catalog schema: data source="
+                + name);
+        commitSeqno = dataSourceImpl.getCommitSeqno();
 
         // Show that we have started.
         startTimeMillis = System.currentTimeMillis();
@@ -272,13 +231,13 @@ public class PrefetchStore extends InMemoryQueueStore
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#release(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
-    public void release(PluginContext context) throws ReplicatorException
+    public void release(PluginContext context) throws ReplicatorException,
+            InterruptedException
     {
-        queue = null;
-        if (conn != null)
+        super.release(context);
+        if (commitSeqno != null)
         {
-            conn.close();
-            conn = null;
+            commitSeqno.release();
         }
     }
 
@@ -293,8 +252,7 @@ public class PrefetchStore extends InMemoryQueueStore
         TungstenProperties props = super.status();
 
         // Add properties for prefetch.
-        props.setString("url", url);
-        props.setString("slaveCatalogSchema", slaveCatalogSchema);
+        props.setString("datasource", datasource);
         props.setLong("interval", interval);
         props.setLong("maxTimeAhead", maxTimeAhead);
         props.setLong("minTimeAhead", minTimeAhead);
@@ -445,47 +403,14 @@ public class PrefetchStore extends InMemoryQueueStore
     }
 
     // Fetch position data from slave.
-    private ReplDBMSHeaderData getCurrentSlaveHeader()
+    private ReplDBMSHeader getCurrentSlaveHeader() throws ReplicatorException, InterruptedException
     {
-        ReplDBMSHeaderData header = null;
-        ResultSet rs = null;
-        try
+        ReplDBMSHeader header = commitSeqno.maxCommitSeqno();
+        if (header != null)
         {
-            rs = seqnoStatement.executeQuery();
-            if (rs.next())
-            {
-                // Construct header data
-                long seqno = rs.getLong("seqno");
-                short fragno = rs.getShort("fragno");
-                boolean lastFrag = rs.getBoolean("last_frag");
-                String sourceId = rs.getString("source_id");
-                long epochNumber = rs.getLong("epoch_number");
-                String eventId = rs.getString("eventid");
-                // Record current slave latency and time of last check.
-                slaveLatency = rs.getLong("applied_latency") * 1000;                
-
-                header = new ReplDBMSHeaderData(seqno, fragno, lastFrag,
-                        sourceId, epochNumber, eventId, null, new Timestamp(0), slaveLatency);
-
-
-                slaveSeqno = header.getSeqno();
-                lastChecked = System.currentTimeMillis();
-            }
-        }
-        catch (SQLException e)
-        {
-            logger.warn(e);
-        }
-        finally
-        {
-            if (rs != null)
-                try
-                {
-                    rs.close();
-                }
-                catch (SQLException e)
-                {
-                }
+            slaveLatency = header.getAppliedLatency() * 1000;
+            slaveSeqno = header.getSeqno();
+            lastChecked = System.currentTimeMillis();
         }
         return header;
     }

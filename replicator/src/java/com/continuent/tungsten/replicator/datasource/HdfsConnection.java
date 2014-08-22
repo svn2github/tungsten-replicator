@@ -98,6 +98,26 @@ public class HdfsConnection implements UniversalConnection
     /**
      * {@inheritDoc}
      * 
+     * @see com.continuent.tungsten.replicator.datasource.UniversalConnection#setLogged(boolean)
+     */
+    public void setLogged(boolean logged)
+    {
+        // Do nothing.
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.UniversalConnection#setPrivileged(boolean)
+     */
+    public void setPrivileged(boolean privileged)
+    {
+        // Do nothing.
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.datasource.UniversalConnection#close()
      */
     public void close()

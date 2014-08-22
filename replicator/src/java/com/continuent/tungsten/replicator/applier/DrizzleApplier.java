@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Marcus Eriksson
+ * Contributor(s): Robert Hodges
  * INITIAL CODE DONATED UNDER TUNGSTEN CODE CONTRIBUTION AGREEMENT
  */
 
@@ -29,7 +30,6 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.RowIdData;
-import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
  * Stub applier class that automatically constructs url from Drizzle-specific
@@ -69,36 +69,6 @@ public class DrizzleApplier extends JdbcApplier
     public void setUrlOptions(String urlOptions)
     {
         this.urlOptions = urlOptions;
-    }
-
-    /**
-     * Generate URL suitable for Drizzle and then delegate remaining
-     * configuration to superclass.
-     * 
-     * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#configure(com.continuent.tungsten.replicator.plugin.PluginContext
-     *      context)
-     */
-    public void configure(PluginContext context) throws ReplicatorException
-    {
-        if (url == null)
-        {
-            StringBuffer sb = new StringBuffer();
-            sb.append("jdbc:drizzle://");
-            sb.append(host);
-            if (port > 0)
-            {
-                sb.append(":");
-                sb.append(port);
-            }
-            sb.append("/");
-            if (urlOptions != null)
-                sb.append(urlOptions);
-
-            url = sb.toString();
-        }
-        else if (logger.isDebugEnabled())
-            logger.debug("Property url already set; ignoring host and port properties");
-        super.configure(context);
     }
 
     protected void applyRowIdData(RowIdData data) throws ReplicatorException

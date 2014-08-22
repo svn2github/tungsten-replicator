@@ -35,10 +35,9 @@ public class SqlConnectionSpecGeneric implements SqlConnectionSpec
     protected String  host;
     protected int     port;
     protected String  tableType;
-    protected boolean privilegedSlaveUpdate = true;
-    protected boolean logSlaveUpdates       = false;
     protected boolean sslEnabled;
     protected String  schema;
+    protected String  initScript;
 
     // Url may be specified or generated.
     protected String  url;
@@ -112,7 +111,7 @@ public class SqlConnectionSpecGeneric implements SqlConnectionSpec
     {
         this.tableType = tableType;
     }
-    
+
     /**
      * {@inheritDoc}
      * 
@@ -126,29 +125,6 @@ public class SqlConnectionSpecGeneric implements SqlConnectionSpec
     public void setVendor(String vendor)
     {
         this.vendor = vendor;
-    }
-
-    /**
-     * Returns whether privileged slave updates are enabled.
-     */
-    public boolean isPrivilegedSlaveUpdate()
-    {
-        return privilegedSlaveUpdate;
-    }
-
-    public void setPrivilegedSlaveUpdate(boolean privilegedSlaveUpdate)
-    {
-        this.privilegedSlaveUpdate = privilegedSlaveUpdate;
-    }
-
-    public boolean isLogSlaveUpdates()
-    {
-        return logSlaveUpdates;
-    }
-
-    public void setLogSlaveUpdates(boolean logSlaveUpdates)
-    {
-        this.logSlaveUpdates = logSlaveUpdates;
     }
 
     /**
@@ -188,8 +164,31 @@ public class SqlConnectionSpecGeneric implements SqlConnectionSpec
         return url;
     }
 
+    /** Sets an optional script to execute at connection time. */
+    public String getInitScript()
+    {
+        return initScript;
+    }
+
+    public void setInitScript(String initScript)
+    {
+        this.initScript = initScript;
+    }
+
     /**
-     * Must be implemented by subclasses.
+     * Returns true if this URL type supports an option to create DB
+     * automatically.
+     */
+    public boolean supportsCreateDB()
+    {
+        return false;
+    }
+
+    /**
+     * Returns a JDBC URL that can be used for connections.
+     * 
+     * @param createDB Add an option to create database automatically if
+     *            supported by this URL type
      */
     public String createUrl(boolean createDB)
     {

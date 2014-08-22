@@ -32,6 +32,14 @@ public class SqlConnectionSpecMySQL extends SqlConnectionSpecGeneric
     protected String urlOptions;
 
     /**
+     * Instantiate URLa specification for MySQL with InnoDB as default table type.
+     */
+    public SqlConnectionSpecMySQL()
+    {
+        this.tableType = "InnoDB";
+    }
+
+    /**
      * Returns the JDBC URL header, e.g., a prefix like "jdbc:mysql:thin://" or
      * null if we are to use a default.
      */
@@ -56,6 +64,15 @@ public class SqlConnectionSpecMySQL extends SqlConnectionSpecGeneric
     public void setUrlOptions(String urlOptions)
     {
         this.urlOptions = urlOptions;
+    }
+
+    /**
+     * Indicate that MySQL can create database from the URL.
+     */
+    @Override
+    public boolean supportsCreateDB()
+    {
+        return true;
     }
 
     /**

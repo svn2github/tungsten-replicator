@@ -36,20 +36,23 @@ public interface SqlConnectionSpec
     /** Returns the DBMS schema for catalog tables. */
     public String getSchema();
 
-    /** Returns true if we are updating and this is a privileged slave. */
-    public boolean isPrivilegedSlaveUpdate();
-
     /**
      * Returns vendor for some DBMS types which share the same URL beginning
      * (eg. PostgreSQL, Greenplum and Redshift). Can be null if not applicable.
      */
     public String getVendor();
 
-    /** Returns true if we should log updates on the replication log. */
-    public boolean isLogSlaveUpdates();
-
-    /** Returns the DBMS table type. */
+    /** Returns the DBMS table type. This is a MySQL option. */
     public String getTableType();
+
+    /** Returns an optional connect script to run at connect time. */
+    public String getInitScript();
+
+    /**
+     * Returns true if this URL type supports an option to create DB
+     * automatically.
+     */
+    public boolean supportsCreateDB();
 
     /**
      * Returns a URL to connect to the DBMS to which this specification applies.

@@ -198,7 +198,7 @@ replicator.pipelines=direct
 # over the network to the slave.
 replicator.pipeline.direct=d-binlog-to-q,d-q-to-thl,d-thl-to-pq,d-pq-to-dbms
 replicator.pipeline.direct.stores=queue,thl,parallel-queue
-replicator.pipeline.direct.services=channel-assignment
+replicator.pipeline.direct.services=datasource,channel-assignment
 replicator.pipeline.direct.autoSync=true
 replicator.pipeline.direct.syncTHLWithExtractor=false
 
@@ -241,11 +241,8 @@ replicator.stage.d-pq-to-dbms.blockCommitPolicy=strict
 # a single implementation. 
 replicator.store.thl=com.continuent.tungsten.replicator.thl.THL
 
-# All THL implementations require database access to store metadata. 
-replicator.store.thl.url=@{APPLIER.REPL_DBTHLURL}
-replicator.store.thl.user=${replicator.global.db.user}
-replicator.store.thl.password=${replicator.global.db.password}
-@{#(APPLIER.REPL_SVC_DATASOURCE_THL_INIT_SCRIPT)}replicator.store.thl.initScript=@{APPLIER.REPL_SVC_DATASOURCE_THL_INIT_SCRIPT}
+# THL implementations require database access to store metadata.
+replicator.store.thl.dataSource=global
 
 # Uncomment the following properties to control disk log storage location
 # and size of files.  These are default values.  NOTE:  naming the logs by 
@@ -411,7 +408,7 @@ replicator.applier.parallel-q-applier.storeName=parallel-queue
 # shard.list.  The number of configured channels must be correctly configured
 # to avoid replication errors. 
 replicator.service.channel-assignment=com.continuent.tungsten.replicator.channel.ChannelAssignmentService
-replicator.service.channel-assignment.url=@{APPLIER.REPL_DBTHLURL}
+replicator.service.channel-assignment.dataSource=global
 replicator.service.channel-assignment.channels=${replicator.global.apply.channels}
 replicator.service.channel-assignment.reconnectTimeoutInSeconds=60
 
@@ -424,7 +421,13 @@ replicator.service.channel-assignment.reconnectTimeoutInSeconds=60
 replicator.service.datasource=com.continuent.tungsten.replicator.datasource.DataSourceService
 
 # Data sources we know about. 
-replicator.datasources=applier
+replicator.datasources=global,extractor
+
+# TODO:  Put real data extractor source here. 
+# Alias data source to allow filters and other components to refer to
+# extractor.
+replicator.datasource.extractor=com.continuent.tungsten.replicator.datasource.AliasDataSource
+replicator.datasource.extractor.dataSource=global
 
 @{include(REPL_SVC_APPLIER_DATASOURCE_CONFIG)}
 
@@ -476,6 +479,4 @@ replicator.applier.consistency_policy=@{REPL_CONSISTENCY_POLICY}
 # Should consistency check be sensitive to column names and/or types? Settings
 # on a slave must be identical to master's. Values are 'true' or 'false'.
 replicator.applier.consistency_column_names=true
-# TUC-20:  Must disable column type checking when going from
-# Connector/J on master to drizzle on slave.
-replicator.applier.consistency_column_types=false
+replicator.applier.consistency_column_types=true

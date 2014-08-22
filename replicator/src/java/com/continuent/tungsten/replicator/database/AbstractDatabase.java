@@ -320,6 +320,28 @@ public abstract class AbstractDatabase implements Database
     /**
      * {@inheritDoc}
      * 
+     * @see com.continuent.tungsten.replicator.datasource.UniversalConnection#setLogged(boolean)
+     */
+    public void setLogged(boolean logged) throws ReplicatorException
+    {
+        // This is harmless if session logging is not supported.
+        if (supportsControlSessionLevelLogging())
+        {
+            try
+            {
+                controlSessionLevelLogging(!logged);
+            }
+            catch (SQLException e)
+            {
+                throw new ReplicatorException("Unable to set logging: "
+                        + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
      * @see com.continuent.tungsten.replicator.database.Database#supportsNativeSlaveSync()
      */
     public boolean supportsNativeSlaveSync()

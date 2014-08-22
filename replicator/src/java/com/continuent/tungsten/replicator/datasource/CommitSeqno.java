@@ -71,6 +71,13 @@ public interface CommitSeqno extends CatalogEntity
             InterruptedException;
 
     /**
+     * Returns the header for the highest committed sequence number or null if
+     * none such can be found.
+     */
+    public ReplDBMSHeader maxCommitSeqno() throws ReplicatorException,
+            InterruptedException;
+
+    /**
      * Returns an accessor suitable for performing operations for a particular
      * task ID.
      * 

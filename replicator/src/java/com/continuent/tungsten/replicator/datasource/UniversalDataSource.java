@@ -64,8 +64,15 @@ public interface UniversalDataSource extends CatalogEntity
     public String getServiceName();
 
     /**
-     * Set the number of channels to use when extracting from or applying to the
-     * data source. This is the basic mechanism to support parallel replication.
+     * Set the number of channels to use when applying to the data source. This
+     * is the basic mechanism to support parallel replication for relational
+     * DBMS systems. It should be set according to the role of the pipeline
+     * within a data source.
+     * <ol>
+     * <li>Master - Channels should always be set to 1.</li>
+     * <li>Slave or relay - Channels set to number of apply threads</li>
+     * <li>Other role - Channels set to 1</li>
+     * </ol>
      */
     public void setChannels(int channels);
 

@@ -22,7 +22,6 @@
 
 package com.continuent.tungsten.replicator.database;
 
-import java.io.BufferedWriter;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -33,7 +32,6 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 

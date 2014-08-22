@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -49,12 +49,14 @@ import com.continuent.tungsten.replicator.consistency.ConsistencyException;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.MySQLOperationMatcher;
 import com.continuent.tungsten.replicator.database.SqlOperation;
 import com.continuent.tungsten.replicator.database.SqlOperationMatcher;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.database.TableMetadataCache;
+import com.continuent.tungsten.replicator.datasource.CommitSeqno;
+import com.continuent.tungsten.replicator.datasource.CommitSeqnoAccessor;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileDelete;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileFragment;
@@ -73,7 +75,6 @@ import com.continuent.tungsten.replicator.event.ReplOption;
 import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
-import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
 import com.continuent.tungsten.replicator.thl.THLManagerCtrl;
 
 /**
@@ -90,20 +91,18 @@ public class JdbcApplier implements RawApplier
 
     protected int                     taskId                     = 0;
     protected ReplicatorRuntime       runtime                    = null;
-    protected String                  driver                     = null;
-    protected String                  url                        = null;
-    protected String                  user                       = "root";
-    protected String                  password                   = "rootpass";
+    protected String                  dataSource                 = null;
     protected String                  ignoreSessionVars          = null;
 
     protected String                  metadataSchema             = null;
     protected String                  consistencyTable           = null;
     protected String                  consistencySelect          = null;
-    protected Database                conn                       = null;
     protected Statement               statement                  = null;
     protected Pattern                 ignoreSessionPattern       = null;
 
-    protected CommitSeqnoTable        commitSeqnoTable           = null;
+    protected Database                conn                       = null;
+    protected CommitSeqno             commitSeqno                = null;
+    protected CommitSeqnoAccessor     commitSeqnoAccessor        = null;
     protected HeartbeatTable          heartbeatTable             = null;
 
     protected String                  lastSessionId              = "";
@@ -136,10 +135,7 @@ public class JdbcApplier implements RawApplier
 
     // SQL parser.
     SqlOperationMatcher               sqlMatcher                 = new MySQLOperationMatcher();
-
     private boolean                   getColumnInformationFromDB = true;
-
-    private String                    initScript                 = null;
 
     // Indicates whether ROW events should be optimized (grouping inserts or
     // deletes) -- only supported by MySQL appliers for now
@@ -169,29 +165,14 @@ public class JdbcApplier implements RawApplier
             logger.debug("Set task id: id=" + taskId);
     }
 
-    public void setDriver(String driver)
-    {
-        this.driver = driver;
-    }
-
     public Database getDatabase()
     {
         return conn;
     }
 
-    public void setUrl(String url)
+    public void setDataSource(String dataSource)
     {
-        this.url = url;
-    }
-
-    public void setUser(String user)
-    {
-        this.user = user;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
+        this.dataSource = dataSource;
     }
 
     public void setIgnoreSessionVars(String ignoreSessionVars)
@@ -202,11 +183,6 @@ public class JdbcApplier implements RawApplier
     public void setGetColumnMetadataFromDB(boolean getColumnInformationFromDB)
     {
         this.getColumnInformationFromDB = getColumnInformationFromDB;
-    }
-
-    public void setInitScript(String file)
-    {
-        this.initScript = file;
     }
 
     /**
@@ -1293,7 +1269,7 @@ public class JdbcApplier implements RawApplier
      */
     public void apply(DBMSEvent event, ReplDBMSHeader header, boolean doCommit,
             boolean doRollback) throws ReplicatorException,
-            ConsistencyException
+            ConsistencyException, InterruptedException
     {
         boolean transactionCommitted = false;
         boolean consistencyCheckFailure = false;
@@ -1677,13 +1653,16 @@ public class JdbcApplier implements RawApplier
     }
 
     private void updateCommitSeqno(ReplDBMSHeader header, long appliedLatency)
-            throws SQLException
+            throws ReplicatorException, InterruptedException
     {
-        if (commitSeqnoTable == null)
+        if (commitSeqnoAccessor == null)
             return;
-        if (logger.isDebugEnabled())
-            logger.debug("Updating commit seqno to " + header.getSeqno());
-        commitSeqnoTable.updateLastCommitSeqno(taskId, header, appliedLatency);
+        else
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("Updating commit seqno to " + header.getSeqno());
+            commitSeqnoAccessor.updateLastCommitSeqno(header, appliedLatency);
+        }
     }
 
     /**
@@ -1691,19 +1670,13 @@ public class JdbcApplier implements RawApplier
      * 
      * @see com.continuent.tungsten.replicator.applier.RawApplier#getLastEvent()
      */
-    public ReplDBMSHeader getLastEvent() throws ReplicatorException
+    public ReplDBMSHeader getLastEvent() throws ReplicatorException,
+            InterruptedException
     {
-        if (commitSeqnoTable == null)
+        if (commitSeqnoAccessor == null)
             return null;
-
-        try
-        {
-            return commitSeqnoTable.lastCommitSeqno(taskId);
-        }
-        catch (SQLException e)
-        {
-            throw new ApplierException(e);
-        }
+        else
+            return commitSeqnoAccessor.lastCommitSeqno();
     }
 
     /**
@@ -1770,35 +1743,33 @@ public class JdbcApplier implements RawApplier
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#prepare(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
-    public void prepare(PluginContext context) throws ReplicatorException
+    public void prepare(PluginContext context) throws ReplicatorException,
+            InterruptedException
     {
         try
         {
-            // Load driver if provided.
-            if (driver != null)
+            // Establish a connection to the data source.
+            logger.info("Connecting to data source");
+            UniversalDataSource dataSourceImpl = context
+                    .getDataSource(dataSource);
+            if (dataSourceImpl == null)
             {
-                try
-                {
-                    Class.forName(driver);
-                }
-                catch (Exception e)
-                {
-                    throw new ReplicatorException("Unable to load driver: "
-                            + driver, e);
-                }
+                throw new ReplicatorException(
+                        "Unable to locate data source: name=" + dataSource);
             }
 
-            // Create the database. Note that we need to see if we have a
-            // privileged account as some slaves like Amazon RDS do not allow
-            // superuser.
-            if (!context.isPrivilegedSlave())
+            // Create a connection, suppressing logging if desired.
+            conn = (Database) dataSourceImpl.getConnection();
+            if (context.isPrivilegedSlave() && !context.logReplicatorUpdates())
             {
-                logger.info("Assuming non-privileged JDBC login for apply");
+                logger.info("Suppressing logging on privileged slave");
+                conn.setPrivileged(true);
+                conn.setLogged(false);
             }
-            conn = DatabaseFactory.createDatabase(url, user, password,
-                    context.isPrivilegedSlave());
-            conn.setInitScript(initScript);
-            conn.connect();
+
+            // Create accessor that can update the trep_commit_seqno table.
+            commitSeqno = dataSourceImpl.getCommitSeqno();
+            commitSeqnoAccessor = commitSeqno.createAccessor(taskId, conn);
             statement = conn.createStatement();
 
             // Enable binlogs at session level if this is supported and we are
@@ -1834,25 +1805,15 @@ public class JdbcApplier implements RawApplier
             heartbeatTable = new HeartbeatTable(
                     context.getReplicatorSchemaName(),
                     runtime.getTungstenTableType());
-            heartbeatTable.initializeHeartbeatTable(conn);
 
-            // Create consistency table
-            Table consistency = ConsistencyTable
-                    .getConsistencyTableDefinition(metadataSchema);
-            conn.createTable(consistency, false);
-
-            // Set up commit seqno table and fetch the last processed event.
-            commitSeqnoTable = new CommitSeqnoTable(conn,
-                    context.getReplicatorSchemaName(),
-                    runtime.getTungstenTableType(), false);
-            commitSeqnoTable.prepare(taskId);
-            lastProcessedEvent = commitSeqnoTable.lastCommitSeqno(taskId);
-
+            // SFetch the last processed event.
+            lastProcessedEvent = commitSeqnoAccessor.lastCommitSeqno();
         }
         catch (SQLException e)
         {
-            String message = String.format("Failed using url=%s, user=%s", url,
-                    user);
+            String message = String
+                    .format("Unable to initialize applier: data source="
+                            + dataSource);
             throw new ReplicatorException(message, e);
         }
     }
@@ -1880,12 +1841,13 @@ public class JdbcApplier implements RawApplier
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#release(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
-    public void release(PluginContext context) throws ReplicatorException
+    public void release(PluginContext context) throws ReplicatorException,
+            InterruptedException
     {
-        if (commitSeqnoTable != null)
+        if (commitSeqno != null)
         {
-            commitSeqnoTable.release();
-            commitSeqnoTable = null;
+            commitSeqno.release();
+            commitSeqnoAccessor = null;
         }
 
         currentOptions = null;
