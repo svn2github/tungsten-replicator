@@ -7,6 +7,9 @@ class TungstenReplicatorProvisionTHL
   include MySQLServiceScript
   include OfflineSingleServiceScript
   
+  # A flag to look for Ctrl-C
+  @@interrupted = false
+  
   def main
     case command()
     when "provision"
@@ -133,10 +136,61 @@ class TungstenReplicatorProvisionTHL
         raise "Unable to parse CHANGE MASTER data"
       end
       
-      TU.notice("The THL has been provisioned to #{binlog_file}:#{binlog_position} on #{opt(:extraction_host)}:#{opt(:extraction_port)}")
+      TU.notice("The sandbox has been provisioned to #{binlog_file}:#{binlog_position} on #{opt(:extraction_host)}:#{opt(:extraction_port)}")
     else
       raise "Unable to find CHANGE MASTER data"
     end
+    
+    old_trap = trap("INT") {
+      TungstenReplicatorProvisionTHL.interrupted?(true);
+    }
+    
+    # Watch the sandbox replicator and make sure it finishes ONLINE and
+    # caught up with the sandbox MySQL instance
+    sandbox_replicator_caught_up = false
+    while (sandbox_replicator_caught_up == false && TungstenReplicatorProvisionTHL.interrupted?() == false)
+      # Check that the sandbox replicator is still running
+      sandbox = TungstenInstall.get(opt(:replicator_dir) + "/tungsten")
+      
+      unless sandbox.is_running?("replicator") == true
+        raise "The sandbox replicator is no longer running. It may be possible to complete the provisioning process. Resolve the issue and let the replication service in #{opt(:replicator_dir)} catch up before running `#{script_name()} cleanup`."
+      end
+      
+      # Check the sandbox replicator status and position
+      status = sandbox.status(sandbox.default_dataservice())
+      
+      if status.replicator_status(sandbox.hostname()) != "ONLINE"
+        raise "The sandbox replicator is no longer ONLINE. It may be possible to complete the provisioning process. Resolve the issue and let the replication service in #{opt(:replicator_dir)} catch up before running `#{script_name()} cleanup`."
+      end
+      
+      currentEventId = status.replicator_value(sandbox.hostname(), "currentEventId")
+      # Remove the MySQL thread_id from the end of appliedLastEventId
+      appliedLastEventId = status.replicator_value(sandbox.hostname(), "appliedLastEventId").gsub(/;.*/, "")
+      appliedLastEventId = ""
+      
+      if currentEventId == appliedLastEventId
+        sandbox_replicator_caught_up = true
+      else
+        TU.debug("Waiting for the sandbox replicator to catch up from #{appliedLastEventId} to #{currentEventId}")
+      end
+      
+      begin
+        # Sleep for 1 minute before checking again
+        if sandbox_replicator_caught_up == false
+          sleep 60
+        end
+      rescue
+        # Ignore any exceptions here because they are probably coming from Ctrl-C
+      end
+    end
+    
+    # Throw an error if the script was interrupted so the sandbox services
+    # will remain for further inspection.
+    if TungstenReplicatorProvisionTHL.interrupted?() == true
+      TU.error("The #{script_name()} process was interrupted but the provisioning process may still complete. Check the replicator in #{opt(:replicator_dir)}/tungsten before running `#{script_name()} cleanup`.")
+    end
+    
+    trap("INT", old_trap);
   end
 
   def configure
@@ -422,6 +476,14 @@ class TungstenReplicatorProvisionTHL
     else
       super()
     end
+  end
+  
+  def self.interrupted?(val = nil)
+    if val != nil
+      @@interrupted = val
+    end
+    
+    (@@interrupted == true)
   end
   
   def script_name
