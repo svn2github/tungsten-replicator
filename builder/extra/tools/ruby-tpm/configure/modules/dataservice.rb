@@ -1486,6 +1486,7 @@ class ReplicationHeterogenousService < ConfigurePrompt
   
   def initialize
     super(ENABLE_HETEROGENOUS_SERVICE, "Enable heterogenous operation", PV_BOOLEAN, "false")
+    override_command_line_argument("enable-heterogeneous-service")
   end
   
   def load_default_value
@@ -1502,6 +1503,7 @@ class ReplicationHeterogenousMaster < ConfigurePrompt
   
   def initialize
     super(ENABLE_HETEROGENOUS_MASTER, "Enable heterogenous operation for the master", PV_BOOLEAN, "false")
+    override_command_line_argument("enable-heterogeneous-master")
   end
   
   def load_default_value
@@ -1520,6 +1522,7 @@ class ReplicationHeterogenousSlave < ConfigurePrompt
   
   def initialize
     super(ENABLE_HETEROGENOUS_SLAVE, "Enable heterogenous operation for the slave", PV_BOOLEAN, "false")
+    override_command_line_argument("enable-heterogeneous-slave")
   end
   
   def load_default_value
