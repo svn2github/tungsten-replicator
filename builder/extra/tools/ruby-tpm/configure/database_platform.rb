@@ -51,6 +51,10 @@ class ConfigureDatabasePlatform
     "tungsten-replicator/samples/conf/datasources/#{get_uri_scheme()}.tpl"
 	end
 	
+	def get_datasource_template_ds_name(ds_name)
+    "tungsten-replicator/samples/conf/datasources/#{get_uri_scheme()}_#{ds_name}.tpl"
+	end
+
 	def get_extractor_filters()
     filters = []
 	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_MASTER]) == "true"

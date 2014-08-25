@@ -1229,6 +1229,19 @@ class ReplicationServiceApplierDatasourceConfig < ConfigurePrompt
   end
 end
 
+class ReplicationServiceExtractorDatasourceConfig < ConfigurePrompt
+  include ReplicationServicePrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(REPL_SVC_EXTRACTOR_DATASOURCE_CONFIG, "Replication service extractor datasource config properties")
+  end
+  
+  def get_template_value
+    get_applier_datasource().get_datasource_template_ds_name("extractor")
+  end
+end
+
 class ReplicationServiceExtractorConfig < ConfigurePrompt
   include ReplicationServicePrompt
   include ConstantValueModule

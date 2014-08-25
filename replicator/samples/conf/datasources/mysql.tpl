@@ -5,7 +5,7 @@ replicator.datasource.global=com.continuent.tungsten.replicator.datasource.SqlDa
 replicator.datasource.global.serviceName=${service.name}
 
 # Whether to create catalog tables. 
-replicator.datasource.createCatalog=true
+replicator.datasource.global.createCatalog=true
 
 # Connection information for MySQL. 
 replicator.datasource.global.connectionSpec=com.continuent.tungsten.replicator.datasource.SqlConnectionSpecMySQL

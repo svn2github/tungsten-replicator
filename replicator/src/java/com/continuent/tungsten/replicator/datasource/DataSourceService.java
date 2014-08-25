@@ -182,9 +182,15 @@ public class DataSourceService implements PipelineService
                                 + name);
                         sqlDs.setPrivileged(true);
                     }
-                    if (!context.logReplicatorUpdates())
+                    if (context.logReplicatorUpdates())
                     {
-                        logger.info("Suppressing logging for slave/relay: name="
+                        logger.info("Enabling logging of updates for slave/relay: name="
+                                + name);
+                        sqlDs.setLogOperations(true);
+                    }
+                    else
+                    {
+                        logger.info("Disabling logging of updates for slave/relay: name="
                                 + name);
                         sqlDs.setLogOperations(false);
                     }

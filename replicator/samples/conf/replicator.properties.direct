@@ -423,11 +423,7 @@ replicator.service.datasource=com.continuent.tungsten.replicator.datasource.Data
 # Data sources we know about. 
 replicator.datasources=global,extractor
 
-# TODO:  Put real data extractor source here. 
-# Alias data source to allow filters and other components to refer to
-# extractor.
-replicator.datasource.extractor=com.continuent.tungsten.replicator.datasource.AliasDataSource
-replicator.datasource.extractor.dataSource=global
+@{include(REPL_SVC_EXTRACTOR_DATASOURCE_CONFIG)}
 
 @{include(REPL_SVC_APPLIER_DATASOURCE_CONFIG)}
 
