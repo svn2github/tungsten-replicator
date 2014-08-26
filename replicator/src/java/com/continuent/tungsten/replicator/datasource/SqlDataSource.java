@@ -161,23 +161,26 @@ public class SqlDataSource extends AbstractDataSource
      */
     public void reduce() throws ReplicatorException, InterruptedException
     {
+        // If we don't have the commit seqno or connection manager yet there is
+        // no work to be done. This can happen if reduce is called before
+        // we have completed prepare.
+        if (connectionManager == null || commitSeqno == null)
+            return;
+
         // Reduce tasks restart points in trep_commit_seqno table if possible.
         // If tasks are reduced, clear the channel table.
+        logger.info("Attempting to reduce catalog data: data source=" + name);
         Database conn = null;
         try
         {
             // Connect to DBMS.
             conn = connectionManager.getCatalogConnection();
 
-            // Only reduce if this is not null.
-            if (commitSeqno != null)
+            // Reduce both task as well as channel assignments.
+            boolean reduced = commitSeqno.reduceTasks();
+            if (reduced && channelTable != null)
             {
-                boolean reduced = commitSeqno.reduceTasks();
-
-                if (reduced && channelTable != null)
-                {
-                    channelTable.reduceAssignments(conn, channels);
-                }
+                channelTable.reduceAssignments(conn, channels);
             }
         }
         catch (Exception e)
