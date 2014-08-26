@@ -164,7 +164,7 @@ module ClusterDiagnosticPackage
 
         if ds.getVendor == "mysql"
           FileUtils.mkdir_p("#{diag_dir}/#{h_alias}/mysql")
-          write_file("#{diag_dir}/#{h_alias}/mysql/innodb_status.txt",call_mysql(config,h_alias,ds,'show innodb status'))
+          write_file("#{diag_dir}/#{h_alias}/mysql/innodb_status.txt",call_mysql(config,h_alias,ds,'show engine innodb status'))
           write_file("#{diag_dir}/#{h_alias}/mysql/global_variables.txt",call_mysql(config,h_alias,ds,'show global variables'))
           write_file("#{diag_dir}/#{h_alias}/mysql/status.txt",call_mysql(config,h_alias,ds,'show status'))
 
