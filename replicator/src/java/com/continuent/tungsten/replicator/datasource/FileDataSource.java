@@ -120,6 +120,20 @@ public class FileDataSource extends AbstractDataSource
     }
 
     /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#reduce()
+     */
+    public void reduce() throws ReplicatorException, InterruptedException
+    {
+        // Reduce tasks.
+        if (commitSeqno != null)
+        {
+            commitSeqno.reduceTasks();
+        }
+    }
+
+    /**
      * Release all data source tables.
      */
     @Override
@@ -146,9 +160,10 @@ public class FileDataSource extends AbstractDataSource
     }
 
     @Override
-    public void clear() throws ReplicatorException, InterruptedException
+    public boolean clear() throws ReplicatorException, InterruptedException
     {
         commitSeqno.clear();
+        return true;
     }
 
     /**

@@ -193,28 +193,43 @@ public class DataSourceManager
      * Removes and deallocates a data source.
      * 
      * @param name Name of the data source to remove
+     * @param reduce If true, reduce catalog data to ensure clean offline state
+     *            that allows reconfiguration
      * @return Return data source or null if not found
      */
-    public UniversalDataSource removeAndRelease(String name)
+    public UniversalDataSource removeAndRelease(String name, boolean reduce)
             throws InterruptedException, ReplicatorException
     {
         UniversalDataSource ds = remove(name);
         if (name != null)
+        {
+            if (reduce)
+            {
+                ds.reduce();
+            }
             ds.release();
+        }
         return ds;
     }
 
     /**
      * Removes and deallocates all data sources. This should be called to ensure
      * data source resources are properly freed.
+     * 
+     * @param reduce If true, reduce catalog data to ensure clean offline state
+     *            that allows reconfiguration
      */
-    public void removeAndReleaseAll() throws InterruptedException
+    public void removeAndReleaseAll(boolean reduce) throws InterruptedException
     {
         for (String name : names())
         {
             UniversalDataSource ds = remove(name);
             try
             {
+                if (reduce)
+                {
+                    ds.reduce();
+                }
                 ds.release();
             }
             catch (ReplicatorException e)

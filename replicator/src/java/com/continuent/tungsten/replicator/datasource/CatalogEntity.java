@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2013 Continuent Inc.
+ * Copyright (C) 2013-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -63,6 +63,9 @@ public interface CatalogEntity
     /**
      * Removes any and all catalog data. This is a dangerous call as it will
      * cause the replication service to lose all memory of its position.
+     * 
+     * @return True if the catalog data are thought to be removed/absent, false
+     *         if an error occurs during deletion
      */
-    public void clear() throws ReplicatorException, InterruptedException;
+    public boolean clear() throws ReplicatorException, InterruptedException;
 }

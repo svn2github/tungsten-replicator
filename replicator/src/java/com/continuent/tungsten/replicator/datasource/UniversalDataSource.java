@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2013 Continuent Inc.
+ * Copyright (C) 2013-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -106,4 +106,12 @@ public interface UniversalDataSource extends CatalogEntity
      */
     public CsvDataFormat getCsvStringFormatter(TimeZone tz)
             throws ReplicatorException;
+
+    /**
+     * Ensures all data source catalog data are cleaned up prior to going
+     * offline. This should always be called when taking a replication service
+     * offline to ensure restart points and channel assignments are properly
+     * reduced to allow reconfiguration.
+     */
+    public void reduce() throws ReplicatorException, InterruptedException;
 }

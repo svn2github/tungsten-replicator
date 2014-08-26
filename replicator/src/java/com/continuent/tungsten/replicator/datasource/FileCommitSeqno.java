@@ -195,7 +195,7 @@ public class FileCommitSeqno implements CommitSeqno
      * 
      * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#clear()
      */
-    public void clear()
+    public boolean clear()
     {
         // Delete files if they exist.
         for (FilePath seqnoFile : listSeqnoFiles())
@@ -206,6 +206,7 @@ public class FileCommitSeqno implements CommitSeqno
                     logger.warn("Unable to delete file: " + seqnoFile);
             }
         }
+        return true;
     }
 
     /**

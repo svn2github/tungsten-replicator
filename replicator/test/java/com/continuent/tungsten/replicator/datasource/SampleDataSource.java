@@ -74,6 +74,14 @@ public class SampleDataSource extends AbstractDataSource
     }
 
     /**
+     * Reduce tasks.
+     */
+    public void reduce() throws ReplicatorException, InterruptedException
+    {
+        logger.info("Reducing tasks: service=" + serviceName);
+    }
+
+    /**
      * Release all data source tables.
      */
     @Override
@@ -92,9 +100,10 @@ public class SampleDataSource extends AbstractDataSource
     }
 
     @Override
-    public void clear() throws ReplicatorException, InterruptedException
+    public boolean clear() throws ReplicatorException, InterruptedException
     {
         logger.info("Clearing data source tables: service=" + serviceName);
+        return true;
     }
 
     /**

@@ -155,10 +155,11 @@ public class SqlDataSource extends AbstractDataSource
     }
 
     /**
-     * Release all data source tables.
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#reduce()
      */
-    @Override
-    public void release() throws ReplicatorException, InterruptedException
+    public void reduce() throws ReplicatorException, InterruptedException
     {
         // Reduce tasks restart points in trep_commit_seqno table if possible.
         // If tasks are reduced, clear the channel table.
@@ -168,12 +169,10 @@ public class SqlDataSource extends AbstractDataSource
             // Connect to DBMS.
             conn = connectionManager.getCatalogConnection();
 
-            // Only release if this is not null.
+            // Only reduce if this is not null.
             if (commitSeqno != null)
             {
                 boolean reduced = commitSeqno.reduceTasks();
-                commitSeqno.release();
-                commitSeqno = null;
 
                 if (reduced && channelTable != null)
                 {
@@ -181,15 +180,29 @@ public class SqlDataSource extends AbstractDataSource
                 }
             }
         }
-
         catch (Exception e)
         {
-            logger.warn("Unable to reduce tasks information", e);
+            logger.warn("Unable to reduce task information", e);
         }
         finally
         {
             if (conn != null)
                 connectionManager.releaseCatalogConnection(conn);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#release()
+     */
+    public void release() throws ReplicatorException, InterruptedException
+    {
+        // Only release if commit seqno is not null.
+        if (commitSeqno != null)
+        {
+            commitSeqno.release();
+            commitSeqno = null;
         }
 
         // Followed by the connection manager.
@@ -332,10 +345,56 @@ public class SqlDataSource extends AbstractDataSource
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#clear()
+     */
     @Override
-    public void clear() throws ReplicatorException, InterruptedException
+    public boolean clear() throws ReplicatorException, InterruptedException
     {
-        commitSeqno.clear();
+        // See if we can connect.
+        if (!checkDBConnectivity(false, true))
+        {
+            // This is all we can do.
+            logger.info("Unable to connect to data source; cannot delete catalog data: name="
+                    + name);
+            return true;
+        }
+        else
+        {
+            String schema = connectionSpec.getSchema();
+            logger.info("Clearing catalog data for data source: name=" + name
+                    + " schema=" + schema);
+            Database conn = null;
+            try
+            {
+                // Drop tables.
+                commitSeqno.clear();
+                conn = connectionManager.getRawConnection(false);
+                conn.connect();
+                conn.dropTable(new Table(schema, ConsistencyTable.TABLE_NAME));
+                conn.dropTable(new Table(schema, ShardChannelTable.TABLE_NAME));
+                conn.dropTable(new Table(schema, ShardTable.TABLE_NAME));
+                conn.dropTable(new Table(schema, HeartbeatTable.TABLE_NAME));
+                return true;
+            }
+            catch (SQLException e)
+            {
+                logger.warn(
+                        "Unable to delete data source catalog data: name="
+                                + name + " schema=" + schema + " url="
+                                + connectionSpec.createUrl(false), e);
+                return false;
+            }
+            finally
+            {
+                if (conn != null)
+                {
+                    connectionManager.releaseConnection(conn);
+                }
+            }
+        }
     }
 
     /**

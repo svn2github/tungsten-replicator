@@ -277,7 +277,7 @@ public class SqlCommitSeqno implements CommitSeqno
      * 
      * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#clear()
      */
-    public void clear()
+    public boolean clear()
     {
         Database database = null;
         try
@@ -288,18 +288,21 @@ public class SqlCommitSeqno implements CommitSeqno
             if (logger.isDebugEnabled())
                 logger.debug("Dropping " + TABLE_NAME + " table");
             database.dropTable(commitSeqnoTable);
+            return true;
         }
         catch (SQLException e)
         {
             logger.warn("Unable to connect to DBMS to drop table: name="
                     + commitSeqnoTable.fullyQualifiedName() + " message="
                     + e.getMessage());
+            return false;
         }
         catch (ReplicatorException e)
         {
             logger.warn("Unable to connect to DBMS to drop table: name="
                     + commitSeqnoTable.fullyQualifiedName() + " message="
                     + e.getMessage());
+            return false;
         }
         finally
         {

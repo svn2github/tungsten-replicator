@@ -218,7 +218,8 @@ public class DataSourceService implements PipelineService
     public void release(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
-        manager.removeAndReleaseAll();
+        // Reduce catalog state to ensure clean offline.
+        manager.removeAndReleaseAll(true);
     }
 
     /**

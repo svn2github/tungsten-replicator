@@ -186,7 +186,8 @@ public class DerbyDatabase extends AbstractDatabase
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
-        throw new UnsupportedOperationException("Not implemented.");
+        String[] types = {"TABLE"};
+        return md.getTables("%", schemaName, "%", types);
     }
 
     public String getNowFunction()
@@ -239,5 +240,21 @@ public class DerbyDatabase extends AbstractDatabase
         }
         else
             return csvSpec.createCsvWriter(writer);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropSchema(java.lang.String)
+     */
+    public void dropSchema(String schema) throws SQLException
+    {
+        // Derby does not cascade, so we have to delete any tables first.
+        List<Table> tables = getTables(schema, true);
+        for (Table table : tables)
+        {
+            dropTable(table);
+        }
+        execute("DROP SCHEMA " + schema + " RESTRICT");
     }
 }

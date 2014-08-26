@@ -73,9 +73,20 @@ public class DummyDataSource extends AbstractDataSource
     {
     }
 
-    @Override
-    public void clear() throws ReplicatorException, InterruptedException
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#reduce()
+     */
+    public void reduce() throws ReplicatorException, InterruptedException
     {
+        // Do nothing.
+    }
+
+    @Override
+    public boolean clear() throws ReplicatorException, InterruptedException
+    {
+        return true;
     }
 
     /**

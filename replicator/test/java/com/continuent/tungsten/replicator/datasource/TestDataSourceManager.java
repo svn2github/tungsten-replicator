@@ -29,7 +29,6 @@ import org.junit.Test;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.common.csv.CsvSpecification;
-import com.continuent.tungsten.replicator.ReplicatorException;
 
 /**
  * Runs tests on the data source manager to ensure we can add, find, and remove
@@ -131,7 +130,7 @@ public class TestDataSourceManager
                 cm.find("test2"));
 
         // Confirm that removeAll removes the remaining data source.
-        cm.removeAndReleaseAll();
+        cm.removeAndReleaseAll(true);
         Assert.assertEquals("Checking number of names", 0, cm.names().size());
         Assert.assertNull("Data source should not be available",
                 cm.find("test2"));
@@ -175,7 +174,7 @@ public class TestDataSourceManager
         Assert.assertEquals("Checking use quotes", true, csv.isUseQuotes());
 
         // Clean up data source.
-        cm.removeAndRelease("test");
+        cm.removeAndRelease("test", true);
     }
 
     /**

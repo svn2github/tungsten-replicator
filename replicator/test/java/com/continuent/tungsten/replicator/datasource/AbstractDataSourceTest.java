@@ -85,6 +85,48 @@ public class AbstractDataSourceTest
     }
 
     /**
+     * Verify that after a data source clear operation the catalog is gone.
+     */
+    @Test
+    public void testAdminReset() throws Exception
+    {
+        if (!assertTestProperties())
+            return;
+
+        // Create a separate data source for this test.
+        String dsName = "testAdminReset";
+        datasourceProps.setString("serviceName", "test_admin_reset");
+        datasourceManager.addAndPrepare(dsName, datasourceClass,
+                datasourceProps);
+
+        // Initialize data for the data source.
+        UniversalDataSource c = datasourceManager.find(dsName);
+        c.clear();
+        c.initialize();
+
+        // Verify that we can find commit seqno data.
+        CommitSeqno commitSeqno = c.getCommitSeqno();
+        Assert.assertEquals("Looking for initialized commit seqno", -1,
+                commitSeqno.minCommitSeqno().getSeqno());
+
+        // Put the said data source into a stubbed-out replicator properties
+        // file.
+        TungstenProperties replicatorProps = new TungstenProperties();
+        replicatorProps.setString("replicator.datasources", dsName);
+        replicatorProps.setString("replicator.datasource." + dsName, datasourceClass);
+        replicatorProps.putAllWithPrefix(datasourceProps,
+                "replicator.datasource." + dsName + ".");
+
+        // Create an admin instance and clear the tables.
+        DataSourceAdministrator admin = new DataSourceAdministrator(
+                replicatorProps);
+        admin.prepare();
+        boolean cleared = admin.reset(dsName);
+        Assert.assertEquals("Expected to clear catalog data", true, cleared);
+        admin.release();
+    }
+
+    /**
      * Verify that if we initialize a data source we can update the commit seqno
      * position and read the updated value back.
      */
@@ -228,7 +270,7 @@ public class AbstractDataSourceTest
         Assert.assertEquals("Expect initial number of channels", 10, channels);
 
         // Shut down.
-        datasourceManager.removeAndRelease("testChangingChannels");
+        datasourceManager.removeAndRelease("testChangingChannels", true);
 
         // Start again with 20 channels.
         datasourceProps.setInt("channels", 20);
@@ -238,7 +280,7 @@ public class AbstractDataSourceTest
         Assert.assertEquals("Expect updated number of channels", 20, channels2);
 
         // Shut down.
-        datasourceManager.removeAndRelease("testChangingChannels");
+        datasourceManager.removeAndRelease("testChangingChannels", true);
     }
 
     /**
@@ -271,8 +313,8 @@ public class AbstractDataSourceTest
         // Close the data source and add a new one.
         c.release();
         datasourceManager.remove("testSeqnoPersistence");
-        datasourceManager.addAndPrepare("testSeqnoPersistence", datasourceClass,
-                datasourceProps);
+        datasourceManager.addAndPrepare("testSeqnoPersistence",
+                datasourceClass, datasourceProps);
         UniversalDataSource c2 = datasourceManager.find("testSeqnoPersistence");
 
         // Read back stored header and deallocate accessor for each channel.
@@ -307,8 +349,8 @@ public class AbstractDataSourceTest
         // Allocate connection and CSV formatter from the data source.
         UniversalDataSource c = prepareCatalog("testCsvFormattingAndWriting");
         UniversalConnection conn = c.getConnection();
-        CsvDataFormat formatter = c.getCsvStringFormatter(TimeZone
-                .getDefault());
+        CsvDataFormat formatter = c
+                .getCsvStringFormatter(TimeZone.getDefault());
         Assert.assertNotNull("Expected to get a CSV formatter", formatter);
 
         // Now get a CSV file and write some random data to the same.

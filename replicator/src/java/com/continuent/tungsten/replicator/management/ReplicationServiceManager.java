@@ -53,8 +53,7 @@ import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.PropertiesManager;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
-import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
+import com.continuent.tungsten.replicator.datasource.DataSourceAdministrator;
 
 /**
  * This class implements the main() method for launching replicator process and
@@ -312,8 +311,8 @@ public class ReplicationServiceManager
      */
     @MethodDesc(description = "Start individual replication service", usage = "startService name")
     public boolean loadService(
-            @ParamDesc(name = "name", description = "service name") String name)
-            throws Exception
+            @ParamDesc(name = "name", description = "service name")
+            String name) throws Exception
     {
         loadServiceConfigurations();
 
@@ -339,8 +338,8 @@ public class ReplicationServiceManager
      */
     @MethodDesc(description = "Stop individual replication service", usage = "stopService name")
     public boolean unloadService(
-            @ParamDesc(name = "name", description = "service name") String name)
-            throws Exception
+            @ParamDesc(name = "name", description = "service name")
+            String name) throws Exception
     {
         loadServiceConfigurations();
 
@@ -366,8 +365,8 @@ public class ReplicationServiceManager
      */
     @MethodDesc(description = "Reset individual replication service", usage = "resetService name")
     public Map<String, String> resetService(
-            @ParamDesc(name = "name", description = "service name") String name)
-            throws Exception
+            @ParamDesc(name = "name", description = "service name")
+            String name) throws Exception
     {
         return resetService(name, null);
     }
@@ -379,9 +378,10 @@ public class ReplicationServiceManager
      */
     @MethodDesc(description = "Reset individual replication service", usage = "resetService name")
     public Map<String, String> resetService(
-            @ParamDesc(name = "name", description = "service name") String name,
-            @ParamDesc(name = "controlParams", description = "0 or more control parameters expressed as name-value pairs") Map<String, String> controlParams)
-            throws Exception
+            @ParamDesc(name = "name", description = "service name")
+            String name,
+            @ParamDesc(name = "controlParams", description = "0 or more control parameters expressed as name-value pairs")
+            Map<String, String> controlParams) throws Exception
     {
         loadServiceConfigurations();
 
@@ -446,41 +446,51 @@ public class ReplicationServiceManager
         return progress;
     }
 
+    /**
+     * Resets all catalog data for data sources associated with current
+     * replicator.
+     */
     private void resetDatabase(TungstenProperties serviceProps,
-            Map<String, String> progress)
+            Map<String, String> progress) throws InterruptedException
     {
-        // Remove schema.
-        String schemaName = serviceProps
-                .getString(ReplicatorConf.METADATA_SCHEMA);
-        String userName = serviceProps.getString(ReplicatorConf.GLOBAL_DB_USER);
-        String password = serviceProps
-                .getString(ReplicatorConf.GLOBAL_DB_PASSWORD);
-        String url = serviceProps.getString(ReplicatorConf.THL_DB_URL);
-
-        Database db = null;
-
+        // Clear data source state.
+        DataSourceAdministrator admin = null;
+        String serviceName = serviceProps
+                .getString(ReplicatorConf.SERVICE_NAME);
         try
         {
-            db = DatabaseFactory.createDatabase(url, userName, password, true);
-            db.connect();
-            progress.put("drop schema", schemaName);
-            db.dropTungstenCatalog(schemaName,
-                    serviceProps.getString(ReplicatorConf.METADATA_TABLE_TYPE),
-                    serviceProps.getString(ReplicatorConf.SERVICE_NAME));
-            db.close();
+            admin = new DataSourceAdministrator(serviceProps);
+            admin.prepare();
+            progress.put("clear data source catalogs", serviceName);
+            boolean cleared = admin.resetAll();
+            if (cleared)
+            {
+                logger.info("Data source catalog information cleared");
+            }
+            else
+            {
+                logger.info("Unable to clear data source information: service="
+                        + serviceName);
+            }
         }
-        catch (Exception e)
+        catch (ReplicatorException e)
         {
-            logger.error(String.format("Error while dropping schema %s: %s",
-                    schemaName, e.getMessage()), e);
+            logger.error(String.format(
+                    "Error while clearing data source information %s: %s",
+                    serviceName, e.getMessage()), e);
         }
         finally
         {
-            if (db != null)
-                db.close();
+            if (admin != null)
+            {
+                admin.release();
+            }
         }
     }
 
+    /**
+     * Resets relay log information if it exists.
+     */
     private void resetRelay(TungstenProperties serviceProps,
             Map<String, String> progress)
     {
@@ -501,6 +511,9 @@ public class ReplicationServiceManager
         }
     }
 
+    /**
+     * Clears THL if it exists.
+     */
     private void resetTHL(TungstenProperties serviceProps,
             Map<String, String> progress)
     {
@@ -540,8 +553,8 @@ public class ReplicationServiceManager
      */
     @MethodDesc(description = "Return the status for one or more replicators", usage = "status(name)")
     public Map<String, String> replicatorStatus(
-            @ParamDesc(name = "name", description = "optional name of replicator") String name)
-            throws Exception
+            @ParamDesc(name = "name", description = "optional name of replicator")
+            String name) throws Exception
     {
 
         OpenReplicatorManagerMBean mgr = replicators.get(name);

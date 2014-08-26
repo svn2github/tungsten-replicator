@@ -75,7 +75,7 @@ public class TestCsvFileSet
     public void teardown() throws Exception
     {
         if (mgr != null)
-            mgr.removeAndReleaseAll();
+            mgr.removeAndReleaseAll(true);
     }
 
     /**
