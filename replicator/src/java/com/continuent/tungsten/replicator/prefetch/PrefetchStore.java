@@ -144,7 +144,8 @@ public class PrefetchStore extends InMemoryQueueStore
     /**
      * Returns the position of the slave on which we are handling prefetch.
      */
-    public ReplDBMSHeader getLastHeader() throws ReplicatorException, InterruptedException
+    public ReplDBMSHeader getLastHeader() throws ReplicatorException,
+            InterruptedException
     {
         return this.getCurrentSlaveHeader();
     }
@@ -206,7 +207,7 @@ public class PrefetchStore extends InMemoryQueueStore
         UniversalDataSource dataSourceImpl = context.getDataSource(datasource);
         if (dataSourceImpl == null)
         {
-            throw new ReplicatorException("Unable to locate data source: name="
+            throw new ReplicatorException("Data source is unspecified: name="
                     + datasource);
         }
         else if (!(dataSourceImpl instanceof SqlDataSource))
@@ -403,7 +404,8 @@ public class PrefetchStore extends InMemoryQueueStore
     }
 
     // Fetch position data from slave.
-    private ReplDBMSHeader getCurrentSlaveHeader() throws ReplicatorException, InterruptedException
+    private ReplDBMSHeader getCurrentSlaveHeader() throws ReplicatorException,
+            InterruptedException
     {
         ReplDBMSHeader header = commitSeqno.maxCommitSeqno();
         if (header != null)

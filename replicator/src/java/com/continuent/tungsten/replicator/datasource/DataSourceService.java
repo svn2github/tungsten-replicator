@@ -252,10 +252,12 @@ public class DataSourceService implements PipelineService
         UniversalDataSource ds = manager.find(name);
         if (ds == null)
         {
+            // If the data source does not exist, return nothing. 
             return null;
         }
         else if (ds instanceof AliasDataSource)
         {
+            // For alias data source find the source. 
             String source = ((AliasDataSource) ds).getDataSource();
             if (source == null)
             {
@@ -292,6 +294,7 @@ public class DataSourceService implements PipelineService
         }
         else
         {
+            // Anything else we return as is. 
             return ds;
         }
     }

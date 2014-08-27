@@ -136,8 +136,25 @@ public interface PluginContext
     /** Returns a named pipeline service component. */
     public abstract PipelineService getService(String name);
 
-    /** Returns the named data source or null if it cannot be found. */
-    public UniversalDataSource getDataSource(String name) throws ReplicatorException;
+    /**
+     * Returns a named data source or null if it has not been specified. Here
+     * are the rules for treatment of different data sources
+     * <ol>
+     * <li>If the name is null or an empty string, the data source is
+     * unspecified and we return null</li>
+     * <li>If the matching data source is DummyDataSource, return null as if the
+     * data source were unspecified</li>
+     * <li>If the matching data source is AliasDataSource, lookup and return its
+     * source</li>
+     * <li>Return any other data source as is</li>
+     * </ol>
+     * 
+     * @param name The data source name; may be null or an empty string
+     * @return A data source or null if the data source is unspecified
+     * @throws ReplicatorException Thrown if a named data source cannot be found
+     */
+    public UniversalDataSource getDataSource(String name)
+            throws ReplicatorException;
 
     /** Returns all pipeline service components. */
     public abstract List<PipelineService> getServices();

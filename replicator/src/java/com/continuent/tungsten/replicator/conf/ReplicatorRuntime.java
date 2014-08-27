@@ -40,6 +40,7 @@ import com.continuent.tungsten.common.file.FileIOException;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.datasource.DataSourceService;
+import com.continuent.tungsten.replicator.datasource.DummyDataSource;
 import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.filter.FilterManualProperties;
@@ -1096,19 +1097,41 @@ public class ReplicatorRuntime implements PluginContext
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.plugin.PluginContext#getDataSource(java.lang.String)
+     * @see com.continuent.tungsten.replicator.datasource.DataSourceService#find(java.lang.String)
      */
     public UniversalDataSource getDataSource(String name)
             throws ReplicatorException
     {
+        // If the name is null or blank, we just return nothing.
+        if (name == null || "".equals(name))
+        {
+            return null;
+        }
+
+        // Make sure the data source service exists.
         DataSourceService datasourceService = (DataSourceService) getService("datasource");
         if (datasourceService == null)
         {
             throw new ReplicatorException(
                     "Unable to locate data source service; check replicator properties file to ensure it is running in pipeline");
         }
+
+        // Now look up and return the data source according to a set of rules.
+        UniversalDataSource ds = datasourceService.find(name);
+        if (ds == null)
+        {
+            // Not finding a name data source is bad.
+            throw new ReplicatorException("Data source not found: name=" + name);
+        }
+        else if (ds instanceof DummyDataSource)
+        {
+            // Dummy data sources are like no data source.
+            return null;
+        }
         else
         {
-            return datasourceService.find(name);
+            // Everything else goes back.
+            return ds;
         }
     }
 

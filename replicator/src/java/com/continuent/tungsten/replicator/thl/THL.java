@@ -348,16 +348,14 @@ public class THL implements Store
             throws ReplicatorException, InterruptedException
     {
         // Prepare database connection.
-        if (dataSource != null && dataSource.trim().length() > 0)
+        UniversalDataSource dataSourceImpl = context.getDataSource(dataSource);
+        if (dataSourceImpl == null)
+        {
+            logger.info("Data source is not specified or a dummy; catalog access is disabled");
+        }
+        else
         {
             logger.info("Connecting to data source");
-            UniversalDataSource dataSourceImpl = context
-                    .getDataSource(dataSource);
-            if (dataSourceImpl == null)
-            {
-                throw new ReplicatorException(
-                        "Unable to locate data source: name=" + dataSource);
-            }
             commitSeqno = dataSourceImpl.getCommitSeqno();
             conn = dataSourceImpl.getConnection();
 
@@ -381,8 +379,6 @@ public class THL implements Store
             }
             commitSeqnoAccessor = commitSeqno.createAccessor(0, conn);
         }
-        else
-            logger.info("Data source is not specified; catalog access is disabled");
 
         // Configure and prepare the log.
         diskLog = new DiskLog();

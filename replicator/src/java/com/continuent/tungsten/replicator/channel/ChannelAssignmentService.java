@@ -142,8 +142,8 @@ public class ChannelAssignmentService implements PipelineService
 
         if (dataSourceImpl == null)
         {
-            throw new ReplicatorException("Unable to locate data source: name="
-                    + dataSource);
+            logger.info("Channel-assignment data source is unspecified; service is disabled");
+            return;
         }
         else if (dataSourceImpl instanceof SqlDataSource)
         {
@@ -151,7 +151,7 @@ public class ChannelAssignmentService implements PipelineService
         }
         else
         {
-            logger.info("Channel-assignment service URL is null; service is disabled");
+            logger.info("Channel-assignment data source is not a SQL DBMS; service is disabled");
             return;
         }
 
