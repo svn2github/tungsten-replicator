@@ -134,7 +134,7 @@ public class FormatDescriptionLogEvent extends StartLogEvent
             if (chksumAlg > 0 && chksumAlg < 0xFF)
             {
                 this.checksumAlgo = chksumAlg;
-                logger.info("This binlog is checksummed.");
+                logger.debug("This binlog is checksummed.");
             }
         }
         else
