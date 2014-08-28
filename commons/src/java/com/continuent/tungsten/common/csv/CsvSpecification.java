@@ -80,7 +80,7 @@ public class CsvSpecification
             spec.setNullValue("\\N");
             spec.setUseHeaders(false);
             spec.setUseQuotes(false);
-            spec.setSuppressedChars("\n");
+            spec.setSuppressedChars("\n\r");
         }
         else if ("mysql".equals(type))
         {
