@@ -91,7 +91,7 @@ function filter(event)
               // schema change.  
               if (doNotify)
               {
-                notifyName = schema + "." + table;
+                notifyName = schema + "." + table + "." + event.getSeqno();
                 notifyFile = new java.io.File(notifyDir, notifyName);
                 writer = new java.io.PrintWriter(new java.io.BufferedWriter(new java.io.FileWriter(notifyFile)));
                 writer.println("# Schema change notification");
