@@ -32,9 +32,12 @@ import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndia
  * @version 1.0
  */
 public class AppendBlockLogEvent extends LogEvent
+        implements
+            LoadDataInfileEvent
 {
-    int    fileID;
-    byte[] fileData;
+    int             fileID;
+    byte[]          fileData;
+    private boolean nextEventCanBeAppended = false;
 
     public AppendBlockLogEvent(byte[] buffer, int eventLength,
             FormatDescriptionLogEvent descriptionEvent, String currentPosition)
@@ -99,5 +102,17 @@ public class AppendBlockLogEvent extends LogEvent
     public byte[] getData()
     {
         return fileData;
+    }
+
+    @Override
+    public void setNextEventCanBeAppended(boolean b)
+    {
+        this.nextEventCanBeAppended = b;
+    }
+
+    @Override
+    public boolean canNextEventBeAppended()
+    {
+        return nextEventCanBeAppended;
     }
 }

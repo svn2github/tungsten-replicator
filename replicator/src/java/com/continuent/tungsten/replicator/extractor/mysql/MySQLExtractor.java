@@ -555,6 +555,9 @@ public class MySQLExtractor implements RawExtractor
         fragmentedTransaction = false;
         boolean autocommitMode = true;
         boolean doFileFragment = false;
+
+        boolean doLDIfragmentation = false;
+
         Timestamp startTime = null;
 
         long sessionId = -1;
@@ -571,6 +574,8 @@ public class MySQLExtractor implements RawExtractor
 
             int gtidDomainId = -1;
             long gtidSeqno = -1;
+
+            boolean canNextEventBeAppended = false;
 
             while (true)
             {
@@ -922,7 +927,7 @@ public class MySQLExtractor implements RawExtractor
                         if (useRelayLogs)
                             purgeRelayLogs(false);
                     }
-                    if (inTransaction)
+                    if (inTransaction && !canNextEventBeAppended)
                     {
                         doCommit = true;
                         inTransaction = !autocommitMode;
@@ -964,7 +969,28 @@ public class MySQLExtractor implements RawExtractor
                     }
                     dataArray.add(new LoadDataFileFragment(event.getFileID(),
                             event.getData(), event.getSchemaName()));
-                    doFileFragment = true;
+                    /**
+                     * Check whether next event from MySQL binlog could be
+                     * appended into the same THL event : this is possible if<br>
+                     * 1. next event is also AppendBlockLogEvent or
+                     * ExecuteLoadQueryLogEvent or DeleteFileLogEvent<br>
+                     * 2. next event has the same fileID<br>
+                     * 3. current THL event size is not greater than the
+                     * fragmentation size.
+                     */
+                    if (!event.canNextEventBeAppended())
+                    {
+                        // Next event cannot be appended to this LDI block
+                        // Flush the event in THL (interleaved transaction)
+                        doCommit = true;
+                    }
+                    else if (transactionFragSize == 0)
+                        doFileFragment = true;
+                    else
+                    {
+                        doLDIfragmentation = true;
+                        fragSize += event.getData().length;
+                    }
                 }
                 else if (logEvent instanceof AppendBlockLogEvent)
                 {
@@ -975,7 +1001,30 @@ public class MySQLExtractor implements RawExtractor
                                 .getFileID()));
                     dataArray.add(new LoadDataFileFragment(event.getFileID(),
                             event.getData(), schema));
-                    doFileFragment = true;
+
+                    /**
+                     * Check whether next event from MySQL binlog could be
+                     * appended into the same THL event : this is possible if<br>
+                     * 1. next event is also AppendBlockLogEvent or
+                     * ExecuteLoadQueryLogEvent or DeleteFileLogEvent<br>
+                     * 2. next event has the same fileID<br>
+                     * 3. current THL event size is not greater than the
+                     * fragmentation size.
+                     */
+                    canNextEventBeAppended = event.canNextEventBeAppended();
+                    if (!canNextEventBeAppended)
+                    {
+                        // Next event cannot be appended to this LDI block
+                        // Flush the event in THL (interleaved transaction)
+                        doCommit = true;
+                    }
+                    else if (transactionFragSize == 0)
+                        doFileFragment = true;
+                    else
+                    {
+                        fragSize += event.getData().length;
+                        doLDIfragmentation = true;
+                    }
                 }
                 else if (logEvent instanceof ExecuteLoadQueryLogEvent)
                 {
@@ -1023,16 +1072,23 @@ public class MySQLExtractor implements RawExtractor
                     }
                     statement.setErrorCode(event.getErrorCode());
                     dataArray.add(statement);
-                    doFileFragment = true;
 
                     if (!inTransaction)
+                    {
                         doCommit = true;
+                    }
+                    // else commit will be found later in the binlog
                 }
                 else if (logEvent instanceof DeleteFileLogEvent)
                 {
                     LoadDataFileDelete delete = new LoadDataFileDelete(
                             ((DeleteFileLogEvent) logEvent).getFileID());
                     dataArray.add(delete);
+                    if (!inTransaction)
+                    {
+                        doCommit = true;
+                    }
+                    // else commit will be found later in the binlog
                 }
                 else
                 {
@@ -1072,10 +1128,19 @@ public class MySQLExtractor implements RawExtractor
                     if (foundRowsLogEvent)
                         dbmsEvent.setOptions(savedOptions);
 
-                    this.fragmentedTransaction = true;
+                    if (doLDIfragmentation)
+                    {
+                        fragmentedTransaction = inTransaction;
+                    }
+                    else
+                        this.fragmentedTransaction = true;
                 }
                 else if (doFileFragment)
                 {
+                    // TODO : remove this code ?
+                    // Now, file fragmentation is done using the same code path
+                    // than transaction fragmentation. This part of code would
+                    // be just used if there is no fragmentation (frag_size=0)
                     doFileFragment = false;
                     runtime.getMonitor().incrementEvents(dataArray.size());
                     String eventId = getDBMSEventId(position, sessionId);

@@ -32,6 +32,8 @@ import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndia
  * @version 1.0
  */
 public class ExecuteLoadQueryLogEvent extends QueryLogEvent
+        implements
+            LoadDataInfileEvent
 {
 
     /**
@@ -46,9 +48,10 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
      * </ul>
      */
 
-    private int fileID;
-    private int filenameStartPos;
-    private int filenameEndPos;
+    private int     fileID;
+    private int     filenameStartPos;
+    private int     filenameEndPos;
+    private boolean nextEventCanBeAppended = false;
 
     /*
      * TODO: Unused for now private int duplicateBehavior;
@@ -203,5 +206,17 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
     public int getFileID()
     {
         return fileID;
+    }
+
+    @Override
+    public void setNextEventCanBeAppended(boolean b)
+    {
+        this.nextEventCanBeAppended = b;
+    }
+
+    @Override
+    public boolean canNextEventBeAppended()
+    {
+        return nextEventCanBeAppended;
     }
 }
