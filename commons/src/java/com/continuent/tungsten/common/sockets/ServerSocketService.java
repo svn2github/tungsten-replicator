@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-2012 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -124,10 +124,11 @@ public class ServerSocketService
             serverSocket = serverChannel.socket();
         }
 
-        // Bind to the address.
+        // Bind to the address. According to Javadoc setReuseAddress() call must
+        // occur before bind() or results may be undefined.
+        serverSocket.setReuseAddress(true);
         serverSocket.bind(address);
         serverSocket.setSoTimeout(acceptTimeout);
-        serverSocket.setReuseAddress(true);
 
         return serverSocket;
     }
