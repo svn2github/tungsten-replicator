@@ -22,16 +22,12 @@
 
 package com.continuent.tungsten.replicator.applier;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -40,13 +36,11 @@ import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.datatypes.MySQLUnsignedNumeric;
 import com.continuent.tungsten.replicator.datatypes.Numeric;
-import com.continuent.tungsten.replicator.dbms.LoadDataFileQuery;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowIdData;
-import com.continuent.tungsten.replicator.event.ReplOption;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 
 /**
@@ -208,85 +202,6 @@ public class MySQLApplier extends JdbcApplier
             Object valToInsert) throws SQLException
     {
         prepStatement.setObject(bindLoc, valToInsert);
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.applier.JdbcApplier#applyStatementData(com.continuent.tungsten.replicator.dbms.StatementData)
-     */
-    @Override
-    protected void applyLoadDataLocal(LoadDataFileQuery data, File temporaryFile)
-            throws ReplicatorException
-    {
-        try
-        {
-            int[] updateCount;
-            String schema = data.getDefaultSchema();
-            Long timestamp = data.getTimestamp();
-            List<ReplOption> options = data.getOptions();
-
-            applyUseSchema(schema);
-
-            applySetTimestamp(timestamp);
-
-            applySessionVariables(options);
-
-            try
-            {
-                updateCount = statement.executeBatch();
-            }
-            catch (SQLWarning e)
-            {
-                String msg = "While applying SQL event:\n" + data.toString()
-                        + "\nWarning: " + e.getMessage();
-                logger.warn(msg);
-                updateCount = new int[1];
-                updateCount[0] = statement.getUpdateCount();
-            }
-            statement.clearBatch();
-        }
-        catch (SQLException e)
-        {
-            logFailedStatementSQL(data.getQuery(), e);
-            throw new ApplierException(e);
-        }
-
-        try
-        {
-            FileInputStream fis = new FileInputStream(temporaryFile);
-            ((com.mysql.jdbc.Statement) statement)
-                    .setLocalInfileInputStream(fis);
-
-            int cnt = statement.executeUpdate(data.getQuery());
-
-            if (logger.isDebugEnabled())
-                logger.debug("Applied event (update count " + cnt + "): "
-                        + data.toString());
-        }
-        catch (SQLException e)
-        {
-            logFailedStatementSQL(data.getQuery(), e);
-            throw new ApplierException(e);
-        }
-        catch (FileNotFoundException e)
-        {
-            logFailedStatementSQL(data.getQuery());
-            throw new ApplierException(e);
-        }
-        finally
-        {
-            ((com.mysql.jdbc.Statement) statement)
-                    .setLocalInfileInputStream(null);
-        }
-
-        // Clean up the temp file as we may not get a delete file event.
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("Deleting temp file: "
-                    + temporaryFile.getAbsolutePath());
-        }
-        temporaryFile.delete();
     }
 
     private static final char[] hexArray = "0123456789abcdef".toCharArray();

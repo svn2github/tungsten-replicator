@@ -744,12 +744,48 @@ public class MySQLDatabase extends AbstractDatabase
     {
         String skeleton;
         if (user.isPrivileged())
+        {
             skeleton = "grant all on *.* to %s@'%%' identified by '%s' with grant option";
+            String sql = String.format(skeleton, user.getLogin(),
+                    user.getPassword());
+            execute(sql);
+        }
         else
+        {
+            // Grant select on all schemas.
             skeleton = "grant select on *.* to %s@'%%' identified by '%s' with grant option";
-        String sql = String.format(skeleton, user.getLogin(),
-                user.getPassword());
-        execute(sql);
+            String sql = String.format(skeleton, user.getLogin(),
+                    user.getPassword());
+            execute(sql);
+
+            // Grant all on current schema. This is a hack to get around a
+            // limitation of the drizzle JDBC driver, which issues a CREATE
+            // DATABASE even for non-privileged accounts.
+            Statement stmt = null;
+            ResultSet rs = null;
+            String currentSchema = null;
+            try
+            {
+                stmt = dbConn.createStatement();
+                rs = stmt.executeQuery("select database() as \"database\"");
+                while (rs.next())
+                {
+                    currentSchema = rs.getString("database");
+                }
+            }
+            finally
+            {
+                if (rs != null)
+                    rs.close();
+                if (stmt != null)
+                    stmt.close();
+            }
+
+            skeleton = "grant all on %s.* to %s@'%%' identified  by '%s' with grant option";
+            String sql2 = String.format(skeleton, currentSchema,
+                    user.getLogin(), user.getPassword());
+            execute(sql2);
+        }
     }
 
     /**
