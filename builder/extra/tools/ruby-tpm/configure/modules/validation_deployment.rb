@@ -687,6 +687,31 @@ class TargetDirectoryDoesNotExist < ConfigureValidationCheck
   end
 end
 
+class UpgradeSameProductCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  
+  def set_vars
+    @title = "Check that the target directory is running the same product type that we are installing"
+    self.extend(TungstenUpdateCheck)
+  end
+  
+  def validate
+    current_dir = @config.getProperty(CURRENT_RELEASE_DIRECTORY)
+    if File.exist?(current_dir)
+      if File.exist?(current_dir + "/tungsten-manager") == true
+        current_product_name = "Continuent Tungsten"
+      else
+        current_product_name = "Tungsten Replicator"
+      end
+      
+      if Configurator.instance.product_name() != current_product_name
+        error("The directory #{@config.getProperty(HOME_DIRECTORY)} is already running #{current_product_name}. That is not compatible for upgrade with this #{Configurator.instance.product_name()} release.")
+        help("Check the configuration using `tpm reverse` and use `tpm fetch --reset --hosts=#{Configurator.instance.hostname()},autodetect --user=#{@config.getProperty(USERID)} --directory=/path/to/directory` to reload the correct configuration before proceeding.")
+      end
+    end
+  end
+end
+
 class CurrentReleaseDirectoryIsSymlink < ConfigureValidationCheck
   include ClusterHostCheck
   

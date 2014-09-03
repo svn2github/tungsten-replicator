@@ -38,6 +38,9 @@ module RemoteCommand
     @override_differences = false
     
     opts=OptionParser.new
+    opts.on("--reset") { 
+      @config.props = {}
+    }
     opts.on("--build-members-list")             { @build_members_list = true }
     opts.on("--default-host String")            { |val|
       if target_hosts.include?(val)
