@@ -217,6 +217,31 @@ class InstallationScriptCheck < ConfigureValidationCheck
   end
 end
 
+class ConfigurationStorageDirectoryCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  include LocalValidationCheck
+  
+  def set_vars
+    @title = "Check that $REPLICATOR_PROFILES is defined if $CONTINUENT_PROFILES is"
+  end
+  
+  def validate
+    if Configurator.instance.is_enterprise?()
+      return
+    end
+    
+    if ENV.has_key?("CONTINUENT_PROFILES")
+      unless ENV.has_key?("REPLICATOR_PROFILES")
+        warning("You have defined $CONTINUENT_PROFILES but not $REPLICATOR_PROFILES. This may cause problems if you are working with Continuent Tungsten and Tungsten Replicator on the same staging server. This will not cause any issues if you are only using Tungsten Replicator.")
+      else
+        if ENV["CONTINUENT_PROFILES"] == ENV["REPLICATOR_PROFILES"]
+          error("You have set $CONTINUENT_PROFILES and $REPLICATOR_PROFILES to #{ENV["CONTINUENT_PROFILES"]}. The values for these environment variables must be different.")
+        end
+      end
+    end
+  end
+end
+
 class MatchingHomeDirectoryCheck < ConfigureValidationCheck
   include ClusterHostCheck
   
