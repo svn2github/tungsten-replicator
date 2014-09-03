@@ -118,9 +118,12 @@ public class EchoClient implements Runnable
         }
         catch (Throwable t)
         {
-            throwable = t;
-            logger.info("Echo client failed: name=" + clientName
-                    + " throwable=" + throwable.getMessage(), t);
+            if (!this.shutdownRequested)
+            {
+                throwable = t;
+                logger.info("Echo client failed: name=" + clientName
+                        + " throwable=" + throwable.getMessage(), t);
+            }
         }
         finally
         {
