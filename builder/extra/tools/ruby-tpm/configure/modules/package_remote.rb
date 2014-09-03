@@ -246,7 +246,9 @@ module RemoteCommand
               override_key = DATASERVICE_CONNECTOR_OPTIONS
             when REPL_SERVICES
               override_key = DATASERVICE_REPLICATION_OPTIONS
-            else # No defaults for DATASERVICES, or the DATASERVICE_ groups
+            else
+              # No defaults for the DATASERVICE_ groups
+              # The DATASERVICES defaults values will be handled below
               override_key = nil
             end
             
@@ -271,6 +273,25 @@ module RemoteCommand
         end
       }
     }
+    
+    # Include dataservice defaults in the final configuration
+    # These are skipped by the case statement above
+    if final_props[DATASERVICES].has_key?(DEFAULTS)
+      final_props[DATASERVICES].each_key{
+        |ds_alias|
+
+        if ds_alias == DEFAULTS
+          next
+        end
+
+        if @config.getProperty([DATASERVICES, ds_alias, DATASERVICE_IS_COMPOSITE]) == "true"
+          next
+        end
+
+        @config.include([DATASERVICES, ds_alias], final_props[DATASERVICES][DEFAULTS])
+      }
+    end
+    
     clean_cluster_configuration()
     update_deprecated_keys()
     
