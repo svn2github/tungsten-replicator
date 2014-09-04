@@ -307,7 +307,7 @@ module ConfigureDeploymentStepServices
           
           applier = get_applier_datasource(rs_alias)
           if applier.is_a?(MySQLDatabasePlatform)
-            applier.run("SET SQL_LOG_BIN=0; INSERT INTO #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA])}.trep_commit_seqno (seqno, fragno, last_frag, source_id, epoch_number, eventid, applied_latency, update_timestamp, extract_timestamp) SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, applied_latency, update_timestamp, update_timestamp FROM tungsten.trep_commit_seqno")
+            applier.run("SET SQL_LOG_BIN=0; INSERT INTO #{@config.getProperty([REPL_SERVICES, rs_alias, REPL_SVC_SCHEMA])}.trep_commit_seqno (seqno, fragno, last_frag, source_id, epoch_number, eventid, applied_latency, update_timestamp, shard_id, extract_timestamp) SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, applied_latency, update_timestamp, '#UNKNOWN', update_timestamp FROM tungsten.trep_commit_seqno")
           elsif applier.is_a?(PGDatabasePlatform)
             # Nothing to do here
           end
