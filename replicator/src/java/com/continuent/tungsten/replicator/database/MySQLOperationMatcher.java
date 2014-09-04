@@ -43,62 +43,91 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
 
     private MySQLOperationStringBuilder prefixBuilder;
 
+    private static final String         OBJECT_NAME     = "(?:(`(?:.*?)`|\"(?:.*?)\"|(?:[a-zA-Z0-9_]+)))";
+
     // CREATE {DATABASE | SCHEMA} [IF NOT EXISTS] db_name
     protected Pattern                   createDb        = Pattern
                                                                 .compile(
-                                                                        "^\\s*create\\s*(?:database|schema)\\s*(?:if\\s*not\\s*exists\\s*){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*create\\s*(?:database|schema)\\s*(?:if\\s*not\\s*exists\\s*){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // DROP {DATABASE | SCHEMA} [IF EXISTS] db_name
     protected Pattern                   dropDb          = Pattern
                                                                 .compile(
-                                                                        "^\\s*drop\\s*(?:database|schema)\\s*(?:if\\s*exists\\s*)?[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*drop\\s*(?:database|schema)\\s*(?:if\\s*exists\\s*)?"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // CREATE [TEMPORARY] TABLE [IF NOT EXISTS] tbl_name
     protected Pattern                   createTable     = Pattern
                                                                 .compile(
-                                                                        "^\\s*create\\s*(temporary\\s*)?table\\s*(?:if\\s*not\\s*exists\\s*){0,1}(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*create\\s*(temporary\\s*)?table\\s*(?:if\\s*not\\s*exists\\s*){0,1}(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // DROP [TEMPORARY] TABLE [IF EXISTS]
     protected Pattern                   dropTable       = Pattern
                                                                 .compile(
-                                                                        "^\\s*(drop\\s*(temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*(drop\\s*(temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     protected Pattern                   dropTableMdata  = Pattern
                                                                 .compile(
-                                                                        "^\\s*(drop\\s*(?:temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:[`\"]*(TUNGSTEN_INFO)[`\"]*\\.)[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*(drop\\s*(?:temporary\\s*)?table\\s*(?:if\\s+exists\\s+)?)(?:[`\"]*(TUNGSTEN_INFO)[`\"]*\\.)[`\"]*"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name
     protected Pattern                   insert          = Pattern
                                                                 .compile(
-                                                                        "^\\s*insert\\s*(?:low_priority|delayed|high_priority)?\\s*(?:ignore\\s*)?(?:into\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*insert\\s*(?:low_priority|delayed|high_priority)?\\s*(?:ignore\\s*)?(?:into\\s*)?(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // REPLACE [LOW_PRIORITY | DELAYED] [INTO] tbl_name
     protected Pattern                   replace         = Pattern
                                                                 .compile(
-                                                                        "^\\s*replace\\s*(?:low_priority|delayed)?\\s*(?:into\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*replace\\s*(?:low_priority|delayed)?\\s*(?:into\\s*)?(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // UPDATE [LOW_PRIORITY] [IGNORE] table_reference
     protected Pattern                   update          = Pattern
                                                                 .compile(
-                                                                        "^\\s*update\\s*(?:low_priority\\s*)?(?:ignore\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*update\\s*(?:low_priority\\s*)?(?:ignore\\s*)?(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name
     protected Pattern                   delete          = Pattern
                                                                 .compile(
-                                                                        "^\\s*delete\\s*(?:low_priority\\s*)?(?:quick\\s*)?(?:ignore\\s*)?(?:.*)?(?:from\\s+)(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*delete\\s*(?:low_priority\\s*)?(?:quick\\s*)?(?:ignore\\s*)?(?:.*)?(?:from\\s+)(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // TRUNCATE [TABLE] tbl_name
     protected Pattern                   truncate        = Pattern
                                                                 .compile(
-                                                                        "^\\s*truncate\\s*(?:table\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*truncate\\s*(?:table\\s*)?(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // LOAD DATA [LOW_PRIORITY | CONCURRENT] [LOCAL] INFILE 'file_name' [REPLACE
     // | IGNORE] INTO TABLE tbl_name
     protected Pattern                   loadData        = Pattern
                                                                 .compile(
-                                                                        "^\\s*load\\s*data.*(?:replace|ignore)?\\s*(?:local\\s*)?infile\\s.*(?:low_priority|concurrent)?\\s*into\\s*table\\s*(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*load\\s*data.*(?:replace|ignore)?\\s*(?:local\\s*)?infile\\s.*(?:low_priority|concurrent)?\\s*into\\s*table\\s*(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // SET variable_assignment [, variable_assignment] ...
     protected Pattern                   set             = Pattern
@@ -109,23 +138,35 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
     // ([param1[,...]])
     protected Pattern                   createProcedure = Pattern
                                                                 .compile(
-                                                                        "^\\s*create\\s*.*\\s*procedure\\s*{0,1}(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*create\\s*.*\\s*procedure\\s*{0,1}(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // DROP PROCEDURE [IF EXISTS]
     protected Pattern                   dropProcedure   = Pattern
                                                                 .compile(
-                                                                        "^\\s*drop\\s*procedure\\s*(?:if\\s*exists\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*drop\\s*procedure\\s*(?:if\\s*exists\\s*)?(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // CREATE [DEFINER = { user | CURRENT_USER }] FUNCTION name
     // ([param1[,...]])
     protected Pattern                   createFunction  = Pattern
                                                                 .compile(
-                                                                        "^\\s*create\\s*.*\\s*function\\s*{0,1}(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*create\\s*.*\\s*function\\s*{0,1}(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // DROP PROCEDURE [IF EXISTS]
     protected Pattern                   dropFunction    = Pattern
                                                                 .compile(
-                                                                        "^\\s*drop\\s*function\\s*(?:if\\s+exists\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*drop\\s*function\\s*(?:if\\s+exists\\s*)?(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // START TRANSACTION [WITH CONSISTENT SNAPSHOT] | BEGIN [WORK]
@@ -161,26 +202,38 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
     // ALTER [ONLINE | OFFLINE] [IGNORE] TABLE tbl_name ...
     protected Pattern                   alter           = Pattern
                                                                 .compile(
-                                                                        "^\\s*alter\\s*(?:online|offline)?\\s*(?:ignore\\s*)?table\\s+(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*alter\\s*(?:online|offline)?\\s*(?:ignore\\s*)?table\\s+(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // RENAME TABLE tbl_name TO ...
-    protected Pattern                   rename           = Pattern
+    protected Pattern                   rename          = Pattern
                                                                 .compile(
-                                                                        "^\\s*rename\\s+table\\s+(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*rename\\s+table\\s+(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // CREATE [ONLINE|OFFLINE] [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name
     // [index_type] ON tbl_name (index_col_name,...)
     protected Pattern                   createIndex     = Pattern
                                                                 .compile(
-                                                                        "^\\s*create\\s*(?:online|offline)?\\s*(?:unique|fulltext|spatial)?\\s*?index.*\\son\\s*(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*create\\s*(?:online|offline)?\\s*(?:unique|fulltext|spatial)?\\s*?index.*\\son\\s*(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // DROP [ONLINE|OFFLINE] INDEX index_name ON tbl_name
     protected Pattern                   dropIndex       = Pattern
                                                                 .compile(
-                                                                        "^\\s*drop\\s*(?:online|offline)?\\s*index.*\\son\\s*(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*drop\\s*(?:online|offline)?\\s*index.*\\son\\s*(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // CREATE [OR REPLACE] [ALGORITHM = {UNDEFINED | MERGE | TEMPTABLE}]
@@ -188,12 +241,18 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
     // VIEW view_name [(column_list)] AS select_statement
     protected Pattern                   createView      = Pattern
                                                                 .compile(
-                                                                        "^\\s*create\\s(?:or replace)?\\s*algorithm.*\\s*view\\s*(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*create\\s(?:or replace)?\\s*algorithm.*\\s*view\\s*(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
     // DROP VIEW [IF EXISTS] view_name
     protected Pattern                   dropView        = Pattern
                                                                 .compile(
-                                                                        "^\\s*drop\\s*view\\s*(?:if\\s+exists\\s*)?(?:[`\"]*([a-zA-Z0-9_]+)[`\"]*\\.){0,1}[`\"]*([a-zA-Z0-9_]+)",
+                                                                        "^\\s*drop\\s*view\\s*(?:if\\s+exists\\s*)?(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // FLUSH TABLES
@@ -507,8 +566,8 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
             m = rename.matcher(statement);
             if (m.find())
             {
-                return new SqlOperation(SqlOperation.TABLE, SqlOperation.RENAME,
-                        m.group(1), m.group(2));
+                return new SqlOperation(SqlOperation.TABLE,
+                        SqlOperation.RENAME, m.group(1), m.group(2));
             }
         }
 

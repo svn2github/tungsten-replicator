@@ -105,8 +105,8 @@ public class SqlOperation
         this.sqlCommand = command;
         this.objectType = object;
         this.operation = operation;
-        this.schema = schema;
-        this.name = name;
+        this.schema = extractObjectName(schema);
+        this.name = extractObjectName(name);
         this.autoCommit = autoCommit;
     }
 
@@ -167,7 +167,7 @@ public class SqlOperation
 
     public void setName(String name)
     {
-        this.name = name;
+        this.name = extractObjectName(name);
     }
 
     public void setAutoCommit(boolean autoCommit)
@@ -213,4 +213,18 @@ public class SqlOperation
     {
         return operation == DROP && objectType == TABLE;
     }
+
+    private String extractObjectName(String name)
+    {
+        if (name == null)
+        {
+            return null;
+        }
+        if (name.startsWith("`"))
+            return name.substring(1, name.length() - 1);
+        if (name.startsWith("\""))
+            return name.substring(1, name.length() - 1);
+        return name;
+    }
+
 }

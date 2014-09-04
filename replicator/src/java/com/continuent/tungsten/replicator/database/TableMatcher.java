@@ -119,10 +119,19 @@ public class TableMatcher
         // Create patterns if we got more than ^()$ (empty string).
         String tableRegex = table.append(")$").toString();
         String dbRegex = db.append(")$").toString();
+
         if (haveSchemaPattern)
+        {
             dbPattern = Pattern.compile(dbRegex);
+            if (logger.isDebugEnabled())
+                logger.debug("Matching schemas using " + dbRegex);
+        }
         if (haveTablePattern)
+        {
             tablePattern = Pattern.compile(tableRegex);
+            if (logger.isDebugEnabled())
+                logger.debug("Matching tables using " + tableRegex);
+        }
     }
 
     /**

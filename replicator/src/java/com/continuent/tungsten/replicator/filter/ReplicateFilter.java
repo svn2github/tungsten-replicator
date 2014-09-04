@@ -154,6 +154,9 @@ public class ReplicateFilter implements Filter
 
                     if (filterEvent(orc.getSchemaName(), orc.getTableName()))
                     {
+                        if (logger.isDebugEnabled())
+                            logger.debug("Filtering event");
+
                         iterator2.remove();
                     }
                 }
@@ -196,7 +199,7 @@ public class ReplicateFilter implements Filter
                 if (schema == null)
                 {
                     final String query = sdata.getQuery();
-                    logger.warn("Ignoring event : No schema found for this event "
+                    logger.warn("Ignoring query : No schema found for this query from event "
                             + event.getSeqno()
                             + (query != null ? " ("
                                     + query.substring(0,
