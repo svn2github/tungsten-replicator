@@ -122,7 +122,7 @@ class MySQLTerminalCommand
       pre = ""
     end
     
-    exec("#{pre}psql --host=#{ds.host} --port=#{ds.port} --dbname=#{dbname} --username=#{ds.username} --no-password")
+    exec("#{pre}psql --host=#{ds.host} --port=#{ds.port} --dbname=#{dbname} --username=#{ds.username} --no-password; rm #{conf.path()}")
   end
 
   def self.get_command_name

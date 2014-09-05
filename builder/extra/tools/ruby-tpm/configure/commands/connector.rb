@@ -67,7 +67,7 @@ class ConnectorTerminalCommand
     conncnf.puts("password=#{password}")
     conncnf.close()
     
-    exec("mysql --defaults-file=#{conncnf.path()} --host=#{hostname} --port=#{port} #{@terminal_args.join(' ')}")
+    exec("mysql --defaults-file=#{conncnf.path()} --host=#{hostname} --port=#{port} #{@terminal_args.join(' ')}; rm #{conncnf.path()}")
   end
   
   def display_samples
