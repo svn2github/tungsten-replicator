@@ -8,9 +8,8 @@ module ConfigureDeploymentStepServices
       ConfigureCommitmentMethod.new("deploy_services", 1, 1),
       ConfigureCommitmentMethod.new("start_replication_services_unless_provisioning", 2, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT-1, false),
       ConfigureCommitmentMethod.new("wait_for_manager", 2, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false),
-      ConfigureCommitmentMethod.new("set_automatic_policy", 3, 0),
       ConfigureCommitmentMethod.new("start_connector", 4, 1, false),
-      ConfigureCommitmentMethod.new("set_original_policy", 4, 2),
+      ConfigureCommitmentMethod.new("set_original_policy", 5, 0),
       ConfigureCommitmentMethod.new("provision_server", 5, 1),
       ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT-1, false),
       ConfigureCommitmentMethod.new("check_ping", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT)
