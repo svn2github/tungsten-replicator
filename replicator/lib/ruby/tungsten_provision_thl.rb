@@ -14,8 +14,8 @@ class TungstenReplicatorProvisionTHL
     case command()
     when "provision"
       provision_thl()
-    when "generate_schema_sql"
-      schema = generate_schema_sql()
+    when "generate_schema_file"
+      schema = generate_schema_file()
       TU.output(File.read(schema.path()))
       File.unlink(schema.path())
     when "cleanup"
@@ -88,7 +88,7 @@ class TungstenReplicatorProvisionTHL
     mysql = "mysql --defaults-file=#{sandbox_my_cnf.path()} -h#{TI.hostname()} --port=#{opt(:sandbox_mysql_port)}"
     
     if opt(:override_schema_file) == nil
-      schema = generate_schema_sql()
+      schema = generate_schema_file()
       schema_path = schema.path()
     else
       schema_path = opt(:override_schema_file)
@@ -187,7 +187,7 @@ class TungstenReplicatorProvisionTHL
     trap("INT", old_trap);
   end
   
-  def generate_schema_sql
+  def generate_schema_file
     TU.mkdir_if_absent(opt(:tmp_dir))
     mysqldump = "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{opt(:extraction_host)} --port=#{opt(:extraction_port)}"
     
@@ -280,7 +280,7 @@ class TungstenReplicatorProvisionTHL
       :help => "Cleanup the sandbox environment from a previous run"
     })
     
-    add_command(:generate_schema_sql, {
+    add_command(:generate_schema_file, {
       :help => "Output the SQL to create the listed schemas"
     })
   end
@@ -299,7 +299,7 @@ class TungstenReplicatorProvisionTHL
       @option_definitions[:tungsten_replicator_package][:required] = false
       @option_definitions[:mysql_package][:required] = false
       @option_definitions[:schemas][:required] = false
-    when "generate_schema_sql"
+    when "generate_schema_file"
       @option_definitions[:tungsten_replicator_package][:required] = false
       @option_definitions[:mysql_package][:required] = false
     end
