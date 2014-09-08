@@ -14,6 +14,10 @@ class TungstenReplicatorProvisionTHL
     case command()
     when "provision"
       provision_thl()
+    when "generate_schema_sql"
+      schema = generate_schema_sql()
+      TU.output(File.read(schema.path()))
+      File.unlink(schema.path())
     when "cleanup"
       cleanup_sandbox()
     end
@@ -83,24 +87,15 @@ class TungstenReplicatorProvisionTHL
     mysqldump = "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{opt(:extraction_host)} --port=#{opt(:extraction_port)}"
     mysql = "mysql --defaults-file=#{sandbox_my_cnf.path()} -h#{TI.hostname()} --port=#{opt(:sandbox_mysql_port)}"
     
-    # Dump and load the schema structure for all entries listed in --schemas
-    schema = File.open("#{opt(:tmp_dir)}/schema.sql", "w")
-    schema.puts("SET SESSION SQL_LOG_BIN=0;")
-    schema.close()
-    
-    begin
-      transforms = []
-      transforms << "| perl -pe 's/(myisam|innodb)/Blackhole/i'"
-      
-      cmd = "#{mysqldump} --no-data --skip-triggers --add-drop-database #{opt(:schemas)} #{transforms.join('')}"
-      TU.cmd_result("#{cmd} >> #{schema.path()}")
-    rescue CommandError => ce
-      TU.debug(ce)
-      raise "Unable to extract the MySQL schema for provisioning"
+    if opt(:override_schema_file) == nil
+      schema = generate_schema_sql()
+      schema_path = schema.path()
+    else
+      schema_path = opt(:override_schema_file)
     end
     
     begin
-      TU.cmd_result("cat #{schema.path()} | #{mysql}")
+      TU.cmd_result("cat #{schema_path} | #{mysql}")
     rescue => ce
       TU.debug(ce)
       raise "Unable to apply MySQL schema to the staging MySQL server"
@@ -166,7 +161,6 @@ class TungstenReplicatorProvisionTHL
       currentEventId = status.replicator_value(sandbox.hostname(), "currentEventId")
       # Remove the MySQL thread_id from the end of appliedLastEventId
       appliedLastEventId = status.replicator_value(sandbox.hostname(), "appliedLastEventId").gsub(/;.*/, "")
-      appliedLastEventId = ""
       
       if currentEventId == appliedLastEventId
         sandbox_replicator_caught_up = true
@@ -191,6 +185,29 @@ class TungstenReplicatorProvisionTHL
     end
     
     trap("INT", old_trap);
+  end
+  
+  def generate_schema_sql
+    TU.mkdir_if_absent(opt(:tmp_dir))
+    mysqldump = "mysqldump --defaults-file=#{@options[:my_cnf]} --host=#{opt(:extraction_host)} --port=#{opt(:extraction_port)}"
+    
+    # Dump and load the schema structure for all entries listed in --schemas
+    schema = File.open("#{opt(:tmp_dir)}/schema.sql", "w")
+    schema.puts("SET SESSION SQL_LOG_BIN=0;")
+    schema.close()
+    
+    begin
+      transforms = []
+      transforms << "| perl -pe 's/(myisam|innodb)/Blackhole/i'"
+      
+      cmd = "#{mysqldump} --no-data --skip-triggers --add-drop-database #{opt(:schemas)} #{transforms.join('')}"
+      TU.cmd_result("#{cmd} >> #{schema.path()}")
+    rescue CommandError => ce
+      TU.debug(ce)
+      raise "Unable to extract the MySQL schema for provisioning"
+    end
+    
+    schema
   end
 
   def configure
@@ -243,6 +260,11 @@ class TungstenReplicatorProvisionTHL
       :required => true
     })
     
+    add_option(:override_schema_file, {
+      :on => "--override-schema-file String",
+      :help => "Use this SQL file to generate the schemas in the MySQL Sandbox instead of pulling from the database"
+    })
+    
     add_option(:cleanup_on_failure, {
       :on => "--cleanup-on-failure String",
       :parse => method(:parse_boolean_option),
@@ -257,21 +279,29 @@ class TungstenReplicatorProvisionTHL
     add_command(:cleanup, {
       :help => "Cleanup the sandbox environment from a previous run"
     })
+    
+    add_command(:generate_schema_sql, {
+      :help => "Output the SQL to create the listed schemas"
+    })
   end
   
   def get_offline_services_list
-    if command() == "cleanup"
-      []
-    else
+    if command() == "provision"
       super()
+    else
+      []
     end
   end
   
   def validate
-    if command() == "cleanup"
+    case command()
+    when "cleanup"
       @option_definitions[:tungsten_replicator_package][:required] = false
       @option_definitions[:mysql_package][:required] = false
       @option_definitions[:schemas][:required] = false
+    when "generate_schema_sql"
+      @option_definitions[:tungsten_replicator_package][:required] = false
+      @option_definitions[:mysql_package][:required] = false
     end
     
     super()
@@ -310,6 +340,14 @@ class TungstenReplicatorProvisionTHL
         end
       else
         TU.error("Unable to find a file at #{opt(:mysql_package)}")
+      end
+      
+      if opt(:override_schema_file) != nil
+        opt(:override_schema_file, File.expand_path(opt(:override_schema_file)))
+        
+        unless File.readable?(opt(:override_schema_file))
+          TU.error("Unable to read a file at #{opt(:override_schema_file)}")
+        end
       end
     end
     
