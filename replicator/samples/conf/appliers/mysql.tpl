@@ -3,4 +3,4 @@ replicator.applier.dbms=com.continuent.tungsten.replicator.applier.MySQLDrizzleA
 replicator.applier.dbms.dataSource=global
 replicator.applier.dbms.ignoreSessionVars=autocommit
 replicator.applier.dbms.getColumnMetadataFromDB=true
-replicator.applier.dbms.optimizeRowEvents=false
+replicator.applier.dbms.optimizeRowEvents=true
