@@ -1806,7 +1806,7 @@ public class JdbcApplier implements RawApplier
                     context.getReplicatorSchemaName(),
                     runtime.getTungstenTableType());
 
-            // SFetch the last processed event.
+            // Fetch the last processed event.
             lastProcessedEvent = commitSeqnoAccessor.lastCommitSeqno();
         }
         catch (SQLException e)
