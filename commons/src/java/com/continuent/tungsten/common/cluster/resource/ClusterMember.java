@@ -29,12 +29,13 @@ package com.continuent.tungsten.common.cluster.resource;
  */
 public class ClusterMember
 {
-    private String  name       = null;
-    private boolean configured = false;
-    private boolean inView     = false;
-    private boolean witness    = false;
-    private boolean validated  = false;
-    private boolean reachable  = false;
+    private String  name           = null;
+    private boolean configured     = false;
+    private boolean inView         = false;
+    private boolean passiveWitness = false;
+    private boolean activeWitness  = false;
+    private boolean validated      = false;
+    private boolean reachable      = false;
 
     /**
      * Instantiate a new member record.
@@ -86,15 +87,15 @@ public class ClusterMember
     }
 
     /** Returns true if this member is actually a witness host. */
-    public boolean isWitness()
+    public boolean isPassiveWitness()
     {
-        return witness;
+        return passiveWitness;
     }
 
     /** Specifies whether this member is a witness. */
-    void setWitness(boolean witness)
+    void setPassiveWitness(boolean witness)
     {
-        this.witness = witness;
+        this.passiveWitness = witness;
     }
 
     /** Returns true if this member has been validated by pinging through GC. */
@@ -125,5 +126,15 @@ public class ClusterMember
     void setReachable(Boolean reachable)
     {
         this.reachable = reachable;
+    }
+
+    public boolean isActiveWitness()
+    {
+        return activeWitness;
+    }
+
+    public void setActiveWitness(boolean activeWitness)
+    {
+        this.activeWitness = activeWitness;
     }
 }

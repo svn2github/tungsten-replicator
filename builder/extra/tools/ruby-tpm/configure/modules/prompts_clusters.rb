@@ -28,6 +28,7 @@ DATASERVICE_HUB_MEMBER = "dataservice_hub_host"
 DATASERVICE_HUB_SERVICE = "dataservice_hub_service"
 TARGET_DATASERVICE = "target_dataservice"
 DATASERVICE_ENABLE_ALL_TOPOLOGIES = "dataservice_enable_all_topologies"
+DATASERVICE_USE_RELATIVE_LATENCY = "dataservice_use_relative_latency"
 
 class Clusters < GroupConfigurePrompt
   def initialize
@@ -857,6 +858,15 @@ class DataserviceEnableAllTopologies < ConfigurePrompt
     super(DATASERVICE_ENABLE_ALL_TOPOLOGIES, 
       "Should we deploy all topologies that are defined?", PV_BOOLEAN, "false")
     override_command_line_argument("enable-all-topologies")
+  end
+end
+
+class ClusterRelativeLatency < ConfigurePrompt
+  include ClusterPrompt
+  
+  def initialize
+    super(DATASERVICE_USE_RELATIVE_LATENCY, "Enable the cluster to operate on relative latency", PV_BOOLEAN, "false")
+    add_command_line_alias("use-relative-latency")
   end
 end
 

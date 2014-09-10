@@ -570,6 +570,25 @@ public class MySQLIOs
         return true;
     }
 
+    public static void checkStateMapping()
+    {
+        try
+        {
+            MySQLIOs.loadStateMappingConfiguration();
+            logger.info("MONITOR WILL USE DYNAMIC STATE MAPPING:");
+        }
+        catch (ConfigurationException c)
+        {
+            logger.warn(String.format(
+                    "Unable to load state mapping from file: %s",
+                    c.getLocalizedMessage()));
+            logger.info("MONITOR WILL USE DEFAULT STATE MAPPING:");
+        }
+
+        logger.info("\n" + MySQLIOs.showStateMapping() + "\n");
+
+    }
+
     /**
      * Tries to establish a connection to a MySQL server with given credentials
      * and timeout. Upon success, runs the given request (which must be a

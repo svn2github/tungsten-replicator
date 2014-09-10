@@ -512,7 +512,11 @@ class ConnectorRelativeSlaveStatus < ConfigurePrompt
   include HiddenValueModule
   
   def initialize
-    super(CONN_SLAVE_STATUS_IS_RELATIVE, "Display slave status using relative time", PV_BOOLEAN, "false")
+    super(CONN_SLAVE_STATUS_IS_RELATIVE, "Display slave status using relative time", PV_BOOLEAN)
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_dataservice_key(DATASERVICE_USE_RELATIVE_LATENCY))
   end
 end
 

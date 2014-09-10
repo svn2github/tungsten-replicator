@@ -40,47 +40,68 @@ public class ClusterMembershipDigest
 {
     // Base data.
     private String                         name;
-    private Vector<String>                 configuredMembers         = new Vector<String>();
-    private Vector<String>                 viewMembers               = new Vector<String>();
-    private Vector<String>                 witnessMembers            = new Vector<String>();
+    private Vector<String>                 configuredDBMembers       = new Vector<String>();
+    private Vector<String>                 configuredActiveWitnesses = new Vector<String>();
+    private Vector<String>                 viewDBMembers             = new Vector<String>();
+    private Vector<String>                 viewActiveWitnessMembers  = new Vector<String>();
+    private Vector<String>                 consolidatedViewMembers   = new Vector<String>();
+    private Vector<String>                 passiveWitnesses          = new Vector<String>();
 
     // Set consisting of union of all known members.
     private HashMap<String, ClusterMember> potentialQuorumMembersSet = new HashMap<String, ClusterMember>();
 
     // Witness host definition, if used.
-    private HashMap<String, ClusterMember> witnessSet                = new HashMap<String, ClusterMember>();
+    private HashMap<String, ClusterMember> passsiveWitnessSet        = new HashMap<String, ClusterMember>();
 
     // Counters for number of members marked validated and reachable.
-    private int                            validated                 = 0;
+    private int                            validatedDBMembers        = 0;
     private int                            reachable                 = 0;
-    private int                            reachableWitnessesCount   = 0;
+    private int                            reachablePassiveWitnesses = 0;
 
     /**
      * Instantiates a digest used to compute whether the member that creates the
      * digest is in a primary group.
      * 
      * @param name Name of this member
-     * @param configuredMembers Member names from service configuration
-     * @param viewMembers Member names from group communications view
-     * @param witnessMembers Names of the witness hosts
+     * @param configuredDBMembers Member names from service configuration
+     * @param configuredActiveWitnesses Member names of active witnesses, if any
+     * @param viewDBMembers Member names from group communications view that are
+     *            DB members
+     * @param viewActiveWitnessMembers Active witnesses that appear in the view
+     *            provided by group communications
+     * @param passiveWitnesses Names of the witness hosts
      */
     public ClusterMembershipDigest(String name,
-            Collection<String> configuredMembers,
-            Collection<String> viewMembers, List<String> witnessMembers)
+            Collection<String> configuredDBMembers,
+            Collection<String> configuredActiveWitnesses,
+            Collection<String> viewDBMembers,
+            Collection<String> viewActiveWitnessMembers,
+            List<String> passiveWitnesses)
     {
         // Assign values.
         this.name = name;
-        if (configuredMembers != null)
+        if (configuredDBMembers != null)
         {
-            this.configuredMembers.addAll(configuredMembers);
+            this.configuredDBMembers.addAll(configuredDBMembers);
         }
-        if (viewMembers != null)
+        if (configuredActiveWitnesses != null
+                && configuredActiveWitnesses.size() > 0)
         {
-            this.viewMembers.addAll(viewMembers);
+            this.configuredActiveWitnesses.addAll(configuredActiveWitnesses);
         }
-        if (witnessMembers != null)
+        if (viewDBMembers != null)
         {
-            this.witnessMembers.addAll(witnessMembers);
+            this.viewDBMembers.addAll(viewDBMembers);
+            this.consolidatedViewMembers.addAll(viewDBMembers);
+        }
+        if (viewActiveWitnessMembers != null)
+        {
+            this.viewActiveWitnessMembers.addAll(viewActiveWitnessMembers);
+            this.consolidatedViewMembers.addAll(viewActiveWitnessMembers);
+        }
+        if (passiveWitnesses != null)
+        {
+            this.passiveWitnesses.addAll(passiveWitnesses);
         }
 
         // Construct quorum set.
@@ -94,16 +115,50 @@ public class ClusterMembershipDigest
     private void derivePotentialQuorumMembersSet()
     {
         // Add configured members first.
-        for (String name : configuredMembers)
+        for (String name : configuredDBMembers)
         {
             ClusterMember cm = new ClusterMember(name);
             cm.setConfigured(true);
             potentialQuorumMembersSet.put(name, cm);
         }
 
-        // Now iterate across the view members and add new member definitions or
-        // update existing ones.
-        for (String name : viewMembers)
+        if (configuredActiveWitnesses != null
+                && configuredActiveWitnesses.size() > 0)
+        {
+            // Also add, if they exist, active witnesses.
+            for (String name : configuredActiveWitnesses)
+            {
+                ClusterMember cm = new ClusterMember(name);
+                cm.setConfigured(true);
+                cm.setActiveWitness(true);
+                potentialQuorumMembersSet.put(name, cm);
+            }
+        }
+
+        /*
+         * Now iterate across the view DB members and add new member definitions
+         * or update existing ones.
+         */
+        for (String name : viewDBMembers)
+        {
+            ClusterMember cm = potentialQuorumMembersSet.get(name);
+            if (cm == null)
+            {
+                cm = new ClusterMember(name);
+                cm.setInView(true);
+                potentialQuorumMembersSet.put(name, cm);
+            }
+            else
+            {
+                cm.setInView(true);
+            }
+        }
+
+        /*
+         * Now iterate across the view active witness members and add new member
+         * definitions or update existing ones.
+         */
+        for (String name : viewActiveWitnessMembers)
         {
             ClusterMember cm = potentialQuorumMembersSet.get(name);
             if (cm == null)
@@ -119,11 +174,11 @@ public class ClusterMembershipDigest
         }
 
         // Add the witness hosts if we have any.
-        for (String name : witnessMembers)
+        for (String name : passiveWitnesses)
         {
             ClusterMember witness = new ClusterMember(name);
-            witness.setWitness(true);
-            witnessSet.put(name, witness);
+            witness.setPassiveWitness(true);
+            passsiveWitnessSet.put(name, witness);
         }
     }
 
@@ -133,10 +188,15 @@ public class ClusterMembershipDigest
         return name;
     }
 
-    /** Return the number of members required to have a simple majority. */
+    /**
+     * Return the number of members required to have a simple majority. We don't
+     * count either active or passive witnesses when looking for a simple
+     * majority but simply the number of DB members.
+     */
     public int getSimpleMajoritySize()
     {
-        return ((potentialQuorumMembersSet.size() / 2) + 1);
+        return ((potentialQuorumMembersSet.size()
+                - passiveWitnessesInQuorumSet() - activeWitnessesInQuorumSet()) / 2 + 1);
     }
 
     /**
@@ -148,6 +208,7 @@ public class ClusterMembershipDigest
     public void setValidated(String member, boolean valid)
     {
         ClusterMember cm = potentialQuorumMembersSet.get(member);
+        
         if (cm != null)
         {
             if (cm.getValidated() == valid)
@@ -159,7 +220,7 @@ public class ClusterMembershipDigest
 
             if (valid)
             {
-                validated++;
+                validatedDBMembers++;
             }
         }
     }
@@ -187,7 +248,7 @@ public class ClusterMembershipDigest
         }
         else
         {
-            ClusterMember witness = witnessSet.get(member);
+            ClusterMember witness = passsiveWitnessSet.get(member);
             if (member.equals(witness.getName()))
             {
                 if (witness.getReachable() == reached)
@@ -196,13 +257,15 @@ public class ClusterMembershipDigest
                 witness.setReachable(reached);
                 if (reached)
                 {
-                    reachableWitnessesCount++;
+                    reachablePassiveWitnesses++;
                 }
             }
         }
     }
 
-    /** Return quorum set members. */
+    /**
+     * Return quorum set members.
+     */
     public List<ClusterMember> getPotentialQuorumMembersSet()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
@@ -211,46 +274,101 @@ public class ClusterMembershipDigest
         return list;
     }
 
-    /** Return definitions of the configured members. */
-    public List<ClusterMember> getConfiguredSetMembers()
+    /**
+     * Return definitions of the configured members.
+     */
+    public List<ClusterMember> getConsolidatedConfiguredMembers()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
-                configuredMembers.size());
-        for (String name : configuredMembers)
+                configuredDBMembers.size() + configuredActiveWitnesses.size());
+        for (String name : configuredDBMembers)
+        {
+            list.add(potentialQuorumMembersSet.get(name));
+        }
+        for (String name : configuredActiveWitnesses)
         {
             list.add(potentialQuorumMembersSet.get(name));
         }
         return list;
     }
 
-    /** Return definitions of the view members. */
-    public List<ClusterMember> getViewSetMembers()
+    /**
+     * Return definitions of the configured members.
+     */
+    public List<ClusterMember> getConfiguredDBSetMembers()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
-                viewMembers.size());
-        for (String name : viewMembers)
+                configuredDBMembers.size());
+        for (String name : configuredDBMembers)
         {
             list.add(potentialQuorumMembersSet.get(name));
         }
         return list;
     }
 
-    /** Return definitions of the witness members. */
+    /**
+     * Return definitions of the configured members.
+     */
+    public List<ClusterMember> getConfiguredActiveWitnessSetMembers()
+    {
+        ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
+                configuredActiveWitnesses.size());
+        for (String name : configuredActiveWitnesses)
+        {
+            list.add(potentialQuorumMembersSet.get(name));
+        }
+        return list;
+    }
+
+    /**
+     * Return definitions of the view members.
+     */
+    public List<ClusterMember> getViewDBSetMembers()
+    {
+        ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
+                viewDBMembers.size());
+        for (String name : viewDBMembers)
+        {
+            list.add(potentialQuorumMembersSet.get(name));
+        }
+        return list;
+    }
+
+    /**
+     * Return definitions of the view members.
+     */
+    public List<ClusterMember> getViewActiveWitnessSetMembers()
+    {
+        ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
+                viewActiveWitnessMembers.size());
+        for (String name : viewActiveWitnessMembers)
+        {
+            list.add(potentialQuorumMembersSet.get(name));
+        }
+        return list;
+    }
+
+    /**
+     * Return definitions of the witness members.
+     */
     public List<ClusterMember> getWitnessSetMembers()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
-                witnessSet.size());
-        for (ClusterMember cm : witnessSet.values())
+                passsiveWitnessSet.size());
+        for (ClusterMember cm : passsiveWitnessSet.values())
         {
             list.add(cm);
         }
         return list;
     }
 
-    /** Return the validated members. */
+    /**
+     * Return the validated members.
+     */
     public List<ClusterMember> getValidatedMembers()
     {
-        ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(validated);
+        ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
+                validatedDBMembers);
         for (ClusterMember cm : potentialQuorumMembersSet.values())
         {
             // Validated members must have been checked *and* must have
@@ -262,10 +380,13 @@ public class ClusterMembershipDigest
         return list;
     }
 
-    /** Return the reachable members. */
+    /**
+     * Return the reachable members.
+     */
     public List<ClusterMember> getReachableMembers()
     {
-        ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(validated);
+        ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
+                validatedDBMembers);
         for (ClusterMember cm : potentialQuorumMembersSet.values())
         {
             // Reachable members must have been checked *and* must have
@@ -277,12 +398,14 @@ public class ClusterMembershipDigest
         return list;
     }
 
-    /** Return the reachable witnesses. */
+    /**
+     * Return the reachable witnesses.
+     */
     public List<ClusterMember> getReachableWitnesses()
     {
         ArrayList<ClusterMember> list = new ArrayList<ClusterMember>(
-                reachableWitnessesCount);
-        for (ClusterMember cm : witnessSet.values())
+                reachablePassiveWitnesses);
+        for (ClusterMember cm : passsiveWitnessSet.values())
         {
             // Reachable witnesses must have been checked *and* must have
             // a true value.
@@ -338,7 +461,7 @@ public class ClusterMembershipDigest
      */
     public boolean isValidPotentialQuorumMembersSet(boolean verbose)
     {
-        if (configuredMembers.size() == 0)
+        if (configuredDBMembers.size() == 0)
         {
             // The quorum set must contain at least one configured member.
             if (verbose)
@@ -349,7 +472,7 @@ public class ClusterMembershipDigest
             }
             return false;
         }
-        else if (viewMembers.size() == 0)
+        else if (viewDBMembers.size() == 0)
         {
             // The quorum set must contain at least one member in the GC view.
             if (verbose)
@@ -382,13 +505,15 @@ public class ClusterMembershipDigest
             }
             return false;
         }
-        else if (validated != viewMembers.size())
+        else if (validatedDBMembers != viewDBMembers.size())
         {
             if (verbose)
             {
                 CLUtils.println(String
                         .format("INVALID POTENTIAL QUORUM MEMBERS SET: VALIDATED COUNT %d NOT EQUAL TO VIEW COUNT %d",
-                                validated, viewMembers.size()));
+                                validatedDBMembers,
+                                (viewDBMembers.size() + viewActiveWitnessMembers
+                                        .size())));
                 CLUtils.println("(GROUP COMMUNICATIONS MAY BE MISCONFIGURED OR BLOCKED BY A FIREWALL)");
             }
             return false;
@@ -425,16 +550,19 @@ public class ClusterMembershipDigest
         // Print a message to explain what we are doing.
         if (verbose)
         {
-            CLUtils.println(String
-                    .format("CHECKING FOR QUORUM: MUST BE AT LEAST %d MEMBERS, OR %d MEMBERS PLUS ALL WITNESSES",
-                            simpleMajority, simpleMajority - 1));
+            CLUtils.println(String.format(
+                    "CHECKING FOR QUORUM: MUST BE AT LEAST %d MEMBERS %s",
+                    simpleMajority,
+                    simpleMajority > 1 ? String.format(
+                            "OR %d MEMBERS PLUS ALL PASSIVE WITNESSES",
+                            simpleMajority - 1) : ""));
             CLUtils.println("QUORUM SET MEMBERS ARE: "
                     + CLUtils
                             .iterableToCommaSeparatedList(getPotentialQuorumMembersSetNames()));
             CLUtils.println("SIMPLE MAJORITY SIZE: "
                     + this.getSimpleMajoritySize());
             CLUtils.println("GC VIEW OF CURRENT MEMBERS IS: "
-                    + CLUtils.iterableToCommaSeparatedList(viewMembers));
+                    + CLUtils.iterableToCommaSeparatedList(viewDBMembers));
             CLUtils.println("VALIDATED MEMBERS ARE: "
                     + CLUtils
                             .iterableToCommaSeparatedList(getValidatedMemberNames()));
@@ -442,7 +570,7 @@ public class ClusterMembershipDigest
                     + CLUtils
                             .iterableToCommaSeparatedList(getReachableMemberNames()));
             CLUtils.println("WITNESS HOSTS ARE: "
-                    + CLUtils.iterableToCommaSeparatedList(witnessMembers));
+                    + CLUtils.iterableToCommaSeparatedList(passiveWitnesses));
             CLUtils.println("REACHABLE WITNESSES ARE: "
                     + CLUtils
                             .iterableToCommaSeparatedList(getReachableWitnessNames()));
@@ -466,7 +594,7 @@ public class ClusterMembershipDigest
          * have a primary partition. This case covers a cluster with a single
          * master.
          */
-        if (potentialQuorumMembersSet.size() == 1 && validated == 1)
+        if (potentialQuorumMembersSet.size() == 1 && validatedDBMembers == 1)
         {
             CLUtils.println("CONCLUSION: I AM IN A PRIMARY PARTITION AS THERE IS A SINGLE VALIDATED MEMBER IN THE QUORUM SET");
             return true;
@@ -474,11 +602,11 @@ public class ClusterMembershipDigest
 
         // If we have a simple majority of validated members in the quorum set,
         // then we have a primary partition.
-        if (validated >= simpleMajority)
+        if (validatedDBMembers >= simpleMajority)
         {
             CLUtils.println(String
                     .format("CONCLUSION: I AM IN A PRIMARY PARTITION OF %d MEMBERS OUT OF THE REQUIRED MAJORITY OF %d",
-                            validated, simpleMajority));
+                            validatedDBMembers, simpleMajority));
             return true;
         }
 
@@ -493,35 +621,65 @@ public class ClusterMembershipDigest
          * could end up with a partition in which one partition sees one witness
          * and the other partition sees another etc.
          */
-        if (validated >= simpleMajority - 1 || reachable >= simpleMajority - 1)
+        if (validatedDBMembers >= simpleMajority - 1
+                || reachable >= simpleMajority - 1)
         {
-            boolean witnessesOk = witnessSet.size() > 0
-                    && (witnessSet.size() == reachableWitnessesCount);
+            boolean witnessesOk = passsiveWitnessSet.size() > 0
+                    && (passsiveWitnessSet.size() == reachablePassiveWitnesses);
 
             if (witnessesOk)
             {
                 CLUtils.println(String
-                        .format("CONCLUSION: I AM IN A PRIMARY PARTITION WITH %d REACHABLE MEMBERS AND ALL (%d) REACHABLE WITNESSES",
-                                reachable, reachableWitnessesCount));
+                        .format("CONCLUSION: I AM IN A PRIMARY PARTITION WITH %d REACHABLE MEMBERS AND ALL (%d) REACHABLE PASSIVE WITNESSES",
+                                reachable, reachablePassiveWitnesses));
                 return true;
             }
             else
             {
-                CLUtils.println(String
-                        .format("CONCLUSION: I AM IN A NON-PRIMARY PARTITION OF %d MEMBERS OUT OF A REQUIRED MAJORITY SIZE OF %d\n"
-                                + "AND THERE ARE %d REACHABLE WITNESSES OUT OF %d",
-                                validated, getSimpleMajoritySize(),
-                                reachableWitnessesCount, witnessSet.size()));
-                return false;
+                /*
+                 * If we have active witnesses, check them now....
+                 */
+                int validatedActiveWitneses = validatedActiveWitnessesInQuorumSet();
+
+                if (validatedDBMembers - validatedActiveWitneses >= simpleMajority)
+                {
+                    CLUtils.println(String
+                            .format("CONCLUSION: I AM IN A PRIMARY PARTITION WITH %d VALIDATED DB MEMBERS AND %d VALIDATED ACTIVE WITNESSES",
+                                    validatedDBMembers
+                                            - validatedActiveWitneses,
+                                    validatedActiveWitneses));
+                    return true;
+                }
+                else if (reachable - validatedActiveWitneses >= simpleMajority)
+                {
+                    CLUtils.println(String
+                            .format("CONCLUSION: I AM IN A PRIMARY PARTITION WITH %d REACHABLE DB MEMBERS AND %d VALIDATED ACTIVE WITNESSES",
+                                    reachable - validatedActiveWitneses,
+                                    validatedActiveWitneses));
+                    return true;
+                }
+                else
+                {
+                    CLUtils.println(String
+                            .format("CONCLUSION: I AM IN A NON-PRIMARY PARTITION OF %d MEMBERS OUT OF A REQUIRED MAJORITY SIZE OF %d\n"
+                                    + "AND THERE ARE %d REACHABLE WITNESSES OUT OF %d",
+                                    validatedDBMembers,
+                                    getSimpleMajoritySize(),
+                                    reachablePassiveWitnesses,
+                                    passsiveWitnessSet.size()));
+                    return false;
+                }
             }
         }
 
-        // We cannot form a quorum. Provide an explanation if desired.
+        /*
+         * We cannot form a quorum. Provide an explanation if desired.
+         */
         if (verbose)
         {
             CLUtils.println(String
                     .format("CONCLUSION: I AM IN A NON-PRIMARY PARTITION OF %d MEMBERS OUT OF A REQUIRED MAJORITY SIZE OF %d\n",
-                            validated, getSimpleMajoritySize()));
+                            validatedDBMembers, getSimpleMajoritySize()));
         }
         return false;
     }
@@ -540,7 +698,7 @@ public class ClusterMembershipDigest
         if (verbose)
         {
             CLUtils.println("GC VIEW OF CURRENT MEMBERS IS: "
-                    + CLUtils.iterableToCommaSeparatedList(viewMembers));
+                    + CLUtils.iterableToCommaSeparatedList(viewDBMembers));
             CLUtils.println("REACHABLE CURRENT MEMBERS ARE: "
                     + CLUtils
                             .iterableToCommaSeparatedList(getReachableMemberNames()));
@@ -550,8 +708,17 @@ public class ClusterMembershipDigest
 
         }
 
-        if (viewMembers.size() > 0 && getValidatedMembers().size() > 0
-                && setsAreEqual(viewMembers, getValidatedMembers()))
+        /*
+         * This is a case where we are looking for consistency between the total
+         * view that we see via GCS and the members that we can validate. So
+         * here we do not treat active witnesses any differently because what we
+         * are testing for is, essentially, consistency between what GCS sees
+         * and the members that are reachable. If we don't have a consistent
+         * view, then there's possibly a network partition in effect etc.
+         */
+        if (consolidatedViewMembers.size() > 0
+                && getValidatedMembers().size() > 0
+                && setsAreEqual(consolidatedViewMembers, getValidatedMembers()))
         {
             if (verbose)
             {
@@ -559,8 +726,9 @@ public class ClusterMembershipDigest
             }
             return true;
         }
-        else if (viewMembers.size() > 0 && getReachableMembers().size() > 0
-                && setsAreEqual(viewMembers, getReachableMembers()))
+        else if (consolidatedViewMembers.size() > 0
+                && getReachableMembers().size() > 0
+                && setsAreEqual(consolidatedViewMembers, getReachableMembers()))
         {
             if (verbose)
             {
@@ -593,4 +761,93 @@ public class ClusterMembershipDigest
 
         return (hitCount == viewSet.size());
     }
+
+    public Vector<String> getConfiguredActiveWitnesses()
+    {
+        return configuredActiveWitnesses;
+    }
+
+    public void setConfiguredActiveWitnesses(
+            Vector<String> configuredActiveWitnesses)
+    {
+        this.configuredActiveWitnesses = configuredActiveWitnesses;
+    }
+
+    /**
+     * Determine how many active witnesses are in the potential quorum set.
+     * 
+     * @return
+     */
+    private int activeWitnessesInQuorumSet()
+    {
+        int activeWitnessCount = 0;
+
+        for (ClusterMember member : potentialQuorumMembersSet.values())
+        {
+            if (member.isActiveWitness())
+            {
+                activeWitnessCount++;
+            }
+        }
+
+        return activeWitnessCount;
+    }
+
+    private int validatedActiveWitnessesInQuorumSet()
+    {
+        int validatedActiveWitnessCount = 0;
+
+        for (ClusterMember member : potentialQuorumMembersSet.values())
+        {
+            if (member.isActiveWitness() && member.getValidated())
+            {
+                validatedActiveWitnessCount++;
+            }
+        }
+
+        return validatedActiveWitnessCount;
+    }
+
+    /**
+     * Determine how many passive witnesses are in the potential quorum set.
+     * 
+     * @return
+     */
+    private int passiveWitnessesInQuorumSet()
+    {
+        int passiveWitnessCount = 0;
+
+        for (ClusterMember member : potentialQuorumMembersSet.values())
+        {
+            if (member.isPassiveWitness())
+            {
+                passiveWitnessCount++;
+            }
+        }
+
+        return passiveWitnessCount;
+    }
+
+    public Vector<String> getViewActiveWitnessMembers()
+    {
+        return viewActiveWitnessMembers;
+    }
+
+    public void setViewActiveWitnessMembers(
+            Vector<String> viewActiveWitnessMembers)
+    {
+        this.viewActiveWitnessMembers = viewActiveWitnessMembers;
+    }
+
+    public Vector<String> getConsolidatedViewMembers()
+    {
+        return consolidatedViewMembers;
+    }
+
+    public void setConsolidatedViewMembers(
+            Vector<String> consolidatedViewMembers)
+    {
+        this.consolidatedViewMembers = consolidatedViewMembers;
+    }
+
 }

@@ -41,6 +41,7 @@ public class ReplicatorNotification extends ClusterResourceNotification
     private static final long   serialVersionUID               = -2097111546144612171L;
 
     private static final String REPLICATOR_STATE_ONLINE        = "ONLINE";
+    private static final String REPLICATOR_STATE_STOPPED       = "STOPPED";
     private static final String REPLICATOR_STATE_OFFLINE       = "OFFLINE";
     private static final String REPLICATOR_STATE_ERROR         = "OFFLINE:ERROR";
     private static final String REPLICATOR_STATE_BACKUP        = "OFFLINE:BACKUP";
@@ -76,6 +77,10 @@ public class ReplicatorNotification extends ClusterResourceNotification
     {
         if (state.startsWith(REPLICATOR_STATE_ONLINE))
             return ResourceState.ONLINE;
+        else if (state.startsWith(REPLICATOR_STATE_STOPPED))
+        {
+            return ResourceState.STOPPED;
+        }
         else if (state.startsWith(REPLICATOR_STATE_OFFLINE))
         {
             if (state.equals(REPLICATOR_STATE_ERROR))

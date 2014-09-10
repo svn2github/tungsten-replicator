@@ -34,7 +34,6 @@ import com.continuent.tungsten.manager.resource.shared.ResourceConfiguration;
 
 public class ResourceFactory
 {
-//    static private Logger logger = Logger.getLogger(ResourceFactory.class);
 
     /**
      * @param type

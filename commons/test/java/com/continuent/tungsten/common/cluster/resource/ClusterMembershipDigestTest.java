@@ -47,24 +47,89 @@ public class ClusterMembershipDigestTest
      * correctly computed quorum set and witnesses.
      */
     @Test
-    public void testInstantiation() throws Exception
+    public void testInstantiationNormal() throws Exception
     {
-        List<String> configured = Arrays.asList("a", "b");
-        List<String> view = Arrays.asList("b", "c", "d");
-        List<String> witnesses = Arrays.asList("e");
+        List<String> configuredDBMembers = Arrays.asList("a", "b", "c");
+        List<String> configuredActiveWitnessMembers = null;
+        List<String> viewDBMembers = Arrays.asList("a", "b", "c");
+        List<String> viewActiveWitnesses = null;
+        List<String> witnesses = null;
         ClusterMembershipDigest digest = new ClusterMembershipDigest("myname",
-                configured, view, witnesses);
+                configuredDBMembers, configuredActiveWitnessMembers,
+                viewDBMembers, viewActiveWitnesses, witnesses);
 
         // Test that values are correctly returned.
-        List<String> quorumSet = Arrays.asList("a", "b", "c", "d");
+        List<String> quorumSet = Arrays.asList("a", "b", "c");
+        Assert.assertEquals("myname", digest.getName());
+        Assert.assertEquals("Configured member size", 3, digest
+                .getConfiguredDBSetMembers().size());
+        Assert.assertEquals("Configured view size", 3, digest
+                .getViewDBSetMembers().size());
+        Assert.assertEquals("Witness set size", 0, digest
+                .getWitnessSetMembers().size());
+        assertEqualSet("Quorum set", quorumSet,
+                digest.getPotentialQuorumMembersSetNames());
+    }
+
+    /**
+     * Verify that we can create a membership digest instance that returns a
+     * correctly computed quorum set and witnesses.
+     */
+    @Test
+    public void testInstantiationActiveWitnesses() throws Exception
+    {
+        List<String> configuredDBMembers = Arrays.asList("a", "b");
+        List<String> configuredActiveWitnessMembers = Arrays.asList("c");
+        List<String> viewDBMembers = Arrays.asList("a", "b");
+        List<String> viewActiveWitnesses = Arrays.asList("c");
+        ;
+        List<String> witnesses = null;
+        ClusterMembershipDigest digest = new ClusterMembershipDigest("myname",
+                configuredDBMembers, configuredActiveWitnessMembers,
+                viewDBMembers, viewActiveWitnesses, witnesses);
+
+        // Test that values are correctly returned.
+        List<String> quorumSet = Arrays.asList("a", "b", "c");
         Assert.assertEquals("myname", digest.getName());
         Assert.assertEquals("Configured member size", 2, digest
-                .getConfiguredSetMembers().size());
+                .getConfiguredDBSetMembers().size());
+        Assert.assertEquals("Configured DB view size", 2, digest
+                .getViewDBSetMembers().size());
+        Assert.assertEquals("Configured Active Witness view size", 1, digest
+                .getViewActiveWitnessSetMembers().size());
+        Assert.assertEquals("Witness set size", 0, digest
+                .getWitnessSetMembers().size());
+        assertEqualSet("Quorum set", quorumSet,
+                digest.getPotentialQuorumMembersSetNames());
+    }
+
+    /**
+     * Verify that we can create a membership digest instance that returns a
+     * correctly computed quorum set and witnesses.
+     */
+    @Test
+    public void testInstantiationPassiveWitnesses() throws Exception
+    {
+        List<String> configuredDBMembers = Arrays.asList("a", "b", "c");
+        List<String> configuredActiveWitnessMembers = null;
+        List<String> viewDBMembers = Arrays.asList("a", "b", "c");
+        List<String> viewActiveWitnesses = null;
+        List<String> witnesses = Arrays.asList("d");
+        ClusterMembershipDigest digest = new ClusterMembershipDigest("myname",
+                configuredDBMembers, configuredActiveWitnessMembers,
+                viewDBMembers, viewActiveWitnesses, witnesses);
+
+        // Test that values are correctly returned.
+        List<String> quorumSet = Arrays.asList("a", "b", "c");
+        Assert.assertEquals("myname", digest.getName());
+        Assert.assertEquals("Configured member size", 3, digest
+                .getConfiguredDBSetMembers().size());
         Assert.assertEquals("Configured view size", 3, digest
-                .getViewSetMembers().size());
+                .getViewDBSetMembers().size());
         Assert.assertEquals("Witness set size", 1, digest
                 .getWitnessSetMembers().size());
-        assertEqualSet("Quorum set", quorumSet, digest.getPotentialQuorumMembersSetNames());
+        assertEqualSet("Quorum set", quorumSet,
+                digest.getPotentialQuorumMembersSetNames());
     }
 
     /**
@@ -77,7 +142,7 @@ public class ClusterMembershipDigestTest
         List<String> configured = Arrays.asList("a", "b");
         List<String> view = Arrays.asList("b", "c", "d");
         ClusterMembershipDigest digest = new ClusterMembershipDigest("myname",
-                configured, view, null);
+                configured, view, null, view, view);
 
         // Assert that the membership is invalid as long as not all members are
         // validated.
@@ -99,10 +164,15 @@ public class ClusterMembershipDigestTest
     @Test
     public void testMajorityOfOne() throws Exception
     {
-        List<String> configured = Arrays.asList("a");
-        List<String> view = Arrays.asList("a");
+        List<String> configuredDBMembers = Arrays.asList("a");
+        List<String> configuredActiveWitnessMembers = null;
+        List<String> viewDBMembers = Arrays.asList("a");
+        List<String> viewActiveWitnesses = null;
+        List<String> witnesses = null;
         ClusterMembershipDigest digest = new ClusterMembershipDigest("a",
-                configured, view, null);
+                configuredDBMembers, configuredActiveWitnessMembers,
+                viewDBMembers, viewActiveWitnesses, witnesses);
+
         // If we have not validated the node, we don't have a majority.
         Assert.assertFalse("Unvalidated member cannot create majority",
                 digest.isInPrimaryPartition(true));
@@ -120,16 +190,20 @@ public class ClusterMembershipDigestTest
     @Test
     public void testSimpleMajority() throws Exception
     {
-        List<String> configured = Arrays.asList("a", "b", "c");
-        List<String> view = Arrays.asList("a", "b");
+        List<String> configuredDBMembers = Arrays.asList("a", "b", "c");
+        List<String> configuredActiveWitnessMembers = null;
+        List<String> viewDBMembers = Arrays.asList("a", "b");
+        List<String> viewActiveWitnesses = null;
+        List<String> witnesses = null;
         ClusterMembershipDigest digest = new ClusterMembershipDigest("a",
-                configured, view, null);
+                configuredDBMembers, configuredActiveWitnessMembers,
+                viewDBMembers, viewActiveWitnesses, witnesses);
 
         // If we have not validated a majority, we are not in a primary
         // partition.
         Assert.assertFalse("0 of 3 validated is not majority",
                 digest.isInPrimaryPartition(true));
-        
+
         // I need to be sure that 'myself' is validated. But that's not enough
         // for a majority.
         CLUtils.println("About to set validated for a");
@@ -137,26 +211,20 @@ public class ClusterMembershipDigestTest
         Assert.assertFalse("1 of 3 validated is not majority",
                 digest.isInPrimaryPartition(true));
 
-        // 2 of 3 is a majority.
+        // 2 of 3 is a majority but only if the view is valid.
         digest.setValidated("b", true);
         Assert.assertTrue("2 of 3 validated is a majority",
                 digest.isInPrimaryPartition(true));
-       
-        // Validating a member that does not appear in the view
-        // should cause an error
-        digest.setValidated("c", true);
-        Assert.assertFalse("3 validated out of a view size of 2 is invalid",
-                digest.isInPrimaryPartition(true));
-        
-        
+
         /*
-         * Test for a majority of four configured members.
+         * Test for a majority of three out of four configured members.
          */
-        configured = Arrays.asList("a", "b", "c", "d");
-        view = Arrays.asList("a", "b", "c");
-        digest = new ClusterMembershipDigest("a",
-                configured, view, null);
-        
+        configuredDBMembers = Arrays.asList("a", "b", "c", "d");
+        viewDBMembers = Arrays.asList("a", "b", "c");
+        digest = new ClusterMembershipDigest("a", configuredDBMembers,
+                configuredActiveWitnessMembers, viewDBMembers,
+                viewActiveWitnesses, witnesses);
+
         // I need to be sure that 'myself' is validated. But that's not enough
         // for a majority.
         digest.setValidated("a", true);
@@ -167,7 +235,7 @@ public class ClusterMembershipDigestTest
         digest.setValidated("b", true);
         Assert.assertFalse("2 of 4 validated is not a majority",
                 digest.isInPrimaryPartition(true));
-        
+
         // 3 of 4 is a majority.
         digest.setValidated("c", true);
         Assert.assertTrue("3 of 4 validated is a majority",
@@ -182,19 +250,23 @@ public class ClusterMembershipDigestTest
     @Test
     public void testWitness() throws Exception
     {
-        List<String> configured = Arrays.asList("a", "b");
-        List<String> view = Arrays.asList("a");
-        List<String> witnesses = Arrays.asList("c", "d");
+        List<String> configuredDBMembers = Arrays.asList("a", "b", "c");
+        List<String> configuredActiveWitnessMembers = null;
+        List<String> viewDBMembers = Arrays.asList("a");
+        List<String> viewActiveWitnesses = null;
+        List<String> witnesses = Arrays.asList("d");
+
         ClusterMembershipDigest digest = new ClusterMembershipDigest("a",
-                configured, view, witnesses);
+                configuredDBMembers, configuredActiveWitnessMembers,
+                viewDBMembers, viewActiveWitnesses, witnesses);
 
         // Always validate ourself, but that is not enough for a quorum...
         digest.setValidated("a", true);
         Assert.assertFalse(
                 "1 of 2 validated without witnesses is not majority",
                 digest.isInPrimaryPartition(true));
-        
-        digest.setReachable("c", true);
+
+        digest.setReachable("a", true);
         Assert.assertFalse(
                 "1 of 2 validated without all witnesses reachable is not majority",
                 digest.isInPrimaryPartition(true));
@@ -206,12 +278,14 @@ public class ClusterMembershipDigestTest
                 digest.isInPrimaryPartition(true));
 
         // To be thorough ensure we properly fail if witnesses are null.
-        ClusterMembershipDigest digest2 = new ClusterMembershipDigest("a",
-                configured, view, null);
-        digest2.setValidated("a", true);
+        digest = new ClusterMembershipDigest("a", configuredDBMembers,
+                configuredActiveWitnessMembers, viewDBMembers,
+                viewActiveWitnesses, null);
+
+        digest.setValidated("a", true);
         Assert.assertFalse(
                 "1 of 2 validated with null witnesses is not majority",
-                digest2.isInPrimaryPartition(true));
+                digest.isInPrimaryPartition(true));
     }
 
     /**
@@ -227,31 +301,31 @@ public class ClusterMembershipDigestTest
 
         // Confirm that member name must be in quorum set.
         ClusterMembershipDigest badMemberName = new ClusterMembershipDigest(
-                "c", configured, view, null);
+                "c", configured, view, null, view, view);
         Assert.assertFalse("Member must be in quorum set",
                 badMemberName.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that quorum set must be non-null.
         ClusterMembershipDigest emptyQuorum = new ClusterMembershipDigest("a",
-                new ArrayList<String>(), null, null);
+                new ArrayList<String>(), null, null, view, view);
         Assert.assertFalse("Quorum set must non-null",
                 emptyQuorum.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that GC view contains members.
         ClusterMembershipDigest emptyView = new ClusterMembershipDigest("a",
-                configured, null, null);
+                configured, null, null, view, view);
         Assert.assertFalse("View must have members",
                 emptyView.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that GC view contains the member name.
         ClusterMembershipDigest memberNotInView = new ClusterMembershipDigest(
-                "a", configured, Arrays.asList("b"), null);
+                "a", configured, Arrays.asList("b"), null, view, view);
         Assert.assertFalse("View must contain the member name",
                 memberNotInView.isValidPotentialQuorumMembersSet(true));
 
         // Confirm that configured list has at least one member.
         ClusterMembershipDigest noConfiguredNames = new ClusterMembershipDigest(
-                "a", null, Arrays.asList("a"), null);
+                "a", null, Arrays.asList("a"), null, view, view);
         Assert.assertFalse("Configured names must include at least one name",
                 noConfiguredNames.isValidPotentialQuorumMembersSet(true));
     }

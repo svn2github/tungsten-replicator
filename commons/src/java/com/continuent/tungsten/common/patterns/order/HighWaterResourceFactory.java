@@ -10,14 +10,15 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.cluster.resource.DataSource;
 import com.continuent.tungsten.common.cluster.resource.DatabaseVendors;
+import com.continuent.tungsten.common.utils.CLUtils;
 
 public class HighWaterResourceFactory
 {
     private static Logger logger                  = Logger.getLogger(HighWaterResource.class);
     static int            binlogPositionMaxLength = 0;
 
-    public static HighWaterResource getHighWater(DataSource ds, Connection conn)
-            throws SQLException
+    public static HighWaterResource getHighWater(DataSource ds,
+            Connection conn, String replicationSchemaName) throws SQLException
     {
         if (ds.getVendor() == null)
         {
@@ -28,7 +29,7 @@ public class HighWaterResourceFactory
 
         if (ds.getVendor().equals(DatabaseVendors.MYSQL))
         {
-            return mysqlHighWater(ds, conn);
+            return mysqlHighWater(ds, conn, replicationSchemaName);
         }
         else
         {
@@ -40,7 +41,7 @@ public class HighWaterResourceFactory
     }
 
     private static HighWaterResource mysqlHighWater(DataSource ds,
-            Connection conn) throws SQLException
+            Connection conn, String replicationSchemaName) throws SQLException
     {
 
         if (conn == null)
@@ -57,13 +58,16 @@ public class HighWaterResourceFactory
             getMaxBinlogSize(conn);
         }
 
-        ResultSet result = null;
+        String queryToExecute = String
+                .format("SHOW MASTER STATUS;select epoch_number from %s.trep_commit_seqno",
+                        replicationSchemaName);
 
+        ResultSet result = null;
         Statement stmt = conn.createStatement();
 
         try
         {
-            result = stmt.executeQuery("SHOW MASTER STATUS");
+            result = stmt.executeQuery(queryToExecute);
 
             if (!result.next())
             {
@@ -71,18 +75,60 @@ public class HighWaterResourceFactory
                         "Unable to get master status; is the MySQL binlog enabled?");
             }
 
-            String binlogFile = result.getString(1);
-            int binlogOffset = result.getInt(2);
-            String binlogOffsetAsString = String.format("%0"
-                    + (binlogPositionMaxLength + 1) + "d", new Integer(
-                    binlogOffset));
+            /*
+             * We need to process 2 result sets. The first one will be the
+             * master status and the second the epoch_number from
+             * trep_commit_seqno.
+             */
 
-            long epochNumber = ds.getHighWater().getHighWaterEpoch();
-            String eventId = String.format("%s:%s", binlogFile,
-                    binlogOffsetAsString);
+            String eventId = null;
+            long highWaterEpoch = -1;
 
-            HighWaterResource highWater = new HighWaterResource(epochNumber,
+            for (int resultSetId = 0; resultSetId < 2; resultSetId++)
+            {
+                if (resultSetId == 0)
+                {
+                    String binlogFile = result.getString(1);
+                    int binlogOffset = result.getInt(2);
+                    String binlogOffsetAsString = String.format("%0"
+                            + (binlogPositionMaxLength + 1) + "d", new Integer(
+                            binlogOffset));
+
+                    eventId = String.format("%s:%s", binlogFile,
+                            binlogOffsetAsString);
+                }
+                else
+                {
+                    if (!stmt.getMoreResults())
+                    {
+                        throw new SQLException(
+                                String.format(
+                                        "Did not get a result set with the replication epoch number.\n"
+                                                + "Executed query: %s\n"
+                                                + "Be sure that the replication schema exists etc.",
+                                        queryToExecute));
+                    }
+
+                    result = stmt.getResultSet();
+
+                    if (!result.next())
+                    {
+                        throw new SQLException(
+                                String.format(
+                                        "Did not get a column set with the replication epoch number.\n"
+                                                + "Executed query: %s\n"
+                                                + "Be sure that the replication schema exists etc.",
+                                        queryToExecute));
+                    }
+
+                    result = stmt.getResultSet();
+                    highWaterEpoch = result.getLong(1);
+                }
+            }
+
+            HighWaterResource highWater = new HighWaterResource(highWaterEpoch,
                     eventId);
+
             return highWater;
         }
         finally

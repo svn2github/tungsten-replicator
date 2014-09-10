@@ -38,11 +38,11 @@ public class DataSource extends Resource implements Serializable
     public static final String      ISAVAILABLE                    = "isAvailable";
     public static final String      STATE                          = "state";
     public static final String      ISCOMPOSITE                    = "isComposite";
-    public static final String      ISWITNESS                      = "isWitness";
     public static final String      ALERT_STATUS                   = "alertStatus";
     public static final String      ALERT_MESSAGE                  = "alertMessage";
     public static final String      ALERT_TIME                     = "alertTime";
     public static final String      APPLIED_LATENCY                = "appliedLatency";
+    public static final String      RELATIVE_LATENCY               = "relativeLatency";
     public static final String      HOST                           = "host";
     public static final String      ROLE                           = "role";
     public static final String      VENDOR                         = "vendor";
@@ -90,6 +90,7 @@ public class DataSource extends Resource implements Serializable
     private String                  lastShunReason                 = "";
 
     private double                  appliedLatency                 = DEFAULT_APPLIED_LATENCY;
+    private double                  relativeLatency                = DEFAULT_APPLIED_LATENCY;
     private Date                    updateTimestamp                = new Date();
     private Date                    lastUpdate                     = new Date();
 
@@ -253,6 +254,8 @@ public class DataSource extends Resource implements Serializable
                 replicatorProps.getString(Replicator.APPLIED_LAST_EVENT_ID)));
         dsProps.setDouble(APPLIED_LATENCY,
                 replicatorProps.getDouble(Replicator.APPLIED_LATENCY));
+        dsProps.setDouble(APPLIED_LATENCY,
+                replicatorProps.getDouble(Replicator.RELATIVE_LATENCY));
         dsProps.setString(VIPINTERFACE, replicatorProps.getString(
                 Replicator.RESOURCE_VIP_INTERFACE, null, true));
         dsProps.setString(VIPADDRESS, replicatorProps.getString(
@@ -300,6 +303,8 @@ public class DataSource extends Resource implements Serializable
                 .getString(Replicator.APPLIED_LAST_EVENT_ID));
         newDs.setAppliedLatency(replicatorProps
                 .getDouble(Replicator.APPLIED_LATENCY));
+        newDs.setRelativeLatency(replicatorProps
+                .getDouble(Replicator.RELATIVE_LATENCY));
 
         newDs.setVipInterface(replicatorProps.getString(
                 Replicator.RESOURCE_VIP_INTERFACE, null, true));
@@ -506,6 +511,7 @@ public class DataSource extends Resource implements Serializable
             this.setLastError(ds.getLastError());
             this.setLastShunReason(ds.getLastShunReason());
             this.setAppliedLatency(ds.getAppliedLatency());
+            this.setRelativeLatency(ds.getRelativeLatency());
             this.setUpdateTimestamp(ds.getUpdateTimestamp());
             this.setLastError(ds.getLastError());
             this.setHighWater(ds.getHighWater());
@@ -538,6 +544,7 @@ public class DataSource extends Resource implements Serializable
         props.setString(LASTERROR, getLastError());
         props.setString(LASTSHUNREASON, getLastShunReason());
         props.setDouble(APPLIED_LATENCY, appliedLatency);
+        props.setDouble(RELATIVE_LATENCY, relativeLatency);
         props.setLong(ACTIVE_CONNECTION_COUNT, activeConnectionsCount.get());
         props.setLong(CONNECTIONS_CREATED_COUNT, connectionsCreatedCount.get());
         props.setLong("statementsCreatedCount", statementsCreatedCount.get());
@@ -1056,5 +1063,35 @@ public class DataSource extends Resource implements Serializable
                     + (slashIdx != -1 ? slashIdx : remainder.length())
                     + ". Found colonIdx=" + colonIdx + " slashIdx=" + slashIdx);
         }
+    }
+
+    /**
+     * Returns the isWitness value.
+     * 
+     * @return Returns the isWitness.
+     */
+    public boolean isWitness()
+    {
+        return role.equals(DataSourceRole.witness);
+    }
+
+    /**
+     * Returns the relativeLatency value.
+     * 
+     * @return Returns the relativeLatency.
+     */
+    public double getRelativeLatency()
+    {
+        return relativeLatency;
+    }
+
+    /**
+     * Sets the relativeLatency value.
+     * 
+     * @param relativeLatency The relativeLatency to set.
+     */
+    public void setRelativeLatency(double relativeLatency)
+    {
+        this.relativeLatency = relativeLatency;
     }
 }
