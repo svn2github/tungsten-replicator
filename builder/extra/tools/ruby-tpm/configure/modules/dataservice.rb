@@ -1583,6 +1583,14 @@ class ReplicationServiceFailOnZeroRowUpdate < ConfigurePrompt
   end
 end
 
+class ReplicationServiceApplierOptimizeRowEvents < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(REPL_SVC_APPLIER_OPTIMIZE_ROW_EVENTS, "If TRUE, individual inserts or deletes are accumulated and applied as an extended insert/delete thereby improving performance.", PV_BOOLEAN, "true")
+  end
+end
+
 class ReplicationServiceGlobalProperties < ConfigurePrompt
   include ReplicationServicePrompt
   include ConstantValueModule
