@@ -1340,14 +1340,7 @@ public class TungstenProperties implements Serializable
 
     public int getInt(String key, String defaultValue, boolean required)
     {
-        String retString = getString(key, defaultValue, required);
-
-        if (retString == null)
-        {
-            return Integer.parseInt(retString);
-        }
-
-        return Integer.parseInt(retString.trim());
+        return Integer.parseInt(getString(key, defaultValue, required));
     }
 
     public long getLong(String key)
@@ -1357,15 +1350,7 @@ public class TungstenProperties implements Serializable
 
     public long getLong(String key, String defaultValue, boolean required)
     {
-
-        String retString = getString(key, defaultValue, required);
-
-        if (retString == null)
-        {
-            return Long.parseLong(retString);
-        }
-
-        return Long.parseLong(retString.trim());
+        return Long.parseLong(getString(key, defaultValue, required));
     }
 
     public float getFloat(String key)
@@ -1375,14 +1360,7 @@ public class TungstenProperties implements Serializable
 
     public float getFloat(String key, String defaultValue, boolean required)
     {
-        String retString = getString(key, defaultValue, required);
-
-        if (retString == null)
-        {
-            return Float.parseFloat(retString);
-        }
-
-        return Float.parseFloat(retString.trim());
+        return Float.parseFloat(getString(key, defaultValue, required));
     }
 
     public double getDouble(String key)
@@ -1392,14 +1370,7 @@ public class TungstenProperties implements Serializable
 
     public double getDouble(String key, String defaultValue, boolean required)
     {
-        String retString = getString(key, defaultValue, required);
-
-        if (retString == null)
-        {
-            return Double.parseDouble(retString);
-        }
-
-        return Double.parseDouble(retString.trim());
+        return Double.parseDouble(getString(key, defaultValue, required));
     }
 
     public boolean getBoolean(String key)
@@ -1409,14 +1380,7 @@ public class TungstenProperties implements Serializable
 
     public boolean getBoolean(String key, String defaultValue, boolean required)
     {
-        String retString = getString(key, defaultValue, required);
-
-        if (retString == null)
-        {
-            return Boolean.parseBoolean(retString);
-        }
-
-        return Boolean.parseBoolean(retString.trim());
+        return Boolean.parseBoolean(getString(key, defaultValue, required));
     }
 
     public File getFile(String key)
@@ -2013,7 +1977,7 @@ public class TungstenProperties implements Serializable
 
     /**
      * Load values from a Properties instance. Current values are replaced only
-     * if they are in the source map. Properties with null values are ignored.
+     * if they are in the source map.
      */
     public void add(Properties props)
     {
@@ -2021,23 +1985,17 @@ public class TungstenProperties implements Serializable
         while (keys.hasMoreElements())
         {
             String key = (String) keys.nextElement();
-            Object propValue = props.getProperty(key);
-
-            if (propValue != null)
+            String value = props.getProperty(key).toString();
+            if (properties.get(key) != null)
             {
-
-                if (properties.get(key) != null)
+                if (logger.isDebugEnabled())
                 {
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug(String.format(
-                                "Replacing %s=%s with %s=%s", key,
-                                properties.get(key), key, propValue.toString()));
-                    }
+                    logger.debug(String.format("Replacing %s=%s with %s=%s",
+                            key, properties.get(key), key, value));
                 }
-
-                properties.put(key, propValue.toString());
             }
+
+            properties.put(key, value);
         }
     }
 
