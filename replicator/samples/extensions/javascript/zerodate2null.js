@@ -132,6 +132,9 @@ function fixZeroDates(event, d)
         for (row = 0; row < keyValues.size(); row++)
         {
           values = keyValues.get(row);
+          if (c >= values.size()) {
+            continue;
+          }
           value = values.get(c);
 
           if (value.getValue() == 0)
