@@ -1689,7 +1689,7 @@ def cmd_result(command, ignore_fail = false)
   rc = status.exitstatus
   
   if errors == ""
-    errors = "No Errors"
+    errors = "No STDERR"
   else
     errors = "Errors: #{errors}"
   end
@@ -1913,7 +1913,7 @@ class CommandError < StandardError
   
   def build_message
     if errors == ""
-      errors = "No Errors"
+      errors = "No STDERR"
     else
       errors = "Errors: #{errors}"
     end
@@ -1933,7 +1933,7 @@ class RemoteCommandError < CommandError
   
   def build_message
     if errors == ""
-      errors = "No Errors"
+      errors = "No STDERR"
     else
       errors = "Errors: #{errors}"
     end
