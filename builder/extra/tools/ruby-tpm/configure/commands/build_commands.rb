@@ -87,6 +87,20 @@ class ReverseEngineerCommand
       
       unless is_composite
         dataservice_arguments[ds_alias] = []
+        
+        # Seed the dataservice definition with connector/j since it is not
+        # kept in the configuration file after installation
+        if Configurator.instance.is_enterprise?()
+          if cfg.getProperty([DATASERVICES, ds_alias, DATASERVICE_TOPOLOGY]) == "clustered"
+            connector_path = "#{cfg.getProperty(HOME_DIRECTORY)}/share/mysql-connector-java.jar"
+            if File.exists?(connector_path)
+              if File.symlink?(connector_path)
+                connector_path = File.readlink(connector_path)
+              end
+              dataservice_arguments[ds_alias] << "--mysql-connectorj-path=#{connector_path}"
+            end
+          end
+        end
       else
         composite_dataservice_arguments[ds_alias] = []
       end
