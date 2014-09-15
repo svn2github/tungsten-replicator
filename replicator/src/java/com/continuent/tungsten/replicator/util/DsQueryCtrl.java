@@ -274,7 +274,7 @@ public class DsQueryCtrl
             else
             {
                 int updateCount = stmt.getUpdateCount();
-                logUpdateCount(updateCount);
+                json.add(logUpdateCount(updateCount));
             }
 
             isRS = stmt.getMoreResults();
