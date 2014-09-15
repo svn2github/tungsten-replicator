@@ -30,6 +30,8 @@ CONN_JAVA_MEM_SIZE = "conn_java_mem_size"
 CONN_JAVA_ENABLE_CONCURRENT_GC = "conn_java_enable_concurrent_gc"
 CONN_RR_INCLUDE_MASTER = "conn_round_robin_include_master"
 ENABLE_CONNECTOR_SSL = "enable_connector_ssl"
+ENABLE_CONNECTOR_CLIENT_SSL = "enable_connector_client_ssl"
+ENABLE_CONNECTOR_SERVER_SSL = "enable_connector_server_ssl"
 JAVA_CONNECTOR_KEYSTORE_PASSWORD = "java_connector_keystore_password"
 JAVA_CONNECTOR_TRUSTSTORE_PASSWORD = "java_connector_truststore_password"
 JAVA_CONNECTOR_TRUSTSTORE_PATH = "java_connector_truststore_path"
@@ -697,6 +699,40 @@ class ConnectorEnableSSL < ConfigurePrompt
     super(ENABLE_CONNECTOR_SSL, "Enable SSL encryption of connector traffic to the database", PV_BOOLEAN, "false")
     add_command_line_alias("connector-ssl")
   end
+end
+
+class ConnectorEnableClientSSL < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(ENABLE_CONNECTOR_CLIENT_SSL, "Enable SSL encryption of traffic from the client to the connector", PV_BOOLEAN)
+    add_command_line_alias("connector-client-ssl")
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(ENABLE_CONNECTOR_SSL)) == "true"
+      @default = "true"
+    else
+      super()
+    end
+  end
+end
+
+class ConnectorEnableServerSSL < ConfigurePrompt
+  include ConnectorPrompt
+  
+  def initialize
+    super(ENABLE_CONNECTOR_SERVER_SSL, "Enable SSL encryption of traffic from the connector to the database", PV_BOOLEAN)
+    add_command_line_alias("connector-server-ssl")
+  end
+  
+  def load_default_value
+    if @config.getProperty(get_member_key(ENABLE_CONNECTOR_SSL)) == "true"
+      @default = "true"
+    else
+      super()
+    end
+  end
   
   def add_jdbc_driver_options(opts)
     if get_value() == "true"
@@ -704,7 +740,7 @@ class ConnectorEnableSSL < ConfigurePrompt
     end
   end
   
-  ConnectorDriverOptions.register(ENABLE_CONNECTOR_SSL)
+  ConnectorDriverOptions.register(ENABLE_CONNECTOR_SERVER_SSL)
 end
 
 class ConnectorJavaKeystorePassword < ConfigurePrompt

@@ -23,7 +23,7 @@ security.truststore.location=@{JAVA_TRUSTSTORE_PATH}
 security.truststore.password=@{JAVA_TRUSTSTORE_PASSWORD}
 
 # Keystore and Truststore for the Tungsten Connector
-connector.security.use.ssl=@{ENABLE_CONNECTOR_SSL}
+connector.security.use.ssl=@{ENABLE_CONNECTOR_CLIENT_SSL}
 connector.security.keystore.location=@{JAVA_CONNECTOR_KEYSTORE_PATH}
 connector.security.keystore.password=@{JAVA_CONNECTOR_KEYSTORE_PASSWORD}
 connector.security.truststore.location=@{JAVA_CONNECTOR_TRUSTSTORE_PATH}
