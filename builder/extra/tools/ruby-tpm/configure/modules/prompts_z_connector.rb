@@ -716,6 +716,10 @@ class ConnectorEnableClientSSL < ConfigurePrompt
       super()
     end
   end
+  
+  def required?
+    false
+  end
 end
 
 class ConnectorEnableServerSSL < ConfigurePrompt
@@ -732,6 +736,10 @@ class ConnectorEnableServerSSL < ConfigurePrompt
     else
       super()
     end
+  end
+  
+  def required?
+    false
   end
   
   def add_jdbc_driver_options(opts)
