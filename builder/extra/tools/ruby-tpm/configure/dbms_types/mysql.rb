@@ -618,7 +618,6 @@ class MySQLServerID < ConfigurePrompt
   def initialize
     super(REPL_MYSQL_SERVER_ID, "MySQL server ID", 
       PV_INTEGER)
-    self.extend(NotTungstenInstallerPrompt)
   end
   
   def load_default_value

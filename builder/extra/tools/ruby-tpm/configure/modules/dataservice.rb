@@ -791,7 +791,6 @@ class ReplicationServiceBackupStorageDirectory < BackupConfigurePrompt
   
   def initialize
     super(REPL_BACKUP_STORAGE_DIR, "Permanent backup storage directory", PV_FILENAME)
-    self.extend(NotTungstenInstallerPrompt)
   end
   
   def load_default_value

@@ -53,16 +53,6 @@ class InstallCommand
   end
 end
 
-module NotTungstenInstallerPrompt
-  def enabled_for_command_line?
-    unless Configurator.instance.command.is_a?(InstallCommand)
-      super() && true
-    else
-      false
-    end
-  end
-end
-
 class InstallerMasterSlaveCheck < ConfigureValidationCheck
   def initialize(config)
     super()
