@@ -34,7 +34,7 @@ module ClusterDiagnosticPackage
     ret=nil
 
     command_a=command.split(" ")
-     begin
+    begin
       path = ssh_result("which #{command_a[0]} 2>/dev/null", config.getProperty(HOST), config.getProperty(USERID))
       if path != ""
         ret=ssh_result(command, config.getProperty(HOST), config.getProperty(USERID))
@@ -191,9 +191,9 @@ module ClusterDiagnosticPackage
         }
         out.close
       rescue CommandError => ce
-      exception(ce)
+        exception(ce)
       rescue MessageError => me
-      exception(me)
+        exception(me)
       end
 
       write_file("#{diag_dir}/#{h_alias}/os_info/ifconfig.txt",run_command(config,"ifconfig") )

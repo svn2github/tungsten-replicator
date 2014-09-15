@@ -317,7 +317,7 @@ end
 
 module ConnectorReconfigure
   def allow_connector_reconfigure?
-    false
+    true
   end
 end
 

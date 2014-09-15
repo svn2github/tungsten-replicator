@@ -180,7 +180,6 @@ module UninstallClusterDeploymentStep
     notice("Start the MySQL service")
     begin
       cmd_result("sudo -n #{mysql_start_command} start")
-      #cmd_result("sudo -n #{ds.get_default_start_script()} start")
     rescue CommandError
     end
 

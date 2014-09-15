@@ -71,7 +71,6 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
       tmp << "user=#{@username}\n"
       tmp << "password=#{@password}\n"
       tmp << "port=#{@port}\n"
-      #tmp << "defaults-file=/etc/tungsten/my.cnf\n"
       tmp.flush
       
       Timeout.timeout(5) {
@@ -157,7 +156,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def get_thl_uri
-	  "jdbc:mysql:thin://${replicator.global.db.host}:${replicator.global.db.port}/${replicator.schema}?createDB=true"
+	  "jdbc:mysql:thin://${replicator.global.db.host}:${replicator.global.db.port}/"
 	end
   
   def check_thl_schema(thl_schema)
@@ -1289,28 +1288,6 @@ class MySQLApplierLogsCheck < ConfigureValidationCheck
       (@config.getProperty(get_member_key(REPL_DISABLE_RELAY_LOGS)) == "true")
   end
 end
-
-#
-# With the fixing of Issue#771 we don't need this check anymore
-#class MySQLVersionCheck < ConfigureValidationCheck
-#  include ReplicationServiceValidationCheck
-#  include MySQLApplierCheck
-#
-#  def set_vars
-#    @title = "MySQL version check"
-#  end
-#  
-#  def validate
-#    info("Checking MySQL version")
-#    version = get_applier_datasource.get_value("show variables like 'version'", "Value")
-#    comment = get_applier_datasource.get_value("show variables like 'version_comment'", "Value")
-#    if comment == "MariaDB Server"
-#      if version =~ /10\..*/
-#        error("Support for MariaDB 10.0 is not available at this time")
-#      end
-#    end
-#  end
-#end
 
 class MySQLSettingsCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck

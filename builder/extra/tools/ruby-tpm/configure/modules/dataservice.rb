@@ -462,7 +462,7 @@ class ReplicationServiceAutoEnable < ConfigurePrompt
   
   def initialize
     if Configurator.instance.is_enterprise?()
-      default = "true"
+      default = "false"
     else
       default = "true"
     end
