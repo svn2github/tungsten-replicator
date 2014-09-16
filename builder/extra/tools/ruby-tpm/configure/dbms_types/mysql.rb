@@ -249,7 +249,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getJdbcQueryUrl()
-    "jdbc:mysql://#{@host}:#{@port}"
+    "jdbc:mysql:thin://#{@host}:#{@port}/"
   end
   
   def getJdbcDriver()
