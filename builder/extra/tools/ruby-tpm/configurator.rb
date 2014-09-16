@@ -1520,7 +1520,7 @@ class SSHConnections
     rc = nil
     exit_signal=nil
 
-    connection_error = "Net::SSH was unable to connect to #{host} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.  Review https://docs.continuent.com/wiki/display/TEDOC/Unable+to+use+the+tpm+command+over+SSH for more help on diagnosing SSH problems."
+    connection_error = "Net::SSH was unable to connect to #{host} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.  Review http://docs.continuent.com/helpwithsshandtpm for more help on diagnosing SSH problems."
     begin
       Net::SSH.start(host, ssh_user, Configurator.instance.get_ssh_options()) {
         |ssh|
@@ -1756,7 +1756,7 @@ def scp_result(local_file, remote_file, host, user)
     debug("SCP user changed to #{ssh_user}")
   end
   
-  connection_error = "Net::SCP was unable to copy #{local_file} to #{host}:#{remote_file} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.  Review https://docs.continuent.com/wiki/display/TEDOC/Unable+to+use+the+tpm+command+over+SSH for more help on diagnosing SSH problems."
+  connection_error = "Net::SCP was unable to copy #{local_file} to #{host}:#{remote_file} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.  Review http://docs.continuent.com/helpwithsshandtpm for more help on diagnosing SSH problems."
   Configurator.instance.debug("Copy #{local_file} to #{host}:#{remote_file} as #{ssh_user}")
   begin
     Net::SCP.start(host, ssh_user, Configurator.instance.get_ssh_options) do |scp|
@@ -1837,7 +1837,7 @@ def scp_download(remote_file, local_file, host, user)
     debug("SCP user changed to #{ssh_user}")
   end
   
-  connection_error = "Net::SCP was unable to copy to #{host}:#{remote_file} #{local_file} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.  Review https://docs.continuent.com/wiki/display/TEDOC/Unable+to+use+the+tpm+command+over+SSH for more help on diagnosing SSH problems."
+  connection_error = "Net::SCP was unable to copy to #{host}:#{remote_file} #{local_file} as #{ssh_user}.  Check that #{host} is online, #{ssh_user} exists and your SSH private keyfile or ssh-agent settings. Try adding --net-ssh-option=port=<SSH port number> if you are using an SSH port other than 22.  Review http://docs.continuent.com/helpwithsshandtpm for more help on diagnosing SSH problems."
   Configurator.instance.debug("Copy #{host}:#{remote_file} to #{local_file} as #{ssh_user}")
   begin
     Net::SCP.download!(host, ssh_user, remote_file, local_file, Configurator.instance.get_ssh_options)
