@@ -27,7 +27,6 @@ import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.LinkedList;
 
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;

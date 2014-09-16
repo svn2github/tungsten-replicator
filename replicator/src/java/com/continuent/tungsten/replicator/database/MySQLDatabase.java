@@ -199,7 +199,6 @@ public class MySQLDatabase extends AbstractDatabase
 
             try
             {
-                @SuppressWarnings("resource")
                 BufferedReader br = new BufferedReader(reader);
                 String sql = null;
                 stmt = dbConn.createStatement();
