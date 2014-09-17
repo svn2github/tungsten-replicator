@@ -36,6 +36,8 @@ public class DataServerNotification extends ClusterResourceNotification
 
     private Exception         lastException;
 
+    private boolean           readOnly         = false;
+
     public DataServerNotification(String clusterName, String memberName,
             String resourceName, ResourceState resourceState, String source,
             DataServer dataServer, TungstenProperties dsQueryResultProps)
@@ -44,6 +46,23 @@ public class DataServerNotification extends ClusterResourceNotification
                 ResourceType.DATASERVER, resourceName, resourceState, null);
         setResourceProps(dsQueryResultProps);
         setResource(dataServer);
+    }
+
+    public void setResourceProps(TungstenProperties resourceProps)
+    {
+        super.setResourceProps(resourceProps);
+        if (resourceProps != null)
+        {
+            if (resourceProps.getInt("is_read_only") == 1)
+            {
+                setReadOnly(true);
+            }
+            else
+            {
+                setReadOnly(false);
+            }
+        }
+
     }
 
     public DataServer getDataServer()
@@ -86,5 +105,15 @@ public class DataServerNotification extends ClusterResourceNotification
 
         return builder.toString();
 
+    }
+
+    public void setReadOnly(boolean readOnly)
+    {
+        this.readOnly = readOnly;
+    }
+
+    public boolean isReadOnly()
+    {
+        return readOnly;
     }
 }

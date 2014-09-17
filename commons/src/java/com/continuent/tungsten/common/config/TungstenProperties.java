@@ -1647,11 +1647,20 @@ public class TungstenProperties implements Serializable
         int propCount = 0;
         for (String key : orderedProps.keySet())
         {
+
+            Object value = orderedProps.get(key);
+
+            // Skip processing null values...
+            if (value == null)
+            {
+                continue;
+            }
+
             if (++propCount > 1)
                 builder.append("\n");
 
             builder.append("  ").append(key).append("=");
-            Object value = orderedProps.get(key);
+
             if (value instanceof String)
             {
                 // Strings must properly escape control characters.
@@ -1673,6 +1682,11 @@ public class TungstenProperties implements Serializable
                     }
                 }
             }
+            else
+            {
+                builder.append(value.toString());
+            }
+
         }
         builder.append("\n}");
 

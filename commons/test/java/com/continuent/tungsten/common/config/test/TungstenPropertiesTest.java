@@ -49,6 +49,7 @@ import junit.framework.TestCase;
 
 import com.continuent.tungsten.common.config.Interval;
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.utils.CLUtils;
 
 /**
  * Implements a simple unit test for Tungsten properties.
@@ -149,6 +150,22 @@ public class TungstenPropertiesTest extends TestCase
         props.setTungstenProperties("myEmbeddedProps", embeddedProp);
         assertEquals("Checking TungstenProperties", embeddedProp,
                 props.getTungstenProperties("myEmbeddedProps"));
+        
+        String propsToString = props.toString();
+        System.out.println(propsToString);
+        Properties theProperties = props.getProperties();
+
+        for (Object key : theProperties.keySet())
+        {
+            Object value = theProperties.get(key);
+
+            
+            Assert.assertTrue(
+                    String.format("toString output contains %s=%s", key,
+                            value.toString()),
+                    propsToString.contains(String.format("%s=%s", key, value)));
+        }
+
     }
 
     /**
