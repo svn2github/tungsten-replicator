@@ -528,7 +528,7 @@ public class ClusterMembershipDigestTest
         Assert.assertTrue(
                 "NOT a primary partition because the view is inconsistent",
                 digest.getConclusion()
-                        .equals("CONCLUSION: MEMBERSHIP IS INVALID. FIREWALL OR CONFIGURATION ISSUE"));
+                        .equals("CONCLUSION: MEMBERSHIP IS INVALID"));
 
         digest.setValidated("c", true);
         digest.setValidated("d", true);
@@ -583,7 +583,7 @@ public class ClusterMembershipDigestTest
         Assert.assertTrue(
                 "We don't have a primary partition becaues of problems with the memberhship",
                 digest.getConclusion()
-                        .equals("CONCLUSION: MEMBERSHIP IS INVALID. FIREWALL OR CONFIGURATION ISSUE"));
+                        .equals("CONCLUSION: MEMBERSHIP IS INVALID"));
 
         /*
          * Now make the second DB node validated. Should establish a primary
@@ -701,9 +701,9 @@ public class ClusterMembershipDigestTest
                 digest.isInPrimaryPartition(true));
 
         Assert.assertTrue(
-                "We still don't have a primary partition because the membership is invalid.",
+                "We still don't have a primary partition because the membership IS INVALID",
                 digest.getConclusion()
-                        .equals("CONCLUSION: MEMBERSHIP IS INVALID. FIREWALL OR CONFIGURATION ISSUE"));
+                        .equals("CONCLUSION: MEMBERSHIP IS INVALID"));
 
         /*
          * Now make the second DB node validated. Should establish a primary
