@@ -995,7 +995,13 @@ public class OpenReplicatorManagerCtrl
         if (fromEvent != null)
             paramProps.setString(OpenReplicatorParams.INIT_EVENT_ID, fromEvent);
         if (baseSeqno > -1)
+        {
+            // Validation.
+            if (getOpenReplicator().getRole().equals("slave"))
+                fatal("-base-seqno is not supported on a slave, use tungsten_set_position script instead",
+                        null);
             paramProps.setLong(OpenReplicatorParams.BASE_SEQNO, baseSeqno);
+        }
         if (toEvent != null)
             paramProps.setString(OpenReplicatorParams.ONLINE_TO_EVENT_ID,
                     toEvent);
