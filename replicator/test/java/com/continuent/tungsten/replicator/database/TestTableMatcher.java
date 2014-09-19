@@ -149,4 +149,20 @@ public class TestTableMatcher
         Assert.assertFalse(tm.match("test1", "barx"));
         Assert.assertFalse(tm.match("db25", "xfoo"));
     }
+
+    /**
+     * Verify that we match mixed schema and table names.
+     */
+    @Test
+    public void testSpecialCharacters() throws Exception
+    {
+        TableMatcher tm = new TableMatcher();
+        tm.prepare("test.m-t_*,test.mt_*");
+
+        // These should all match.
+        Assert.assertTrue(tm.match("test", "m-t_1"));
+        Assert.assertTrue(tm.match("test", "mt_1"));
+        Assert.assertTrue(tm.match("test", "m-t_$1"));
+    }
+
 }

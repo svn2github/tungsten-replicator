@@ -91,10 +91,8 @@ public class TableMatcher
             if (filter.length() == 0)
                 continue;
 
-            // Substitute for * and ? wildcards.
-            filter = filter.replace("*", "\\w*").replace("?", "\\w");
-
             // Decide whether this is a table or database.
+            boolean useSchemaPattern = false;
             if (filter.contains("."))
             {
                 // This is a table.
@@ -103,7 +101,6 @@ public class TableMatcher
                     table.append("|");
                 else
                     haveTablePattern = true;
-                table.append(filter);
             }
             else
             {
@@ -112,8 +109,18 @@ public class TableMatcher
                     db.append("|");
                 else
                     haveSchemaPattern = true;
+                useSchemaPattern = true;
+            }
+
+            // Substitute for * and ? wildcards.
+            filter = filter.replace("*", ".*").replace("?", ".");
+
+            if (useSchemaPattern)
+            {
                 db.append(filter);
             }
+            else
+                table.append(filter);
         }
 
         // Create patterns if we got more than ^()$ (empty string).
