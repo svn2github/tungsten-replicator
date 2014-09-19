@@ -53,7 +53,7 @@ public class DataServerNotification extends ClusterResourceNotification
         super.setResourceProps(resourceProps);
         if (resourceProps != null)
         {
-            if (resourceProps.getInt("is_read_only") == 1)
+            if (resourceProps.getInt("is_read_only", "0", false) == 1)
             {
                 setReadOnly(true);
             }
