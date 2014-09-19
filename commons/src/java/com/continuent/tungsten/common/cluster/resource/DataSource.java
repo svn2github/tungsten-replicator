@@ -100,7 +100,7 @@ public class DataSource extends Resource implements Serializable
     private HighWaterResource       highWater                      = new HighWaterResource();
 
     // Statistics.
-    private AtomicLong              activeConnectionsCount          = new AtomicLong(
+    private AtomicLong              activeConnectionsCount         = new AtomicLong(
                                                                            0);
     private AtomicLong              connectionsCreatedCount        = new AtomicLong(
                                                                            0);
@@ -127,7 +127,7 @@ public class DataSource extends Resource implements Serializable
     private boolean                 vipIsBound                     = false;
 
     /** Retains all non-closed connections to this data source */
-    private Set<DatabaseConnection> activeConnections               = Collections
+    private Set<DatabaseConnection> activeConnections              = Collections
                                                                            .synchronizedSet(new HashSet<DatabaseConnection>());
     public final static String      JDBC_URL_START                 = "jdbc:";
 
@@ -194,9 +194,10 @@ public class DataSource extends Resource implements Serializable
     }
 
     @JsonCreator
-    public DataSource(@JsonProperty("name") String key,
-            @JsonProperty("dataServiceName") String clusterName,
-            @JsonProperty("host") String host)
+    public DataSource(@JsonProperty("name")
+    String key, @JsonProperty("dataServiceName")
+    String clusterName, @JsonProperty("host")
+    String host)
     {
         super(ResourceType.DATASOURCE, key);
         this.dataServiceName = clusterName;
@@ -212,7 +213,7 @@ public class DataSource extends Resource implements Serializable
     public void removeConnection(DatabaseConnection conn)
     {
         // thread-safe: ActiveConnection is a synchronizedSet
-       activeConnections.remove(conn);
+        activeConnections.remove(conn);
     }
 
     public long getActiveConnectionCount()
@@ -514,7 +515,6 @@ public class DataSource extends Resource implements Serializable
             this.setRelativeLatency(ds.getRelativeLatency());
             this.setUpdateTimestamp(ds.getUpdateTimestamp());
             this.setLastError(ds.getLastError());
-            this.setHighWater(ds.getHighWater());
             this.setVipAddress(ds.getVipAddress());
             this.setVipInterface(ds.getVipInterface());
             this.setVipIsBound(ds.getVipIsBound());
