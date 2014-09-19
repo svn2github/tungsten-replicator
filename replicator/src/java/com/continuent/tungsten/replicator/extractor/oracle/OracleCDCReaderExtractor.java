@@ -43,10 +43,6 @@ public class OracleCDCReaderExtractor implements RawExtractor
 {
     private static Logger                  logger                = Logger.getLogger(OracleCDCReaderExtractor.class);
 
-    private String                         url                   = null;
-    private String                         user                  = "root";
-    private String                         password              = "rootpass";
-
     List<OracleCDCSource>                  sources;
 
     private String                         lastSCN               = null;
@@ -72,22 +68,7 @@ public class OracleCDCReaderExtractor implements RawExtractor
     // the connection is older than the defined timeout.
     private long                           reconnectTimeout      = 60 * 60 * 1000;
 
-    private String                         serviceName;
-
-    public void setUrl(String url)
-    {
-        this.url = url;
-    }
-
-    public void setUser(String user)
-    {
-        this.user = user;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
-    }
+    private String                         dataSource;
 
     /**
      * Sets the maximum sleep time : maximum time the extracting thread will
@@ -173,14 +154,6 @@ public class OracleCDCReaderExtractor implements RawExtractor
     }
 
     /**
-     * @param serviceName the serviceName to set
-     */
-    public void setServiceName(String serviceName)
-    {
-        this.serviceName = serviceName;
-    }
-
-    /**
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#configure(com.continuent.tungsten.replicator.plugin.PluginContext)
@@ -201,9 +174,10 @@ public class OracleCDCReaderExtractor implements RawExtractor
             InterruptedException
     {
         queue = new ArrayBlockingQueue<CDCMessage>(queueSize);
-        readerThread = new OracleCDCReaderThread(url, user, password, queue,
+        readerThread = new OracleCDCReaderThread(context, dataSource, queue,
                 lastSCN, minSleepTimeInSeconds, maxSleepTimeInSeconds,
-                sleepAddition, maxRowsByBlock, reconnectTimeout, serviceName);
+                sleepAddition, maxRowsByBlock, reconnectTimeout);
+
         readerThread.prepare();
     }
 
@@ -322,6 +296,11 @@ public class OracleCDCReaderExtractor implements RawExtractor
             InterruptedException
     {
         return null;
+    }
+
+    public void setDataSource(String dataSource)
+    {
+        this.dataSource = dataSource;
     }
 
 }

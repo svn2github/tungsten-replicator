@@ -49,25 +49,6 @@ public class OracleApplier extends JdbcApplier
 {
     private static Logger logger  = Logger.getLogger(OracleApplier.class);
 
-    protected String      host    = "localhost";
-    protected int         port    = 1521;
-    protected String      service = "ORCL";
-
-    public void setHost(String host)
-    {
-        this.host = host;
-    }
-
-    public void setPort(String portAsString)
-    {
-        this.port = Integer.parseInt(portAsString);
-    }
-
-    public void setService(String service)
-    {
-        this.service = service;
-    }
-
     private CLOB getCLOB(String xmlData) throws SQLException
     {
         CLOB tempClob = null;

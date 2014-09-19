@@ -41,14 +41,15 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.OracleEventId;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
+import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
@@ -57,10 +58,6 @@ import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 public class OracleCDCReaderThread extends Thread
 {
     private static Logger                logger     = Logger.getLogger(OracleCDCReaderThread.class);
-
-    private String                       url        = null;
-    private String                       user       = "root";
-    private String                       password   = "rootpass";
 
     private Database                     connection = null;
 
@@ -88,17 +85,18 @@ public class OracleCDCReaderThread extends Thread
 
     private int                          sleepAdditionInMs;
 
-    public OracleCDCReaderThread(String url, String user, String password,
+    private PluginContext                context;
+
+    private String                       dataSource;
+
+    public OracleCDCReaderThread(PluginContext context, String dataSource,
             BlockingQueue<CDCMessage> queue, String lastSCN,
             int minSleepTimeInSeconds, int maxSleepTimeInSeconds,
-            int sleepAddition, int maxRowsByBlock, long reconnectTimeout,
-            String serviceName)
+            int sleepAddition, int maxRowsByBlock, long reconnectTimeout)
     {
-        super("Oracle CDC Reader Thread for service " + serviceName);
+        this.context = context;
         this.queue = queue;
-        this.url = url;
-        this.user = user;
-        this.password = password;
+        this.dataSource = dataSource;
         this.minSleepTimeInMs = 1000 * minSleepTimeInSeconds;
         this.maxSleepTimeInMs = 1000 * maxSleepTimeInSeconds;
         this.sleepAdditionInMs = 1000 * sleepAddition;
@@ -106,7 +104,6 @@ public class OracleCDCReaderThread extends Thread
         this.maxRowsByBlock = maxRowsByBlock;
         this.reconnectTimeout = reconnectTimeout;
         // Oracle doesn't understand lower case objects:
-        this.serviceName = serviceName.toUpperCase();
         logger.info("Oracle extraction thread starting using : minSleepTime = "
                 + minSleepTimeInMs
                 + " ms - maxSleepTime = "
@@ -122,24 +119,20 @@ public class OracleCDCReaderThread extends Thread
 
     public void prepare() throws ReplicatorException
     {
-        try
+        // Establish a connection to the data source.
+        logger.info("Connecting to data source");
+        UniversalDataSource dataSourceImpl = context.getDataSource(dataSource);
+        if (dataSourceImpl == null)
         {
-            // Oracle JDBC URL, for example :
-            // jdbc:oracle:thin:@192.168.0.60:1521:ORCL
-            connection = DatabaseFactory.createDatabase(url, user, password);
-        }
-        catch (SQLException e)
-        {
+            throw new ReplicatorException("Unable to locate data source: name="
+                    + dataSource);
         }
 
-        try
-        {
-            connection.connect();
-        }
-        catch (SQLException e)
-        {
-            throw new ReplicatorException("Unable to connect to Oracle", e);
-        }
+        // Create a connection, suppressing logging if desired.
+        connection = (Database) dataSourceImpl.getConnection();
+
+        this.serviceName = dataSourceImpl.getServiceName().toUpperCase();
+        this.setName("Oracle CDC Reader Thread for service " + serviceName);
 
         Statement stmt = null;
         try
