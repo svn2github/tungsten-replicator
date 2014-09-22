@@ -583,7 +583,7 @@ class ConfiguredDirectoryCheck < ConfigureValidationCheck
   
   def validate
     if File.exists?(@config.getProperty(DIRECTORY_LOCK_FILE))
-      error("This directory has already been configured.  Try using tools/update to make changes.")
+      error("This directory has already been configured.  Try using `tools/tpm update` to make changes.")
       help("If you are installing from a previously used directory, download a fresh copy and try again.")
     end
   end
@@ -703,7 +703,7 @@ class TargetDirectoryDoesNotExist < ConfigureValidationCheck
     target = @config.getProperty(TARGET_DIRECTORY)
     if File.exist?(target)
       error("There is already a directory at #{target}")
-      help("Use the tools/update script to modify an existing installation")
+      help("Use the `tools/tpm update` script to modify an existing installation")
     end
   end
   
