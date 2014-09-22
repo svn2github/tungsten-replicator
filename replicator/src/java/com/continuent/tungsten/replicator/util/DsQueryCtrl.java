@@ -248,10 +248,9 @@ public class DsQueryCtrl
     private static JSONArray logResults(Statement stmt, boolean isRS)
             throws SQLException
     {
-        int result = 1;
         JSONArray json = new JSONArray();
-
-        while (isRS || stmt.getUpdateCount() > -1)
+        int updateCount = -1;
+        while (isRS || (updateCount = stmt.getUpdateCount()) > -1)
         {
             if (isRS)
             {
@@ -273,12 +272,10 @@ public class DsQueryCtrl
             }
             else
             {
-                int updateCount = stmt.getUpdateCount();
                 json.add(logUpdateCount(updateCount));
             }
 
             isRS = stmt.getMoreResults();
-            result++;
         }
         return json;
     }
