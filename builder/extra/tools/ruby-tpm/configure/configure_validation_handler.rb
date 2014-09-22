@@ -127,7 +127,7 @@ class ConfigureValidationHandler
           # Invoke ValidationChecks on the remote server
           if Configurator.instance.command.use_remote_package?()
             validation_temp_directory = get_validation_temp_directory()
-            command = "#{@config.getProperty(REMOTE_PACKAGE_PATH)}/tools/tpm validate-single-config --profile #{validation_temp_directory}/#{Configurator::TEMP_DEPLOY_HOST_CONFIG} --command-class=#{Configurator.instance.command.class.name} #{Configurator.instance.get_remote_tpm_options().join(' ')}"
+            command = "#{@config.getProperty(REMOTE_PACKAGE_PATH)}/tools/tpm validate-single-config --profile=#{validation_temp_directory}/#{Configurator::TEMP_DEPLOY_HOST_CONFIG} --command-class=#{Configurator.instance.command.class.name} #{Configurator.instance.get_remote_tpm_options().join(' ')}"
           else
             command = "#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/tpm validate-single-config --command-class=#{Configurator.instance.command.class.name} #{Configurator.instance.get_remote_tpm_options().join(' ')}"
           end
@@ -234,7 +234,7 @@ class ConfigureValidationHandler
           # Invoke ValidationChecks on the remote server
           if Configurator.instance.command.use_remote_package?()
             validation_temp_directory = get_validation_temp_directory()
-            command = "#{@config.getProperty(REMOTE_PACKAGE_PATH)}/tools/tpm validate-commit-config --profile #{validation_temp_directory}/#{Configurator::TEMP_DEPLOY_HOST_CONFIG} --command-class=#{Configurator.instance.command.class.name} #{Configurator.instance.get_remote_tpm_options().join(' ')}"
+            command = "#{@config.getProperty(REMOTE_PACKAGE_PATH)}/tools/tpm validate-commit-config --profile=#{validation_temp_directory}/#{Configurator::TEMP_DEPLOY_HOST_CONFIG} --command-class=#{Configurator.instance.command.class.name} #{Configurator.instance.get_remote_tpm_options().join(' ')}"
           else
             command = "#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tools/tpm validate-commit-config --command-class=#{Configurator.instance.command.class.name} #{Configurator.instance.get_remote_tpm_options().join(' ')}"
           end
