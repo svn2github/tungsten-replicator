@@ -312,6 +312,14 @@ class TungstenInstall
     end
   end
   
+  def sudo_prefix
+    if ENV['USER'] == "root" || setting("root_command_prefix") != "true"
+      return ""
+    else
+      return "sudo -n "
+    end
+  end
+  
   def datasource_type(service, use_direct_extractor = false)
     if use_direct_extractor == true
       key = "repl_direct_datasource_type"
@@ -320,6 +328,18 @@ class TungstenInstall
     end
     
     setting(setting_key(REPL_SERVICES, service, key))
+  end
+  
+  def datasource(service, use_direct_extractor = false)
+    type = datasource_type(service, use_direct_extractor)
+    
+    case type
+    when "mysql"
+      require "#{File.dirname(__FILE__)}/datasources/mysql.rb"
+      return TungstenScriptMySQLDatasource.new(self, service, use_direct_extractor)
+    else
+      raise "Unable to create a TungstenDatasource for #{service} because it uses #{type}"
+    end
   end
   
   def can_sql?(service, use_direct_extractor = false)

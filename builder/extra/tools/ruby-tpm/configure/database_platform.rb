@@ -178,7 +178,7 @@ class ConfigureDatabasePlatform
   end
   
   def get_valid_backup_methods
-    "none|script"
+    "none|script|file-copy-snapshot|ebs-snapshot"
   end
   
   def get_connection_summary(password = true)

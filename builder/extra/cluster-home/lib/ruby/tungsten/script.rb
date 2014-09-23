@@ -219,7 +219,8 @@ module TungstenScript
       script_ini_file = "#{matches[1]}.ini"
       section_names << matches[1]
     else
-      script_ini_file = nil
+      script_ini_file = File.basename(script_name(), File.extname(script_name())) + ".ini"
+      section_names << File.basename(script_name(), File.extname(script_name()))
     end
     
     load_ini_parameters("/etc/tungsten/scripts.ini", 
@@ -529,11 +530,7 @@ module TungstenScript
   end
   
   def sudo_prefix
-    if ENV['USER'] == "root" || TI.setting("root_command_prefix") != "true"
-      return ""
-    else
-      return "sudo -n "
-    end
+    TI.sudo_prefix()
   end
 end
 

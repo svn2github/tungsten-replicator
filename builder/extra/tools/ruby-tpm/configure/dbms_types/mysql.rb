@@ -46,7 +46,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def get_valid_backup_methods
-    "none|mysqldump|xtrabackup|xtrabackup-incremental|script"
+    "none|mysqldump|xtrabackup|xtrabackup-incremental|script|file-copy-snapshot|ebs-snapshot"
   end
   
   # Execute mysql command and return result to client. 
@@ -329,6 +329,10 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
 	      agents << "xtrabackup-incremental"
 	      agents << "xtrabackup"
 	    end
+	  end
+	  
+	  unless agents.include?(agent)
+	    agents << agent
 	  end
 	  
 	  return agents

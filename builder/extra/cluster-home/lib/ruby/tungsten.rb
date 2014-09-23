@@ -35,6 +35,7 @@ require 'timeout'
 require "tungsten/common"
 require "tungsten/exec"
 require "tungsten/install"
+require "tungsten/datasource"
 require "tungsten/properties"
 require "tungsten/script"
 require "tungsten/api"

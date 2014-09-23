@@ -184,4 +184,12 @@ class TungstenBackupScript
       nil
     }
   end
+  
+  def master_backup?(val = nil)
+    if val != nil
+      @master_backup = val
+    end
+    
+    (@master_backup == true)
+  end
 end
