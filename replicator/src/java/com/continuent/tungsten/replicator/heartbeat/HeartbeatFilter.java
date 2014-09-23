@@ -33,6 +33,7 @@ import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
+import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
@@ -143,6 +144,12 @@ public class HeartbeatFilter implements Filter
             if (orc.getSchemaName().equals(context.getReplicatorSchemaName())
                     && orc.getTableName().equals(HeartbeatTable.TABLE_NAME))
             {
+                if (orc.getAction() == ActionType.INSERT
+                        || orc.getAction() == ActionType.DELETE)
+                    // Code below expects an UPDATE of table HEARTBEAT. Don't
+                    // process INSERT or DELETE
+                    return event;
+
                 // MySQL Row replication uses before/after images which result
                 // in all before-image values looking like keys. For heartbeat
                 // events we need to allow only the first column as a key.
