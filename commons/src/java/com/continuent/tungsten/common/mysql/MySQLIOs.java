@@ -165,10 +165,7 @@ public class MySQLIOs
             // variable
             else if (className.equals(DRIZZLE_CONNECTION_CLASSNAME))
             {
-                Class<?> implClazz = realConnection.getClass();
-                Field protocolField = implClazz.getDeclaredField("protocol");
-                protocolField.setAccessible(true);
-                Object protocolObj = protocolField.get(realConnection);
+                Object protocolObj = getDrizzleConnectionProtocolObject(realConnection);
                 return new MySQLIOs(
                         getDrizzleConnectionInputStream(protocolObj),
                         (BufferedOutputStream) getDrizzleConnectionOutputStream(protocolObj));
@@ -188,6 +185,16 @@ public class MySQLIOs
             logger.error("Couldn't get connection IOs", e);
             throw new IOException(e.getLocalizedMessage());
         }
+    }
+
+    private static Object getDrizzleConnectionProtocolObject(
+            Object realConnection) throws NoSuchFieldException,
+            IllegalAccessException
+    {
+        Class<?> implClazz = realConnection.getClass();
+        Field protocolField = implClazz.getDeclaredField("protocol");
+        protocolField.setAccessible(true);
+        return protocolField.get(realConnection);
     }
 
     private static Object getMySQLConnectionIOField(Object realConnection)
@@ -430,9 +437,7 @@ public class MySQLIOs
 
     /**
      * Every connection to a MySQL server has a server side ID, called
-     * connection ID or server thread ID. This function allows getting this ID,
-     * currently only on a MySQL driver connection<br>
-     * TODO: implement Drizzle version
+     * connection ID or server thread ID. This function aims to get this ID
      * 
      * @param connection the (connected) connection to get ID from
      * @return the server thread ID of the given connection as a long
@@ -463,6 +468,14 @@ public class MySQLIOs
                     return 0;
                 }
                 return (Long) getFieldFromMysqlIO(ioObj, "threadId");
+            }
+            else if (className.startsWith(DRIZZLE_CONNECTION_CLASSNAME))
+            {
+                Object protocolObj = getDrizzleConnectionProtocolObject(realConnection);
+                Field writerField = protocolObj.getClass().getDeclaredField(
+                        "serverThreadId");
+                writerField.setAccessible(true);
+                return (Long) writerField.get(protocolObj);
             }
         }
         catch (Exception e)
@@ -636,7 +649,7 @@ public class MySQLIOs
 
         InputStream socketInput = null;
         OutputStream socketOutput = null;
-        
+
         MySQLPacket queryResult = null;
 
         try
@@ -673,11 +686,10 @@ public class MySQLIOs
             }
 
             statusAndResult.setLong(TIME_TO_CONNECT_MS, timeToConnectMs);
-            
-            
+
             socketInput = socket.getInputStream();
             socketOutput = socket.getOutputStream();
-            
+
             if (socketInput == null || socketOutput == null)
             {
                 statusMessage = String
@@ -808,8 +820,7 @@ public class MySQLIOs
                 socketOutput.flush();
 
                 socketPhase = SOCKET_PHASE_READ;
-                queryResult = MySQLPacket.mysqlReadPacket(
-                        socketInput, true);
+                queryResult = MySQLPacket.mysqlReadPacket(socketInput, true);
                 long timeToExecQueryMs = System.currentTimeMillis()
                         - beforeQuery;
 
@@ -1115,16 +1126,16 @@ public class MySQLIOs
                     socketOutput = null;
                 }
             }
-            
+
             if (queryResult != null)
             {
                 try
                 {
-                  queryResult.close();  
+                    queryResult.close();
                 }
-                catch(Exception ignored)
+                catch (Exception ignored)
                 {
-                    
+
                 }
                 finally
                 {
