@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 
 import org.json.simple.JSONArray;
@@ -324,7 +325,16 @@ public class DsQueryCtrl
         LinkedHashMap<String, Object> json = new LinkedHashMap<String, Object>();
         for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++)
         {
-            json.put(rs.getMetaData().getColumnLabel(i), rs.getObject(i));
+            Object value = rs.getObject(i);
+            if (value instanceof Timestamp)
+            {
+                String valueAsString = ((Timestamp) value).toString();
+                System.out.println(valueAsString);
+                json.put(rs.getMetaData().getColumnLabel(i), valueAsString);
+
+            }
+            else
+                json.put(rs.getMetaData().getColumnLabel(i), value);
         }
         return json;
     }
