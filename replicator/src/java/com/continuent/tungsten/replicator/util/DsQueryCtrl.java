@@ -28,9 +28,11 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 
@@ -330,7 +332,16 @@ public class DsQueryCtrl
             {
                 String valueAsString = ((Timestamp) value).toString();
                 json.put(rs.getMetaData().getColumnLabel(i), valueAsString);
-
+            }
+            else if (value instanceof Date)
+            {
+                String valueAsString = ((Date) value).toString();
+                json.put(rs.getMetaData().getColumnLabel(i), valueAsString);
+            }
+            else if (value instanceof Time)
+            {
+                String valueAsString = ((Time) value).toString();
+                json.put(rs.getMetaData().getColumnLabel(i), valueAsString);
             }
             else
                 json.put(rs.getMetaData().getColumnLabel(i), value);
