@@ -447,6 +447,13 @@ module ConfigureDeploymentCore
     end
   end
   
+  def start_manager
+    if is_manager?() && get_additional_property(MANAGER_IS_RUNNING) == "true" && manager_is_running?() != true
+      info("Starting the manager")
+      info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/bin/manager start"))
+    end
+  end
+  
   def start_replication_services(offline = false)
     if is_manager?() && get_additional_property(MANAGER_IS_RUNNING) == "true" && manager_is_running?() != true
       info("Starting the manager")
@@ -506,6 +513,13 @@ module ConfigureDeploymentCore
           cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/bin/trepctl -service #{svc} online")
         end
       }
+    end
+  end
+  
+  def stop_manager
+    if is_manager?() && get_additional_property(MANAGER_IS_RUNNING) == "true" && get_additional_property(RESTART_MANAGERS) != false
+      info("Stopping the manager")
+      info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/bin/manager stop"))
     end
   end
   
