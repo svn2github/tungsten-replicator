@@ -51,6 +51,7 @@ module ConfigureDeploymentStepDeployment
     
     # Reset the .watchfiles file before rewriting all configuration files
     FileUtils.rm_f("#{prepare_dir}/.watchfiles")
+    FileUtils.rm_f("#{prepare_dir}/.changedfiles")
     
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/datasource")
     mkdir_if_absent("#{prepare_dir}/cluster-home/conf/cluster/" + @config.getProperty(DATASERVICENAME) + "/service")

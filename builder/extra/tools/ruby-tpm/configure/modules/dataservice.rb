@@ -1593,6 +1593,7 @@ end
 class ReplicationServiceGlobalProperties < ConfigurePrompt
   include ReplicationServicePrompt
   include ConstantValueModule
+  include NoReplicatorRestart
   
   def initialize
     super(FIXED_PROPERTY_STRINGS, "Fixed properties for this replication service")

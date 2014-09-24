@@ -917,6 +917,32 @@ class RestartComponentsCheck < ConfigureValidationCheck
         output_property(RESTART_CONNECTORS, false)
         output_property(RECONFIGURE_CONNECTORS_ALLOWED, true)
         
+        # Check the .changedfiles file to see what components need to be restarted
+        changedfiles = @config.getProperty(PREPARE_DIRECTORY) + "/.changedfiles"
+        if File.exists?(changedfiles)
+          {
+            "^tungsten-replicator" => RESTART_REPLICATORS,
+            "^tungsten-manager" => RESTART_MANAGERS,
+            "^cluster-home" => RESTART_MANAGERS,
+            "^tungsten-connector" => RESTART_CONNECTORS,
+            "router" => RESTART_CONNECTORS
+          }.each{
+            |pattern,component|
+            begin
+              lines = cmd_result("egrep \"#{pattern}\" #{changedfiles} | wc -l").to_i()
+              if lines > 0
+                unless get_output_property(component) == true
+                  Configurator.instance.debug("Found #{lines} files that match #{pattern}. Setting #{component} to true.")
+                  output_property(component, true)
+                end
+              end
+            rescue CommandError
+              Configurator.instance.debug("Unable to compare #{changedfiles} with '#{pattern}'")
+            end
+          }
+        end
+        
+        # Check the changed values to see what components need to be restarted
         updated_keys.each{
           |k|
           p = @config.getPromptHandler().find_prompt(k.split('.'))

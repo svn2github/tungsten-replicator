@@ -292,7 +292,7 @@ class Transformer
         WatchFiles.watch_file(@outfile, @config)
       end
       
-      ChangedFiles.check(@outfile)
+      ChangedFiles.check(@outfile, @config)
     else
       return self.to_s
     end
@@ -429,15 +429,6 @@ class Transformer
 end
 
 class ChangedFiles
-  def self.add(file)
-    @paths ||= []
-    @paths << file
-  end
-  
-  def self.get(file)
-    @paths || []
-  end
-  
   def self.register(file)
     @initial_md5 ||= {}
     @initial_md5[file] = self.get_md5(file)
@@ -448,17 +439,33 @@ class ChangedFiles
     @initial_md5[file]
   end
   
-  def self.check(file)
+  def self.check(file, cfg)
     initial_md5 = self.initial_md5(file)
     if initial_md5 == nil
-      self.add(file)
+      self.add(file, cfg)
     else
       final_md5 = self.get_md5(file)
       if final_md5 == nil || final_md5 != initial_md5
         Configurator.instance.debug("The md5 for #{file} changed from '#{initial_md5.to_s()}' to '#{final_md5.to_s()}'")
-        self.add(file)
+        self.add(file, cfg)
       end
     end
+  end
+  
+  def self.add(file, cfg)
+    prepare_dir = cfg.getProperty(PREPARE_DIRECTORY)
+    if file =~ /#{prepare_dir}/
+      file_to_watch = file.sub(prepare_dir, "")
+      if file_to_watch[0, 1] == "/"
+        file_to_watch.slice!(0)
+      end 
+    else
+      file_to_watch = file
+    end
+    File.open("#{prepare_dir}/.changedfiles", "a") {
+      |out|
+      out.puts file_to_watch
+    }
   end
   
   def self.get_md5(file)
