@@ -212,6 +212,11 @@ module TungstenScript
   end
   
   def load_ini_files
+    # If there is no script name then we cannot load INI files
+    if script_name().to_s() == ""
+      return
+    end
+    
     # Calculate the INI section name to use
     section_names = [script_name()]
     matches = script_name().to_s().match("tungsten_(.*)")
