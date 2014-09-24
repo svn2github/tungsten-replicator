@@ -329,7 +329,6 @@ public class DsQueryCtrl
             if (value instanceof Timestamp)
             {
                 String valueAsString = ((Timestamp) value).toString();
-                System.out.println(valueAsString);
                 json.put(rs.getMetaData().getColumnLabel(i), valueAsString);
 
             }
