@@ -7,6 +7,7 @@
 # Simple utility class to transform files using regular expressions
 require 'system_require'
 system_require 'date'
+system_require 'digest/md5'
 
 class Transformer
   DEFAULT_VALUE = "{default}"
@@ -269,6 +270,8 @@ class Transformer
     
     if @outfile
       Configurator.instance.info("Writing " + @outfile)
+      ChangedFiles.register(@outfile)
+      
       File.open(@outfile, "w") {
         |f|
         if mode() != nil
@@ -288,6 +291,8 @@ class Transformer
       if watch_file?()
         WatchFiles.watch_file(@outfile, @config)
       end
+      
+      ChangedFiles.check(@outfile)
     else
       return self.to_s
     end
@@ -420,5 +425,51 @@ class Transformer
   
   def <<(line)
     @output << line
+  end
+end
+
+class ChangedFiles
+  def self.add(file)
+    @paths ||= []
+    @paths << file
+  end
+  
+  def self.get(file)
+    @paths || []
+  end
+  
+  def self.register(file)
+    @initial_md5 ||= {}
+    @initial_md5[file] = self.get_md5(file)
+  end
+  
+  def self.initial_md5(file)
+    @initial_md5 ||= {}
+    @initial_md5[file]
+  end
+  
+  def self.check(file)
+    initial_md5 = self.initial_md5(file)
+    if initial_md5 == nil
+      self.add(file)
+    else
+      final_md5 = self.get_md5(file)
+      if final_md5 == nil || final_md5 != initial_md5
+        Configurator.instance.debug("The md5 for #{file} changed from '#{initial_md5.to_s()}' to '#{final_md5.to_s()}'")
+        self.add(file)
+      end
+    end
+  end
+  
+  def self.get_md5(file)
+    if File.exists?(file)
+      begin
+        return Digest::MD5.hexdigest(cmd_result("egrep -v '^#' #{file} | egrep '.+'", false, true))
+      rescue CommandError
+        return nil
+      end
+    else
+      return nil
+    end
   end
 end

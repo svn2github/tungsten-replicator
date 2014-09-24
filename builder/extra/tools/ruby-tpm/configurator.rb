@@ -1655,7 +1655,7 @@ def ssh_result(command, host, user, return_object = false)
   SSHConnections.ssh_result(command, host, user, return_object)
 end
 
-def cmd_result(command, ignore_fail = false)
+def cmd_result(command, ignore_fail = false, hide_result = false)
   errors = ""
   result = ""
   threads = []
@@ -1694,7 +1694,11 @@ def cmd_result(command, ignore_fail = false)
     errors = "Errors: #{errors}"
   end
 
-  Configurator.instance.debug("RC: #{rc}, Result: #{result}, #{errors}")
+  if hide_result == true
+    Configurator.instance.debug("RC: #{rc}, Result length: #{result.length}, #{errors}")
+  else
+    Configurator.instance.debug("RC: #{rc}, Result: #{result}, #{errors}")
+  end
   
   if rc != 0 && ! ignore_fail
     raise CommandError.new(command, rc, result, original_errors)
