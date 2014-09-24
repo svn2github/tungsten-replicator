@@ -162,7 +162,12 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def check_thl_schema(thl_schema)
     schemas = run("SHOW SCHEMAS LIKE '#{thl_schema}'")
     if schemas != ""
-      raise "THL schema #{thl_schema} already exists at #{get_connection_summary()}"
+      # See if there are any tables in the scheam. Note that the single
+      # quotes are turned into escaped backticks now
+      tables = run("SHOW TABLES IN \\`#{thl_schema}\\`")
+      if tables != ""
+        raise "THL schema #{thl_schema} already has tables created at #{get_connection_summary()}"
+      end
     end
   end
   
