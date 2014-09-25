@@ -431,12 +431,12 @@ public class PrimaryKeyFilter implements Filter
                     colSpec.setType(column.getType());
                     colSpec.setTypeDescription(column.getTypeDescription());
                     keySpecs.add(colSpec);
-
-                    // Add empty dummy column values to the key column.
-                    // Without this ProtobufSerializer will fail.
-                    ArrayList<ColumnVal> columnValues = new ArrayList<ColumnVal>();
-                    keyValues.add(columnValues);
                 }
+                // Add empty dummy column values to the key column.
+                // Without this ProtobufSerializer will fail.
+                // Issue 1003 : Add it only once!
+                ArrayList<ColumnVal> columnValues = new ArrayList<ColumnVal>();
+                keyValues.add(columnValues);
             }
             else
             {
