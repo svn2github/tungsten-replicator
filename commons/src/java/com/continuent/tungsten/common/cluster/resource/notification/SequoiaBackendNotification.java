@@ -46,15 +46,6 @@ public class SequoiaBackendNotification extends ClusterResourceNotification
     {
         super(NotificationStreamID.MONITORING, null, memberName, null,
                 ResourceType.ANY, null, null, null);
-        // public ReplicatorNotification(String clusterName, String
-        // clusterMemberName, String resourceName,
-        // String state, String source, TungstenProperties resourceProps)
-        // TODO: host and controller probably overlap.
-        // super(ResourceTypes., name, state, host, role, 99, service, url,
-        // driver, null);
-        // TungstenProperties additionalProperties = new TungstenProperties();
-        // additionalProperties.setString(PROPERTY_KEY_CONTROLLER, controller);
-        // setProperties(additionalProperties.map());
 
     }
 }

@@ -89,7 +89,6 @@ public class DataServer extends Resource implements Serializable
     }
 
     /**
-     * TODO: toMap definition.
      * 
      * @return properties representing this dataserver
      */

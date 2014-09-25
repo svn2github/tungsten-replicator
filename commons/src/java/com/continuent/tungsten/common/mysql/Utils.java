@@ -130,8 +130,6 @@ public class Utils
      */
     public static String replaceParametersWithQuestionMarks(String statement)
     {
-        /* TODO handle parameters surrounded with quote */
-
         if (statement == null)
         {
             return null;

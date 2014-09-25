@@ -32,25 +32,25 @@ public class CLException extends Exception
 
     public CLException()
     {
-        // TODO Auto-generated constructor stub
+       
     }
 
     public CLException(String message)
     {
         super(message);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public CLException(Throwable cause)
     {
         super(cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public CLException(String message, Throwable cause)
     {
         super(message, cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
 }

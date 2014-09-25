@@ -139,7 +139,7 @@ public class ResourceNotifierStub implements ResourceNotifier
 
     public void prepare() throws Exception
     {
-        // TODO Auto-generated method stub
+        
 
     }
 

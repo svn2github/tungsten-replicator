@@ -167,7 +167,6 @@ public class HdfsFileIO implements FileIO
     @Override
     public boolean writable(FilePath path)
     {
-        // TODO: Not sure how to get this for now.
         return exists(path);
     }
 
@@ -179,7 +178,6 @@ public class HdfsFileIO implements FileIO
     @Override
     public boolean readable(FilePath path)
     {
-        // TODO: Not sure how to get this for now.
         return exists(path);
     }
 

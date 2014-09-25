@@ -499,7 +499,7 @@ public class ClusterConfiguration
     /**
      * Creates a new router configuration file in the correct location.
      * 
-     * @param clusterName TODO
+     * @param clusterName
      * @throws ConfigurationException
      */
     public void createRouterConfiguration(String clusterName)
@@ -521,8 +521,7 @@ public class ClusterConfiguration
         RouterConfiguration config = new RouterConfiguration(null);
         config.setClusterHome(getClusterHome());
         config.setHost(ConfigurationConstants.TR_RMI_DEFAULT_HOST);
-        // TODO:
-        // TUC-1749 : Always use new router gateway protocol
+        
         ArrayList<String> al = new ArrayList<String>();
         al.add("localhost:9998");
         config.setManagerList(al);
@@ -540,7 +539,7 @@ public class ClusterConfiguration
     /**
      * Creates a default policy manager configuration in the correct location
      * 
-     * @param clusterName TODO
+     * @param clusterName
      * @throws ConfigurationException
      */
     public void createPolicyManagerConfiguration(String clusterName)
@@ -577,7 +576,7 @@ public class ClusterConfiguration
     /**
      * Creates a default data services configuration in the correct location
      * 
-     * @param clusterName TODO
+     * @param clusterName
      * @throws ConfigurationException
      */
     public void createDataServicesConfiguration(String clusterName)

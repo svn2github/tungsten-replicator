@@ -294,7 +294,7 @@ public class RingBuffer<T> implements Iterable<T>, Serializable
          */
         public void remove()
         {
-            // TODO Auto-generated method stub
+            
 
         }
 

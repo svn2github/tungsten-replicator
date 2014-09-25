@@ -224,7 +224,7 @@ public class MonitorNotificationUDPAdaptor implements ResourceNotifier
 
     public void prepare() throws Exception
     {
-        // TODO Auto-generated method stub
+        
 
     }
 

@@ -173,8 +173,7 @@ public class RouterURL implements Cloneable
 
     /**
      * Given a string of URL options (eg. affinity=blah&maxAppliedLatency=2),
-     * extracts each option and add them to the given Properties parameter TODO:
-     * urlOptionsToProperties definition.
+     * extracts each option and add them to the given Properties parameter.
      * 
      * @param urlOptions string to parse
      * @param p output properties to which options will be added, overwriting

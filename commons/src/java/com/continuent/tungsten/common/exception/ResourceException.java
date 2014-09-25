@@ -32,25 +32,25 @@ public class ResourceException extends Exception
 
     public ResourceException()
     {
-        // TODO Auto-generated constructor stub
+       
     }
 
     public ResourceException(String message)
     {
         super(message);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public ResourceException(Throwable cause)
     {
         super(cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public ResourceException(String message, Throwable cause)
     {
         super(message, cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
 }

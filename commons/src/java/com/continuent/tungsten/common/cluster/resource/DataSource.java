@@ -564,7 +564,6 @@ public class DataSource extends Resource implements Serializable
     }
 
     /**
-     * TODO: toMap definition.
      * 
      * @return properties representing this datasource
      */

@@ -20,7 +20,7 @@ public class ClusterSynchronizationNotification
     {
         super(clusterName, memberName, notificationSource, resourceType,
                 resourceName, resourceState, resourceProps);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public ClusterSynchronizationNotification(NotificationStreamID streamID,
@@ -30,7 +30,7 @@ public class ClusterSynchronizationNotification
     {
         super(streamID, clusterName, memberName, notificationSource,
                 resourceType, resourceName, resourceState, resourceProps);
-        // TODO Auto-generated constructor stub
+       
     }
 
 }

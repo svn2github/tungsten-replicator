@@ -1944,7 +1944,7 @@ public class TungstenProperties implements Serializable
     }
 
     /**
-     * TODO: listToString definition.
+     * Generate a comma-delimited string of list items.
      */
     static public String listToString(List<String> list)
     {

@@ -143,7 +143,7 @@ public class ManagerNotificationAdaptor implements ResourceNotifier
 
     public void prepare() throws Exception
     {
-        // TODO Auto-generated method stub
+        
 
     }
 

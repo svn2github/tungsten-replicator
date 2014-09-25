@@ -1001,14 +1001,6 @@ public class MySQLPacket
                 // seconds) => %1000
                 millis += mil % 1000;
             }
-            // TODO: as jdbc time cannot handle hours over 24, we ignore it =>
-            // document this fact
-            // if (hour > 838) {
-            // hour = 838;
-            // min = 59;
-            // sec = 59;
-            // }
-            // millis += day * 24 * 60 * 60 * 1000;
         }
         return new Time(neg ? -millis : millis);
     }
@@ -1270,7 +1262,6 @@ public class MySQLPacket
      */
     public void putFloat(float f)
     {
-        // TODO: test me
         putInt32(Float.floatToIntBits(f));
     }
 
@@ -1279,7 +1270,6 @@ public class MySQLPacket
      */
     public void putDouble(double d)
     {
-        // TODO: test me
         putLong(Double.doubleToLongBits(d));
     }
 
@@ -1330,7 +1320,6 @@ public class MySQLPacket
         putByte((byte) minutes);
         putByte((byte) seconds);
 
-        // TODO: millis - millis%1000 ?
         return millis - millis % 1000;
     }
 
@@ -1414,7 +1403,7 @@ public class MySQLPacket
     {
         int len = this.position - HEADER_LENGTH;
 
-        // TODO handle packets bigger than 16 MB
+        // handle packets bigger than 16 MB
         // for now only we return an error message
         if (len >= 256 * 256 * 256)
         {

@@ -79,8 +79,6 @@ public class DynamicMBeanOperation implements Serializable
     }
 
     /**
-     * TODO: setParamsAndSignature definition.
-     * 
      * @param method
      * @param info
      */

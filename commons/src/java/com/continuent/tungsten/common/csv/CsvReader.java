@@ -239,7 +239,7 @@ public class CsvReader
     private List<String> read() throws IOException
     {
         String regex = "[" + fieldSeparator + "]";
-        // TODO: Should use record separator.
+      
         String s = reader.readLine();
         if (s != null && s.length() != 0)
         {

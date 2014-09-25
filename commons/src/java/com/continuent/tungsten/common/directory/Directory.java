@@ -196,7 +196,7 @@ public class Directory extends ResourceTree
     /**
      * Creates an instance of Directory with some base-level resources.
      * 
-     * @param memberName TODO
+     * @param memberName 
      * @throws ResourceException
      */
     private Directory(String clusterName, String memberName)
@@ -1923,7 +1923,7 @@ public class Directory extends ResourceTree
 
     public void run()
     {
-        // TODO Auto-generated method stub
+        
     }
 
     public synchronized void flush()
@@ -1996,12 +1996,12 @@ public class Directory extends ResourceTree
 
     public void prepare() throws Exception
     {
-        // TODO Auto-generated method stub
+        
 
     }
 
     /**
-     * @param siteName TODO
+     * @param siteName 
      * @param clusterName
      * @param host
      * @param beanServiceName

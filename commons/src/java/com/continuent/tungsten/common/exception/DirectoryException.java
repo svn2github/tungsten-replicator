@@ -33,13 +33,13 @@ public class DirectoryException extends Exception
     public DirectoryException(String message, Throwable cause)
     {
         super(message, cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public DirectoryException(String message)
     {
         super(message);
-        // TODO Auto-generated constructor stub
+       
     }
 
 }

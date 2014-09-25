@@ -21,7 +21,7 @@ public class RemoteDataService extends Resource implements Serializable
 
     public RemoteDataService()
     {
-        // TODO Auto-generated constructor stub
+       
     }
 
     public RemoteDataService(ResourceType type, String name, ResourceState state)

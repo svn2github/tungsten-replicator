@@ -34,6 +34,5 @@ import java.io.Serializable;
  */
 public abstract class Capabilities implements Serializable
 {
-    // TODO: More behavior to be added.
     private static final long serialVersionUID = 1L;
 }

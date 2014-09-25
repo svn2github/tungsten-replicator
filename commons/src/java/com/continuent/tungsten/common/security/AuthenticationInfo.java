@@ -325,7 +325,6 @@ public final class AuthenticationInfo
     }
 
     /**
-     * TODO: getEncryptedPassword definition.
      * 
      * @return the encrypted password if useEncryptedPasswords==true or the
      *         clear text password otherwise

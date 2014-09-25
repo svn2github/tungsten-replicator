@@ -37,7 +37,7 @@ public class ResourceNotificationException extends Exception
      */
     public ResourceNotificationException()
     {
-        // TODO Auto-generated constructor stub
+       
     }
 
     /**
@@ -48,7 +48,7 @@ public class ResourceNotificationException extends Exception
     public ResourceNotificationException(String message)
     {
         super(message);
-        // TODO Auto-generated constructor stub
+       
     }
 
     /**
@@ -59,7 +59,7 @@ public class ResourceNotificationException extends Exception
     public ResourceNotificationException(Throwable cause)
     {
         super(cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
     /**
@@ -71,7 +71,7 @@ public class ResourceNotificationException extends Exception
     public ResourceNotificationException(String message, Throwable cause)
     {
         super(message, cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
 }

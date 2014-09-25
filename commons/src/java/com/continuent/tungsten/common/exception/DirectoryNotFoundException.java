@@ -32,25 +32,25 @@ public class DirectoryNotFoundException extends Exception
 
     public DirectoryNotFoundException()
     {
-        // TODO Auto-generated constructor stub
+       
     }
 
     public DirectoryNotFoundException(String message)
     {
         super(message);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public DirectoryNotFoundException(Throwable cause)
     {
         super(cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
     public DirectoryNotFoundException(String message, Throwable cause)
     {
         super(message, cause);
-        // TODO Auto-generated constructor stub
+       
     }
 
 }

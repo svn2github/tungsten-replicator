@@ -55,7 +55,7 @@ public class ClusterMembershipDigestTest
         List<String> viewDBMembers = Arrays.asList("a", "b", "c");
         List<String> viewActiveWitnesses = null;
         List<String> witnesses = null;
-        // TODO:
+    
         ClusterMembershipDigest digest = new ClusterMembershipDigest("myname",
                 configuredDBMembers, configuredActiveWitnessMembers,
                 viewDBMembers, viewActiveWitnesses, witnesses);
@@ -86,7 +86,7 @@ public class ClusterMembershipDigestTest
         List<String> viewActiveWitnesses = Arrays.asList("c");
         ;
         List<String> witnesses = null;
-        // TODO:
+       
         ClusterMembershipDigest digest = new ClusterMembershipDigest("myname",
                 configuredDBMembers, configuredActiveWitnessMembers,
                 viewDBMembers, viewActiveWitnesses, witnesses);
@@ -118,7 +118,7 @@ public class ClusterMembershipDigestTest
         List<String> viewDBMembers = Arrays.asList("a", "b", "c");
         List<String> viewActiveWitnesses = null;
         List<String> witnesses = Arrays.asList("d");
-        // TODO:
+        
         ClusterMembershipDigest digest = new ClusterMembershipDigest("myname",
                 configuredDBMembers, configuredActiveWitnessMembers,
                 viewDBMembers, viewActiveWitnesses, witnesses);
