@@ -1367,26 +1367,26 @@ end
 class ReplicationServiceTableEngine < ConfigurePrompt
   include ReplicationServicePrompt
   include AdvancedPromptModule
-  
+
   def initialize
-    super(REPL_SVC_TABLE_ENGINE, "Replication service table engine")
+    super(REPL_SVC_TABLE_ENGINE, "Replication service table engine", PV_ANY)
   end
-  
-  def get_default_value
-    get_applier_datasource().get_default_table_engine()
-  end
-  
-  def get_validator
-    PropertyValidator.new(get_applier_datasource().get_allowed_table_engines().join("|"), 
-      "Value must be #{get_applier_datasource().get_allowed_table_engines().join(',')}")
-  end
-  
-  def get_usage_prompt
-    engines = get_applier_datasource().get_allowed_table_engines()
-    if engines.size > 1
-      get_prompt() + " (#{engines.join('|')})"
+
+  def load_default_value
+    if @config.getProperty(get_dataservice_key(REPL_SVC_TABLE_ENGINE)).to_s == ""
+      @default = get_applier_datasource().get_default_table_engine()
     else
-      super()
+      @default = @config.getProperty(get_dataservice_key(REPL_SVC_TABLE_ENGINE))
+    end
+  end
+
+  def get_prompt
+    "CDC method (#{get_applier_datasource().get_allowed_table_engines().join(', ')})"
+  end
+
+  def validate_value(value)
+    unless get_applier_datasource().get_allowed_table_engines().include? value
+      error("Value must be #{get_applier_datasource().get_allowed_table_engines().join(', ')}")
     end
   end
 end
