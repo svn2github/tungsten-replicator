@@ -1008,6 +1008,32 @@ public abstract class AbstractDatabase implements Database
      */
     protected abstract ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException;
+    
+    /**
+     * Override in specific database classes. Adds column from a metadata result
+     * set with database-specific logic.
+     * 
+     * @param rs Metadata resultset
+     * @param columnName Name of the column to be added
+     * @return the column definition
+     * @throws SQLException if an error occurs
+     */
+    protected Column addColumn(ResultSet rs) throws SQLException
+    {
+        String colName = rs.getString("COLUMN_NAME");
+        int colType = rs.getInt("DATA_TYPE");
+        long colLength = rs.getLong("COLUMN_SIZE");
+        boolean isNotNull = rs.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls;
+        String valueString = rs.getString("COLUMN_DEF");
+        String typeDesc = rs.getString("TYPE_NAME").toUpperCase();
+        int columnIdx = rs.getInt("ORDINAL_POSITION");
+
+        Column column = new Column(colName, colType, colLength, isNotNull,
+                valueString);
+        column.setPosition(columnIdx);
+        column.setTypeDescription(typeDesc);
+        return column;
+    }
 
     /**
      * {@inheritDoc}
@@ -1025,20 +1051,7 @@ public abstract class AbstractDatabase implements Database
         List<Column> columns = new LinkedList<Column>();
         while (rsc.next())
         {
-            String colName = rsc.getString("COLUMN_NAME");
-            int colType = rsc.getInt("DATA_TYPE");
-            long colLength = rsc.getLong("COLUMN_SIZE");
-            boolean isNotNull = rsc.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls;
-            String valueString = rsc.getString("COLUMN_DEF");
-            String typeDesc = rsc.getString("TYPE_NAME").toUpperCase();
-            // Issue 798. Mimicking MySQLApplier.
-            boolean isSigned = !typeDesc.contains("UNSIGNED");
-
-            Column column = new Column(colName, colType, colLength, isNotNull,
-                    valueString);
-            column.setPosition(rsc.getInt("ORDINAL_POSITION"));
-            column.setTypeDescription(typeDesc);
-            column.setSigned(isSigned);
+            Column column = addColumn(rsc);
             columns.add(column);
         }
         rsc.close();

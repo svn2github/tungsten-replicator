@@ -514,20 +514,6 @@ public class JdbcApplier implements RawApplier
         return t;
     }
 
-    /**
-     * Returns a new column definition.
-     * 
-     * @param rs Metadata resultset
-     * @param columnName Name of the column to be added
-     * @return the column definition
-     * @throws SQLException if an error occurs
-     */
-    protected Column addColumn(ResultSet rs, String columnName)
-            throws SQLException
-    {
-        return new Column(columnName, rs.getInt("DATA_TYPE"));
-    }
-
     protected int bindColumnValues(PreparedStatement prepStatement,
             ArrayList<OneRowChange.ColumnVal> values, int startBindLoc,
             ArrayList<OneRowChange.ColumnSpec> specs, boolean skipNulls)

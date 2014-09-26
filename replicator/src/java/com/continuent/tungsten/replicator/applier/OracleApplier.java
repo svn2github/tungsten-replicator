@@ -25,7 +25,6 @@ package com.continuent.tungsten.replicator.applier;
 import java.io.Writer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -38,7 +37,6 @@ import oracle.sql.CLOB;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.database.AdditionalTypes;
-import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.datatypes.MySQLUnsignedNumeric;
 import com.continuent.tungsten.replicator.datatypes.Numeric;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
@@ -192,16 +190,5 @@ public class OracleApplier extends JdbcApplier
                     + type + ") failed:");
             throw e;
         }
-    }
-
-    @Override
-    protected Column addColumn(ResultSet rs, String columnName)
-            throws SQLException
-    {
-        Column column = super.addColumn(rs, columnName);
-        int type = column.getType();
-        column.setBlob(type == Types.BLOB || type == Types.BINARY
-                || type == Types.VARBINARY || type == Types.LONGVARBINARY);
-        return column;
     }
 }

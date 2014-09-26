@@ -98,6 +98,20 @@ public class GreenplumDatabase extends AbstractDatabase
         }
     }
 
+    @Override
+    protected Column addColumn(ResultSet rs) throws SQLException
+    {
+        // Generic initialization.
+        Column column = super.addColumn(rs);
+
+        // Greenplum specifics.
+        int type = column.getType();
+        column.setBlob(type == Types.BLOB || type == Types.BINARY
+                || type == Types.VARBINARY || type == Types.LONGVARBINARY);
+        
+        return column;
+    }
+
     /**
      * Connect to a PostgreSQL database. {@inheritDoc}
      * 

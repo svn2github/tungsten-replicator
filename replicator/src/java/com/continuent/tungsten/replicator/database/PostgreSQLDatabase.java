@@ -112,6 +112,20 @@ public class PostgreSQLDatabase extends AbstractDatabase
                 return "UNKNOWN";
         }
     }
+    
+    @Override
+    protected Column addColumn(ResultSet rs) throws SQLException
+    {
+        // Generic initialization.
+        Column column = super.addColumn(rs);
+
+        // PostgreSQL specifics.
+        int type = column.getType();
+        column.setBlob(type == Types.BLOB || type == Types.BINARY
+                || type == Types.VARBINARY || type == Types.LONGVARBINARY);
+        
+        return column;
+    }
 
     /**
      * Connect to a PostgreSQL database. {@inheritDoc}

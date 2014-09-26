@@ -221,6 +221,20 @@ public class OracleDatabase extends AbstractDatabase
                 return "UNKNOWN";
         }
     }
+    
+    @Override
+    protected Column addColumn(ResultSet rs) throws SQLException
+    {
+        // Generic initialization.
+        Column column = super.addColumn(rs);
+
+        // Oracle specifics.
+        int type = column.getType();
+        column.setBlob(type == Types.BLOB || type == Types.BINARY
+                || type == Types.VARBINARY || type == Types.LONGVARBINARY);
+        
+        return column;
+    }
 
     private void createNonUnique(Table t) throws SQLException
     {

@@ -23,7 +23,6 @@
 package com.continuent.tungsten.replicator.applier;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Types;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
-import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.datatypes.MySQLUnsignedNumeric;
 import com.continuent.tungsten.replicator.datatypes.Numeric;
@@ -125,31 +123,6 @@ public class MySQLApplier extends JdbcApplier
             logFailedStatementSQL(query, e);
             throw new ApplierException(e);
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.applier.JdbcApplier#addColumn(java.sql.ResultSet,
-     *      java.lang.String)
-     */
-    @Override
-    protected Column addColumn(ResultSet rs, String columnName)
-            throws SQLException
-    {
-        String typeDesc = rs.getString("TYPE_NAME").toUpperCase();
-        boolean isSigned = !typeDesc.contains("UNSIGNED");
-        int dataType = rs.getInt("DATA_TYPE");
-
-        if (logger.isDebugEnabled())
-            logger.debug("Adding column " + columnName + " (TYPE " + dataType
-                    + " - " + (isSigned ? "SIGNED" : "UNSIGNED") + ")");
-
-        Column column = new Column(columnName, dataType, false, isSigned);
-        column.setTypeDescription(typeDesc);
-        column.setLength(rs.getLong("column_size"));
-
-        return column;
     }
 
     /**

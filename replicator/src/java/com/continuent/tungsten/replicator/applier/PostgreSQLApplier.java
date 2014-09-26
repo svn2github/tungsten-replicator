@@ -23,11 +23,9 @@
 package com.continuent.tungsten.replicator.applier;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
-import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
@@ -68,16 +66,4 @@ public class PostgreSQLApplier extends JdbcApplier
         else
             prepStatement.setObject(bindLoc, value.getValue());
     }
-
-    @Override
-    protected Column addColumn(ResultSet rs, String columnName)
-            throws SQLException
-    {
-        Column column = super.addColumn(rs, columnName);
-        int type = column.getType();
-        column.setBlob(type == Types.BLOB || type == Types.BINARY
-                || type == Types.VARBINARY || type == Types.LONGVARBINARY);
-        return column;
-    }
-
 }

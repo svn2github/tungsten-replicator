@@ -152,6 +152,32 @@ public class MySQLDatabase extends AbstractDatabase
                 return "UNKNOWN";
         }
     }
+    
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.applier.JdbcApplier#addColumn(java.sql.ResultSet,
+     *      java.lang.String)
+     */
+    @Override
+    protected Column addColumn(ResultSet rs)
+            throws SQLException
+    {
+        // Generic initialization.
+        Column column = super.addColumn(rs);
+        String typeDesc = column.getTypeDescription();
+        String columnName = column.getName();
+
+        // MySQL specifics.
+        boolean isSigned = !typeDesc.contains("UNSIGNED");
+        int dataType = rs.getInt("DATA_TYPE");
+        if (logger.isDebugEnabled())
+            logger.debug("Adding column " + columnName + " (TYPE " + dataType
+                    + " - " + (isSigned ? "SIGNED" : "UNSIGNED") + ")");
+        column.setSigned(isSigned);
+
+        return column;
+    }
 
     /**
      * Connect to a MySQL database, which includes setting the wait_timeout to a
