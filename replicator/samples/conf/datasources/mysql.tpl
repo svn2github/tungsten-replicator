@@ -14,6 +14,7 @@ replicator.datasource.global.connectionSpec.port=@{APPLIER.REPL_DBPORT}
 replicator.datasource.global.connectionSpec.user=@{APPLIER.REPL_DBLOGIN}
 replicator.datasource.global.connectionSpec.password=@{APPLIER.REPL_DBPASSWORD}
 replicator.datasource.global.connectionSpec.schema=${replicator.schema}
+replicator.datasource.global.connectionSpec.sslEnabled=${replicator.global.db.sslEnabled}
 @{#(APPLIER.REPL_SVC_DATASOURCE_THL_INIT_SCRIPT)}replicator.datasource.global.connectionSpec.initScript=@{APPLIER.REPL_SVC_DATASOURCE_THL_INIT_SCRIPT}
 
 # CSV specification type.  This is the conventions for writing CSV files,

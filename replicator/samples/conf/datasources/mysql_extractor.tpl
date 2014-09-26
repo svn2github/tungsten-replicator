@@ -14,6 +14,7 @@ replicator.datasource.extractor.connectionSpec.port=@{EXTRACTOR.REPL_DBPORT}
 replicator.datasource.extractor.connectionSpec.user=@{EXTRACTOR.REPL_DBLOGIN}
 replicator.datasource.extractor.connectionSpec.password=@{EXTRACTOR.REPL_DBPASSWORD}
 replicator.datasource.extractor.connectionSpec.schema=${replicator.schema}
+replicator.datasource.extractor.connectionSpec.sslEnabled=${replicator.global.db.sslEnabled}
 
 # CSV specification type.  This is the conventions for writing CSV files,
 # which tend to be slightly different for each data source.  If set to 

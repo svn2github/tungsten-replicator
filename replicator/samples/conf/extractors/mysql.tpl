@@ -1,13 +1,13 @@
 # MySQL binlog extractor properties.
 replicator.extractor.dbms=com.continuent.tungsten.replicator.extractor.mysql.MySQLExtractor
+
+# Data source from which we are extracting.  This must correspond to a MySQL
+# DBMS. 
+replicator.extractor.dbms.dataSource=extractor
+
+# Location of MySQL binlog and pattern for binlog file names. 
 replicator.extractor.dbms.binlog_dir=@{EXTRACTOR.REPL_MASTER_LOGDIR}
 replicator.extractor.dbms.binlog_file_pattern=@{EXTRACTOR.REPL_MASTER_LOGPATTERN}
-replicator.extractor.dbms.host=${replicator.global.extract.db.host}
-replicator.extractor.dbms.port=${replicator.global.extract.db.port}
-replicator.extractor.dbms.user=${replicator.global.extract.db.user}
-replicator.extractor.dbms.password=${replicator.global.extract.db.password}
-replicator.extractor.dbms.jdbcHeader=jdbc:mysql:thin://
-replicator.extractor.dbms.urlOptions=${replicator.global.db.sslOptions}
 
 # Parse statements for binary data.
 replicator.extractor.dbms.parseStatements=true

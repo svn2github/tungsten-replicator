@@ -27,9 +27,6 @@ import java.util.List;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
-import org.junit.After;
-import org.junit.Before;
-
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.applier.DummyApplier;
 import com.continuent.tungsten.replicator.applier.MySQLApplier;
@@ -42,7 +39,8 @@ import com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask;
 import com.continuent.tungsten.replicator.pipeline.Stage;
 
 /**
- * This class defines a TestReplicatorConfRuntime
+ * Tests basic configuration functions including reading a replicator properties
+ * configuration.
  * 
  * @author <a href="mailto:jussi-pekka.kurikka@continuent.com">Jussi-Pekka
  *         Kurikka</a>
@@ -50,27 +48,6 @@ import com.continuent.tungsten.replicator.pipeline.Stage;
  */
 public class TestReplicatorRuntime extends TestCase
 {
-
-    /**
-     * TODO: setUp definition.
-     * 
-     * @throws java.lang.Exception
-     */
-    @Before
-    public void setUp() throws Exception
-    {
-    }
-
-    /**
-     * TODO: tearDown definition.
-     * 
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception
-    {
-    }
-
     /**
      * Prove it is possible to configure a minimal runtime. This helps quite a
      * bit with unit testing.
@@ -92,8 +69,8 @@ public class TestReplicatorRuntime extends TestCase
         conf.setString(ReplicatorConf.EXTRACTOR_ROOT + ".dummy",
                 DummyExtractor.class.getName());
         ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(), ReplicatorMonitor
-                        .getInstance());
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.release();
     }
@@ -127,8 +104,8 @@ public class TestReplicatorRuntime extends TestCase
 
         // Configure runtime.
         ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                new MockOpenReplicatorContext(), ReplicatorMonitor
-                        .getInstance());
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
         runtime.configure();
         runtime.prepare();
         Pipeline p = runtime.getPipeline();
@@ -170,9 +147,7 @@ public class TestReplicatorRuntime extends TestCase
         tp.setString(mysqlExtractor, MySQLExtractor.class.getName());
         tp.setString(mysqlExtractor + ".binlog_dir", "/var/lib/mysql");
         tp.setString(mysqlExtractor + ".binlog_file_pattern", "mysql-bin");
-        tp.setString(mysqlExtractor + ".host", "localhost");
-        tp.setString(mysqlExtractor + ".user", "tungsten");
-        tp.setString(mysqlExtractor + ".password", "secret");
+        tp.setString(mysqlExtractor + ".dataSource", "ds1");
 
         String mysqlApplier = ReplicatorConf.APPLIER_ROOT + ".mysql";
         tp.setString(ReplicatorConf.APPLIER_ROOT, "mysql");
@@ -181,8 +156,8 @@ public class TestReplicatorRuntime extends TestCase
 
         // Configure runtime.
         ReplicatorRuntime runtime = new ReplicatorRuntime(tp,
-                new MockOpenReplicatorContext(), ReplicatorMonitor
-                        .getInstance());
+                new MockOpenReplicatorContext(),
+                ReplicatorMonitor.getInstance());
         runtime.configure();
 
         // Ensure both plugins are present.
