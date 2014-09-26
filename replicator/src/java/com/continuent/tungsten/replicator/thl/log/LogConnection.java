@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,6 +24,8 @@ package com.continuent.tungsten.replicator.thl.log;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import org.apache.log4j.Logger;
 
@@ -63,11 +65,9 @@ public class LogConnection
     // Disk log parameters.
     private DiskLog            diskLog;
     private LogCursor          cursor;
-    private THLEvent           pendingEvent;
+    private Queue<THLEvent>    pendingEvent  = new LinkedList<THLEvent>();
     private long               pendingSeqno;
     private short              lastFragno    = -1;
-    private long               writeCount    = 0;
-    private long               readCount     = 0;
 
     // Information required for successful output.
     private boolean            doChecksum;
@@ -216,7 +216,8 @@ public class LogConnection
             cursor.release();
             cursor = null;
         }
-        pendingEvent = null;
+        pendingEvent.clear();
+        ;
         pendingSeqno = UNINITIALIZED;
 
         // Find the log file that contains our sequence number.
@@ -313,18 +314,20 @@ public class LogConnection
                         if (logger.isDebugEnabled())
                             logger.debug("Found requested event (" + seqno
                                     + "/" + fragno + ")");
-                        pendingEvent = deserialize(logRecord);
+                        pendingEvent.add(deserialize(logRecord));
                         break;
                     }
                     else if (eventReader.getSeqno() > seqno
                             && previousLogRecord != null)
                     {
                         // We have filtered events, i.e., a gap in the
-                        // number sequence. Return the previous event.
+                        // number sequence. Enqueue the previous and current
+                        // event.
                         if (logger.isDebugEnabled())
                             logger.debug("Found filtered event (" + seqno + "/"
                                     + fragno + ")");
-                        pendingEvent = deserialize(previousLogRecord);
+                        pendingEvent.add(deserialize(previousLogRecord));
+                        pendingEvent.add(deserialize(logRecord));
                         break;
                     }
                     else if (eventReader.getSeqno() > seqno
@@ -366,7 +369,7 @@ public class LogConnection
                         if (logger.isDebugEnabled())
                             logger.debug("Found suspected filtered event ("
                                     + seqno + "/" + fragno + ")");
-                        pendingEvent = deserialize(previousLogRecord);
+                        pendingEvent.add(deserialize(previousLogRecord));
                     }
                     break;
                 }
@@ -379,7 +382,6 @@ public class LogConnection
                                     + logRecord.getOffset() + " record type="
                                     + recordType);
                 }
-
             }
             catch (IOException e)
             {
@@ -388,7 +390,7 @@ public class LogConnection
         }
 
         // If we have a pending event, the seek was successful.
-        return (pendingEvent != null);
+        return (pendingEvent.size() > 0);
     }
 
     // Deserialize the event we just found. This takes into consideration
@@ -481,9 +483,7 @@ public class LogConnection
             cursor.release();
             cursor = null;
         }
-        if (pendingEvent != null)
-            pendingEvent = null;
-
+        pendingEvent.clear();
     }
 
     /**
@@ -510,11 +510,9 @@ public class LogConnection
         }
 
         // If we have a pending event, just hand that back.
-        if (pendingEvent != null)
+        if (pendingEvent.size() > 0)
         {
-            THLEvent event = pendingEvent;
-            pendingEvent = null;
-            readCount++;
+            THLEvent event = pendingEvent.remove();
             return event;
         }
 
@@ -653,8 +651,7 @@ public class LogConnection
             pendingSeqno = UNINITIALIZED;
         }
 
-        // Increment read count and return.
-        readCount++;
+        // Return the event.
         return event;
     }
 
@@ -758,7 +755,6 @@ public class LogConnection
                 lastFragno = -1;
             else
                 lastFragno = event.getFragno();
-            writeCount++;
 
             // If it is time to commit, make it happen!
             if (commit)

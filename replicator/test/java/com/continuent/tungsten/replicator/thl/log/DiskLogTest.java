@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,6 +27,7 @@ import java.io.FileWriter;
 import java.io.RandomAccessFile;
 import java.sql.Timestamp;
 
+import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import org.apache.log4j.Logger;
@@ -874,6 +875,112 @@ public class DiskLogTest extends TestCase
         THLEvent eAfter = conn2.next(false);
         ReplDBMSEvent reAfter = (ReplDBMSEvent) eAfter.getReplEvent();
         assertTrue("Expect a ReplDBMSEvent", reAfter instanceof ReplDBMSEvent);
+
+        // All done.
+        log2.release();
+    }
+
+    /**
+     * Verify that if the log contains a mix of filtered and non-filtered events
+     * we can seek to any position and read all remaining events. Note: the log
+     * may not end with a filtered event.
+     */
+    public void testSeekFilteredEvent2() throws Exception
+    {
+        // Create the log.
+        File logDir = prepareLogDir("testSeekFilteredEvent2");
+        DiskLog log = openLog(logDir, false);
+
+        // Boundaries of sequence numbers in the log.
+        long firstSeqno = 25;
+        long lastSeqno = -1;
+
+        // Write a sequence of alternating filtered and non-filtered events.
+        long seqno = 25;
+        LogConnection conn = log.connect(false);
+        logger.info("Writing five unfiltered events");
+        for (int i = 0; i < 10; i++)
+        {
+            THLEvent e;
+            if (i % 2 == 0)
+            {
+                // Generate a filtered event.
+                lastSeqno = seqno + 4;
+                logger.info("Creating filtered event: start=" + seqno + " end="
+                        + lastSeqno);
+                e = this.createFilteredTHLEvent(seqno, lastSeqno, (short) 0);
+                seqno += 5;
+            }
+            else
+            {
+                // Generate a non-filtered event.
+                logger.info("Creating normal event: seqno=" + seqno);
+                lastSeqno = seqno;
+                e = this.createTHLEvent(seqno++);
+            }
+            conn.store(e, false);
+        }
+        conn.commit();
+        conn.release();
+        log.release();
+
+        // Seek for and find first event before filtered events.
+        DiskLog log2 = openLog(logDir, true);
+        log2.validate();
+        LogConnection conn2 = log2.connect(true);
+
+        // Loop through starting with each seqno and ensure we can read
+        // continuously to the end of the log.
+        for (long s = firstSeqno; s <= lastSeqno; s++)
+        {
+            // Seek the current seqno.
+            logger.info("Seeking seqno: " + s);
+            boolean found = conn2.seek(s);
+            Assert.assertTrue("Found initial seqno with seek: " + s, found);
+
+            // Set markers to allow us to march through the log and
+            // also confirm we made it to the end.
+            long nextExpectedSeqno = s;
+            long lastFoundSeqno = -1;
+
+            // Read the log to the end.
+            THLEvent thlEvent;
+            while ((thlEvent = conn2.next(false)) != null)
+            {
+                ReplDBMSEvent event = (ReplDBMSEvent) thlEvent.getReplEvent();
+                if (event instanceof ReplDBMSFilteredEvent)
+                {
+                    // If we have a filtered event it should contain the
+                    // expected next seqno. Record found seqno to show the gap.
+                    ReplDBMSFilteredEvent filteredEvent = (ReplDBMSFilteredEvent) event;
+                    String msg = String
+                            .format("Filtered event contains expected seqno: [%d <= %d <= %d] (Starting seqno: %s)",
+                                    filteredEvent.getSeqno(),
+                                    nextExpectedSeqno,
+                                    filteredEvent.getSeqnoEnd(), s);
+                    Assert.assertTrue(
+                            msg,
+                            filteredEvent.getSeqno() <= nextExpectedSeqno
+                                    && nextExpectedSeqno <= filteredEvent
+                                            .getSeqnoEnd());
+                    lastFoundSeqno = filteredEvent.getSeqnoEnd();
+                }
+                else
+                {
+                    // If we have a normal event it should have the expected
+                    // next seqno, which is also the found seqno.
+                    Assert.assertEquals("Seqno of normal event",
+                            nextExpectedSeqno, event.getSeqno());
+                    lastFoundSeqno = event.getSeqno();
+                }
+                nextExpectedSeqno = lastFoundSeqno + 1;
+            }
+
+            // Having read the log, we expect the last found seqno to be the
+            // maximum in the log.
+            Assert.assertEquals("Expect to be at last seqno of log", lastSeqno,
+                    lastFoundSeqno);
+        }
 
         // All done.
         log2.release();
