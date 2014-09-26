@@ -1895,8 +1895,11 @@ public class MySQLExtractor implements RawExtractor
         }
         catch (SQLException e)
         {
-            logger.info("url: " + url + " user: " + user
-                    + " password: ********");
+            logger.warn("url: " + url + " user: " + user
+                    + " password: ******** because of "
+                    + e.getLocalizedMessage());
+            if (logger.isDebugEnabled())
+                logger.debug("Full error was ", e);
             throw new ExtractorException(
                     "Unable to run SHOW MASTER STATUS to find log position", e);
         }
