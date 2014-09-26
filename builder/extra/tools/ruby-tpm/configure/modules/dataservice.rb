@@ -1385,8 +1385,10 @@ class ReplicationServiceTableEngine < ConfigurePrompt
   end
 
   def validate_value(value)
-    unless get_applier_datasource().get_allowed_table_engines().include? value
-      error("Value must be #{get_applier_datasource().get_allowed_table_engines().join(', ')}")
+    unless value.to_s == ""
+      unless get_applier_datasource().get_allowed_table_engines().include?(value)
+        error("Value must be #{get_applier_datasource().get_allowed_table_engines().join(', ')}")
+      end
     end
   end
 end
