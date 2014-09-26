@@ -135,7 +135,8 @@ public class SqlConnectionManager
         catch (SQLException e)
         {
             throw new ReplicatorException("Unable to connect to DBMS: url="
-                    + connectionSpec.createUrl(createDB), e);
+                    + connectionSpec.createUrl(createDB) + " user="
+                    + connectionSpec.getUser(), e);
         }
     }
 

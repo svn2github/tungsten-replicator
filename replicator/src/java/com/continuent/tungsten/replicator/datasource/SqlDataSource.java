@@ -416,7 +416,7 @@ public class SqlDataSource extends AbstractDataSource
      * 
      * @see com.continuent.tungsten.replicator.datasource.UniversalDataSource#getConnection()
      */
-    public UniversalConnection getConnection() throws ReplicatorException
+    public Database getConnection() throws ReplicatorException
     {
         return connectionManager.getWrappedConnection();
     }

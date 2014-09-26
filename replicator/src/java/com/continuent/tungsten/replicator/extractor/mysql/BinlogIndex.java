@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -78,7 +78,7 @@ public class BinlogIndex
                     "Binlog index missing or unreadable; check binlog directory and file pattern settings: "
                             + indexFile.getAbsolutePath());
         }
-        
+
         if (readIndex)
             readIndex();
     }
@@ -86,15 +86,13 @@ public class BinlogIndex
     /**
      * Refreshes the list of binlog files from current index contents.
      * 
-     * @throws ReplicatorException Thrown if there is an error when reading
-     *             the file
+     * @throws ReplicatorException Thrown if there is an error when reading the
+     *             file
      */
     public void readIndex() throws ReplicatorException
     {
         if (logger.isDebugEnabled())
-            logger
-                    .debug("Reading binlog index: "
-                            + indexFile.getAbsolutePath());
+            logger.debug("Reading binlog index: " + indexFile.getAbsolutePath());
 
         // Open and read the index file.
         FileInputStream fis = null;
@@ -102,6 +100,7 @@ public class BinlogIndex
         {
             fis = new FileInputStream(this.indexFile);
             InputStreamReader reader = new InputStreamReader(fis);
+            @SuppressWarnings("resource")
             BufferedReader bufferedReader = new BufferedReader(reader);
 
             // Read and store each successive line.
@@ -109,8 +108,8 @@ public class BinlogIndex
             String binlogName = null;
             while ((binlogName = bufferedReader.readLine()) != null)
             {
-                File binlogFile = new File(this.binlogDirectory, binlogName
-                        .trim());
+                File binlogFile = new File(this.binlogDirectory,
+                        binlogName.trim());
                 binlogFiles.add(binlogFile);
             }
         }
@@ -126,6 +125,7 @@ public class BinlogIndex
         }
         finally
         {
+            // Free FileInputStream to prevent resource leak.
             if (fis != null)
             {
                 try
@@ -140,10 +140,10 @@ public class BinlogIndex
     }
 
     /**
-     * Return the next binlog file following the named file.  Return null if the
-     * filename either cannot be found or is the last file in the list. 
+     * Return the next binlog file following the named file. Return null if the
+     * filename either cannot be found or is the last file in the list.
      * 
-     * @param binlogName Basename of binlog file, e.g., mysql-bin.000023. 
+     * @param binlogName Basename of binlog file, e.g., mysql-bin.000023.
      * @return Next binlog file or null if not found
      */
     public File nextBinlog(String binlogName)
@@ -152,8 +152,8 @@ public class BinlogIndex
             throw new IllegalStateException(
                     "Attempt to find next binlog before reading index");
 
-        // Locate the file in the index after converting to a file to 
-        // ensure we compare base name to base name. 
+        // Locate the file in the index after converting to a file to
+        // ensure we compare base name to base name.
         int index = -1;
         File binlog = new File(this.binlogDirectory, binlogName);
         for (index = 0; index < binlogFiles.size(); index++)
@@ -182,7 +182,7 @@ public class BinlogIndex
             return null;
         }
     }
-    
+
     /** Returns the current list of binlog files. */
     public List<File> getBinlogFiles()
     {

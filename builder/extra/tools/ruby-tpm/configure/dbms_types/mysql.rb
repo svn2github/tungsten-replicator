@@ -71,6 +71,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
       tmp << "user=#{@username}\n"
       tmp << "password=#{@password}\n"
       tmp << "port=#{@port}\n"
+      tmp << "!include /etc/tungsten/my.cnf\n"
       tmp.flush
       
       Timeout.timeout(5) {
@@ -102,6 +103,7 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
       tmp << "user=#{@username}\n"
       tmp << "password=#{@password}\n"
       tmp << "port=#{@port}\n"
+      tmp << "!include /etc/tungsten/my.cnf\n"
       tmp.flush
       
       Timeout.timeout(5) {
@@ -250,7 +252,13 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getJdbcUrl()
-    "jdbc:#{getJdbcScheme()}://${replicator.global.db.host}:${replicator.global.db.port}/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false"
+    baseUrl = "jdbc:#{getJdbcScheme()}://${replicator.global.db.host}:${replicator.global.db.port}/${DBNAME}?jdbcCompliantTruncation=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&allowMultiQueries=true&yearIsDateType=false"
+    sslOptions = getJdbcUrlSSLOptions()
+    if sslOptions == ""
+      baseUrl
+    else
+      baseUrl + "&" + sslOptions
+    end
   end
   
   def getJdbcQueryUrl()
@@ -276,7 +284,21 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
       "mysql"
     end
   end
-  
+
+  def getJdbcUrlSSLOptions()
+    if @config.getProperty(MYSQL_DRIVER) == "drizzle"
+      if @config.getProperty(REPL_ENABLE_DBSSL) == "true"
+        "useSSL=true"
+      else
+        ""
+      end
+    elsif @config.getProperty(MYSQL_DRIVER) == "mariadb"
+      ""
+    else
+      ""
+    end
+  end
+
   def getVendor()
     "mysql"
   end

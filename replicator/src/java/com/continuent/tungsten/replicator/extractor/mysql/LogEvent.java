@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2013 Continuent Inc.
+ * Copyright (C) 2009-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -81,35 +81,14 @@ public abstract class LogEvent
                 return;
             }
 
-            /* 4.0 or newer */
+            // Get initial log position.
             logPos = (int) LittleEndianConversion.convert4BytesToLong(buffer,
                     MysqlBinlog.LOG_POS_OFFSET);
-            /*
-             * If the log is 4.0 (so here it can only be a 4.0 relay log read by
-             * the SQL thread or a 4.0 master binlog read by the I/O thread),
-             * log_pos is the beginning of the event: we transform it into the
-             * end of the event, which is more useful. But how do you know that
-             * the log is 4.0: you know it if description_event is version 3and
-             * you are not reading a Format_desc (remember that mysqlbinlog
-             * starts by assuming that 5.0 logs are in 4.0 format, until it
-             * finds a Format_desc).
-             */
 
             if ((descriptionEvent.binlogVersion == 3)
                     && (buffer[MysqlBinlog.EVENT_TYPE_OFFSET] < MysqlBinlog.FORMAT_DESCRIPTION_EVENT)
                     && (logPos > 0))
             {
-                /*
-                 * If log_pos=0, don't change it. log_pos==0 is a marker to mean
-                 * "don't change rli->group_master_log_pos" (see
-                 * inc_group_relay_log_pos()). As it is unreal log_pos, adding
-                 * the event len's is nonsense. For example, a fake Rotate event
-                 * should not have its log_pos (which is 0) changed or it will
-                 * modify Exec_master_log_pos in SHOW SLAVE STATUS, displaying a
-                 * nonsense value of (a non-zero offset which does not exist in
-                 * the master's binlog, so which will cause problems if the user
-                 * uses this value in CHANGE MASTER).
-                 */
                 logPos += LittleEndianConversion.convert4BytesToLong(buffer,
                         MysqlBinlog.EVENT_LEN_OFFSET);
             }
@@ -118,41 +97,19 @@ public abstract class LogEvent
 
             flags = LittleEndianConversion.convert2BytesToInt(buffer,
                     MysqlBinlog.FLAGS_OFFSET);
-            /*
-             * TODO LOG_EVENT_THREAD_SPECIFIC_F = 0x4 (New in 4.1.0) Used only
-             * by mysqlbinlog (not by the replication code at all) to be able to
-             * deal properly with temporary tables. mysqlbinlog displays events
-             * from the binary log in printable format, so that you can feed the
-             * output into mysql (the command-line interpreter), to achieve
-             * incremental backup recovery.
-             */
-            threadSpecificEvent = ((flags & MysqlBinlog.LOG_EVENT_THREAD_SPECIFIC_F) == MysqlBinlog.LOG_EVENT_THREAD_SPECIFIC_F);
+
+            // See if we have a thread-specific event.
             if (logger.isDebugEnabled())
                 logger.debug("Event is thread-specific = "
                         + threadSpecificEvent);
 
+            // See if we have an event that is just a header.
             if ((buffer[MysqlBinlog.EVENT_TYPE_OFFSET] == MysqlBinlog.FORMAT_DESCRIPTION_EVENT)
                     || (buffer[MysqlBinlog.EVENT_TYPE_OFFSET] == MysqlBinlog.ROTATE_EVENT))
             {
-                /*
-                 * These events always have a header which stops here (i.e.
-                 * their header is FROZEN).
-                 */
-                /*
-                 * Initialization to zero of all other Log_event members as
-                 * they're not specified. Currently there are no such members;
-                 * in the future there will be an event UID (but
-                 * Format_description and Rotate don't need this UID, as they
-                 * are not propagated through --log-slave-updates (remember the
-                 * UID is used to not play a query twice when you have two
-                 * masters which are slaves of a 3rd master). Then we are done.
-                 */
+                // If so, return.
                 return;
             }
-            /*
-             * otherwise, go on with reading the header from buffer (nothing for
-             * now)
-             */
         }
         catch (IOException e)
         {

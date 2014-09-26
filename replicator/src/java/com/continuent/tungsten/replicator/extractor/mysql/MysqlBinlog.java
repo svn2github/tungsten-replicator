@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2013 Continuent Inc.
+ * Copyright (C) 2009-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -37,28 +37,37 @@ import com.continuent.tungsten.replicator.conf.ReplicatorRuntimeConf;
 import com.continuent.tungsten.replicator.extractor.mysql.conversion.LittleEndianConversion;
 
 /**
- * Implements methods required to load binlogs. This class among other important
- * tasks handles MySQL to Java character set name mapping. In addition to
- * baked-in character set defaults we look for a mapping file named
- * mysql-java-charsets.properties in the configuration directory of the
- * replicator.
+ * Implements methods required to load binlogs, including a wide range of
+ * constants that define event types as well as offsets to data within those
+ * events. This class among other important tasks handles MySQL to Java
+ * character set name mapping. In addition to baked-in character set defaults we
+ * look for a mapping file named mysql-java-charsets.properties in the
+ * configuration directory of the replicator.
+ * <p/>
+ * For additional information on binlog format consult appropriate binlog
+ * internals documents for MySQL and MariaDB. MySQL binlog specifications have
+ * moved over time. The original binlog internals were documented in
+ * http://forge.mysql.com/wiki/MySQL_Internals_Binary_Log.
  */
 public class MysqlBinlog
 {
-
     static Logger                               logger                              = Logger.getLogger(MysqlBinlog.class);
 
+    // Binary log offset values.
     public static final int                     EVENT_TYPE_OFFSET                   = 4;
     public static final int                     SERVER_ID_OFFSET                    = 5;
     public static final int                     EVENT_LEN_OFFSET                    = 9;
     public static final int                     LOG_POS_OFFSET                      = 13;
     public static final int                     FLAGS_OFFSET                        = 17;
+
+    // Binlog event flags.
     public static final byte                    LOG_EVENT_BINLOG_IN_USE_F           = 0x1;
     public static final int                     LOG_EVENT_THREAD_SPECIFIC_F         = 0x4;
 
     public static final int                     BIN_LOG_HEADER_SIZE                 = 4;
     public static final int                     PROBE_HEADER_LEN                    = EVENT_LEN_OFFSET + 4;
 
+    // Magic number for a binlog file.
     public static final byte[]                  BINLOG_MAGIC                        = {
             (byte) 0xfe, 0x62, 0x69, 0x6e                                           };
 
@@ -68,7 +77,7 @@ public class MysqlBinlog
     public static final int                     BINLOG_V3                           = 2;
     public static final int                     BINLOG_V4                           = 3;
 
-    /* binlog event types */
+    // List of binlog event types.
     public static final int                     UNKNOWN_EVENT                       = 0;
     public static final int                     START_EVENT_V3                      = 1;
     public static final int                     QUERY_EVENT                         = 2;
@@ -88,62 +97,38 @@ public class MysqlBinlog
     public static final int                     XID_EVENT                           = 16;
     public static final int                     BEGIN_LOAD_QUERY_EVENT              = 17;
     public static final int                     EXECUTE_LOAD_QUERY_EVENT            = 18;
-
     public static final int                     TABLE_MAP_EVENT                     = 19;
-
-    /*
-     * These event numbers were used for 5.1.0 to 5.1.15 and are therefore
-     * obsolete.
-     */
+    // PRE_GA events are from pre-release MySQL 5.1 and should not appear in
+    // production binlogs.
     public static final int                     PRE_GA_WRITE_ROWS_EVENT             = 20;
     public static final int                     PRE_GA_UPDATE_ROWS_EVENT            = 21;
     public static final int                     PRE_GA_DELETE_ROWS_EVENT            = 22;
-
-    /*
-     * These event numbers are used from 5.1.16 and forward
-     */
     public static final int                     WRITE_ROWS_EVENT                    = 23;
     public static final int                     UPDATE_ROWS_EVENT                   = 24;
     public static final int                     DELETE_ROWS_EVENT                   = 25;
-
-    /*
-     * Something out of the ordinary happened on the master
-     */
     public static final int                     INCIDENT_EVENT                      = 26;
-
-    /*
-     * Add new events here - right above this comment! Existing events (except
-     * ENUM_END_EVENT) should never change their numbers
-     */
-
+    // Used to count events, not a real event.
     public static final int                     ENUM_END_EVENT                      = 27;
 
-    /* 5.6 new events */
+    // MySQL 5.6 new events.
     public static final int                     HEARTBEAT_LOG_EVENT                 = 27;
-    /*
-     * In some situations, it is necessary to send over ignorable data to the
-     * slave: data that a slave can handle in case there is code for handling
-     * it, but which can be ignored if it is not recognized.
-     */
     public static final int                     IGNORABLE_LOG_EVENT                 = 28;
     public static final int                     ROWS_QUERY_LOG_EVENT                = 29;
-
-    /* Version 2 of the Row events */
     public static final int                     NEW_WRITE_ROWS_EVENT                = 30;
     public static final int                     NEW_UPDATE_ROWS_EVENT               = 31;
     public static final int                     NEW_DELETE_ROWS_EVENT               = 32;
-
     public static final int                     GTID_LOG_EVENT                      = 33;
     public static final int                     ANONYMOUS_GTID_LOG_EVENT            = 34;
-
     public static final int                     PREVIOUS_GTIDS_LOG_EVENT            = 35;
 
+    // Used to count newer events.
     public static final int                     ENUM_END_EVENT_FROM_56              = 36;
-    /* End of 5.6 new events */
+    // End of MySQL 5.6 new events.
 
-    /* MariaDB 10 new events */
+    // MariaDB 10 new events
     public static final int                     ENUM_MARIA_START_EVENT              = 160;
     public static final int                     ANNOTATE_ROWS_EVENT                 = 160;
+
     /*
      * Binlog checkpoint event. Used for XA crash recovery on the master, not
      * used in replication. A binlog checkpoint event specifies a binlog file
@@ -152,12 +137,14 @@ public class MysqlBinlog
      * yet committed.
      */
     public static final int                     BINLOG_CHECKPOINT_EVENT             = 161;
+
     /*
      * Gtid event. For global transaction ID, used to start a new event group,
      * instead of the old BEGIN query event, and also to mark stand-alone
      * events.
      */
     public static final int                     GTID_EVENT                          = 162;
+
     /*
      * Gtid list event. Logged at the start of every binlog, to record the
      * current replication state. This consists of the last GTID seen for each
@@ -166,21 +153,21 @@ public class MysqlBinlog
     public static final int                     GTID_LIST_EVENT                     = 163;
     public static final int                     ENUM_MARIA_END_EVENT                = 163;
 
-    /* End of MariaDB 10 new events */
+    // End of MariaDB 10 new events.
 
+    // More offsets. The following constants are used to walk specific binlog
+    // event data.
     public static final int                     ST_SERVER_VER_LEN                   = 50;
     public static final int                     LOG_EVENT_TYPES                     = ENUM_END_EVENT - 1;
     public static final int                     LOG_NEW_5_6_EVENT_TYPES             = ENUM_END_EVENT_FROM_56
                                                                                             - ENUM_END_EVENT;
-
     public static final int                     OLD_HEADER_LEN                      = 13;
     public static final int                     LOG_EVENT_HEADER_LEN                = 19;
     public static final int                     LOG_EVENT_MINIMAL_HEADER_LEN        = 19;
 
-    /* event-specific post-header sizes */
-    // where 3.23, 4.x and 5.0 agree
+    // Post-header sizes for various events.
     public static final int                     QUERY_HEADER_MINIMAL_LEN            = (4 + 4 + 1 + 2);
-    // where 5.0 differs: 2 for len of N-bytes vars.
+    // 5.0 introduced this value.
     public static final int                     QUERY_HEADER_LEN                    = (QUERY_HEADER_MINIMAL_LEN + 2);
     public static final int                     LOAD_HEADER_LEN                     = (4
                                                                                             + 4
@@ -189,7 +176,6 @@ public class MysqlBinlog
                                                                                             + 1 + 4);
     public static final int                     START_V3_HEADER_LEN                 = (2 + ST_SERVER_VER_LEN + 4);
     public static final int                     ROTATE_HEADER_LEN                   = 8;
-    // this is FROZEN (the Rotate post-header is frozen)
     public static final int                     CREATE_FILE_HEADER_LEN              = 4;
     public static final int                     APPEND_BLOCK_HEADER_LEN             = 4;
     public static final int                     EXEC_LOAD_HEADER_LEN                = 4;
@@ -209,38 +195,34 @@ public class MysqlBinlog
     public static final int                     BINLOG_CHECKPOINT_HEADER_LEN        = 4;
     public static final int                     GTID_HEADER_LEN                     = 19;
     public static final int                     GTID_LIST_HEADER_LEN                = 4;
-
-    /* start event post-header (for v3 and v4) */
     public static final int                     ST_BINLOG_VER_OFFSET                = 0;
     public static final int                     ST_SERVER_VER_OFFSET                = 2;
     public static final int                     ST_CREATED_OFFSET                   = (ST_SERVER_VER_OFFSET + ST_SERVER_VER_LEN);
     public static final int                     ST_COMMON_HEADER_LEN_OFFSET         = (ST_CREATED_OFFSET + 4);
-
-    /* slave event post-header (this event is never written) */
     public static final int                     SL_MASTER_PORT_OFFSET               = 8;
     public static final int                     SL_MASTER_POS_OFFSET                = 0;
     public static final int                     SL_MASTER_HOST_OFFSET               = 10;
 
-    /* query log event constants */
+    // Constants for query log events.
     public static final int                     Q_THREAD_ID_OFFSET                  = 0;
     public static final int                     Q_EXEC_TIME_OFFSET                  = 4;
     public static final int                     Q_DB_LEN_OFFSET                     = 8;
     public static final int                     Q_ERR_CODE_OFFSET                   = 9;
     public static final int                     Q_STATUS_VARS_LEN_OFFSET            = 11;
     public static final int                     Q_DATA_OFFSET                       = QUERY_HEADER_LEN;
-    /* these are codes, not offsets; not more than 256 values (1 byte). */
+
+    // Flags for SET and SQL_MODE values in query events.
     public static final int                     Q_FLAGS2_CODE                       = 0;
     public static final int                     Q_SQL_MODE_CODE                     = 1;
 
-    /* FLAGS2 values that can be represented inside the binlog */
+    // FLAGS2 values that can be represented inside the binlog.
     public static final int                     OPTION_AUTO_IS_NULL                 = 1 << 14;
     public static final int                     OPTION_NOT_AUTOCOMMIT               = 1 << 19;
     public static final int                     OPTION_NO_FOREIGN_KEY_CHECKS        = 1 << 26;
     public static final int                     OPTION_RELAXED_UNIQUE_CHECKS        = 1 << 27;
 
+    // SQL_MODE values.
     public static final Hashtable<Long, String> sql_modes                           = new Hashtable<Long, String>();
-
-    /* SQL_MODE */
     static
     {
         sql_modes.put(Long.valueOf(0x1), "REAL_AS_FLOAT");
@@ -277,46 +259,39 @@ public class MysqlBinlog
         sql_modes.put(Long.valueOf(0x80000000), "PAD_CHAR_TO_FULL_LENGTH");
     }
 
-    /*
-     * Q_CATALOG_CODE is catalog with end zero stored; it is used only by MySQL
-     * 5.0.x where 0<=x<=3.
-     */
+    // Identifying codes for status variables.
     public static final int                     Q_CATALOG_CODE                      = 2;
     public static final int                     Q_AUTO_INCREMENT                    = 3;
     public static final int                     Q_CHARSET_CODE                      = 4;
     public static final int                     Q_TIME_ZONE_CODE                    = 5;
-    /*
-     * Q_CATALOG_NZ_CODE is catalog withOUT end zero stored; it is used by MySQL
-     * 5.0.x where x>=4.
-     */
     public static final int                     Q_CATALOG_NZ_CODE                   = 6;
     public static final int                     Q_LC_TIME_NAMES_CODE                = 7;
     public static final int                     Q_CHARSET_DATABASE_CODE             = 8;
 
-    /* Intvar event post-header */
+    // Intvar offsets.
     public static final int                     I_TYPE_OFFSET                       = 0;
     public static final int                     I_VAL_OFFSET                        = 1;
 
-    /* Rand event post-header */
+    // Rand event offsets.
     public static final int                     RAND_SEED1_OFFSET                   = 0;
     public static final int                     RAND_SEED2_OFFSET                   = 8;
 
-    /* User_var event post-header */
+    // User variable offsets.
     public static final int                     UV_VAL_LEN_SIZE                     = 4;
     public static final int                     UV_VAL_IS_NULL                      = 1;
     public static final int                     UV_VAL_TYPE_SIZE                    = 1;
     public static final int                     UV_NAME_LEN_SIZE                    = 4;
     public static final int                     UV_CHARSET_NUMBER_SIZE              = 4;
 
-    /* Rotate log events */
+    // Rotate log event offsets.
     public static final int                     R_POS_OFFSET                        = 0;
     public static final int                     R_IDENT_OFFSET                      = 8;
 
-    /* Table map event */
+    // Table map event offsets.
     public static final int                     TM_MAPID_OFFSET                     = 0;
     public static final int                     TM_FLAGS_OFFSET                     = 6;
 
-    /* rows log event */
+    // Row log event offsets.
     public static final int                     RW_MAPID_OFFSET                     = 0;
     public static final int                     RW_FLAGS_OFFSET                     = 6;
 
@@ -324,6 +299,7 @@ public class MysqlBinlog
     public static final long                    LONG_MAX                            = 0x7FFFFFFFL;
     public static final long                    NULL_LENGTH                         = LONG_MAX;
 
+    // MySQL data types.
     public static final int                     MYSQL_TYPE_DECIMAL                  = 0;
     public static final int                     MYSQL_TYPE_TINY                     = 1;
     public static final int                     MYSQL_TYPE_SHORT                    = 2;
@@ -344,7 +320,6 @@ public class MysqlBinlog
     public static final int                     MYSQL_TYPE_TIMESTAMP2               = 17;
     public static final int                     MYSQL_TYPE_DATETIME2                = 18;
     public static final int                     MYSQL_TYPE_TIME2                    = 19;
-
     public static final int                     MYSQL_TYPE_NEWDECIMAL               = 246;
     public static final int                     MYSQL_TYPE_ENUM                     = 247;
     public static final int                     MYSQL_TYPE_SET                      = 248;
@@ -356,6 +331,7 @@ public class MysqlBinlog
     public static final int                     MYSQL_TYPE_STRING                   = 254;
     public static final int                     MYSQL_TYPE_GEOMETRY                 = 255;
 
+    // Type-specific limits.
     public static final int                     TINYINT_MIN                         = -128;
     public static final int                     TINYINT_MAX                         = 127;
     public static final int                     SMALLINT_MIN                        = -32768;
@@ -365,16 +341,12 @@ public class MysqlBinlog
     public static final int                     INT_MIN                             = -2147483648;
     public static final int                     INT_MAX                             = 2147483647;
 
-    /* decimal representation */
+    // Decimal value constants.
     public static int                           DIG_PER_DEC1                        = 9;
     public static int                           DIG_BASE                            = 1000000000;
     public static int                           DIG_MAX                             = DIG_BASE - 1;
     public static final int                     dig2bytes[]                         = {
             0, 1, 1, 2, 2, 3, 3, 4, 4, 4                                            };
-
-    public static final int                     E_DEC_OVERFLOW                      = 100;
-    public static final int                     E_DEC_TRUNCATED                     = 101;
-
     public final static int                     DIG_PER_INT32                       = 9;
     public final static int                     SIZE_OF_INT32                       = 4;
 
@@ -867,8 +839,6 @@ public class MysqlBinlog
                 position += 4;
                 break;
             default :
-                // TODO this looks wrong !!! try to find a test that shows this
-                // is not correct
                 len = unsignedByteToInt(buffer[position]);
                 len = LittleEndianConversion.convert4BytesToLong(buffer,
                         position);

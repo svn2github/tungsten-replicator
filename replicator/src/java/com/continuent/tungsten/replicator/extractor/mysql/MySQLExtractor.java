@@ -40,12 +40,13 @@ import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.FailurePolicy;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
 import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.MySQLOperationMatcher;
 import com.continuent.tungsten.replicator.database.SqlOperation;
 import com.continuent.tungsten.replicator.database.SqlOperationMatcher;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.database.TableMetadataCache;
+import com.continuent.tungsten.replicator.datasource.SqlConnectionSpec;
+import com.continuent.tungsten.replicator.datasource.SqlDataSource;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileDelete;
 import com.continuent.tungsten.replicator.dbms.LoadDataFileFragment;
@@ -72,10 +73,14 @@ public class MySQLExtractor implements RawExtractor
     private static Logger                   logger                    = Logger.getLogger(MySQLExtractor.class);
 
     private ReplicatorRuntime               runtime                   = null;
-    private String                          host                      = "localhost";
-    private int                             port                      = 3306;
-    private String                          user                      = "root";
-    private String                          password                  = "";
+    private SqlDataSource                   dataSourceImpl;
+    private SqlConnectionSpec               connectionSpec;
+    private String                          url;
+    private String                          user;
+    private String                          password;
+
+    // Properties.
+    private String                          dataSource;
     private boolean                         strictVersionChecking     = true;
     private boolean                         parseStatements           = true;
 
@@ -96,8 +101,6 @@ public class MySQLExtractor implements RawExtractor
     private int                             relayLogRetention         = 3;
     private String                          relayLogDir               = null;
     private int                             serverId                  = 1;
-
-    private String                          url;
 
     private static long                     binlogPositionMaxLength   = 10;
     BinlogReader                            binlogPosition            = null;
@@ -155,44 +158,14 @@ public class MySQLExtractor implements RawExtractor
     private int                             reconnectTimeoutInSeconds = 180;
     private long                            lastConnectionTime        = 0;
 
-    public String getHost()
+    public String getDatabaseSource()
     {
-        return host;
+        return dataSource;
     }
 
-    public void setHost(String host)
+    public void setDataSource(String dataSource)
     {
-        this.host = host;
-    }
-
-    public int getPort()
-    {
-        return port;
-    }
-
-    public void setPort(int port)
-    {
-        this.port = port;
-    }
-
-    public String getUser()
-    {
-        return user;
-    }
-
-    public void setUser(String user)
-    {
-        this.user = user;
-    }
-
-    public String getPassword()
-    {
-        return password;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
+        this.dataSource = dataSource;
     }
 
     public String getBinlogFilePattern()
@@ -460,8 +433,7 @@ public class MySQLExtractor implements RawExtractor
         try
         {
             logger.info("Positioning from MySQL master current position");
-            conn = DatabaseFactory.createDatabase(url, user, password, true);
-            conn.connect();
+            conn = (Database) dataSourceImpl.getConnection();
             st = conn.createStatement();
             if (flush && runtime.isPrivilegedMaster())
             {
@@ -483,9 +455,9 @@ public class MySQLExtractor implements RawExtractor
         }
         catch (SQLException e)
         {
-            logger.info("url: " + url + " user: " + user
-                    + " password: ********");
-            throw new ExtractorException(e);
+            String message = "Unable to open binlog: url=" + url + " user="
+                    + user;
+            throw new ExtractorException(message, e);
         }
         finally
         {
@@ -506,13 +478,9 @@ public class MySQLExtractor implements RawExtractor
         {
             logger.info("Positioning from MySQL slave current position");
             // Use local database to ensure we get the right slave information.
-            String url = runtime.getJdbcUrl(null);
-            String user = runtime.getJdbcUser();
-            String password = runtime.getJdbcPassword();
             logger.info("Establishing connection to local DBMS to get slave info: url="
                     + url);
-            conn = DatabaseFactory.createDatabase(url, user, password, true);
-            conn.connect();
+            conn = dataSourceImpl.getConnection();
             st = conn.createStatement();
             // Stop the MySQL slave if it is currently running.
             logger.info("Stopping MySQL slave io and SQL threads if they are running");
@@ -534,9 +502,9 @@ public class MySQLExtractor implements RawExtractor
         }
         catch (SQLException e)
         {
-            logger.info("url: " + url + " user: " + user
-                    + " password: ********");
-            throw new ExtractorException(e);
+            String message = "Unable to position from MySQL slave: url=" + url
+                    + " user=" + user;
+            throw new ExtractorException(message, e);
         }
         finally
         {
@@ -1208,9 +1176,9 @@ public class MySQLExtractor implements RawExtractor
      * needed
      * 
      * @param tableEvent the table event that is currently handled
-     * @throws SQLException if an error occurs
      */
-    private void fetchMetadata(TableMapLogEvent tableEvent) throws SQLException
+    private void fetchMetadata(TableMapLogEvent tableEvent)
+            throws SQLException, ReplicatorException
     {
         if (metadataCache == null)
             metadataCache = new TableMetadataCache(5000);
@@ -1251,27 +1219,24 @@ public class MySQLExtractor implements RawExtractor
 
     /**
      * Prepare the metadata connection for use : connect or reconnect if needed.
-     * 
-     * @throws SQLException
      */
-    private void prepareMetadataConnection() throws SQLException
+    private void prepareMetadataConnection() throws SQLException,
+            ReplicatorException
     {
         if (metadataConnection == null)
-            metadataConnection = DatabaseFactory.createDatabase(url, user,
-                    password, true);
+            metadataConnection = dataSourceImpl.getConnection();
 
         long currentTime = System.currentTimeMillis();
         if (lastConnectionTime == 0)
         {
             lastConnectionTime = currentTime;
-            metadataConnection.connect();
         }
         else if (reconnectTimeoutInSeconds > 0
                 && currentTime - lastConnectionTime > reconnectTimeoutInSeconds * 1000)
         {
-            // Time to connect or reconnect
-            metadataConnection.close();
-            metadataConnection.connect();
+            // Time to reconnect
+            dataSourceImpl.releaseConnection(metadataConnection);
+            metadataConnection = dataSourceImpl.getConnection();
         }
     }
 
@@ -1385,16 +1350,6 @@ public class MySQLExtractor implements RawExtractor
     {
         runtime = (ReplicatorRuntime) context;
 
-        // Compute our MySQL DBMS URL.
-        url = generateUrl();
-
-        // If url options include ssl, the stream's availability() method cannot
-        // be trusted.
-        if (urlOptions != null && urlOptions.toLowerCase().contains("ssl"))
-        {
-            this.deterministicIo = false;
-        }
-
         // See if we are operating in native slave takeover mode.
         nativeSlaveTakeover = context.nativeSlaveTakeover();
         if (nativeSlaveTakeover)
@@ -1438,9 +1393,6 @@ public class MySQLExtractor implements RawExtractor
                 logger.info("Using relay log directory as source of binlogs: "
                         + relayLogDir);
                 binlogDir = relayLogDir;
-
-                // Note the source of our binlog data.
-                context.setPipelineSource(url);
             }
             else
             {
@@ -1476,34 +1428,6 @@ public class MySQLExtractor implements RawExtractor
     }
 
     /**
-     * Generates a URL with or without the createDB=true option. This option
-     * should *only* be used the first time we connect.
-     */
-    private String generateUrl()
-    {
-        // Compute our MySQL DBMS URL.
-        StringBuffer sb = new StringBuffer();
-        if (jdbcHeader == null)
-            sb.append("jdbc:mysql:thin://");
-        else
-            sb.append(jdbcHeader);
-        sb.append(host);
-        sb.append(":");
-        sb.append(port);
-        sb.append("/");
-        sb.append(runtime.getReplicatorSchemaName());
-        if (urlOptions != null && urlOptions.length() > 0)
-        {
-            // Prepend ? if needed to make the URL options syntactically
-            // correct, then add the option string.
-            if (!urlOptions.startsWith("?"))
-                sb.append("?");
-            sb.append(urlOptions);
-        }
-        return sb.toString();
-    }
-
-    /**
      * If strictVersionChecking is enabled we ensure this database is a
      * supported version. {@inheritDoc}
      * 
@@ -1511,6 +1435,40 @@ public class MySQLExtractor implements RawExtractor
      */
     public void prepare(PluginContext context) throws ReplicatorException
     {
+        // Locate our data source from which we are extracting.
+        logger.info("Connecting to data source");
+        dataSourceImpl = (SqlDataSource) context.getDataSource(dataSource);
+        if (dataSourceImpl == null)
+        {
+            throw new ReplicatorException("Unable to locate data source: name="
+                    + dataSource);
+        }
+
+        // Compute our MySQL DBMS URL.
+        connectionSpec = dataSourceImpl.getConnectionSpec();
+        url = connectionSpec.createUrl(false);
+        user = connectionSpec.getUser();
+        password = connectionSpec.getPassword();
+
+        // If url options include ssl, the stream's availability() method cannot
+        // be trusted.
+        if (url.toLowerCase().contains("ssl"))
+        {
+            this.deterministicIo = false;
+        }
+
+        // Correctly show the pipeline source based on whether we are reading 
+        // from binlog files or downloading. 
+        if (this.useRelayLogs)
+        {
+            context.setPipelineSource(url);
+        }
+        else
+        {
+            context.setPipelineSource(binlogDir);
+        }
+
+        
         // NOTE: We can't check the database by default as unit tests depend
         // on being able to run without the server present. Also, we may in
         // future want to run on mirrored binlogs without the database.
@@ -1527,10 +1485,7 @@ public class MySQLExtractor implements RawExtractor
 
         try
         {
-            String firstUrl = generateUrl();
-            conn = DatabaseFactory.createDatabase(firstUrl, user, password,
-                    true);
-            conn.connect();
+            conn = dataSourceImpl.getConnection();
 
             String version = getDatabaseVersion(conn);
             logger.info("MySQL version: " + version);
@@ -1564,13 +1519,6 @@ public class MySQLExtractor implements RawExtractor
             getMaxBinlogSize(conn);
 
             checkInnoDBSupport(conn);
-        }
-        catch (SQLException e)
-        {
-            String message = "Unable to connect to MySQL server while preparing extractor; is server available?";
-            message += "\n(url: " + url + " user: " + user
-                    + " password: *********)";
-            throw new ExtractorException(message, e);
         }
         finally
         {
@@ -1701,8 +1649,8 @@ public class MySQLExtractor implements RawExtractor
 
         // Start the relay log task.
         relayLogTask = new RelayLogTask(relayClient);
-        relayLogThread = new Thread(relayLogTask, "Relay Client " + host + ":"
-                + port);
+        relayLogThread = new Thread(relayLogTask, "Relay Client - "
+                + runtime.getServiceName());
         relayLogThread.start();
 
         // Delay until the relay log opens the file and reaches the desired
@@ -1877,8 +1825,7 @@ public class MySQLExtractor implements RawExtractor
         ResultSet rs = null;
         try
         {
-            conn = DatabaseFactory.createDatabase(url, user, password, true);
-            conn.connect();
+            conn = dataSourceImpl.getConnection();
             st = conn.createStatement();
             logger.debug("Seeking head position in binlog");
             rs = st.executeQuery("SHOW MASTER STATUS");
@@ -1933,8 +1880,7 @@ public class MySQLExtractor implements RawExtractor
             {
             }
         }
-        if (conn != null)
-            conn.close();
+        dataSourceImpl.releaseConnection(conn);
     }
 
     public void setPrefetchSchemaNameLDI(boolean prefetchSchemaNameLDI)

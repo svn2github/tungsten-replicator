@@ -1,4 +1,24 @@
-
+/**
+ * Tungsten Scale-Out Stack
+ * Copyright (C) 2009-2014 Continuent Inc.
+ * Contact: tungsten@continuent.org
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Initial developer(s):
+ * Contributor(s): 
+ */
 package com.continuent.tungsten.replicator.extractor.mysql;
 
 import java.io.BufferedReader;
@@ -71,8 +91,7 @@ public class MySQLBinLogUtils
 
     private Map<String, Vector<String>> sessionQueries                     = new LinkedHashMap<String, Vector<String>>();
 
-    private static Logger               logger                             = Logger
-                                                                                   .getLogger(MySQLBinLogUtils.class);
+    private static Logger               logger                             = Logger.getLogger(MySQLBinLogUtils.class);
 
     static InputStreamReader            converter;
     static BufferedReader               in;
@@ -248,7 +267,7 @@ public class MySQLBinLogUtils
         {
             return evanescentQueries;
         }
-        
+
         // TODO Not used. To be removed ?
         @SuppressWarnings("unused")
         public void setEvanescentQueries(Vector<SessionQuery> evanescentQueries)
@@ -341,7 +360,7 @@ public class MySQLBinLogUtils
         {
             return execTime;
         }
-        
+
         // TODO Not used. To be removed ?
         @SuppressWarnings("unused")
         public void setExecTime(int execTime)
@@ -478,7 +497,6 @@ public class MySQLBinLogUtils
         Integer error_code = 0;
         // Not used
         // long lastOffset = 0L;
-        int queryCount = 0;
         boolean inQuery = false;
         StringBuilder query = new StringBuilder();
         String reference = null;
@@ -499,13 +517,10 @@ public class MySQLBinLogUtils
             {
                 if (line.startsWith(COMMAND_ENDING))
                 {
-                    queryCount++;
-                    logger
-                            .debug(String
-                                    .format(
-                                            "Query, sessionId=%s, exec_time=%d, error_code=%d\n%s\n",
-                                            sessionId, exec_time, error_code,
-                                            query.toString()));
+                    logger.debug(String
+                            .format("Query, sessionId=%s, exec_time=%d, error_code=%d\n%s\n",
+                                    sessionId, exec_time, error_code,
+                                    query.toString()));
 
                     if ((reference = tempTableToCreate(query.toString())) != null)
                     {
@@ -516,13 +531,15 @@ public class MySQLBinLogUtils
                                     0, SessionEntityType.MISC_QUERY);
                             addSessionQuery(sessionId, comment);
                         }
-                        SessionQuery qry = new SessionQuery(sessionId, query
-                                .toString(), exec_time, error_code,
+                        SessionQuery qry = new SessionQuery(sessionId,
+                                query.toString(), exec_time, error_code,
                                 SessionEntityType.CREATE_TEMPORARY_TABLE);
                         addEvanescentQuery(sessionId, qry, reference);
-                        sessionMgr.getStatistics().add(
-                                SessionEntityType.CREATE_TEMPORARY_TABLE
-                                        .toString(), 1);
+                        sessionMgr
+                                .getStatistics()
+                                .add(SessionEntityType.CREATE_TEMPORARY_TABLE
+                                        .toString(),
+                                        1);
 
                     }
                     else if ((reference = tempTableToDrop(query.toString())) != null)
@@ -535,29 +552,31 @@ public class MySQLBinLogUtils
                             addSessionQuery(sessionId, comment);
 
                         }
-                        SessionQuery qry = new SessionQuery(sessionId, query
-                                .toString(), exec_time, error_code,
+                        SessionQuery qry = new SessionQuery(sessionId,
+                                query.toString(), exec_time, error_code,
                                 SessionEntityType.DROP_TEMPORARY_TABLE);
                         addEvanescentQuery(sessionId, qry, reference);
                         sessionMgr.removeSession(sessionId);
-                        sessionMgr.getStatistics().add(
-                                SessionEntityType.DROP_TEMPORARY_TABLE
-                                        .toString(), 1);
+                        sessionMgr
+                                .getStatistics()
+                                .add(SessionEntityType.DROP_TEMPORARY_TABLE
+                                        .toString(),
+                                        1);
 
                     }
                     else if (WRITE_QUERY_PATTERN.matcher(query.toString())
                             .matches())
                     {
-                        SessionQuery qry = new SessionQuery(sessionId, query
-                                .toString(), exec_time, error_code,
+                        SessionQuery qry = new SessionQuery(sessionId,
+                                query.toString(), exec_time, error_code,
                                 SessionEntityType.WRITE);
 
                         sessionMgr.getStatistics().add(
                                 SessionEntityType.WRITE.toString(), 1);
 
-                        if (hasEvanescentReferences(qry, sessionMgr
-                                .getSession(sessionId), sessionMgr
-                                .getStatistics()))
+                        if (hasEvanescentReferences(qry,
+                                sessionMgr.getSession(sessionId),
+                                sessionMgr.getStatistics()))
                         {
                             if (addComments)
                             {
@@ -582,8 +601,8 @@ public class MySQLBinLogUtils
                     }
                     else
                     {
-                        SessionQuery qry = new SessionQuery(sessionId, query
-                                .toString(), exec_time, error_code,
+                        SessionQuery qry = new SessionQuery(sessionId,
+                                query.toString(), exec_time, error_code,
                                 SessionEntityType.MISC_QUERY);
                         addSessionQuery(sessionId, qry);
                         sessionMgr.getStatistics().add(
@@ -605,9 +624,11 @@ public class MySQLBinLogUtils
                             exec_time, error_code,
                             SessionEntityType.SYSTEM_SESSION_VARIABLE);
                     addSessionQuery(sessionId, qry);
-                    sessionMgr.getStatistics().add(
-                            SessionEntityType.SYSTEM_SESSION_VARIABLE
-                                    .toString(), 1);
+                    sessionMgr
+                            .getStatistics()
+                            .add(SessionEntityType.SYSTEM_SESSION_VARIABLE
+                                    .toString(),
+                                    1);
                 }
                 else if (line.endsWith(COMMAND_ENDING))
                 {
@@ -681,10 +702,11 @@ public class MySQLBinLogUtils
                 SessionQuery qry = new SessionQuery(sessionId, line, exec_time,
                         error_code, SessionEntityType.SYSTEM_SESSION_VARIABLE);
                 addSessionQuery(sessionId, qry);
-                sessionMgr.getStatistics()
-                        .add(
-                                SessionEntityType.SYSTEM_SESSION_VARIABLE
-                                        .toString(), 1);
+                sessionMgr
+                        .getStatistics()
+                        .add(SessionEntityType.SYSTEM_SESSION_VARIABLE
+                                .toString(),
+                                1);
             }
 
         }
