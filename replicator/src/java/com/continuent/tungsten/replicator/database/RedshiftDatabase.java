@@ -99,7 +99,6 @@ public class RedshiftDatabase extends PostgreSQLDatabase
             case Types.CHAR :
             {
                 if (c.getLength() == 1)
-                    // TODO: remove this dirty hack and fix it in the callers.
                     // Historically, as MySQL doesn't have a BOOLEAN type,
                     // callers create tables with CHAR(1) instead (though then
                     // use set/getBoolean), but having a CHAR and then use

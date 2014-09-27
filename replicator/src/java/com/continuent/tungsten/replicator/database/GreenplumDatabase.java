@@ -70,9 +70,10 @@ public class GreenplumDatabase extends AbstractDatabase
             case Types.CHAR :
             {
                 if (c.getLength() == 1)
-                    // TODO: remove this dirty hack, written to support storing
+                    // This is a hack written to support storing
                     // boolean values into "character(1)" type "last_frag" field
-                    // of "trep_commit_seqno" and "history" tables.
+                    // of "trep_commit_seqno" and "history" tables.  We do not have
+                    // any current Greenplum implementation so this will do for now. 
                     return "BOOLEAN";
                 else
                     return "CHAR(" + c.getLength() + ")";
@@ -140,8 +141,6 @@ public class GreenplumDatabase extends AbstractDatabase
 
     public String getUseSchemaQuery(String schema)
     {
-        // TODO: we might want to retrieve the search_path first and then use it
-        // in the new path, i.e.: $search_path = $schema, $search_path
         return "SET search_path TO " + schema + ", \"$user\"";
     }
 
@@ -386,7 +385,6 @@ public class GreenplumDatabase extends AbstractDatabase
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
-        // TODO: Implement ability to return base tables only.
         return md.getTables(schemaName, null, null, null);
     }
 
@@ -467,7 +465,7 @@ public class GreenplumDatabase extends AbstractDatabase
     @Override
     public SqlOperationMatcher getSqlNameMatcher() throws ReplicatorException
     {
-        // TODO: Develop matcher for Drizzle dialect.
+        // Return MySQL matcher for now. 
         return new MySQLOperationMatcher();
     }
 }

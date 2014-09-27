@@ -225,6 +225,8 @@ public class MySQLDatabase extends AbstractDatabase
 
             try
             {
+                // Add to support misleading Eclipse warning. 
+                @SuppressWarnings("resource")
                 BufferedReader br = new BufferedReader(reader);
                 String sql = null;
                 stmt = dbConn.createStatement();
@@ -235,7 +237,7 @@ public class MySQLDatabase extends AbstractDatabase
                     if (sql.startsWith("#") || sql.length() == 0)
                         continue;
 
-                    // TODO : For now, we don't care for the results
+                    // For now, we don't care for the results. 
                     stmt.execute(sql);
                 }
             }

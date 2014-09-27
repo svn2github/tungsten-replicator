@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -93,7 +93,8 @@ public class DataScanCtrl
     /** How long to wait for consistency check to arrive to the slave. */
     private int                        checkTimeout     = 30;
 
-    // TODO: add automated calculation based on table size?
+    // Chunking is based on a fixed size. In future we may want to add automated
+    // calculation based on table size.
     int                                chunkSize        = 131072;
     int                                chunkPause       = -1;
     private int                        granularity      = 1;
@@ -142,7 +143,7 @@ public class DataScanCtrl
      */
     private void parseArgs()
     {
-        // TODO should these variables be removed ?
+        // TODO: These variables are currently unused and should be eliminated.
         @SuppressWarnings("unused")
         String command = null;
         @SuppressWarnings("unused")
@@ -500,7 +501,7 @@ public class DataScanCtrl
                 fatal("Direct check selected, but no slave DBMS credentials provided! Use: -url2",
                         null);
 
-            // TODO: enable more than one slave checking with direct method.
+            // Check first slave.
             slaveDbTungsten = new Database[1];
             slaveDbTungsten[0] = connectDB(jdbcUrlSlave[0], jdbcUserMaster,
                     jdbcPassMaster);
@@ -550,7 +551,6 @@ public class DataScanCtrl
                             service);
 
                     // Connect to DBMS and Tungsten schema.
-                    // TODO: support for different DB password for slaves.
                     jdbcUrlSlave[c] = slave[c].properties(
                             ReplicatorConf.THL_DB_URL).get(
                             ReplicatorConf.THL_DB_URL);
@@ -730,8 +730,6 @@ public class DataScanCtrl
             initMasterConnections();
             initSlaveConnections();
 
-            // TODO: refactor for multiple tables!
-
             println("Database: " + schema);
             println("Table(s): " + tables);
 
@@ -802,7 +800,6 @@ public class DataScanCtrl
 
                 printProgress(r, rowFrom, rowTill);
 
-                // TODO: add parameter to pause drill-down too.
                 if (chunkPause > 0)
                     Thread.sleep(chunkPause * 1000);
             }
@@ -857,7 +854,6 @@ public class DataScanCtrl
             // Issue the check directly into the master database.
             id = TungstenPlugin.findNextConsistencyId(masterDbUser,
                     consistencyTable);
-            // TODO: make check column names and types a dynamic choice.
             ConsistencyCheck cc = ConsistencyCheckFactory
                     .createConsistencyCheck(id, table, (int) row, (int) range,
                             getMethod(), false, false);
@@ -865,7 +861,6 @@ public class DataScanCtrl
 
             // In direct we assume that slave Replicator is down, so
             // we need to calculate the check on its behalf.
-            // TODO: support more than one slave for direct check.
             copyMasterCCToSlave(cc, table.getSchema(), table.getName(),
                     slaveDbTungsten[0]);
         }
@@ -891,8 +886,8 @@ public class DataScanCtrl
             ConsistencyException
     {
         // Construct consistency check with slave's table column names (in case
-        // column names differ between databases).
-        // TODO: instead of searching for table each time, prepare a map of
+        // column names differ between databases). To avoid searching for th
+        // table each time, we could in future prepare a map of
         // tables beforehand.
         Table tableSlave = slaveDb.findTable(schema, table, true);
         ConsistencyCheck ccSlave = ConsistencyCheckFactory
@@ -1346,7 +1341,6 @@ public class DataScanCtrl
             }
 
             // Blocking before trying again.
-            // TODO: any way to remove the sleep and make delay more smart?
             Thread.sleep(50);
             long sleepMillis = System.currentTimeMillis() - startSleepMillis;
             timeLeft -= sleepMillis;
@@ -1376,7 +1370,6 @@ public class DataScanCtrl
     private OpenReplicatorManagerMBean getOpenReplicator(String rmiHost,
             String rmiPort, String service)
     {
-        // TODO: what about authentication?
         try
         {
             JMXConnector connMaster = JmxManager.getRMIConnector(rmiHost,

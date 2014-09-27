@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2012 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -245,7 +245,7 @@ public class THLStoreApplier implements Applier
      */
     public void rollback() throws InterruptedException
     {
-        // TODO: Implement.
+        // Does nothing. Reopening the store removes partial transactions. 
     }
 
     /**

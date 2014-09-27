@@ -1237,15 +1237,11 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             }
             catch (ReplicatorException e)
             {
-                // TODO: throw TransitionRollbackException.
-                logger.error("configuration failed for: " + e);
-                e.printStackTrace();
+                logger.error("configuration failed for: " + e, e);
             }
 
             /*
-             * signal directly that configuration is over. TODO: this could be
-             * asynchronous so that plugin provider processes independently and
-             * signals when done.
+             * signal directly that configuration is over. 
              */
             try
             {
@@ -1666,7 +1662,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
                 int actionType) throws TransitionFailureException,
                 TransitionRollbackException
         {
-            // TODO: Integrate provisioning with backup subsystem.
             try
             {
                 ProvisionEvent provisionEvent = (ProvisionEvent) event;
@@ -1764,7 +1759,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
         {
             try
             {
-                // TODO: define event ID to wait for
                 SeqnoWaitEvent waitEvent = (SeqnoWaitEvent) event;
                 String waitedEvent = "seqno: " + waitEvent.getSeqno();
                 long timeout = 0;
@@ -1803,7 +1797,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
      */
     public void registerMBean(Object mbean, Class<?> mbeanClass, String name)
     {
-        // TODO: Handle names correctly when registering.
         JmxManager.registerMBean(mbean, mbeanClass);
         mbeans.put(name, mbean);
     }
@@ -2005,7 +1998,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     @MethodDesc(description = "Gets the minimum sequence number, if available", usage = "getMinSeqNo")
     public String getMinSeqNo() throws Exception
     {
-        // TODO Add this information to the status call.
         return "-1";
     }
 
@@ -2462,7 +2454,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             FlushEvent flushEvent = new FlushEvent(timeout);
             handleEventSynchronous(flushEvent);
 
-            // TODO: should return seqno of the waited event
             return flushEvent.eventId;
         }
         catch (Exception e)
@@ -2769,7 +2760,6 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     {
         try
         {
-            // TODO: This needs to be integrated with the backup system.
             // Enqueue an event for the provision request.
             ProvisionEvent provisionEvent = new ProvisionEvent(replicatorUri);
             handleEventSynchronous(provisionEvent);

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -512,7 +512,6 @@ public class LogFile
             // Reset input.
             dataInput.reset();
 
-            // TODO: Reduce the number of cases.
             if (waitMillis > 0)
             {
                 // If we were waiting for data, timeout.

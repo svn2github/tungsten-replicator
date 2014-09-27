@@ -118,8 +118,7 @@ public class JdbcApplier implements RawApplier
 
     /**
      * Maximum length of SQL string to log in case of an error. This is needed
-     * because some statements may be very large. TODO: make this configurable
-     * via replicator.properties
+     * because some statements may be very large. 
      */
     protected int                     maxSQLLogLength            = 5000;
 
@@ -1084,9 +1083,6 @@ public class JdbcApplier implements RawApplier
     private String logFailedRowChangeSQL(StringBuffer stmt,
             OneRowChange oneRowChange, int row)
     {
-        // TODO: use THLManagerCtrl for logging exact failing SQL after
-        // branch thl_meta is merged into HEAD. Now this duplicates
-        // functionality.
         try
         {
             ArrayList<OneRowChange.ColumnSpec> keys = oneRowChange.getKeySpec();
@@ -1126,9 +1122,6 @@ public class JdbcApplier implements RawApplier
     protected String logFailedRowChangeSQL(StringBuffer stmt,
             OneRowChange oneRowChange)
     {
-        // TODO: use THLManagerCtrl for logging exact failing SQL after
-        // branch thl_meta is merged into HEAD. Now this duplicates
-        // functionality.
         try
         {
             ArrayList<OneRowChange.ColumnSpec> keys = oneRowChange.getKeySpec();

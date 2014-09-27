@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2013 Continuent Inc.
+ * Copyright (C) 2013-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -502,7 +502,7 @@ public class RenameDefinitionsTest extends TestCase
      */
     public void testCommentWithComma() throws IOException, ReplicatorException
     {
-        // TODO: use Robert's CSV reader which better supports comments, etc.
+        // This should use commons CsvWriter but a simple println also works. 
         PrintWriter out = new PrintWriter(new FileWriter(definitionsFile));
         out.println("schemaz,tableq,cola,-,-,colaa # Finally, comment with a comma should work.");
         out.close();
@@ -516,8 +516,7 @@ public class RenameDefinitionsTest extends TestCase
         catch (ReplicatorException e)
         {
             // Ignoring this exception only in order not to break the builds
-            // until new CSV reader is not chosen.
-            logger.error("TODO: use Robert's CSV reader which better supports comments, etc.");
+            // until new CSV reader is chosen.
             logger.error(e);
         }
     }

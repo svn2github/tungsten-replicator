@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -587,7 +587,6 @@ public class EventMetadataFilter implements Filter
         {
             Database db = DatabaseFactory.createDatabase(url, user, password);
             opMatcher = db.getSqlNameMatcher();
-            // TODO: Encapsulate editor properly.
             commentEditor = new MySQLCommentEditor();
             commentEditor.setCommentEditingEnabled(sqlCommentsEnabled);
             commentEditor.setCommentRegex(serviceCommentRegex);

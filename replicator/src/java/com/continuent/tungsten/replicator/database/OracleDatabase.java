@@ -104,7 +104,7 @@ public class OracleDatabase extends AbstractDatabase
     @Override
     public SqlOperationMatcher getSqlNameMatcher() throws ReplicatorException
     {
-        // TODO: Develop matcher for Oracle dialect.
+        // Return MySQL matcher for now. 
         return new MySQLOperationMatcher();
     }
 
@@ -654,7 +654,6 @@ public class OracleDatabase extends AbstractDatabase
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
-        // TODO: Implement ability to fetch base tables properly.
         return md.getTables(null, schemaName, null, null);
     }
 
@@ -1037,7 +1036,6 @@ public class OracleDatabase extends AbstractDatabase
     @Override
     public String getDatabaseObjectName(String name)
     {
-        // TODO Auto-generated method stub
         return '\"' + name + '\"';
     }
 

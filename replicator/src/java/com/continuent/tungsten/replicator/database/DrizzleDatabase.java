@@ -61,7 +61,7 @@ public class DrizzleDatabase extends AbstractDatabase
     @Override
     public SqlOperationMatcher getSqlNameMatcher() throws ReplicatorException
     {
-        // TODO: Develop matcher for Drizzle dialect.
+        // Return MySQL matcher for now. 
         return new MySQLOperationMatcher();
     }
 
@@ -379,8 +379,7 @@ public class DrizzleDatabase extends AbstractDatabase
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
-        // TODO: Implement ability to select base tables only. For now
-        // views are not a problem because drizzle does not have them.
+        // Returns tables and views but drizzle does not have views anyway. 
         return md.getTables(schemaName, null, null, null);
     }
 

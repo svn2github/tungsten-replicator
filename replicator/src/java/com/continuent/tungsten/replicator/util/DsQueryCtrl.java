@@ -239,14 +239,6 @@ public class DsQueryCtrl
         }
     }
 
-    /**
-     * TODO: logResults definition.
-     * 
-     * @param stmt
-     * @param isRS
-     * @return
-     * @throws SQLException
-     */
     @SuppressWarnings("unchecked")
     private static JSONArray logResults(Statement stmt, boolean isRS)
             throws SQLException
@@ -283,12 +275,6 @@ public class DsQueryCtrl
         return json;
     }
 
-    /**
-     * TODO: logResultsetResult definition.
-     * 
-     * @param rs
-     * @throws SQLException
-     */
     @SuppressWarnings("unchecked")
     private static JSONArray logResultsetResult(ResultSet rs)
             throws SQLException
@@ -302,11 +288,6 @@ public class DsQueryCtrl
         return json;
     }
 
-    /**
-     * TODO: logUpdateCount definition.
-     * 
-     * @param updateCount
-     */
     @SuppressWarnings("unchecked")
     private static JSONObject logUpdateCount(int updateCount)
     {
@@ -315,12 +296,6 @@ public class DsQueryCtrl
         return json;
     }
 
-    /**
-     * TODO: logRow definition.
-     * 
-     * @param rs
-     * @throws SQLException
-     */
     private static LinkedHashMap<String, Object> logRow(ResultSet rs)
             throws SQLException
     {

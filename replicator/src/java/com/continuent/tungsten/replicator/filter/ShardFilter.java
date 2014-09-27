@@ -41,9 +41,9 @@ public class ShardFilter implements Filter
     private static Logger logger = Logger.getLogger(ShardFilter.class);
 
     private String        doShard;
-    
+
+    // Currently unsupported. 
     @SuppressWarnings("unused")
-    // TODO should this field be removed ?
     private String        ignoreShard;
 
     /**

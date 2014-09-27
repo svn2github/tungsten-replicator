@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2012 Continuent Inc.
+ * Copyright (C) 2012-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -406,9 +406,6 @@ public class OracleCDCReaderThread extends Thread
 
     /**
      * executeStoredProcedure definition.
-     * 
-     * @param ignoreError TODO
-     * @throws ReplicatorException
      */
     private void executeQuery(String query, boolean ignoreError)
             throws ReplicatorException

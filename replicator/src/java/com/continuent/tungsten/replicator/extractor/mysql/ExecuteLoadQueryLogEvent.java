@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -52,10 +52,6 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
     private int     filenameStartPos;
     private int     filenameEndPos;
     private boolean nextEventCanBeAppended = false;
-
-    /*
-     * TODO: Unused for now private int duplicateBehavior;
-     */
 
     public ExecuteLoadQueryLogEvent(byte[] buffer, int eventLength,
             FormatDescriptionLogEvent descriptionEvent,
@@ -148,15 +144,10 @@ public class ExecuteLoadQueryLogEvent extends QueryLogEvent
             filenameEndPos = LittleEndianConversion.convert4BytesToInt(buffer,
                     index);
             index += 4;
-
-            /*
-             * TODO: Unused for now duplicateBehavior =
-             * LittleEndianConversion.convert1ByteToInt( buffer, index);
-             */
         }
         catch (IOException e)
         {
-            // TODO
+            // TODO: Should throw exception here?
         }
 
         start = commonHeaderLength + postHeaderLength;

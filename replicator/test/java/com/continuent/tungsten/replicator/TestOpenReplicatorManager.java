@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -84,7 +84,6 @@ public class TestOpenReplicatorManager extends TestCase
             }
             catch (InterruptedException e)
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -648,15 +647,6 @@ public class TestOpenReplicatorManager extends TestCase
         {
             n.shutdown();
         }
-    }
-
-    /**
-     * Check that transitions that are not allowed do not result state
-     * transition.
-     */
-    public void testNotAllowedTransitions()
-    {
-        // TODO
     }
 
     public static void main(String[] args)

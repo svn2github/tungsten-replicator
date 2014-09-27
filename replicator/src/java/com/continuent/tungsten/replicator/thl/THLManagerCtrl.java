@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -87,7 +87,6 @@ public class THLManagerCtrl
     /**
      * Maximum length of characters to print out for a BLOB. If BLOB is larger,
      * it is truncated and "<...>" is added to the end.<br/>
-     * TODO: make configurable from somewhere.
      */
     private static final int              maxBlobPrintLength = 1000;
     protected static ArgvIterator         argvIterator       = null;
@@ -337,7 +336,7 @@ public class THLManagerCtrl
                 && (lastSchema == null || (lastSchema != null && lastSchema
                         .compareTo(schema) != 0)))
         {
-            if (pureSQL) // TODO: what about Oracle and `USE`?
+            if (pureSQL) // Does not handle Oracle and `USE`...
             {
                 // Print only meaningful statement.
                 if (schema.length() > 0)
@@ -892,7 +891,6 @@ public class THLManagerCtrl
      */
     private static String formatSQL(String sql)
     {
-        // TODO: expand this method.
         if (!sql.endsWith(";"))
             sql += ";";
         return sql;

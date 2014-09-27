@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011-2013 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -144,8 +144,7 @@ public class PrefetchApplier implements RawApplier
 
     /**
      * Maximum length of SQL string to log in case of an error. This is needed
-     * because some statements may be very large. TODO: make this configurable
-     * via replicator.properties
+     * because some statements may be very large. 
      */
     protected int                     maxSQLLogLength        = 1000;
 
@@ -999,7 +998,6 @@ public class PrefetchApplier implements RawApplier
         else
         {
             // UPDATE: Prefetch on the before image.
-            // TODO: Optimize to fetch only index values that change.
             for (RbrRowChange rowChange : tableChangeSet.getRowChanges())
             {
                 prefetchSimpleRowIndexes(rowChange.getBeforeImage());
@@ -1134,7 +1132,6 @@ public class PrefetchApplier implements RawApplier
 
                 // Add primary keys. This currently only works for Drizzle
                 // driver.
-                // TODO: Push back into Database implementations.
                 Connection connection = conn.getConnection();
                 Map<String, Key> keyMap = new HashMap<String, Key>();
                 stmt = connection.createStatement();

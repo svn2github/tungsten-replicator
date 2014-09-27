@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -932,12 +932,6 @@ public class ProtobufSerializer implements Serializer
         return data;
     }
 
-    /**
-     * TODO: deserializeColumnValue definition.
-     * 
-     * @param columnVal
-     * @return
-     */
     private Serializable deserializeColumnValue(ProtobufColumnVal columnVal)
     {
         switch (columnVal.getType())

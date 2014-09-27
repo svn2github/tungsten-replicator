@@ -65,7 +65,6 @@ public class NoChunk extends AbstractChunk implements Chunk
     @Override
     public List<String> getColumns()
     {
-        // TODO Auto-generated method stub
         return columns;
     }
 

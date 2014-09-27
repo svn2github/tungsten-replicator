@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -121,8 +121,7 @@ public class JdbcPrefetcher implements RawApplier
 
     /**
      * Maximum length of SQL string to log in case of an error. This is needed
-     * because some statements may be very large. TODO: make this configurable
-     * via replicator.properties
+     * because some statements may be very large. 
      */
     protected int                     maxSQLLogLength      = 1000;
 
@@ -930,9 +929,6 @@ public class JdbcPrefetcher implements RawApplier
     private String logFailedRowChangeSQL(StringBuffer stmt,
             OneRowChange oneRowChange)
     {
-        // TODO: use THLManagerCtrl for logging exact failing SQL after
-        // branch thl_meta is merged into HEAD. Now this duplicates
-        // functionality.
         try
         {
             ArrayList<OneRowChange.ColumnSpec> keys = oneRowChange.getKeySpec();

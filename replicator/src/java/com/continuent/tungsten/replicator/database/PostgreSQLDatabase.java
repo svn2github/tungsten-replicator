@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -62,7 +62,7 @@ public class PostgreSQLDatabase extends AbstractDatabase
     @Override
     public SqlOperationMatcher getSqlNameMatcher() throws ReplicatorException
     {
-        // TODO: Develop matcher for Drizzle dialect.
+        // Return MySQL matcher for now. 
         return new MySQLOperationMatcher();
     }
 
@@ -85,7 +85,7 @@ public class PostgreSQLDatabase extends AbstractDatabase
             case Types.CHAR :
             {
                 if (c.getLength() == 1)
-                    // TODO: remove this dirty hack, written to support storing
+                    // This is a provisional hack, written to support storing
                     // boolean values into "character(1)" type "last_frag" field
                     // of "trep_commit_seqno" and "history" tables.
                     return "CHAR(5)";
@@ -157,8 +157,6 @@ public class PostgreSQLDatabase extends AbstractDatabase
 
     public String getUseSchemaQuery(String schema)
     {
-        // TODO: we might want to retrieve the search_path first and then use it
-        // in the new path, i.e.: $search_path = $schema, $search_path
         return "SET search_path TO " + schema + ", \"$user\"";
     }
 
@@ -213,7 +211,6 @@ public class PostgreSQLDatabase extends AbstractDatabase
      */
     protected boolean tableExists(Table t) throws SQLException
     {
-        // TODO: use current session's schema name for temp tables.
         // Temporary tables cannot specify a schema name:
         String sql = "SELECT * FROM pg_tables WHERE "
                 + (t.isTemporary()
@@ -440,7 +437,6 @@ public class PostgreSQLDatabase extends AbstractDatabase
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
-        // TODO: Implement ability to return base tables only.
         return md.getTables(schemaName, null, null, null);
     }
 

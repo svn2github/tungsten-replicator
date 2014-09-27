@@ -153,11 +153,6 @@ public abstract class AbstractChunk implements Chunk
         return null;
     }
 
-    /**
-     * TODO: getFlashbackQueryClause definition.
-     * 
-     * @param conn
-     */
     protected static String getFlashbackQueryClause(Database conn,
             String eventId)
     {

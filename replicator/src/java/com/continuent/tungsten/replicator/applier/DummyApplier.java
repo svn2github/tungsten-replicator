@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2011 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -59,10 +59,11 @@ public class DummyApplier implements RawApplier
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.applier.RawApplier#apply(com.continuent.tungsten.replicator.event.DBMSEvent,
-     *      com.continuent.tungsten.replicator.event.ReplDBMSHeader, boolean, boolean)
+     *      com.continuent.tungsten.replicator.event.ReplDBMSHeader, boolean,
+     *      boolean)
      */
-    public void apply(DBMSEvent event, ReplDBMSHeader header, boolean doCommit, boolean doRollback)
-            throws ReplicatorException
+    public void apply(DBMSEvent event, ReplDBMSHeader header, boolean doCommit,
+            boolean doRollback) throws ReplicatorException
     {
         ArrayList<DBMSData> data = event.getData();
         eventCount++;
@@ -70,9 +71,12 @@ public class DummyApplier implements RawApplier
         {
             for (DBMSData dataElem : data)
             {
-                // TODO: Store other types as well.
                 if (dataElem instanceof StatementData)
                     trx.add((StatementData) dataElem);
+                else
+                {
+                    // Other types not supported.
+                }
             }
         }
         if (doCommit)
@@ -86,7 +90,7 @@ public class DummyApplier implements RawApplier
     {
         // does nothing for now...
     }
-    
+
     public void rollback() throws InterruptedException
     {
         // does nothing for now...

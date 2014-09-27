@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -51,23 +51,11 @@ public class SeqNoRange implements Serializable
         
     }
     
-    /**
-     * 
-     * TODO: getMinSeqNo definition.
-     * 
-     * @return min seqno
-     */
     public long getMinSeqNo()
     {
         return minSeqNo;
     }
     
-    /**
-     * 
-     * TODO: getMaxSeqNo definition.
-     * 
-     * @return max seqno
-     */
     public long getMaxSeqNo()
     {
         return maxSeqNo;

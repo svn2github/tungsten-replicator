@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,19 +22,13 @@
 
 package com.continuent.tungsten.replicator.thl;
 
-
 public class ProtocolReplEventRequest extends ProtocolMessage
 {
+    private static final long serialVersionUID = 1L;
+    long                      seqNo;
+    long                      prefetchRange;
 
     /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-    long seqNo;
-    long prefetchRange;
-    
-    /**
-     * 
      * Creates a new <code>ProtocolReplicationDBMSEventRequest</code> object
      * 
      * @param seqNo
@@ -47,26 +41,13 @@ public class ProtocolReplEventRequest extends ProtocolMessage
         this.prefetchRange = prefetchRange;
     }
 
-    /**
-     * 
-     * TODO: getSeqNo definition.
-     * 
-     * @return seqno
-     */
     public long getSeqNo()
     {
         return seqNo;
     }
-    
-    /**
-     * 
-     * TODO: getPrefetchRange definition.
-     * 
-     * @return prefetch range
-     */
+
     public long getPrefetchRange()
     {
         return prefetchRange;
     }
-
 }

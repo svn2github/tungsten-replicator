@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -173,10 +173,7 @@ public class Protocol
     }
 
     /**
-     * TODO: readMessage definition.
-     * 
-     * @throws IOException
-     * @throws ReplicatorException
+     * Read a message from network from either side.
      */
     protected ProtocolMessage readMessage() throws IOException,
             ReplicatorException
@@ -202,11 +199,7 @@ public class Protocol
     }
 
     /**
-     * TODO: writeMessage definition.
-     * 
-     * @param msg
-     * @throws IOException
-     * @throws RemoteProtocolException
+     * Write a message to the network from either side.
      */
     protected void writeMessage(ProtocolMessage msg) throws IOException
     {
@@ -222,13 +215,7 @@ public class Protocol
     }
 
     /**
-     * TODO: serverHandshake definition.
-     * 
-     * @param minSeqNo
-     * @param maxSeqNo
-     * @throws ReplicatorException
-     * @throws IOException
-     * @throws InterruptedException
+     * Initiate a server handshake from the client side.
      */
     public void serverHandshake(ProtocolHandshakeResponseValidator validator,
             long minSeqNo, long maxSeqNo) throws ReplicatorException,
@@ -318,12 +305,7 @@ public class Protocol
     }
 
     /**
-     * TODO: requestReplicationDBMSEvent definition.
-     * 
-     * @param seqNo
-     * @return sql event
-     * @throws ReplicatorException
-     * @throws IOException
+     * Request next event from the server after the given seqno (client side).
      */
     @SuppressWarnings("unchecked")
     public ReplEvent requestReplEvent(long seqNo) throws ReplicatorException,
@@ -422,11 +404,7 @@ public class Protocol
     }
 
     /**
-     * TODO: waitReplicationDBMSEventRequest definition.
-     * 
-     * @return protocol event request
-     * @throws ReplicatorException
-     * @throws IOException
+     * Wait for an event request from client.
      */
     public ProtocolReplEventRequest waitReplEventRequest()
             throws ReplicatorException, IOException
@@ -438,11 +416,7 @@ public class Protocol
     }
 
     /**
-     * TODO: sendReplicationDBMSEvent definition.
-     * 
-     * @param event
-     * @param forceSend TODO
-     * @throws IOException
+     * Send a replication event to the client.
      */
     public void sendReplEvent(ReplEvent event, boolean forceSend)
             throws IOException

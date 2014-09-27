@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Seppo Jaakola
- * Contributor(s):
+ * Contributor(s): Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.dbms;
@@ -285,22 +285,6 @@ public class OneRowChange implements Serializable
     public void setTableName(String tableName)
     {
         this.tableName = tableName;
-    }
-
-    public OneRowChange(String schemaName, String tableName, ActionType action,
-            ArrayList<ColumnSpec> keySpec,
-            ArrayList<ArrayList<ColumnVal>> keyValues,
-            ArrayList<ColumnSpec> columnSpec,
-            ArrayList<ArrayList<ColumnVal>> columnValues)
-    {
-        // TODO : Not referenced ? To be removed ?
-        this.schemaName = schemaName;
-        this.tableName = tableName;
-        this.action = action;
-        this.keySpec = keySpec;
-        this.keyValues = keyValues;
-        this.columnSpec = columnSpec;
-        this.columnValues = columnValues;
     }
 
     public OneRowChange(String schemaName, String tableName, ActionType action)

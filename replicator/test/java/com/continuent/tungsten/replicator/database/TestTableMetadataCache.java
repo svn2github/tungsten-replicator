@@ -1,6 +1,6 @@
 /**
  * Tungsten: An Application Server for uni/cluster.
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,8 +26,6 @@ import java.sql.Types;
 
 import junit.framework.Assert;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -39,26 +37,6 @@ import org.junit.Test;
  */
 public class TestTableMetadataCache
 {
-    /**
-     * TODO: setUp definition.
-     * 
-     * @throws java.lang.Exception
-     */
-    @Before
-    public void setUp() throws Exception
-    {
-    }
-
-    /**
-     * TODO: tearDown definition.
-     * 
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception
-    {
-    }
-
     /**
      * Ensure we can cache and retrieve Table instances by their names.
      */

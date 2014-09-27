@@ -601,9 +601,10 @@ public class LogConnection
                         // Non-blocking reads just return a null.
                         if (data == null && !block)
                         {
-                            // TODO: Reconnect to the log file, as we have just
-                            // messed up our position so that this call is not
-                            // idempotent.
+                            // NOTE: This makes the call non-idempotent as we
+                            // just messed up our read position. We could
+                            // reconnect to the log but so far this behavior has
+                            // caused no problems in use.
                             return null;
                         }
 
@@ -676,9 +677,6 @@ public class LogConnection
             throws ReplicatorException, InterruptedException
     {
         assertWritable();
-
-        // TODO: Ensure that a log file is open. We should not grant connections
-        // if log is uninitialized.
 
         // Ensure that the sequence number does not go backwards. That means
         // our client is confused.
@@ -805,7 +803,8 @@ public class LogConnection
      */
     public synchronized void rollback() throws ReplicatorException
     {
-        // TODO: Implement rollback.
+        // Rollback is not necessary. Reopening the log will roll back
+        // incomplete transactions.
         assertWritable();
     }
 

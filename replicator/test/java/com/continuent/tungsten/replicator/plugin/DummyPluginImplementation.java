@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,14 +31,12 @@ public class DummyPluginImplementation implements DummyPluginInterface
     static Logger logger = Logger.getLogger(DummyPluginImplementation.class);
     public void method1()
     {
-        // TODO Auto-generated method stub
-        logger.debug("");
+        // Do nothing. 
     }
 
     public void method2()
     {
-        // TODO Auto-generated method stub
-        logger.debug("");
+        // Do nothing. 
     }
 
     /**
@@ -47,8 +45,7 @@ public class DummyPluginImplementation implements DummyPluginInterface
      */
     public void configure(PluginContext context) throws ReplicatorException
     {
-        // TODO Auto-generated method stub
-        logger.debug("");
+        // Do nothing. 
     }
 
     /**
@@ -57,8 +54,7 @@ public class DummyPluginImplementation implements DummyPluginInterface
      */
     public void prepare(PluginContext context) throws ReplicatorException
     {
-        // TODO Auto-generated method stub
-        logger.debug("");
+        // Do nothing. 
     }
 
     /**
@@ -67,8 +63,7 @@ public class DummyPluginImplementation implements DummyPluginInterface
      */
     public void release(PluginContext context) throws ReplicatorException
     {
-        // TODO Auto-generated method stub
-        logger.debug("");
+        // Do nothing. 
     }
 
     String c = null;

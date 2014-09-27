@@ -172,13 +172,6 @@ public class MySQLBinLogUtils
             statistics.add(EVANESCENT_QUERIES, 1);
         }
 
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void addEvanescentReference(String sessionId, String reference)
-        {
-            getSession(sessionId).addEvanescentReference(reference);
-        }
-
         public StatisticsMap getStatistics()
         {
             return statistics;
@@ -230,56 +223,14 @@ public class MySQLBinLogUtils
             return sessionId;
         }
 
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setSessionId(String sessionId)
-        {
-            this.sessionId = sessionId;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public Vector<String> getEvanescentReferences()
-        {
-            return evanescentReferences;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setEvanescentReferences(Vector<String> evanescentReferences)
-        {
-            this.evanescentReferences = evanescentReferences;
-        }
-
         public Vector<SessionQuery> getQueries()
         {
             return queries;
         }
 
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setQueries(Vector<SessionQuery> queries)
-        {
-            this.queries = queries;
-        }
-
         public Vector<SessionQuery> getEvanescentQueries()
         {
             return evanescentQueries;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setEvanescentQueries(Vector<SessionQuery> evanescentQueries)
-        {
-            this.evanescentQueries = evanescentQueries;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public StatisticsMap getStatistics()
-        {
-            return statistics;
         }
     }
 
@@ -323,13 +274,6 @@ public class MySQLBinLogUtils
             return false;
         }
 
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public int referenceCount()
-        {
-            return foundReferences.size();
-        }
-
         public void setIsEvanescent(boolean evanescent)
         {
             this.isEvanescent = evanescent;
@@ -340,72 +284,9 @@ public class MySQLBinLogUtils
             return query;
         }
 
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public String getSessionId()
-        {
-            return sessionId;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setSessionId(String sessionId)
-        {
-            this.sessionId = sessionId;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public int getExecTime()
-        {
-            return execTime;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setExecTime(int execTime)
-        {
-            this.execTime = execTime;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public int getExecError()
-        {
-            return execError;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setExecError(int execError)
-        {
-            this.execError = execError;
-        }
-
         public String getQuery()
         {
             return query;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setQuery(String query)
-        {
-            this.query = query;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public boolean isEvanescent()
-        {
-            return isEvanescent;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setEvanescent(boolean isEvanescent)
-        {
-            this.isEvanescent = isEvanescent;
         }
 
         public Vector<String> getFoundReferences()
@@ -413,25 +294,10 @@ public class MySQLBinLogUtils
             return foundReferences;
         }
 
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public void setFoundReferences(Vector<String> foundReferences)
-        {
-            this.foundReferences = foundReferences;
-        }
-
-        // TODO Not used. To be removed ?
-        @SuppressWarnings("unused")
-        public StatisticsMap getStatistics()
-        {
-            return statistics;
-        }
-
         public SessionEntityType getType()
         {
             return type;
         }
-
     }
 
     public static void main(String[] args)

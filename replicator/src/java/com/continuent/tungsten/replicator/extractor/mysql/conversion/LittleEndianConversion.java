@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009 Continuent Inc.
+ * Copyright (C) 2009-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -39,51 +39,18 @@ public class LittleEndianConversion extends GeneralConversion
     public static int convert1ByteToInt(byte[] buffer, int offset)
             throws IOException
     {
-        // ByteArrayInputStream byte_in = new ByteArrayInputStream(buf);
-        // DataInputStream data_in = new DataInputStream(byte_in);
-        // /* skip the offset */
-        // data_in.skip(off);
-        //
-        // int value;
-        // value = data_in.readUnsignedByte();
-        //
-        // return value;
         return convertNBytesToInt(buffer, offset, 1);
-        // TODO : probably more efficient to use : return
-        // unsignedByteToInt(buf[off]) ??
     }
 
     public static int convert2BytesToInt(byte[] buffer, int offset)
             throws IOException
     {
-        // ByteArrayInputStream byte_in = new ByteArrayInputStream(buffer);
-        // DataInputStream data_in = new DataInputStream(byte_in);
-        // data_in.skip(offset);
-        //
-        // int value;
-        // // Read the first byte
-        // value = data_in.readUnsignedByte();
-        // // Read the second byte and shift it
-        // value += (data_in.readUnsignedByte() << 8);
-        // return value;
         return convertNBytesToInt(buffer, offset, 2);
     }
 
     public static int convert3BytesToInt(byte[] buffer, int offset)
             throws IOException
     {
-        // ByteArrayInputStream byte_in = new ByteArrayInputStream(buffer);
-        // DataInputStream data_in = new DataInputStream(byte_in);
-        //        
-        // /* skip the offset */
-        // data_in.skip(offset);
-        //
-        // int value;
-        // value = data_in.readUnsignedByte();
-        // value += (data_in.readUnsignedByte() << 8);
-        // value += (data_in.readUnsignedByte() << 16);
-        //
-        // return value;
         return convertNBytesToInt(buffer, offset, 3);
     }
 

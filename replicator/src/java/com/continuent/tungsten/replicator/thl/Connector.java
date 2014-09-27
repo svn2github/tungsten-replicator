@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -97,10 +97,7 @@ public class Connector implements ReplicatorPlugin
     }
 
     /**
-     * TODO: connect definition.
-     * 
-     * @throws ReplicatorException
-     * @throws IOException
+     * Connect to master. 
      */
     public void connect() throws ReplicatorException, IOException
     {

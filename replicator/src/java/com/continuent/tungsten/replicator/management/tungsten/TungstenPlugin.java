@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -169,7 +169,6 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         int id = -1;
 
         // Ensure we have a runtime. This is null if we are offline.
-        // TODO: This command should execute in a state machine.
         ReplicatorRuntime ourRuntime = runtime;
         if (ourRuntime == null)
         {
@@ -1293,23 +1292,11 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
             props.put("matched", matchString.toString());
             statusList.add(props);
         }
-
-        /*
-         * // Turn the list of matches into a string. StringBuffer matchString =
-         * new StringBuffer("["); for (int i = 0; i < matched.length; i++) { if
-         * (i > 0) matchString.append(",");
-         * matchString.append("[").append(i).append(":").append(matched[i])
-         * .append("]"); } matchString.append("]"); return
-         * this.getClass().getSimpleName() + " predicate=" +
-         * predicate.toString() + " done=" + done + " cancelled=" + cancelled +
-         * " matched=" + matchString.toString();
-         */
     }
 
     public void provision(String uri) throws Exception
     {
-        // TODO Auto-generated method stub
-
+        // Currently unused. 
     }
 
     public ReplicatorCapabilities getCapabilities() throws Exception

@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2011 Continuent Inc.
+ * Copyright (C) 2011-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -215,7 +215,6 @@ public class THLStoreExtractor implements Extractor
      */
     public boolean hasMoreEvents()
     {
-        // TODO: Clean up; latter predicate is approximate/off by one?
         return (fragno > 0 || thl.pollSeqno(seqno + 1));
     }
 

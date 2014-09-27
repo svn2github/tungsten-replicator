@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2008 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -156,7 +156,6 @@ public class OpenReplicatorSignaler
 
             if (command != null)
             {
-                // TODO: is start command needed?
                 if (command.equals(Commands.HELP))
                     manager.online();
                 else if (command.equals(Commands.ERROR))

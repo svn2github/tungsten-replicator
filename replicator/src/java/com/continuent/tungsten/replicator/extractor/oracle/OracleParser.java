@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -98,8 +98,6 @@ public class OracleParser
 
     /**
      * Creates a new <code>OracleParser</code> object
-     * 
-     * @param database TODO : description
      */
     public OracleParser(Database database)
     {
@@ -120,13 +118,6 @@ public class OracleParser
         this.database = database;
     }
 
-    /**
-     * TODO: findTable definition.
-     * 
-     * @param objectNumber
-     * @return a Table
-     * @throws ExtractorException
-     */
     private Table findTable(int objectNumber, String lastSCN)
             throws OracleExtractException
     {
@@ -173,12 +164,6 @@ public class OracleParser
         return t;
     }
 
-    /**
-     * TODO: newTable definition.
-     * 
-     * @param t
-     * @param objectNumber
-     */
     private void newTable(Table t, int objectNumber)
     {
         Map map = new Map();
@@ -189,11 +174,6 @@ public class OracleParser
         dictionary.add(map);
     }
 
-    /**
-     * TODO: hexVal4 definition.
-     * 
-     * @return
-     */
     private long hexVal8()
     {
         long val = 0;
@@ -246,12 +226,6 @@ public class OracleParser
         return val;
     }
 
-    /**
-     * TODO: hexVal2 definition.
-     * 
-     * @param s
-     * @return
-     */
     private int hexVal2(String s)
     {
         int val = 0;
@@ -275,11 +249,6 @@ public class OracleParser
     /*
      * length expected in parseLastLength
      */
-    /**
-     * TODO: parseData definition.
-     * 
-     * @return
-     */
     private String parseData()
     {
         long len = parseLastLength;
@@ -292,12 +261,6 @@ public class OracleParser
         return parseString.substring(start, parseLocation);
     }
 
-    /**
-     * TODO: parseToInts definition.
-     * 
-     * @param s
-     * @return
-     */
     private ArrayList<Integer> parseToInts(String s)
     {
         ArrayList<Integer> al = new ArrayList<Integer>();
@@ -310,12 +273,6 @@ public class OracleParser
         return al;
     }
 
-    /**
-     * TODO: parseToBytes definition.
-     * 
-     * @param s
-     * @return
-     */
     private byte[] parseToBytes(String s)
     {
         byte[] ba = new byte[s.length() / 2];
@@ -331,12 +288,6 @@ public class OracleParser
         return ba;
     }
 
-    /**
-     * TODO: parseToString definition.
-     * 
-     * @param s
-     * @return
-     */
     private String parseToString(String s)
     {
         byte[] ba = parseToBytes(s);
@@ -367,14 +318,10 @@ public class OracleParser
      * (excess-100 notation) 1 Year (excess-100 notation) 2 Month 3 Day 4 Hour 5
      * Minute 6 Second current format is MM/DD/YYYY HH24:MI:SS example is
      * 08/06/1965 14:02:27 for August 6th 1965 at aproximately 2 in the
-     * afternoon. TODO: return/invent generic date class to pass through to
+     * afternoon. 
+     * <p/>
+     * TODO: return/invent generic date class to pass through to
      * applier
-     */
-    /**
-     * TODO: parseOracleDateToString definition.
-     * 
-     * @param s
-     * @return
      */
     private String parseOracleDateToString(String s)
             throws OracleExtractException
@@ -500,12 +447,6 @@ public class OracleParser
      * speak for itself. It is more precise....
      */
 
-    /**
-     * TODO: parseOracleNumberToString definition.
-     * 
-     * @param s
-     * @return
-     */
     private String parseOracleNumberToString(String s)
     {
         int position = 0;
@@ -750,12 +691,6 @@ public class OracleParser
         return value;
     }
 
-    /**
-     * TODO: parseCol definition.
-     * 
-     * @param generateColnums
-     * @param generateNull
-     */
     private void parseCol(boolean generateColnums, boolean generateNull)
             throws OracleExtractException
     {
@@ -909,7 +844,7 @@ public class OracleParser
      * e.g. 0002 0001 8002 c102 0003 000c Scott Martin
      */
     /**
-     * TODO: parseColumnList definition.
+     * parseColumnList definition.
      * 
      * @param orc
      * @param generateColnums
@@ -999,11 +934,6 @@ public class OracleParser
         }
     }
 
-    /**
-     * TODO: initParse definition.
-     * 
-     * @param s
-     */
     private void initParse(String s)
     {
         parseString = s;
@@ -1034,17 +964,6 @@ public class OracleParser
         parseColumnList(orc, type, isKey, totalColumns);
     }
 
-    /*
-     * return true IFF String contains a commit message, else append a
-     * OneRowChange to the given RowChangeData
-     */
-    /**
-     * TODO: parse definition.
-     * 
-     * @param s TODO : description
-     * @return OneRowChange, or null if ...
-     * @throws OracleExtractException TODO : description
-     */
     public OneRowChange parse(String s, String lastSCN)
             throws OracleExtractException
     {

@@ -245,6 +245,11 @@
         <copy todir="${dist.dir}/lib">
             <fileset dir="${jars.dir}"/>
         </copy>
+        <!-- 
+        Do not copy Vertica or other non-distributable proprietary JARs into 
+        build.  Oracle JDBC driver is OK, since EULA allows distribution with 
+        applications
+        -->
         <copy todir="${dist.dir}/lib">
              <fileset dir="lib/">
              	<include name="*.jar" unless="library.compile.files"/>
@@ -252,11 +257,12 @@
              	<include name="ruby/*" />
                 <exclude name="vertica*.jar"/>
              </fileset>
-         </copy>
+        </copy>
         <mkdir dir="${dist.dir}/lib-ext"/>
         <copy todir="${dist.dir}/lib-ext">
             <fileset dir="${lib-ext.dir}">
             	<include name="*.jar"/>
+                <exclude name="vertica*.jar"/>
             </fileset>
         </copy>
     	<mkdir dir="${dist.dir}/samples"/>

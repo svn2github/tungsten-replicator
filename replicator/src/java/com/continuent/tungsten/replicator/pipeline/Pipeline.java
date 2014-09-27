@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010-2013 Continuent Inc.
+ * Copyright (C) 2010-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -769,8 +769,8 @@ class DeferredShutdownTask implements Callable<Pipeline>
 
         logger.info("Pipeline has shut down, dispatching offline event: "
                 + pipeline.getName());
-        // TODO: This probably should not be here--pipelines should not know
-        // about the state machine.
+        // This probably should not be here--pipelines should not know
+        // about the state machine. However it works.
         pipeline.getContext().getEventDispatcher().put(new GoOfflineEvent());
         return pipeline;
     }

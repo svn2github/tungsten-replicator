@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2009 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * JavaScript example to be used with JavaScriptFilter. Presents trivial
@@ -12,8 +12,6 @@
  */
 function prepare()
 {
-    // TODO: add some preparation logic.
-    
     // It is possible to get from replicator.properties both factory properties
     // and custom defined properties of current filter's instance.
     master = properties.getString("replicator.thl.remote_uri");
@@ -95,11 +93,11 @@ function filter(event)
         }
     }
     
-	// Handling of return values:
+    // Handling of return values:
     // a. If return value is null or instanceof ReplDBMSEvent, it is passed
-	// through to the higher levels of the Replicator,
-	// b. If it's something else - it's just logged into INFO stream,
-	// c. If there's no return value, it's ignored.
+    // through to the higher levels of the Replicator,
+    // b. If it's something else - it's just logged into INFO stream,
+    // c. If there's no return value, it's ignored.
     return event.getSeqno();
 }
 
@@ -108,8 +106,6 @@ function filter(event)
  */
 function release()
 {
-    // TODO: add some releasing logic.
-    
     // We might return some message to be logged into replicator's log. It is
     // optional though.
     return "filter.js released";

@@ -347,7 +347,6 @@ public class ScriptPlugin extends NotificationBroadcasterSupport
      */
     public boolean heartbeat(TungstenProperties params) throws Exception
     {
-        // TODO Auto-generated method stub
         return false;
     }
 

@@ -1105,7 +1105,6 @@ public class MySQLExtractor implements RawExtractor
                 }
                 else if (doFileFragment)
                 {
-                    // TODO : remove this code ?
                     // Now, file fragmentation is done using the same code path
                     // than transaction fragmentation. This part of code would
                     // be just used if there is no fragmentation (frag_size=0)

@@ -1499,7 +1499,6 @@ public abstract class AbstractDatabase implements Database
     @Override
     public boolean isSystemSchema(String schemaName)
     {
-        // TODO Auto-generated method stub
         return false;
     }
 
@@ -1523,7 +1522,6 @@ public abstract class AbstractDatabase implements Database
     @Override
     public boolean supportsFlashbackQuery()
     {
-        // TODO Auto-generated method stub
         return false;
     }
 
@@ -1535,7 +1533,6 @@ public abstract class AbstractDatabase implements Database
     @Override
     public String getFlashbackQuery(String position)
     {
-        // TODO Auto-generated method stub
         return null;
     }
 

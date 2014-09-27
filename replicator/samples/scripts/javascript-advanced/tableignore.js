@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * JavaScript example for JavaScriptFilter. Allows one to ignore specific
@@ -15,6 +15,9 @@
  * replicator.stage.thl-to-dbms.filters=...,tableignore
  * 
  * @author <a href="mailto:linas.virbalas@continuent.com">Linas Virbalas</a>
+ *
+ * NOTE:  This filter has been superceded by the replicate filter.  Check 
+ * documentation for more information. 
  */
 
 /**
@@ -40,7 +43,6 @@ function prepare()
     stoppers[0] = "VALUES"; // INSERT | REPLACE ... INTO ... _VALUES_ ... X ...
     stoppers[1] = "WHERE";  // DELETE ... FROM ... _WHERE_ ... X ... 
     stoppers[2] = "SET ";    // UPDATE | LOAD DATA ... _SET_ ... X ...
-    // TODO: don't filter if there's table name in field definition of:
     // CREATE TABLE t (tablenametoignore int);
     // INSERT INTO t (tablenametoignore) VALUES ('test');
     logger.info("tableignore: Table names encountered after these keywords are treated as values: " + stoppers); 

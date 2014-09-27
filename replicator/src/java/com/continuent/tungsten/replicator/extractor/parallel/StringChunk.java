@@ -93,7 +93,6 @@ public class StringChunk extends AbstractChunk implements Chunk
     @Override
     public String getFrom()
     {
-        // TODO Auto-generated method stub
         return min;
     }
 
@@ -105,7 +104,6 @@ public class StringChunk extends AbstractChunk implements Chunk
     @Override
     public Object getTo()
     {
-        // TODO Auto-generated method stub
         return max;
     }
 

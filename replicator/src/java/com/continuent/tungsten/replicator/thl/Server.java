@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -228,7 +228,7 @@ public class Server implements Runnable
     }
 
     /**
-     * TODO: start definition.
+     * Start up the THL server, which spawns a service thread. 
      */
     public void start() throws IOException
     {
@@ -248,9 +248,7 @@ public class Server implements Runnable
     }
 
     /**
-     * TODO: stop definition.
-     * 
-     * @throws InterruptedException
+     * Stop the THL server, which cancels the service thread. 
      */
     public void stop() throws InterruptedException
     {

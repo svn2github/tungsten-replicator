@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2013 Continuent Inc.
+ * Copyright (C) 2009-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -65,11 +65,8 @@ public class UserVarLogEvent extends LogEvent
     private int              variableValueLength;
     private int              variableValueIndex;
 
-    // TODO The following fields are not used for now
-    // private int variableCharset;
-    // private boolean charset_inited = false;
-
-    /* types of variable values from include/mysql_com.h */
+    // Variable type markers from in binlog internal spec description of
+    // USER_VAR_EVENT.
     private static final int STRING_RESULT  = 0;
     private static final int REAL_RESULT    = 1;
     private static final int INT_RESULT     = 2;
@@ -141,9 +138,6 @@ public class UserVarLogEvent extends LogEvent
                 variableType = LittleEndianConversion.convert1ByteToInt(buffer,
                         offset);
                 offset = offset + MysqlBinlog.UV_VAL_TYPE_SIZE;
-                // variableCharset = (int) LittleEndianConversion
-                // .convert4BytesToLong(buffer, offset);
-                // charset_inited = true;
                 offset = offset + MysqlBinlog.UV_CHARSET_NUMBER_SIZE;
                 variableValueLength = (int) LittleEndianConversion
                         .convert4BytesToLong(buffer, offset);

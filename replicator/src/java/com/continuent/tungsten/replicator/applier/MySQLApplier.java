@@ -200,7 +200,8 @@ public class MySQLApplier extends JdbcApplier
     protected void applyOneRowChangePrepared(OneRowChange oneRowChange)
             throws ReplicatorException
     {
-        // TODO : Optimize events when number of rows is > min or < to max ?
+        // Optimize events is a binary for now. In future we may do so when
+        // number of rows is > min or < to max.
         if (optimizeRowEvents)
             if (oneRowChange.getAction() == RowChangeData.ActionType.INSERT
                     && oneRowChange.getColumnValues().size() > 1)
@@ -234,7 +235,6 @@ public class MySQLApplier extends JdbcApplier
 
                 // This can only be applied if table has a single column primary
                 // key
-                // TODO : Some datatypes might need to be excluded
                 if (t.getPrimaryKey() != null
                         && t.getPrimaryKey().getColumns() != null
                         && t.getPrimaryKey().getColumns().size() == 1)
@@ -300,11 +300,7 @@ public class MySQLApplier extends JdbcApplier
     }
 
     /**
-     * TODO: prepareOptimizedDeleteStatement definition.
-     * 
-     * @param oneRowChange
-     * @param keyName
-     * @return
+     * Create statement for optimized delete.
      */
     private StringBuffer prepareOptimizedDeleteStatement(
             OneRowChange oneRowChange, String keyName)
@@ -336,13 +332,7 @@ public class MySQLApplier extends JdbcApplier
     }
 
     /**
-     * TODO: executePreparedStatement definition.
-     * 
-     * @param oneRowChange
-     * @param stmt
-     * @param spec
-     * @param values
-     * @throws ApplierException
+     * Execute a single prepared statement.
      */
     private void executePreparedStatement(OneRowChange oneRowChange,
             StringBuffer stmt, ArrayList<ColumnSpec> spec,
@@ -376,13 +366,6 @@ public class MySQLApplier extends JdbcApplier
                         + "\nWarning: " + e.getMessage();
                 logger.warn(msg);
             }
-
-            // if (logger.isDebugEnabled())
-            // {
-            // logger.debug("Applied event (update count " + updateCount
-            // + "): " + stmt.toString());
-            // }
-
         }
         catch (SQLException e)
         {
@@ -400,8 +383,6 @@ public class MySQLApplier extends JdbcApplier
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
                 }
         }
     }

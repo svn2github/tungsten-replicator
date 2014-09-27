@@ -1,6 +1,5 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2009-2013 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -463,7 +462,6 @@ public class MySqlLvmDumpAgent extends AbstractBackupAgent
         lvmHelper.validateStorage("data directory location", dataDirLocation);
 
         // Generate MySQL URL.
-        // TODO: Generate from a common library.
         if (url == null)
         {
             StringBuffer sb = new StringBuffer();

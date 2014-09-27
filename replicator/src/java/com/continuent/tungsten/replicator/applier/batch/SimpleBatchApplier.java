@@ -350,8 +350,6 @@ public class SimpleBatchApplier implements RawApplier
         {
             try
             {
-                // TODO: This needs to be sorted out as the
-                // task execution loop needs to know we committed.
                 commit();
             }
             catch (ReplicatorException e)

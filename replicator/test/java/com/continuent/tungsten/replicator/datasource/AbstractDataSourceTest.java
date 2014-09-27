@@ -187,7 +187,6 @@ public class AbstractDataSourceTest
         CommitSeqno commitSeqno = c.getCommitSeqno();
 
         // Loop through many times.
-        // TODO: Raise # to 10000.
         for (int i = 0; i < 100; i++)
         {
             if (i > 0 && (i % 1000) == 0)

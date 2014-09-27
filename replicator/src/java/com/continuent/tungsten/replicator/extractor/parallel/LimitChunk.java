@@ -100,7 +100,6 @@ public class LimitChunk extends AbstractChunk implements Chunk
     @Override
     public Object getFrom()
     {
-        // TODO Auto-generated method stub
         return from;
     }
 

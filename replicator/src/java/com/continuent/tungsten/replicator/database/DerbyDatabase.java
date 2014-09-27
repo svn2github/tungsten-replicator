@@ -58,7 +58,7 @@ public class DerbyDatabase extends AbstractDatabase
     @Override
     public SqlOperationMatcher getSqlNameMatcher() throws ReplicatorException
     {
-        // TODO: Develop matcher for Drizzle dialect.
+        // Return MySQL matcher for now. 
         return new MySQLOperationMatcher();
     }
 
