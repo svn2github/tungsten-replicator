@@ -1014,7 +1014,6 @@ public abstract class AbstractDatabase implements Database
      * set with database-specific logic.
      * 
      * @param rs Metadata resultset
-     * @param columnName Name of the column to be added
      * @return the column definition
      * @throws SQLException if an error occurs
      */
@@ -1506,7 +1505,6 @@ public abstract class AbstractDatabase implements Database
      * {@inheritDoc}
      * 
      * @throws ExtractorException
-     * @see com.continuent.tungsten.replicator.database.Database#getCurrentPosition()
      */
     @Override
     public String getCurrentPosition(boolean flush) throws ReplicatorException

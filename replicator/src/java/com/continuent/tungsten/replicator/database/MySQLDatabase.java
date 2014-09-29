@@ -155,9 +155,6 @@ public class MySQLDatabase extends AbstractDatabase
     
     /**
      * {@inheritDoc}
-     * 
-     * @see com.continuent.tungsten.replicator.applier.JdbcApplier#addColumn(java.sql.ResultSet,
-     *      java.lang.String)
      */
     @Override
     protected Column addColumn(ResultSet rs)
@@ -924,7 +921,6 @@ public class MySQLDatabase extends AbstractDatabase
      * {@inheritDoc}
      * 
      * @throws ExtractorException
-     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#getCurrentPosition()
      */
     @Override
     public String getCurrentPosition(boolean flush) throws ReplicatorException

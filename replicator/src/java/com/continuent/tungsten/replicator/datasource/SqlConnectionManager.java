@@ -174,7 +174,7 @@ public class SqlConnectionManager
             SQLException
     {
         // Connect to DBMS.
-        Database conn = (Database) getWrappedConnection(false);
+        Database conn = getWrappedConnection(false);
         conn.connect();
         conn.setPrivileged(privileged);
         conn.setLogged(logOperations);

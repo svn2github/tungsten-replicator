@@ -169,8 +169,8 @@ public class NetworkClientFilter implements Filter
                     {
                         String transformation = it.next();
 
-                        JSONArray array = (JSONArray) definitions
-                                .get(transformation);
+                        JSONArray array = definitions.get(transformation);
+                        
                         // Not using any hash, because simple loop should be
                         // fast enough for a few expected entries.
                         for (Object o : array)
@@ -430,7 +430,7 @@ public class NetworkClientFilter implements Filter
                 String transformation = it.next();
                 logger.info("Transformation: " + transformation);
 
-                JSONArray array = (JSONArray) definitions.get(transformation);
+                JSONArray array = definitions.get(transformation);
                 for (Object o : array)
                 {
                     JSONObject jo = (JSONObject) o;

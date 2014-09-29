@@ -433,7 +433,7 @@ public class MySQLExtractor implements RawExtractor
         try
         {
             logger.info("Positioning from MySQL master current position");
-            conn = (Database) dataSourceImpl.getConnection();
+            conn = dataSourceImpl.getConnection();
             st = conn.createStatement();
             if (flush && runtime.isPrivilegedMaster())
             {

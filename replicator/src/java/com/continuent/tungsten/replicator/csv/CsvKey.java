@@ -73,6 +73,6 @@ public class CsvKey implements Comparable<CsvKey>
      */
     public int compareTo(CsvKey anotherKey)
     {
-        return key.compareTo((String) anotherKey.toString());
+        return key.compareTo(anotherKey.toString());
     }
 }

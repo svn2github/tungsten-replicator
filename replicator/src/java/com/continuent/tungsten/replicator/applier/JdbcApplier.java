@@ -1117,7 +1117,6 @@ public class JdbcApplier implements RawApplier
      * 
      * @see #maxSQLLogLength
      * @param stmt SQL template for PreparedStatement
-     * @return
      */
     protected String logFailedRowChangeSQL(StringBuffer stmt,
             OneRowChange oneRowChange)
