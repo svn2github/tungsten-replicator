@@ -1818,6 +1818,12 @@ public class MySQLExtractor implements RawExtractor
     public String getCurrentResourceEventId() throws ReplicatorException,
             InterruptedException
     {
+        // If we are not prepared, we cannot get status because we won't have a
+        // data source available.
+        if (dataSourceImpl == null)
+            return "NONE";
+
+        // Now compute status.
         Database conn = null;
         Statement st = null;
         ResultSet rs = null;
@@ -1878,8 +1884,17 @@ public class MySQLExtractor implements RawExtractor
             {
             }
         }
+        // We proceed carefully here as we might hit a race condition where
+        // the dataSourceImpl disappears due to a concurrent offline command.
         if (dataSourceImpl != null)
+        {
             dataSourceImpl.releaseConnection(conn);
+        }
+        else if (conn != null)
+        {
+            // Do not lose the resource even if dataSourceImpl is gone.
+            conn.close();
+        }
     }
 
     public void setPrefetchSchemaNameLDI(boolean prefetchSchemaNameLDI)
