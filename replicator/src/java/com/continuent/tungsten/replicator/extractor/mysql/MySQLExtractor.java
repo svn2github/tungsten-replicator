@@ -1878,7 +1878,8 @@ public class MySQLExtractor implements RawExtractor
             {
             }
         }
-        dataSourceImpl.releaseConnection(conn);
+        if (dataSourceImpl != null)
+            dataSourceImpl.releaseConnection(conn);
     }
 
     public void setPrefetchSchemaNameLDI(boolean prefetchSchemaNameLDI)
