@@ -53,14 +53,21 @@ public class DataServicesConfiguration extends ClusterConfiguration
         }
     }
 
-    public static DataServicesConfiguration getInstance()
+    public static synchronized DataServicesConfiguration getInstance()
             throws ConfigurationException
     {
         if (instance == null)
         {
-            instance = new DataServicesConfiguration();
+            reload();
         }
+        return instance;
+    }
 
+    public static synchronized DataServicesConfiguration reload()
+            throws ConfigurationException
+    {
+        physicalDataServiceManagers.clear();
+        instance = new DataServicesConfiguration();
         return instance;
     }
 
