@@ -952,8 +952,6 @@ public class ClusterMembershipDigest
 
     /**
      * Determine how many active witnesses are in the potential quorum set.
-     * 
-     * @return
      */
     public int activeWitnessesInQuorumSetCount()
     {
@@ -1017,8 +1015,6 @@ public class ClusterMembershipDigest
 
     /**
      * Determine how many passive witnesses are in the potential quorum set.
-     * 
-     * @return
      */
     public int passiveWitnessesInQuorumSetCount()
     {
