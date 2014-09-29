@@ -614,7 +614,6 @@ public class NetworkClientFilter implements Filter
         }
         else
         {
-            // TODO: convert numeric and other types.
             return newValue;
         }
     }

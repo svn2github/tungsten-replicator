@@ -192,7 +192,7 @@ public class VerticaDatabase extends PostgreSQLDatabase
             case Types.CHAR :
             {
                 if (c.getLength() == 1)
-                    // TODO: remove this dirty hack, written to support storing
+                    // This is a provisional hack, written to support storing
                     // boolean values into "character(1)" type "last_frag" field
                     // of "trep_commit_seqno" and "history" tables.
                     return "CHAR(5)";

@@ -210,7 +210,6 @@ public class DDLScan
                 Table table = db.findTable(dbName, tableName, true);
                 if (table != null)
                     tables.add(table);
-                // TODO: add error reporting and report if table was not found.
             }
         }
 

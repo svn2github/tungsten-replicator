@@ -136,8 +136,6 @@ public class OracleApplier extends JdbcApplier
               // Blob in the incoming event masked as NULL,
               // though this happens with a non-NULL value!
               // Case targeted with this: MySQL.TEXT -> Oracle.VARCHARx
-              // TODO: investigate why isn't the column of Types.BLOB as
-              // expected (related to TENT-323?).
 
                 SerialBlob blob = (SerialBlob) value.getValue();
 
@@ -145,8 +143,8 @@ public class OracleApplier extends JdbcApplier
                 {
                     // Blob in the incoming event and in Oracle table.
                     // IMPORTANT: the bellow way only fixes INSERTs.
-                    // TODO: implement Oracle BLOB support for key lookups (i.e.
-                    // DELETE, UPDATE).
+                    // Blobs in key lookups of DELETEs and UPDATEs is
+                    // not supported.
                     prepStatement.setBytes(bindLoc,
                             blob.getBytes(1, (int) blob.length()));
                     if (logger.isDebugEnabled())

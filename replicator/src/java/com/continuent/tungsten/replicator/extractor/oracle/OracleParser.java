@@ -42,7 +42,6 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
-import com.continuent.tungsten.replicator.extractor.ExtractorException;
 
 /**
  * Defines a class that can parse row level changes returned by Oracle into java

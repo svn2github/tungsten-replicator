@@ -143,7 +143,6 @@ public class DataScanCtrl
      */
     private void parseArgs()
     {
-        // TODO: These variables are currently unused and should be eliminated.
         @SuppressWarnings("unused")
         String command = null;
         @SuppressWarnings("unused")
