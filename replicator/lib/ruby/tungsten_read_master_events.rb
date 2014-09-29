@@ -42,12 +42,21 @@ class TungstenReplicatorReadMasterEvents
         raise "Unable to parse the THL eventId for the starting position"
       end
       
+      begin
+        TU.cmd_result("mysql --defaults-file=#{@options[:my_cnf]} --port=#{@options[:mysqlport]} -h#{thl_record['sourceId']} -e'SELECT 1'")
+      rescue CommandError => ce
+        TU.debug(ce)
+        raise "Unable to connect to #{thl_record['sourceId']}:#{@options[:mysqlport]} try running the command from #{thl_record['sourceId']}"
+      end
+      
       TU.log_cmd_results?(false)
       TU.cmd_stdout("mysqlbinlog --defaults-file=#{@options[:my_cnf]} --port=#{@options[:mysqlport]} --base64-output=DECODE-ROWS --verbose -R -t -h#{thl_record['sourceId']} --start-position=#{start_position} #{start_file}") {
         |line|
         TU.output(line)
       }
       TU.log_cmd_results?(true)
+    rescue CommandError => ce
+      TU.exception(ce)
     rescue => e
       raise e
     end
@@ -96,12 +105,21 @@ class TungstenReplicatorReadMasterEvents
         file_number = file_number+1
       end
       
+      begin
+        TU.cmd_result("mysql --defaults-file=#{@options[:my_cnf]} --port=#{@options[:mysqlport]} -h#{low_thl_record['sourceId']} -e'SELECT 1'")
+      rescue CommandError => ce
+        TU.debug(ce)
+        raise "Unable to connect to #{low_thl_record['sourceId']}:#{@options[:mysqlport]} try running the command from #{low_thl_record['sourceId']}"
+      end
+      
       TU.log_cmd_results?(false)
       TU.cmd_stdout("mysqlbinlog --defaults-file=#{@options[:my_cnf]} --port=#{@options[:mysqlport]} --base64-output=DECODE-ROWS --verbose -R -h#{low_thl_record['sourceId']} --start-position=#{start_position} --stop-position=#{stop_position} #{files.join(' ')}") {
         |line|
         TU.output(line)
       }
       TU.log_cmd_results?(true)
+    rescue CommandError => ce
+      TU.exception(ce)
     rescue => e
       raise e
     end
