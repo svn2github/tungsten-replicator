@@ -6,6 +6,9 @@ REPL_MYSQL_CONNECTOR_PATH = "mysql_connectorj_path"
 REPL_MYSQL_DATADIR = "repl_datasource_mysql_data_directory"
 REPL_MYSQL_IBDATADIR = "repl_datasource_mysql_ibdata_directory"
 REPL_MYSQL_IBLOGDIR = "repl_datasource_mysql_iblog_directory"
+REPL_MYSQL_SSL_CA = "repl_datasource_mysql_ssl_ca"
+REPL_MYSQL_SSL_CERTIFICATE = "repl_datasource_mysql_ssl_cert"
+REPL_MYSQL_SSL_KEY = "repl_datasource_mysql_ssl_key"
 REPL_MYSQL_RO_SLAVE = "repl_mysql_ro_slave"
 REPL_MYSQL_SERVER_ID = "repl_mysql_server_id"
 REPL_MYSQL_ENABLE_ENUMTOSTRING = "repl_mysql_enable_enumtostring"
@@ -24,6 +27,20 @@ REPL_MYSQL_SERVICE_CONF = "repl_datasource_mysql_service_conf"
 EXTRACTOR_REPL_MYSQL_SERVICE_CONF = "repl_direct_datasource_mysql_service_conf"
 
 class MySQLDatabasePlatform < ConfigureDatabasePlatform
+  attr_reader :sslca, :sslcert, :sslkey
+  
+  def initialize(prefix, config, extractor = false)
+    super(prefix, config, extractor)
+    
+    if prefix == nil || config == nil
+      return
+    end
+    
+    @sslca = @config.getProperty(@prefix + [REPL_MYSQL_SSL_CA]).to_s()
+    @sslcert = @config.getProperty(@prefix + [REPL_MYSQL_SSL_CERTIFICATE]).to_s()
+    @sslkey = @config.getProperty(@prefix + [REPL_MYSQL_SSL_KEY]).to_s()
+  end
+  
   def get_uri_scheme
     DBMS_MYSQL
   end
@@ -71,7 +88,19 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
       tmp << "user=#{@username}\n"
       tmp << "password=#{@password}\n"
       tmp << "port=#{@port}\n"
-      tmp << "!include /etc/tungsten/my.cnf\n"
+      
+      if @sslca != ""
+        tmp << "ssl-ca=#{@sslca}\n"
+      end
+      
+      if @sslcert != ""
+        tmp << "ssl-cert=#{@sslcert}\n"
+      end
+      
+      if @sslkey != ""
+        tmp << "ssl-key=#{@sslkey}\n"
+      end
+      
       tmp.flush
       
       Timeout.timeout(5) {
@@ -103,7 +132,19 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
       tmp << "user=#{@username}\n"
       tmp << "password=#{@password}\n"
       tmp << "port=#{@port}\n"
-      tmp << "!include /etc/tungsten/my.cnf\n"
+      
+      if @sslca != ""
+        tmp << "ssl-ca=#{@sslca}\n"
+      end
+      
+      if @sslcert != ""
+        tmp << "ssl-cert=#{@sslcert}\n"
+      end
+      
+      if @sslkey != ""
+        tmp << "ssl-key=#{@sslkey}\n"
+      end
+      
       tmp.flush
       
       Timeout.timeout(5) {
@@ -262,7 +303,13 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def getJdbcQueryUrl()
-    "jdbc:mysql:thin://#{@host}:#{@port}/"
+    baseUrl = "jdbc:mysql:thin://#{@host}:#{@port}/"
+    sslOptions = getJdbcUrlSSLOptions()
+    if sslOptions == ""
+      baseUrl
+    else
+      baseUrl + "?" + sslOptions
+    end
   end
   
   def getJdbcDriver()
@@ -556,6 +603,111 @@ class MySQLInnoDBLogDirectory < MySQLConfigurePrompt
   
   def required?
     false
+  end
+end
+
+class MySQLSSLCAFile < MySQLConfigurePrompt
+  include DatasourcePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_MYSQL_SSL_CA, "MySQL SSL CA file", 
+      PV_FILENAME_OR_EMPTY)
+  end
+  
+  def get_mysql_default_value
+    begin
+      v = ssh_result("my_print_defaults --config-file=#{@config.getProperty(get_member_key(REPL_MYSQL_CONF))} mysqld | grep '^--ssl-ca='", @config.getProperty(get_host_key(HOST)), @config.getProperty(get_host_key(USERID))).split("=")[-1].strip()
+
+      if v.to_s() != ""
+        return v
+      end
+    rescue CommandError
+    end
+    
+    return ""
+  end
+  
+  def enabled?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+  
+  def enabled_for_config?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+  
+  def required?
+    (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+end
+
+class MySQLSSLCertificateFile < MySQLConfigurePrompt
+  include DatasourcePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_MYSQL_SSL_CERTIFICATE, "MySQL SSL certificate file", 
+      PV_FILENAME_OR_EMPTY)
+  end
+  
+  def get_mysql_default_value
+    begin
+      v = ssh_result("my_print_defaults --config-file=#{@config.getProperty(get_member_key(REPL_MYSQL_CONF))} mysqld | grep '^--ssl-cert='", @config.getProperty(get_host_key(HOST)), @config.getProperty(get_host_key(USERID))).split("=")[-1].strip()
+
+      if v.to_s() != ""
+        return v
+      end
+    rescue CommandError
+    end
+    
+    return ""
+  end
+  
+  def enabled?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+  
+  def enabled_for_config?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+  
+  def required?
+    (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+end
+
+class MySQLSSLKeyFile < MySQLConfigurePrompt
+  include DatasourcePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_MYSQL_SSL_KEY, "MySQL SSL key file", 
+      PV_FILENAME_OR_EMPTY)
+  end
+  
+  def get_mysql_default_value
+    begin
+      v = ssh_result("my_print_defaults --config-file=#{@config.getProperty(get_member_key(REPL_MYSQL_CONF))} mysqld | grep '^--ssl-key='", @config.getProperty(get_host_key(HOST)), @config.getProperty(get_host_key(USERID))).split("=")[-1].strip()
+
+      if v.to_s() != ""
+        return v
+      end
+    rescue CommandError
+    end
+    
+    return ""
+  end
+  
+  def enabled?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+  
+  def enabled_for_config?
+    super() && (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
+  end
+  
+  def required?
+    (get_datasource().is_a?(MySQLDatabasePlatform) && @config.getProperty(get_member_key(REPL_ENABLE_DBSSL)) == "true")
   end
 end
 
@@ -1702,6 +1854,18 @@ module ConfigureDeploymentStepMySQL
         file.puts("user=#{ads.username}")
         file.puts("password=#{ads.password}")
         
+        if ads.sslca != ""
+          file.puts("ssl-ca=#{ads.sslca}")
+        end
+
+        if ads.sslcert != ""
+          file.puts("ssl-cert=#{ads.sslcert}")
+        end
+
+        if ads.sslkey != ""
+          file.puts("ssl-key=#{ads.sslkey}")
+        end
+        
         if @config.getProperty(get_service_key(REPL_MYSQL_DATADIR)).to_s() != ""
           file.puts("[mysqld]")
           file.puts("datadir=#{@config.getProperty(get_service_key(REPL_MYSQL_DATADIR))}")
@@ -1718,6 +1882,18 @@ module ConfigureDeploymentStepMySQL
           file.puts("[client]")
           file.puts("user=#{eds.username}")
           file.puts("password=#{eds.password}")
+          
+          if eds.sslca != ""
+            file.puts("ssl-ca=#{eds.sslca}")
+          end
+
+          if eds.sslcert != ""
+            file.puts("ssl-cert=#{eds.sslcert}")
+          end
+
+          if eds.sslkey != ""
+            file.puts("ssl-key=#{eds.sslkey}")
+          end
         }
         WatchFiles.watch_file(@config.getProperty(get_service_key(EXTRACTOR_REPL_MYSQL_SERVICE_CONF)), @config)
       end
