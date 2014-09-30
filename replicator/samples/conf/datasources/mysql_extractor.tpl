@@ -1,11 +1,13 @@
-# MySQL datasource used for extractor. 
+# MySQL datasource used for extractor.
+# This file is used for direct replication.
+# In such topology, we don't want to create tungsten database on the server we are pulling data from.
 replicator.datasource.extractor=com.continuent.tungsten.replicator.datasource.SqlDataSource
 
 # Service name of the replicator.
 replicator.datasource.extractor.serviceName=${service.name}
 
-# Whether to create catalog tables. 
-replicator.datasource.extractor.createCatalog=true
+# Whether to create catalog tables. No need in direct replication (see issue 1009).
+replicator.datasource.extractor.createCatalog=false
 
 # Connection information for MySQL. 
 replicator.datasource.extractor.connectionSpec=com.continuent.tungsten.replicator.datasource.SqlConnectionSpecMySQL
@@ -13,7 +15,8 @@ replicator.datasource.extractor.connectionSpec.host=@{EXTRACTOR.REPL_DBHOST}
 replicator.datasource.extractor.connectionSpec.port=@{EXTRACTOR.REPL_DBPORT}
 replicator.datasource.extractor.connectionSpec.user=@{EXTRACTOR.REPL_DBLOGIN}
 replicator.datasource.extractor.connectionSpec.password=@{EXTRACTOR.REPL_DBPASSWORD}
-replicator.datasource.extractor.connectionSpec.schema=${replicator.schema}
+# Connect with an empty database name in direct replication.
+replicator.datasource.extractor.connectionSpec.schema=
 replicator.datasource.extractor.connectionSpec.sslEnabled=${replicator.global.db.sslEnabled}
 
 # CSV specification type.  This is the conventions for writing CSV files,
