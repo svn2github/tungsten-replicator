@@ -1413,7 +1413,7 @@ class MySQLDefaultTableTypeCheck < ConfigureValidationCheck
     
     table_type = get_applier_datasource.get_value("SHOW VARIABLES LIKE 'table_type'", "Value")
     if table_type == nil
-      table_type = get_applier_datasource.get_value("SHOW VARIABLES LIKE 'storage_engine'", "Value")
+      table_type = get_applier_datasource.get_value("SHOW VARIABLES LIKE '%storage_engine'", "Value")
     end
     
     if table_type.downcase() == "myisam"
