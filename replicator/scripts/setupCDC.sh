@@ -12,6 +12,15 @@ CNF_FILE="setupCDC.conf"
 [ ! -f "${CNF_FILE}" ] && echo "ERROR: Configuration file '${CNF_FILE}' was not found" && exit 1
 . ${CNF_FILE}
 
+# Issue 1014 - normalizing CDC type names for setupCDC and tpm
+if [ "$cdc_type" = "CDCASYNC" ]
+then
+   cdc_type="HOTLOG_SOURCE"
+elif [ "$cdc_type" = "CDCSYNC" ]
+then
+   cdc_type="SYNC_SOURCE"
+fi
+
 # Checking that delete_user is replaced by delete_publisher and delete_subscriber
 if [ -z "${delete_publisher+undefined}" ] || [ -z "${delete_subscriber+undefined}" ] ; 
 then

@@ -7,6 +7,15 @@ CNF_FILE="setupCDC.conf"
 [ ! -f "${CNF_FILE}" ] && echo "ERROR: Configuration file '${CNF_FILE}' was not found" && exit 1
 . ${CNF_FILE}
 
+# Issue 1014 - normalizing CDC type names for setupCDC and tpm
+if [ "$cdc_type" = "CDCASYNC" ]
+then
+   cdc_type="HOTLOG_SOURCE"
+elif [ "$cdc_type" = "CDCSYNC" ]
+then
+   cdc_type="SYNC_SOURCE"
+fi
+
 DEFAULT_CHANGE_SET="TUNGSTEN_CHANGE_SET"
 CHANGE_SET=${DEFAULT_CHANGE_SET}
 [ ! -z "${service}" ] && CHANGE_SET="TUNGSTEN_CS_${service}"
