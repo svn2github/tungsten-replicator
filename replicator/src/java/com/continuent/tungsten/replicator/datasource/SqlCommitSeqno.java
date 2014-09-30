@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2013 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -140,7 +140,8 @@ public class SqlCommitSeqno implements CommitSeqno
     {
         // Define schema.
         commitSeqnoTable = new Table(schema, TABLE_NAME);
-        commitSeqnoTableTaskId = new Column("task_id", java.sql.Types.INTEGER);
+        commitSeqnoTableTaskId = new Column("task_id", java.sql.Types.INTEGER,
+                true); // true => isNotNull
         commitSeqnoTableSeqno = new Column("seqno", java.sql.Types.BIGINT);
         commitSeqnoTableFragno = new Column("fragno", Types.SMALLINT);
         commitSeqnoTableLastFrag = new Column("last_frag", Types.CHAR, 1);
