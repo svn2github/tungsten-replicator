@@ -717,6 +717,20 @@ class ConnectorEnableClientSSL < ConfigurePrompt
     end
   end
   
+  def get_template_value
+    value = "false"
+    
+    if @config.getProperty(get_member_key(ENABLE_CONNECTOR_CLIENT_SSL)) == "true"
+      value = "true"
+    end
+    
+    if @config.getProperty(get_member_key(ENABLE_CONNECTOR_SERVER_SSL)) == "true"
+      value = "true"
+    end
+    
+    value
+  end
+  
   def required?
     false
   end
