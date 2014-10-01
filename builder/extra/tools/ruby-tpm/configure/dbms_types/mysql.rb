@@ -1563,9 +1563,22 @@ class MySQLDefaultTableTypeCheck < ConfigureValidationCheck
   def validate
     info("Checking that MySQL uses InnoDB exists")
     
+    # First, we try with the deprecated keyword 'table_type'
     table_type = get_applier_datasource.get_value("SHOW VARIABLES LIKE 'table_type'", "Value")
+     
+    # If that fails, we try with 'storage_engine'
     if table_type == nil
-      table_type = get_applier_datasource.get_value("SHOW VARIABLES LIKE '%storage_engine'", "Value")
+      table_type = get_applier_datasource.get_value("SHOW VARIABLES LIKE 'storage_engine'", "Value")
+    end
+    
+    # Since also 'storage engine' is deprecated in MySQL 5.6+, we also try with the latest accepted keyword
+    if table_type == nil
+      table_type = get_applier_datasource.get_value("SHOW VARIABLES LIKE 'default_storage_engine'", "Value")
+    end
+
+    # no known variable name returned a value: we fail.
+    if table_type == nil
+      error("Could not get a storage engine type for datasource #{get_applier_datasource.get_connection_summary()} uses #{table_type}")
     end
     
     if table_type.downcase() == "myisam"
