@@ -798,6 +798,7 @@ public class ProtobufSerializer implements Serializer
                 valueBuilder.setType(Type.BLOB);
                 break;
             case Types.CHAR :
+            case Types.NCHAR :
             case Types.VARCHAR :
             case Types.NVARCHAR :
                 if (value instanceof String)

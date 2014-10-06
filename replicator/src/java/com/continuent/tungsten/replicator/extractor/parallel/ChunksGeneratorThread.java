@@ -41,9 +41,9 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.Key;
 import com.continuent.tungsten.replicator.database.Table;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.extractor.parallel.ChunkDefinitions.ChunkRequest;
 
 /**
@@ -117,9 +117,6 @@ public class ChunksGeneratorThread extends Thread
 
     private static Logger        logger    = Logger.getLogger(ChunksGeneratorThread.class);
     private Database             connection;
-    private String               user;
-    private String               url;
-    private String               password;
     private BlockingQueue<Chunk> chunks;
     private String               chunkDefFile;
     private ChunkDefinitions     chunkDefinition;
@@ -127,26 +124,23 @@ public class ChunksGeneratorThread extends Thread
     private long                 chunkSize = 1000;
     private String               eventId   = null;
     private String               whereClause;
+    private UniversalDataSource  dataSource;
 
     /**
      * Creates a new <code>ChunksGeneratorThread</code> object
      * 
      * @param user
-     * @param url
-     * @param password
      * @param extractChannels
      * @param chunks
      * @param chunkDefinitionFile
      * @param chunkSize
      */
-    public ChunksGeneratorThread(String user, String url, String password,
+    public ChunksGeneratorThread(UniversalDataSource datasource,
             int extractChannels, BlockingQueue<Chunk> chunks,
             String chunkDefinitionFile, long chunkSize)
     {
         this.setName("ChunkGeneratorThread");
-        this.user = user;
-        this.url = url;
-        this.password = password;
+        this.dataSource = datasource;
         this.chunks = chunks;
         this.chunkDefFile = chunkDefinitionFile;
         this.extractChannels = extractChannels;
@@ -162,24 +156,26 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (Exception e)
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
 
     /**
-     * TODO: runTask definition.
+     * Perform the chunk generation
      */
     private void runTask()
     {
         connection = null;
         try
         {
-            connection = DatabaseFactory.createDatabase(url, user, password);
+            // Establish a connection to the data source.
+            logger.info("Connecting to data source");
+
+            // Create a connection, suppressing logging if desired.
+            connection = (Database) dataSource.getConnection();
         }
-        catch (SQLException e)
+        catch (ReplicatorException e)
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -189,7 +185,6 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (SQLException e)
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -204,12 +199,10 @@ public class ChunksGeneratorThread extends Thread
             }
             catch (IOException e)
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
             catch (ReplicatorException e)
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
 
@@ -237,17 +230,14 @@ public class ChunksGeneratorThread extends Thread
                     }
                     catch (SQLException e)
                     {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                     catch (ReplicatorException e)
                     {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                     catch (InterruptedException e)
                     {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }
@@ -296,7 +286,6 @@ public class ChunksGeneratorThread extends Thread
             }
             catch (InterruptedException e)
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -333,7 +322,6 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (Exception e)
         {
-            // TODO: handle exception
             e.printStackTrace();
 
         }
@@ -552,7 +540,6 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -564,7 +551,6 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -655,7 +641,6 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -667,7 +652,6 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -692,7 +676,8 @@ public class ChunksGeneratorThread extends Thread
 
         PreparedStatement pstmt = null;
 
-        // TODO: This does not perform very well. It is better to scan the index
+        // Note : This does not perform very well. It is better to scan the
+        // index
         // than to try to use a query based on rownum
 
         StringBuffer sqlBuf = new StringBuffer("SELECT MIN(");
@@ -721,7 +706,6 @@ public class ChunksGeneratorThread extends Thread
         }
         catch (SQLException e)
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -742,7 +726,6 @@ public class ChunksGeneratorThread extends Thread
                 }
                 catch (SQLException e)
                 {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
                 finally
@@ -753,7 +736,6 @@ public class ChunksGeneratorThread extends Thread
                     }
                     catch (SQLException e)
                     {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }
@@ -767,7 +749,6 @@ public class ChunksGeneratorThread extends Thread
             }
             catch (SQLException e)
             {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -949,7 +930,6 @@ public class ChunksGeneratorThread extends Thread
 
         if (table.getPrimaryKey() != null)
         {
-            // TODO
             // No dedicated chunking algorithm for this type of pk (either
             // composite or datatype not handled)
             key = table.getPrimaryKey();
@@ -989,7 +969,7 @@ public class ChunksGeneratorThread extends Thread
             }
             colBuf.append(columns[j].getName());
         }
-        
+
         sqlBuffer.append(colBuf);
 
         sqlBuffer.append(" FROM ");
@@ -1005,7 +985,8 @@ public class ChunksGeneratorThread extends Thread
         if (logger.isDebugEnabled())
             logger.debug("Generated statement :" + sql);
         PreparedStatement pStmt = connection.prepareStatement(sql);
-        // TODO : have a setting ?
+        // This should probably be a setting (fetch size). For now, let it be
+        // hardcoded.
         pStmt.setFetchSize(100);
         return pStmt;
     }

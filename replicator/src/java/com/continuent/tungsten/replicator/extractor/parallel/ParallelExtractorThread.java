@@ -40,9 +40,9 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.OracleDatabase;
 import com.continuent.tungsten.replicator.database.OracleEventId;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
@@ -59,10 +59,6 @@ public class ParallelExtractorThread extends Thread
 {
     private static Logger                 logger     = Logger.getLogger(ParallelExtractorThread.class);
 
-    private String                        url;
-    private String                        user;
-    private String                        password;
-
     private Database                      connection = null;
     private boolean                       cancelled  = false;
     private ArrayBlockingQueue<DBMSEvent> queue;
@@ -75,37 +71,28 @@ public class ParallelExtractorThread extends Thread
 
     private String                        eventId    = null;
 
-    public ParallelExtractorThread(String url, String user, String password,
+    public ParallelExtractorThread(UniversalDataSource dataSource,
             ArrayBlockingQueue<Chunk> chunks,
             ArrayBlockingQueue<DBMSEvent> queue)
     {
-        this.user = user;
-        this.password = password;
-        this.url = url;
-
         try
         {
-            connection = DatabaseFactory.createDatabase(url, user, password);
+            // Establish a connection to the data source.
+            logger.info("Connecting to data source");
+
+            // Create a connection.
+            connection = (Database) dataSource.getConnection();
         }
-        catch (SQLException e)
+        catch (ReplicatorException e)
         {
-            logger.warn("Error while connecting to database (" + url + ")", e);
+            logger.warn(
+                    "Error while connecting to database ("
+                            + dataSource.getName() + ")", e);
         }
 
         this.queue = queue;
         this.chunks = chunks;
 
-    }
-
-    public void prepare() throws ReplicatorException
-    {
-        try
-        {
-            connection = DatabaseFactory.createDatabase(url, user, password);
-        }
-        catch (SQLException e)
-        {
-        }
     }
 
     /**

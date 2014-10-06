@@ -23,7 +23,6 @@
 package com.continuent.tungsten.replicator.extractor.parallel;
 
 import java.io.File;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -35,7 +34,7 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.replicator.InSequenceNotification;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
+import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
@@ -50,9 +49,8 @@ public class ParallelExtractor implements RawExtractor
 {
     private static Logger                 logger                = Logger.getLogger(ParallelExtractor.class);
 
-    private String                        url                   = null;
-    private String                        user                  = "root";
-    private String                        password              = "rootpass";
+    private String                        datasourceName;
+    private UniversalDataSource           dataSource;
 
     private boolean                       addTruncateTable      = false;
     private long                          chunkSize             = -1;
@@ -97,6 +95,11 @@ public class ParallelExtractor implements RawExtractor
         this.chunkSize = chunkSize;
     }
 
+    public void setDataSource(String dataSource) throws ReplicatorException
+    {
+        this.datasourceName = dataSource;
+    }
+
     /**
      * Sets the extractChannels value.
      * 
@@ -118,36 +121,6 @@ public class ParallelExtractor implements RawExtractor
     }
 
     /**
-     * Sets the url value.
-     * 
-     * @param url The url to set.
-     */
-    public void setUrl(String url)
-    {
-        this.url = url;
-    }
-
-    /**
-     * Sets the user value.
-     * 
-     * @param user The user to set.
-     */
-    public void setUser(String user)
-    {
-        this.user = user;
-    }
-
-    /**
-     * Sets the password value.
-     * 
-     * @param password The password to set.
-     */
-    public void setPassword(String password)
-    {
-        this.password = password;
-    }
-
-    /**
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#configure(com.continuent.tungsten.replicator.plugin.PluginContext)
@@ -156,9 +129,9 @@ public class ParallelExtractor implements RawExtractor
     public void configure(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
+        this.context = context;
         if (chunkDefinitionFile == null)
             logger.info("No chunk definition file provided. Scanning whole database.");
-
     }
 
     /**
@@ -170,13 +143,19 @@ public class ParallelExtractor implements RawExtractor
     @Override
     public void prepare(PluginContext context) throws ReplicatorException
     {
-        this.context = context;
+        // Establish a connection to the data source.
+        this.dataSource = context.getDataSource(datasourceName);
+        if (dataSource == null)
+        {
+            throw new ReplicatorException("Unable to locate data source: name="
+                    + dataSource);
+        }
 
         chunks = new ArrayBlockingQueue<Chunk>(5 * extractChannels);
 
         queue = new ArrayBlockingQueue<DBMSEvent>(queueSize);
 
-        chunksGeneratorThread = new ChunksGeneratorThread(user, url, password,
+        chunksGeneratorThread = new ChunksGeneratorThread(dataSource,
                 extractChannels, chunks, chunkDefinitionFile, chunkSize);
 
         tableBlocks = new Hashtable<String, Long>();
@@ -186,7 +165,7 @@ public class ParallelExtractor implements RawExtractor
         {
             // Create extractor threads
             ParallelExtractorThread extractorThread = new ParallelExtractorThread(
-                    url, user, password, chunks, queue);
+                    dataSource, chunks, queue);
             extractorThread.setName("ParallelExtractorThread-" + i);
             activeThreads++;
             threads.add(extractorThread);
@@ -217,15 +196,14 @@ public class ParallelExtractor implements RawExtractor
             Database connection = null;
             try
             {
-                connection = DatabaseFactory
-                        .createDatabase(url, user, password);
-                connection.connect();
+                connection = (Database) dataSource.getConnection();
                 this.eventId = connection.getCurrentPosition(true);
             }
-            catch (SQLException e)
+            catch (ReplicatorException e)
             {
-                logger.warn("Error while connecting to database (" + url + ")",
-                        e);
+                logger.warn(
+                        "Error while connecting to database ("
+                                + dataSource.getName() + ")", e);
             }
             finally
             {
