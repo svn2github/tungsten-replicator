@@ -147,8 +147,8 @@ class ReplicationDataservice < ConfigurePrompt
     @config.getProperty(DEPLOYMENT_DATASERVICE)
   end
   
-  def get_default_value
-    @config.getProperty(DEPLOYMENT_DATASERVICE)
+  def load_default_value
+    @default = @config.getProperty(DEPLOYMENT_DATASERVICE)
   end
   
   def is_valid?
@@ -600,7 +600,7 @@ class MasterPreferredRole < ConfigurePrompt
       PV_ANY, "")
   end
   
-  def get_default_value
+  def load_default_value
     @default = get_topology().master_preferred_role()
   end
 end
