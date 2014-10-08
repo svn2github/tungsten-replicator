@@ -165,6 +165,11 @@ public class SqlDataSource extends AbstractDataSource
         if (connectionManager == null || commitSeqno == null)
             return;
 
+        // If the data source did not create a catalog, no need to reduce it
+        // (issue 1028)
+        if (!createCatalog)
+            return;
+
         // Reduce tasks restart points in trep_commit_seqno table if possible.
         // If tasks are reduced, clear the channel table.
         logger.info("Attempting to reduce catalog data: data source=" + name);
@@ -354,6 +359,11 @@ public class SqlDataSource extends AbstractDataSource
     @Override
     public boolean clear() throws ReplicatorException, InterruptedException
     {
+        // If the data source did not create a catalog, no need to clear it
+        // (issue 1028)
+        if (!createCatalog)
+            return true;
+
         // See if we can connect.
         if (!checkDBConnectivity(false, true))
         {
