@@ -175,7 +175,6 @@ public class SqlConnectionManager
     {
         // Connect to DBMS.
         Database conn = getWrappedConnection(false);
-        conn.connect();
         conn.setPrivileged(privileged);
         conn.setLogged(logOperations);
         return conn;
