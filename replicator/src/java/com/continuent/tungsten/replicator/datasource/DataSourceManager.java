@@ -226,15 +226,21 @@ public class DataSourceManager
             UniversalDataSource ds = remove(name);
             try
             {
-                if (reduce)
+                try
                 {
-                    ds.reduce();
+                    if (reduce)
+                    {
+                        ds.reduce();
+                    }
                 }
-                ds.release();
+                finally
+                {
+                    ds.release();
+                }
             }
             catch (ReplicatorException e)
             {
-                logger.warn("Unable to release data source: name=" + name, e);
+                logger.warn("Error while releasing data source: name=" + name, e);
             }
         }
     }
