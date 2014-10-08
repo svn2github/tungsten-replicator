@@ -17,10 +17,15 @@ tables. Reports errors (ERROR) and warnings (WARN). Column mappings
 generally map to those used by Tungsten Replicator.
 
 Options:
-  -opt schemaPrefix prefix - prefix to add to schema name
-                             (default - no prefix)
-  -opt tablePrefix prefix  - prefix to add to table names
-                             (default: stage_xxx_)
+  -opt schemaPrefix prefix   - prefix to add to schema name
+                               (default - no prefix)
+  -opt tablePrefix prefix    - prefix to add to table names
+                               (default: stage_xxx_)
+  -opt renameSchema template - rename schema with a template, examples:
+                               "{schema}_cdc" or "cdc_{schema}"
+  -opt renameTable template  - rename table with a template, examples:
+                               "{table}_cdc" or "cdc_{table}"
+  
 #else
 #parse("includes/ddl-header.vm")
 #end
@@ -30,15 +35,20 @@ Options:
 #stop
 #end
 
-## Set defaul prefix values.
-#if ( !$schemaPrefix )
-#set ( $schemaPrefix = "" )
+## Transform schema and table names.
+#if ( $renameSchema )
+$table.setSchema($renameSchema.replace("{schema}", $table.getSchema()))##
+#elseif ( $schemaPrefix )
+$table.setSchema($schemaPrefix.concat($table.getSchema()))##
 #end
+#if ( $renameTable )
+$table.setTable($renameTable.replace("{table}", $table.getName()))##
+#else
 #if( !$tablePrefix )
 #set ( $tablePrefix = "stage_xxx_" )
 #end
-$table.setSchema($schemaPrefix.concat($table.getSchema()))## 
 $table.setTable($tablePrefix.concat($table.getName()))##
+#end
 #if ( $counter == 1 )
 CREATE SCHEMA ${table.getSchema()};
 

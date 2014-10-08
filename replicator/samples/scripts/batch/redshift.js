@@ -54,9 +54,14 @@ function prepare()
   awsAccessKey = awsConfig["awsAccessKey"];
   awsSecretKey = awsConfig["awsSecretKey"];
   cleanUpS3Files = awsConfig["cleanUpS3Files"];
+  storeCDCIn = awsConfig["storeCDCIn"];
 
   logger.info("AWS S3 CSV staging path: " + awsS3Path);
   logger.info("Remove CSV files after upload: " + cleanUpS3Files);
+  if (storeCDCIn != null && storeCDCIn.length > 0)
+  {
+    logger.info("Save Change Data Capture to: " + storeCDCIn);
+  }
 }
 
 /** Called at start of batch transaction. */
@@ -93,7 +98,8 @@ function apply(csvinfo)
 
   // Clear the staging table.
   clear_sql = runtime.sprintf("DELETE FROM %s", stage_table_fqn);
-  logger.info("CLEAR: " + clear_sql);
+  if (logger.isDebugEnabled())
+    logger.debug("CLEAR: " + clear_sql);
   sql.execute(clear_sql);
 
   // Create and execute copy command.
@@ -101,8 +107,9 @@ function apply(csvinfo)
           "COPY %s FROM '%s/%s/%s' CSV NULL AS 'null' CREDENTIALS 'aws_access_key_id=%s;aws_secret_access_key=%s'",
           stage_table_fqn, awsS3Path, serviceName, csv_filename, awsAccessKey,
           awsSecretKey);
-  logger.info("COPY: "
-      + copy_sql.substring(0, copy_sql.indexOf("CREDENTIALS") + 12) + "...");
+  if (logger.isDebugEnabled())
+    logger.debug("COPY: "
+        + copy_sql.substring(0, copy_sql.indexOf("CREDENTIALS") + 12) + "...");
   sql.execute(copy_sql);
 
   // Check loaded row count.
@@ -123,6 +130,18 @@ function apply(csvinfo)
     }
   }
 
+  // Change Data Capture.
+  if (storeCDCIn != null && storeCDCIn.length > 0)
+  {
+    cdc_table_fqn = storeCDCIn.replace("{table}", table).replace("{schema}",
+        schema);
+    insert_select_sql = runtime.sprintf("INSERT INTO %s SELECT * FROM %s",
+        cdc_table_fqn, stage_table_fqn);
+    if (logger.isDebugEnabled())
+      logger.debug(insert_select_sql);
+    sql.execute(insert_select_sql);
+  }
+
   // Remove deleted rows from base table.
   delete_sql = runtime.sprintf(
     "DELETE FROM %s WHERE EXISTS (SELECT * FROM %s WHERE %s AND %s.tungsten_opcode IN ('D', 'UD'))",
@@ -131,7 +150,8 @@ function apply(csvinfo)
     where_clause, 
     stage_table_fqn
   );
-  logger.info("DELETE: " + delete_sql);
+  if (logger.isDebugEnabled())
+    logger.debug("DELETE: " + delete_sql);
   sql.execute(delete_sql);
 
   // Insert non-deleted INSERT rows, i.e. rows not followed by another INSERT
@@ -145,7 +165,8 @@ function apply(csvinfo)
     stage_table_fqn, 
     pkey_columns
   );
-  logger.info("INSERT: " + insert_sql);
+  if (logger.isDebugEnabled())
+    logger.debug("INSERT: " + insert_sql);
   sql.execute(insert_sql);
 
   // Clean-up CSV file from S3 if desired.
