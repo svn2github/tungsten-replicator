@@ -535,6 +535,14 @@ public class THL implements Store
             }
         }
 
+        if (commitSeqnoAccessor != null)
+        {
+            commitSeqnoAccessor.close();
+        }
+        if (conn != null)
+        {
+            conn.close();
+        }
         if (commitSeqno != null)
         {
             commitSeqno.release();
