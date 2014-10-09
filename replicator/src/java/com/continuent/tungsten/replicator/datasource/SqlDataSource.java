@@ -384,10 +384,8 @@ public class SqlDataSource extends AbstractDataSource
                 commitSeqno.clear();
                 conn = connectionManager.getRawConnection(false);
                 conn.connect();
-                conn.dropTable(new Table(schema, ConsistencyTable.TABLE_NAME));
-                conn.dropTable(new Table(schema, ShardChannelTable.TABLE_NAME));
-                conn.dropTable(new Table(schema, ShardTable.TABLE_NAME));
-                conn.dropTable(new Table(schema, HeartbeatTable.TABLE_NAME));
+                conn.dropTungstenCatalogTables(schema, connectionSpec.getTableType(),
+                        serviceName);
                 return true;
             }
             catch (SQLException e)

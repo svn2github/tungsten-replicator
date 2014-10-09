@@ -44,11 +44,14 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.common.csv.CsvSpecification;
 import com.continuent.tungsten.common.csv.CsvWriter;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.channel.ShardChannelTable;
 import com.continuent.tungsten.replicator.consistency.ConsistencyCheck;
 import com.continuent.tungsten.replicator.consistency.ConsistencyException;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.extractor.ExtractorException;
+import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
+import com.continuent.tungsten.replicator.shard.ShardTable;
 
 /**
  * Provides a generic implementation for Database interface. Subclasses must
@@ -1481,13 +1484,16 @@ public abstract class AbstractDatabase implements Database
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.database.Database#dropTungstenCatalog(java.lang.String,
+     * @see com.continuent.tungsten.replicator.database.Database#dropTungstenCatalogTables(java.lang.String,
      *      java.lang.String, java.lang.String)
      */
-    public void dropTungstenCatalog(String schemaName,
+    public void dropTungstenCatalogTables(String schemaName,
             String tungstenTableType, String serviceName) throws SQLException
     {
-        dropSchema(schemaName);
+        dropTable(new Table(schemaName, ConsistencyTable.TABLE_NAME));
+        dropTable(new Table(schemaName, ShardChannelTable.TABLE_NAME));
+        dropTable(new Table(schemaName, ShardTable.TABLE_NAME));
+        dropTable(new Table(schemaName, HeartbeatTable.TABLE_NAME));
     }
 
     /**

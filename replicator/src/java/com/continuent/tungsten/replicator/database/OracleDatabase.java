@@ -41,7 +41,6 @@ import com.continuent.tungsten.common.csv.NullPolicy;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.channel.ShardChannelTable;
 import com.continuent.tungsten.replicator.consistency.ConsistencyTable;
-import com.continuent.tungsten.replicator.datasource.SqlCommitSeqno;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
 import com.continuent.tungsten.replicator.shard.ShardTable;
@@ -104,14 +103,14 @@ public class OracleDatabase extends AbstractDatabase
     @Override
     public SqlOperationMatcher getSqlNameMatcher() throws ReplicatorException
     {
-        // Return MySQL matcher for now. 
+        // Return MySQL matcher for now.
         return new MySQLOperationMatcher();
     }
 
     /**
      * In Oracle, to support timestamp with local time zone replication we need
      * to set the session level time zone to be the same as the database time
-     * zone. 
+     * zone.
      */
     @Override
     public synchronized void connect() throws SQLException
@@ -221,7 +220,7 @@ public class OracleDatabase extends AbstractDatabase
                 return "UNKNOWN";
         }
     }
-    
+
     @Override
     protected Column addColumn(ResultSet rs) throws SQLException
     {
@@ -232,7 +231,7 @@ public class OracleDatabase extends AbstractDatabase
         int type = column.getType();
         column.setBlob(type == Types.BLOB || type == Types.BINARY
                 || type == Types.VARBINARY || type == Types.LONGVARBINARY);
-        
+
         return column;
     }
 
@@ -654,7 +653,10 @@ public class OracleDatabase extends AbstractDatabase
     protected ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException
     {
-        return md.getTables(null, schemaName, null, null);
+        if (baseTablesOnly)
+            return md.getTables(null, schemaName, null, new String[]{"TABLE"});
+        else
+            return md.getTables(null, schemaName, null, null);
     }
 
     public String getNowFunction()
@@ -898,20 +900,18 @@ public class OracleDatabase extends AbstractDatabase
     /**
      * {@inheritDoc}
      * 
-     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropTungstenCatalog(String,
+     * @see com.continuent.tungsten.replicator.database.AbstractDatabase#dropTungstenCatalogTables(String,
      *      String, String)
      */
     @Override
-    public void dropTungstenCatalog(String schemaName,
+    public void dropTungstenCatalogTables(String schemaName,
             String tungstenTableType, String serviceName) throws SQLException
     {
         // In Oracle, Tungsten user is not dropped automatically.
         // However, all Tungsten tables will be dropped.
-        dropTable(new Table(schemaName, SqlCommitSeqno.TABLE_NAME));
         dropTable(new Table(schemaName, ConsistencyTable.TABLE_NAME));
         dropTable(new Table(schemaName, ShardChannelTable.TABLE_NAME));
         dropTable(new Table(schemaName, ShardTable.TABLE_NAME));
-
         dropTable(new Table(schemaName, HeartbeatTable.TABLE_NAME),
                 tungstenTableType, serviceName);
 
@@ -992,6 +992,8 @@ public class OracleDatabase extends AbstractDatabase
             try
             {
                 execute(cdcSQL);
+                execute("BEGIN DBMS_CAPTURE_ADM.ABORT_TABLE_INSTANTIATION('"
+                        + table.getSchema() + "." + tableName + "'); END;");
             }
             catch (SQLException e1)
             {

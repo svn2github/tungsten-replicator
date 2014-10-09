@@ -642,7 +642,7 @@ public interface Database extends UniversalConnection
     public ArrayList<String> getReservedWords();
 
     /**
-     * dropTungstenCatalog removes Tungsten catalog.
+     * dropTungstenCatalog removes Tungsten catalog tables.
      * 
      * @param schemaName The schema name where Tungsten catalog is stored
      * @param tungstenTableType The type of table used to store Tungsten
@@ -651,7 +651,7 @@ public interface Database extends UniversalConnection
      *            dropped
      * @throws SQLException when an error occurs
      */
-    public void dropTungstenCatalog(String schemaName,
+    public void dropTungstenCatalogTables(String schemaName,
             String tungstenTableType, String serviceName) throws SQLException;
 
     /**
