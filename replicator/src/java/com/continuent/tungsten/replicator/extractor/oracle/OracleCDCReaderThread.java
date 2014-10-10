@@ -128,7 +128,7 @@ public class OracleCDCReaderThread extends Thread
                     + dataSource);
         }
 
-        // Create a connection, suppressing logging if desired.
+        // Create a connection.
         connection = (Database) dataSourceImpl.getConnection();
 
         this.serviceName = dataSourceImpl.getServiceName().toUpperCase();
