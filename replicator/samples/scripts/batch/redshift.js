@@ -41,6 +41,27 @@ function readAWSConfigFile()
   return sb.toString();
 }
 
+/** Parses and validates "cleanUpS3Files" parameter. */
+function initCleanUpS3Files()
+{
+  if (cleanUpS3Files == null)
+  {
+    logger
+        .info("Will remove S3 files by default, though \"cleanUpS3Files\" is undefined");
+    cleanUpS3Files = true;
+  }
+  else if (cleanUpS3Files == "true")
+    cleanUpS3Files = true;
+  else if (cleanUpS3Files == "false")
+    cleanUpS3Files = false;
+  else
+  {
+    throw new com.continuent.tungsten.replicator.ReplicatorException(
+        "Parameter value for \"cleanUpS3Files\" must be a quoted string \"true\" or \"false\", currently: "
+            + cleanUpS3Files);
+  }
+}
+
 /** Called once when applier goes online. */
 function prepare()
 {
@@ -57,13 +78,8 @@ function prepare()
   storeCDCIn = awsConfig["storeCDCIn"];
 
   logger.info("AWS S3 CSV staging path: " + awsS3Path);
-
-  if (cleanUpS3Files == null)
-  {
-    logger
-        .info("Will remove S3 files by default, though \"cleanUpS3Files\" is undefined");
-    cleanUpS3Files = true;
-  }
+  
+  initCleanUpS3Files();
   logger.info("Remove CSV files after upload: " + cleanUpS3Files);
   
   if (storeCDCIn != null && storeCDCIn.length > 0)
