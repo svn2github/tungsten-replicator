@@ -769,26 +769,7 @@ public class OracleDatabase extends AbstractDatabase
 
             if (!tungstenTableType.equals("CDCSYNC"))
             {
-                // Disable Tungsten Change Set
-                try
-                {
-                    execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
-                            + changeSetName + "',enable_capture=>'N'); END;");
-                }
-                catch (SQLException e1)
-                {
-                    if (e1.getErrorCode() == 31410)
-                    {
-                        throw new SQLException(
-                                "The change set "
-                                        + changeSetName
-                                        + " does not seem to exist on Oracle. Did you run setupCDC.sh?",
-                                e1);
-                    }
-                    throw e1;
-                }
-
-                // Or prepare table for asynchronous capture.
+                // Prepare table for asynchronous capture.
                 // This should not be done for synchronous capture as this would
                 // not work on standard edition.
                 try
@@ -872,13 +853,6 @@ public class OracleDatabase extends AbstractDatabase
 
             execute("GRANT SELECT ON CT_" + tableName + " TO PUBLIC");
             execute("GRANT SELECT ON " + tableName + " TO PUBLIC");
-
-            if (!tungstenTableType.equals("CDCSYNC"))
-            {
-                // Enable Tungsten Change Set back
-                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
-                        + changeSetName + "',enable_capture=>'Y'); END;");
-            }
         }
     }
 
@@ -962,28 +936,6 @@ public class OracleDatabase extends AbstractDatabase
             logger.info("Dropping Tungsten Heartbeat change table for service '"
                     + serviceName + "'");
 
-            if (!tungstenTableType.equals("CDCSYNC"))
-            {
-                // Disable Tungsten Change Set
-                try
-                {
-                    execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
-                            + changeSetName + "',enable_capture=>'N'); END;");
-                }
-                catch (SQLException e1)
-                {
-                    if (e1.getErrorCode() == 31410)
-                    {
-                        throw new SQLException(
-                                "The change set "
-                                        + changeSetName
-                                        + " does not seem to exist on Oracle. Did you run setupCDC.sh?",
-                                e1);
-                    }
-                    throw e1;
-                }
-            }
-
             String cdcSQL;
             cdcSQL = "BEGIN " + "DBMS_CDC_PUBLISH.DROP_CHANGE_TABLE(owner=>'"
                     + table.getSchema() + "', change_table_name=> '" + "CT_"
@@ -1007,14 +959,6 @@ public class OracleDatabase extends AbstractDatabase
                 }
                 throw e1;
             }
-
-            if (!tungstenTableType.equals("CDCSYNC"))
-            {
-                // Enable Tungsten Change Set back
-                execute("BEGIN DBMS_CDC_PUBLISH.ALTER_CHANGE_SET(change_set_name=>'"
-                        + changeSetName + "',enable_capture=>'Y'); END;");
-            }
-
         }
         // else no change table, as table type is not CDC like
     }
