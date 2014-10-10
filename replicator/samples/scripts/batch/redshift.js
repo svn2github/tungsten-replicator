@@ -57,7 +57,15 @@ function prepare()
   storeCDCIn = awsConfig["storeCDCIn"];
 
   logger.info("AWS S3 CSV staging path: " + awsS3Path);
+
+  if (cleanUpS3Files == null)
+  {
+    logger
+        .info("Will remove S3 files by default, though \"cleanUpS3Files\" is undefined");
+    cleanUpS3Files = true;
+  }
   logger.info("Remove CSV files after upload: " + cleanUpS3Files);
+  
   if (storeCDCIn != null && storeCDCIn.length > 0)
   {
     logger.info("Save Change Data Capture to: " + storeCDCIn);
