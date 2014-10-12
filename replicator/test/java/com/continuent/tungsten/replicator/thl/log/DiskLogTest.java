@@ -771,7 +771,9 @@ public class DiskLogTest extends TestCase
 
     /**
      * Confirm that if we seek a future non-zero event it will succeed but if
-     * the first event returned does not match the seqno the next() call fails.
+     * the first event returned is less than the future seqno the next() call
+     * fails. Note: We permit event to be greater to allow for seeking in the
+     * log where the last recorded event is filtered.
      */
     public void testSeekBadNonZeroFirst() throws Exception
     {
@@ -898,8 +900,7 @@ public class DiskLogTest extends TestCase
         // Write a sequence of alternating filtered and non-filtered events.
         long seqno = 25;
         LogConnection conn = log.connect(false);
-        logger.info("Writing five unfiltered events");
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 4; i++)
         {
             THLEvent e;
             if (i % 2 == 0)
@@ -953,6 +954,9 @@ public class DiskLogTest extends TestCase
                     // If we have a filtered event it should contain the
                     // expected next seqno. Record found seqno to show the gap.
                     ReplDBMSFilteredEvent filteredEvent = (ReplDBMSFilteredEvent) event;
+                    logger.info("Found filtered event: start seqno="
+                            + filteredEvent.getSeqno() + " end seqno="
+                            + filteredEvent.getSeqnoEnd());
                     String msg = String
                             .format("Filtered event contains expected seqno: [%d <= %d <= %d] (Starting seqno: %s)",
                                     filteredEvent.getSeqno(),
@@ -969,6 +973,7 @@ public class DiskLogTest extends TestCase
                 {
                     // If we have a normal event it should have the expected
                     // next seqno, which is also the found seqno.
+                    logger.info("Found normal event: seqno=" + event.getSeqno());
                     Assert.assertEquals("Seqno of normal event",
                             nextExpectedSeqno, event.getSeqno());
                     lastFoundSeqno = event.getSeqno();
@@ -983,6 +988,105 @@ public class DiskLogTest extends TestCase
         }
 
         // All done.
+        log2.release();
+    }
+
+    /**
+     * Confirm that we can seek on a log where the final event in the log is a
+     * filtered event and there are no further events in the log. Moreover, if
+     * we all additional events later on they are found by LogConnection.next()
+     * calls.
+     */
+    public void testSeekFinalFilteredEvent() throws Exception
+    {
+        // Create the log.
+        File logDir = prepareLogDir("testSeekFinalFilteredEvent");
+        DiskLog log = openLog(logDir, false);
+
+        // Write a non-filtered event followed by a filtered event. This
+        // is a common log prefix in real logs.
+        long seqno = 30;
+        LogConnection conn = log.connect(false);
+        THLEvent e1 = this.createTHLEvent(seqno++);
+        conn.store(e1, true);
+        long lastSeqno = seqno + 4;
+        THLEvent e2 = this.createFilteredTHLEvent(seqno, lastSeqno, (short) 0);
+        conn.store(e2, true);
+
+        // Seek to the filtered event and confirm we have it.
+        DiskLog log2 = openLog(logDir, true);
+        log2.validate();
+        LogConnection conn2 = log2.connect(true);
+
+        logger.info("Seeking seqno: " + seqno);
+        boolean found = conn2.seek(seqno);
+        Assert.assertTrue("Found initial seqno with seek: " + seqno, found);
+        THLEvent foundEvent = conn2.next(false);
+        Assert.assertEquals("Expect the filtered event", foundEvent.getSeqno(),
+                seqno);
+
+        // Add an event to the log and confirm we can read it.
+        seqno = lastSeqno + 1;
+        THLEvent e3 = this.createTHLEvent(seqno);
+        conn.store(e3, true);
+        THLEvent foundEvent3 = conn2.next();
+        Assert.assertEquals("Expect the filtered event", e3.getSeqno(),
+                foundEvent3.getSeqno());
+
+        // All done.
+        conn.release();
+        log.release();
+
+        conn2.release();
+        log2.release();
+    }
+
+    /**
+     * Confirm that if the final event in the log is filtered and we seek within
+     * that event, then events are added to the log, we will return the next
+     * event after the filtered event. (This test case recapitulates Google Code
+     * Issue 1018.)
+     */
+    public void testSeekAfterFinalFilteredEvent() throws Exception
+    {
+        // Create the log.
+        File logDir = prepareLogDir("testSeekAfterFinalFilteredEvent");
+        DiskLog log = openLog(logDir, false);
+
+        // Open the log and write a filtered event.
+        long seqno = 30;
+        LogConnection conn = log.connect(false);
+        long lastSeqno = seqno + 4;
+        THLEvent e1 = this.createFilteredTHLEvent(seqno, lastSeqno, (short) 0);
+        conn.store(e1, true);
+
+        // Seek to a position after the filtered event.
+        DiskLog log2 = openLog(logDir, true);
+        log2.validate();
+        LogConnection conn2 = log2.connect(true);
+        seqno++;
+        logger.info("Seeking seqno: " + seqno);
+        boolean found = conn2.seek(seqno);
+        Assert.assertTrue("Found a trailing filtered event", found);
+
+        // Confirm we can find the filtered event.
+        THLEvent foundEvent1 = conn2.next();
+        Assert.assertEquals("Expect the filtered event", e1.getSeqno(),
+                foundEvent1.getSeqno());
+
+        // Add an event to the log and confirm it is returned by next().
+        seqno = lastSeqno + 1;
+        THLEvent e3 = this.createTHLEvent(seqno);
+        conn.store(e3, true);
+        THLEvent foundEvent3 = conn2.next();
+        Assert.assertEquals("Expect the filtered event", e3.getSeqno(),
+                foundEvent3.getSeqno());
+
+        // All done.
+        conn.release();
+        log.release();
+
+        conn2.release();
         log2.release();
     }
 

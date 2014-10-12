@@ -30,6 +30,8 @@ import java.util.Queue;
 import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.event.ReplDBMSFilteredEvent;
+import com.continuent.tungsten.replicator.event.ReplEvent;
 import com.continuent.tungsten.replicator.thl.THLEvent;
 import com.continuent.tungsten.replicator.thl.THLException;
 import com.continuent.tungsten.replicator.thl.serializer.Serializer;
@@ -287,6 +289,34 @@ public class LogConnection
                     }
                     else if (seqno > lastSeqno)
                     {
+                        // See if we have a filtered event at the tail of the
+                        // log.
+                        if (previousLogRecord != null)
+                        {
+                            // This code breaks encapsulation but allows us to
+                            // find a filtered event at the end of the log. It
+                            // would be cleaner in future to pull this
+                            // information into the log record header.
+                            THLEvent trialEvent = this
+                                    .deserialize(previousLogRecord);
+                            ReplEvent replEvent = trialEvent.getReplEvent();
+                            if (replEvent instanceof ReplDBMSFilteredEvent)
+                            {
+                                ReplDBMSFilteredEvent filterEvent = (ReplDBMSFilteredEvent) replEvent;
+                                if (seqno <= filterEvent.getSeqnoEnd())
+                                {
+                                    if (logger.isDebugEnabled())
+                                    {
+                                        logger.debug("Found containing filtered event: seqno="
+                                                + seqno);
+                                    }
+                                    pendingEvent.add(trialEvent);
+                                    return true;
+                                }
+                            }
+                        }
+
+                        // No filtered event so we can just return.
                         if (logger.isDebugEnabled())
                         {
                             logger.debug("Seeking seqno past end of log: seqno="
