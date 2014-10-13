@@ -219,7 +219,7 @@ public abstract class ClusterResourceNotification implements Serializable
         // type cluster/name(state
         return String.format("[%s] %s %s/%s(state=%s)",
                 new Date(timeReceived).toString(), resourceType, clusterName,
-                resourceName, resourceState);
+                resourceName, getResourceState());
     }
     
     public long incrementTracker()

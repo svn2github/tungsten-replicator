@@ -26,17 +26,21 @@ import com.continuent.tungsten.common.cluster.resource.DataServer;
 import com.continuent.tungsten.common.cluster.resource.ResourceState;
 import com.continuent.tungsten.common.cluster.resource.ResourceType;
 import com.continuent.tungsten.common.config.TungstenProperties;
+import com.continuent.tungsten.common.config.cluster.DataServerConditionMapping;
+import com.continuent.tungsten.common.config.cluster.MappedAction;
 
 public class DataServerNotification extends ClusterResourceNotification
 {
     /**
      * 
      */
-    private static final long serialVersionUID = 1L;
+    private static final long          serialVersionUID = 1L;
 
-    private Exception         lastException;
+    private Exception                  lastException;
 
-    private boolean           readOnly         = false;
+    private boolean                    readOnly         = false;
+
+    private DataServerConditionMapping conditionMapping = null;
 
     public DataServerNotification(String clusterName, String memberName,
             String resourceName, ResourceState resourceState, String source,
@@ -115,5 +119,35 @@ public class DataServerNotification extends ClusterResourceNotification
     public boolean isReadOnly()
     {
         return readOnly;
+    }
+
+    public DataServerConditionMapping getConditionMapping()
+    {
+        return conditionMapping;
+    }
+
+    public void setConditionMapping(DataServerConditionMapping conditionMapping)
+    {
+        this.conditionMapping = conditionMapping;
+    }
+
+    public MappedAction getAction()
+    {
+        if (conditionMapping != null)
+        {
+            return conditionMapping.getAction();
+        }
+
+        return MappedAction.NONE;
+    }
+
+    public ResourceState getResourceState()
+    {
+        if (conditionMapping != null)
+        {
+            return conditionMapping.getState();
+        }
+
+        return ResourceState.UNKNOWN;
     }
 }

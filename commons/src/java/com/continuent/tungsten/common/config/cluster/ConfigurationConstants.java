@@ -42,7 +42,8 @@ public class ConfigurationConstants
     static public final String CLUSTER_PORT                                                   = "port";
     static public final String CLUSTER_MANAGER_LIST                                           = "managerList";
 
-    static public final String CLUSTER_STATE_MAP_PROPS                                        = "statemap.properties";
+    static public final String CLUSTER_STATE_MAP_OVERRIDE_PROPS                               = "statemap.properties";
+    static public final String CLUSTER_STATE_MAP_DEFAULT_PROPS                                = "statemap.properties.defaults";
 
     /** SQLROUTER MANAGER */
     static public final String TR_PROPERTIES                                                  = "router.properties";
