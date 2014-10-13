@@ -296,8 +296,10 @@ class SwappinessCheck < ConfigureValidationCheck
     if swappiness.to_s() == ""
       swappiness = 60
     end
-    if reboot_swappiness.to_i() > 10 || swappiness.to_i() > 10 || reboot_swappiness.to_i() != swappiness.to_i()
+    if reboot_swappiness.to_i() > 10 || swappiness.to_i() > 10
       warning("Linux swappiness is currently set to #{swappiness}, on restart it will be #{reboot_swappiness}, consider setting this to 10 or under to avoid swapping.")
+    elsif reboot_swappiness.to_i() != swappiness.to_i()
+      warning("Linux swappiness will change after a restart. Current setting is #{swappiness}, on restart it will be #{reboot_swappiness}.")
     end
   end
 
