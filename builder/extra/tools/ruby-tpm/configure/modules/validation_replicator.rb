@@ -280,6 +280,32 @@ class RowBasedBinaryLoggingCheck < ConfigureValidationCheck
 end
 
 
+class SwappinessCheck < ConfigureValidationCheck
+  include ReplicationServiceValidationCheck
+
+  def set_vars
+    @title = "Linux Swappiness Check"
+  end
+
+  def validate
+    swappiness = cmd_result("cat /proc/sys/vm/swappiness", true)
+    reboot_swappiness = cmd_result("sudo grep '^vm.swappiness' /etc/sysctl.conf", true).split("=")[-1]
+    if reboot_swappiness.to_s() == ""
+      reboot_swappiness = 60
+    end
+    if swappiness.to_s() == ""
+      swappiness = 60
+    end
+    if reboot_swappiness.to_i() > 10 || swappiness.to_i() > 10 || reboot_swappiness.to_i() != swappiness.to_i()
+      warning("Linux swappiness is currently set to #{swappiness}, on restart it will be #{reboot_swappiness}, consider setting this to 10 or under to avoid swapping.")
+    end
+  end
+
+  def enabled?
+    super()
+  end
+end
+
 class ServiceTransferredLogStorageCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck
   include CreateServiceCheck
