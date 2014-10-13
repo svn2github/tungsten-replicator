@@ -65,7 +65,7 @@ public class SSLSocketFactoryGenerator
         // --- No alias defined. Use default SSL socket factory ---
         if (this.alias == null)
         {
-            logger.warn("No keystore alias entry defined. Will use default SSLSocketFactory selecting 1st entry in keystore !");
+            logger.debug("No keystore alias entry defined. Will use default SSLSocketFactory selecting 1st entry in keystore !");
             return (SSLSocketFactory) SSLSocketFactory.getDefault();
         }
         // --- Alias defined. Use custom alias selector ---    
