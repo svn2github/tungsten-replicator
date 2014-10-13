@@ -55,7 +55,7 @@ public class SecurityHelper
     // TUC-1872
     public static enum TUNGSTEN_APPLICATION_NAME
     {
-        CONNECTOR, ANY;
+        CONNECTOR, REPLICATOR, ANY;
     }
 
     /**
@@ -254,7 +254,7 @@ public class SecurityHelper
                     break;
             }
 
-            // Retrieve properties
+            // --- Retrieve properties ---
             boolean connectorUseSSL = securityProperties.getBoolean(
                     SecurityConf.CONNECTOR_USE_SSL, "false", false);
 
@@ -280,8 +280,19 @@ public class SecurityHelper
                     .getString(security_truststore_password);
             String userName = securityProperties.getString(
                     SecurityConf.SECURITY_JMX_USERNAME, null, false);
+            // Aliases for keystore
+            String connector_alias_client_to_connector = securityProperties
+                    .getString(
+                            SecurityConf.KEYSTORE_ALIAS_CONNECTOR_CLIENT_TO_CONNECTOR,
+                            SecurityConf.KEYSTORE_ALIAS_CONNECTOR_CLIENT_TO_CONNECTOR_DEFAULT,
+                            false);
+            String connector_alias_connector_to_db = securityProperties
+                    .getString(
+                            SecurityConf.KEYSTORE_ALIAS_CONNECTOR_CONNECTOR_TO_DB,
+                            SecurityConf.KEYSTORE_ALIAS_CONNECTOR_CONNECTOR_TO_DB_DEFAULT,
+                            false);
 
-            // Populate return object
+            // --- Populate return object ---
             authInfo.setConnectorUseSSL(connectorUseSSL);
             authInfo.setParentPropertiesFileLocation(parentFileLocation);
             authInfo.setAuthenticationNeeded(useAuthentication);
@@ -296,10 +307,19 @@ public class SecurityHelper
             authInfo.setTruststorePassword(truststorePassword);
             authInfo.setUsername(userName);
             authInfo.setParentProperties(securityProperties);
+            // aliases
+            if (connector_alias_client_to_connector != null)
+                authInfo.getMapKeystoreAliasesForTungstenApplication()
+                        .put(SecurityConf.KEYSTORE_ALIAS_CONNECTOR_CLIENT_TO_CONNECTOR,
+                                connector_alias_client_to_connector);
+            if (connector_alias_connector_to_db != null)
+                authInfo.getMapKeystoreAliasesForTungstenApplication().put(
+                        SecurityConf.KEYSTORE_ALIAS_CONNECTOR_CONNECTOR_TO_DB,
+                        connector_alias_connector_to_db);
 
             // --- Check information is correct ---
             // Checks authentication and encryption parameters
-            // file exists, ...
+            // file exists, aliases exists...
             if (doConsistencyChecks)
                 authInfo.checkAndCleanAuthenticationInfo(tungstenApplicationName);
 
@@ -455,6 +475,16 @@ public class SecurityHelper
             {
             }
         }
+    }
+
+    /**
+     * Get the system keystore location
+     * 
+     * @return The keyStore location
+     */
+    public static String getKeyStoreLocation()
+    {
+        return System.getProperty("javax.net.ssl.keyStore");
     }
 
 }

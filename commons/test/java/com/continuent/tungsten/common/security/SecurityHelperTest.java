@@ -328,5 +328,123 @@ public class SecurityHelperTest extends TestCase
         assertEquals(null, authInfo);
         
     }
+    
+    /**
+     * Confirm  behavior when connector.security.use.SSL=true and alias are defined
+     * 
+     * @throws ConfigurationException
+     */
+    public void testConnectorSecuritySettingsSSL_alias()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that exception is thrown when keystore location is not specified
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("test.ssl.alias.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ServerRuntimeException e)
+        {
+            assertTrue("There should not be any exception thrown", false);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("That should not be this kind of Exception being thrown", true);
+        }
+        
+        // Reset info
+        resetSecuritySystemProperties();
+    }
+    
+    /**
+     * Confirm  behavior when connector.security.use.SSL=true and wrong alias is specified
+     * 
+     * @throws ConfigurationException
+     */
+    public void testConnectorSecuritySettingsSSL_alias_error()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that exception is thrown when keystore location is not specified
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("test.ssl.alias.wrong.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ServerRuntimeException e)
+        {
+            assertTrue("An exception was thrown, that's expected !", true);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("That should not be this kind of Exception being thrown", true);
+        }
+        
+        // Reset info
+        resetSecuritySystemProperties();
+    }
+    
+    /**
+     * Confirm  behavior when connector.security.use.SSL=true and alias is defined + alias is not the first in the list inside the keystore.
+     * This shows that we can select an alias inside the keystore
+     * 
+     * @throws ConfigurationException
+     */
+    public void testConnectorSecuritySettingsSSL_alias_2()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that exception is thrown when keystore location is not specified
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("test.ssl.alias.2.position.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ServerRuntimeException e)
+        {
+            assertTrue("There should not be any exception thrown", false);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("That should not be this kind of Exception being thrown", true);
+        }
+        
+        // Reset info
+        resetSecuritySystemProperties();
+    }
+    
+    /**
+     * Confirm  behavior when connector.security.use.SSL=true and alias are not defined
+     * This shows that it uses first alias it finds
+     * 
+     * @throws ConfigurationException
+     */
+    public void testConnectorSecuritySettingsSSL_alias_not_defined()
+    {
+        // Reset info
+        resetSecuritySystemProperties();
+
+        // Confirm that exception is thrown when keystore location is not specified
+        AuthenticationInfo authInfo = null;
+        try
+        {
+            authInfo = SecurityHelper.loadAuthenticationInformation("test.ssl.alias.not.defined.security.properties", true, TUNGSTEN_APPLICATION_NAME.CONNECTOR);
+        }
+        catch (ServerRuntimeException e)
+        {
+            assertTrue("There should not be any exception thrown", false);
+        }
+        catch (ConfigurationException e)
+        {
+            assertFalse("That should not be this kind of Exception being thrown", true);
+        }
+        
+        // Reset info
+        resetSecuritySystemProperties();
+    }
 
 }
