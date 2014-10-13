@@ -384,8 +384,8 @@ public class SqlDataSource extends AbstractDataSource
                 commitSeqno.clear();
                 conn = connectionManager.getRawConnection(false);
                 conn.connect();
-                conn.dropTungstenCatalogTables(schema, connectionSpec.getTableType(),
-                        serviceName);
+                conn.dropTungstenCatalogTables(schema,
+                        connectionSpec.getTableType(), serviceName);
                 return true;
             }
             catch (SQLException e)
@@ -434,6 +434,10 @@ public class SqlDataSource extends AbstractDataSource
      */
     public void releaseConnection(UniversalConnection conn)
     {
-        connectionManager.releaseConnection((Database) conn);
+        // For now we must release the connection directly to prevent
+        // NullPointerException from out of band calls status calls
+        // that do not respect the pipeline model.
+        if (conn != null)
+            conn.close();
     }
 }

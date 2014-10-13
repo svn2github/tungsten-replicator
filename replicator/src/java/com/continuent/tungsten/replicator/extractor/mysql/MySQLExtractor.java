@@ -1854,6 +1854,15 @@ public class MySQLExtractor implements RawExtractor
             throw new ExtractorException(
                     "Unable to run SHOW MASTER STATUS to find log position", e);
         }
+        catch (NullPointerException e)
+        {
+            // Suppress NPEs due to data sources being in a bad state. This is
+            // being addressed by Google Issue 1033.
+            logger.warn(
+                    "Unable to run SHOW MASTER STATUS to find log position; this can occur when service is going on/offline",
+                    e);
+            return null;
+        }
         finally
         {
             cleanUpDatabaseResources(conn, st, rs);
