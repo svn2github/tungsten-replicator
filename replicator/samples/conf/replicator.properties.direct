@@ -21,9 +21,11 @@ replicator.global.db.port=@{APPLIER.REPL_DBPORT}
 replicator.global.db.user=@{APPLIER.REPL_DBLOGIN}
 replicator.global.db.password=@{APPLIER.REPL_DBPASSWORD}
 
-# Properties for SSL. To enable SSL add an option like the following: 
+# Properties for SSL. To enable SSL set sslEnabled to true and add a URL option 
+# like the following: 
 #   useSSL=true
-replicator.global.db.sslOptions=
+replicator.global.db.sslEnabled=@{APPLIER.REPL_ENABLE_DBSSL}
+replicator.global.db.sslOptions=@{APPLIER.REPL_DBJDBCURLSSLOPTIONS}
 
 # Properties for extractors only.  This supports direct piplines.
 replicator.global.extract.db.host=@{EXTRACTOR.REPL_DBHOST}

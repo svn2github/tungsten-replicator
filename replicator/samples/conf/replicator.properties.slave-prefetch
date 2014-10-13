@@ -21,9 +21,11 @@ replicator.global.db.port=@{APPLIER.REPL_DBPORT}
 replicator.global.db.user=@{APPLIER.REPL_DBLOGIN}
 replicator.global.db.password=@{APPLIER.REPL_DBPASSWORD}
 
-# Properties for SSL. To enable SSL add an option like the following:
+# Properties for SSL. To enable SSL set sslEnabled to true and add a URL option 
+# like the following: 
 #   useSSL=true
-replicator.global.db.sslOptions=
+replicator.global.db.sslEnabled=@{APPLIER.REPL_ENABLE_DBSSL}
+replicator.global.db.sslOptions=@{APPLIER.REPL_DBJDBCURLSSLOPTIONS}
 
 # Replicator role.  You must specify a value that corresponds to a 
 # pipeline name like master, slave, direct, etc.  There is no default 
