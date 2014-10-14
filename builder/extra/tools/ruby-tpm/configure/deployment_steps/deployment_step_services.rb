@@ -261,6 +261,18 @@ module ConfigureDeploymentStepServices
   def update_metadata
     if get_additional_property(ACTIVE_VERSION) =~ /^1.5.[0-9][\-0-9]+$/
       upgrade_from_1_5()
+    else
+      if is_replicator?() && get_additional_property(ACTIVE_DIRECTORY_PATH).to_s() != ""
+        current_data = get_additional_property(ACTIVE_DIRECTORY_PATH) + "/tungsten-replicator/data"
+        if File.exist?(current_data)
+          target_data = @config.getProperty(REPL_METADATA_DIRECTORY)
+          if File.exist?(target_data)
+            Configurator.instance.warning("Position information was found at #{current_data} and #{target_data}. The information at #{target_data} will be kept unchanged.")
+          else
+            cmd_result("mv #{current_data} #{target_data}")
+          end
+        end
+      end
     end
   end
   

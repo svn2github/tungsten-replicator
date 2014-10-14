@@ -317,6 +317,20 @@ class LogsDirectoryPrompt < ConfigurePrompt
   end
 end
 
+class MetadataDirectoryPrompt < ConfigurePrompt
+  include ClusterHostPrompt
+  include ConstantValueModule
+  
+  def initialize
+    super(METADATA_DIRECTORY, "Directory for storing metadata", PV_FILENAME)
+    self.extend(NotTungstenUpdatePrompt)
+  end
+  
+  def load_default_value
+    @default = "#{@config.getProperty(get_member_key(HOME_DIRECTORY))}/#{METADATA_DIRECTORY_NAME}"
+  end
+end
+
 class ConfigDirectoryPrompt < ConfigurePrompt
   include ClusterHostPrompt
   include ConstantValueModule
@@ -945,6 +959,19 @@ class ReplicationReturnRMIPort < ConfigurePrompt
   
   def load_default_value
     @default = (@config.getProperty(get_member_key(REPL_RMI_PORT)).to_i() + 1).to_s
+  end
+end
+
+class ReplicationServiceMetadataDirectory < ConfigurePrompt
+  include ClusterHostPrompt
+  
+  def initialize
+    super(REPL_METADATA_DIRECTORY, "Replicator metadata directory", PV_FILENAME)
+    self.extend(NotTungstenUpdatePrompt)
+  end
+  
+  def load_default_value
+    @default = @config.getProperty(get_member_key(METADATA_DIRECTORY)) + "/applier"
   end
 end
 

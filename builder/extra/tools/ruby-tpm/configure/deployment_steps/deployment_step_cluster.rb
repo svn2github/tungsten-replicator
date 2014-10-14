@@ -11,6 +11,7 @@ module ConfigureDeploymentStepDeployment
     prepare_dir = get_deployment_basedir()
     mkdir_if_absent("#{@config.getProperty(HOME_DIRECTORY)}/share")
     mkdir_if_absent(@config.getProperty(LOGS_DIRECTORY))
+    mkdir_if_absent(@config.getProperty(METADATA_DIRECTORY))
     mkdir_if_absent(@config.getProperty(RELEASES_DIRECTORY))
     
     # Determine if we need to copy this directory into place or

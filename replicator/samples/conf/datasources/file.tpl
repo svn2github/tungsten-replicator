@@ -3,7 +3,7 @@ replicator.datasource.global=com.continuent.tungsten.replicator.datasource.FileD
 replicator.datasource.global.serviceName=${service.name}
 
 # Storage location for replication catalog data. 
-replicator.datasource.global.directory=${replicator.home.dir}/data
+replicator.datasource.global.directory=@{APPLIER.REPL_METADATA_DIRECTORY}
 
 # CSV specification type.  This is the conventions for writing CSV files,
 # which tend to be slightly different for each data source.  If set to 

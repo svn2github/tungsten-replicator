@@ -170,8 +170,11 @@ module UninstallClusterDeploymentStep
     end
 
     FileUtils.rmtree("#{@config.getProperty(HOME_DIRECTORY)}/#{LOGS_DIRECTORY_NAME}")
+    FileUtils.rmtree("#{@config.getProperty(HOME_DIRECTORY)}/#{METADATA_DIRECTORY_NAME}")
     FileUtils.rmtree(@config.getProperty(CONFIG_DIRECTORY))
     FileUtils.rmtree(@config.getProperty(LOGS_DIRECTORY))
+    FileUtils.rmtree(@config.getProperty(REPL_METADATA_DIRECTORY))
+    FileUtils.rmtree(@config.getProperty(METADATA_DIRECTORY))
     FileUtils.rmtree(@config.getProperty(RELEASES_DIRECTORY))
     FileUtils.rmtree(@config.getProperty(CURRENT_RELEASE_DIRECTORY))
   end
