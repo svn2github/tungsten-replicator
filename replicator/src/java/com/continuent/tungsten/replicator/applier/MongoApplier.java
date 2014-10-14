@@ -22,7 +22,9 @@
 
 package com.continuent.tungsten.replicator.applier;
 
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -156,16 +158,8 @@ public class MongoApplier implements RawApplier
                             ArrayList<ColumnVal> row = colValues.next();
                             for (int i = 0; i < row.size(); i++)
                             {
-                                String name = colSpecs.get(i).getName();
                                 Object value = row.get(i).getValue();
-                                if (value == null)
-                                    doc.put(name, value);
-                                else if (value instanceof SerialBlob)
-                                    doc.put(name,
-                                            deserializeBlob(name,
-                                                    (SerialBlob) value));
-                                else
-                                    doc.put(name, value.toString());
+                                setValue(doc, colSpecs.get(i), value);
                             }
                             if (logger.isDebugEnabled())
                                 logger.debug("Adding document: doc="
@@ -202,24 +196,15 @@ public class MongoApplier implements RawApplier
                             DBObject query = new BasicDBObject();
                             for (int i = 0; i < keyValuesOfRow.size(); i++)
                             {
-                                String name = keySpecs.get(i).getName();
-                                query.put(name, keyValuesOfRow.get(i)
-                                        .getValue().toString());
+                                setValue(query, keySpecs.get(i), keyValuesOfRow
+                                        .get(i).getValue());
                             }
 
                             BasicDBObject doc = new BasicDBObject();
                             for (int i = 0; i < colValuesOfRow.size(); i++)
                             {
-                                String name = colSpecs.get(i).getName();
-                                Object value = colValuesOfRow.get(i).getValue();
-                                if (value == null)
-                                    doc.put(name, value);
-                                else if (value instanceof SerialBlob)
-                                    doc.put(name,
-                                            deserializeBlob(name,
-                                                    (SerialBlob) value));
-                                else
-                                    doc.put(name, value.toString());
+                                setValue(doc, colSpecs.get(i), colValuesOfRow
+                                        .get(i).getValue());
                             }
                             if (logger.isDebugEnabled())
                             {
@@ -264,9 +249,8 @@ public class MongoApplier implements RawApplier
                             DBObject query = new BasicDBObject();
                             for (int i = 0; i < keyValuesOfRow.size(); i++)
                             {
-                                String name = keySpecs.get(i).getName();
-                                query.put(name, keyValuesOfRow.get(i)
-                                        .getValue().toString());
+                                setValue(query, keySpecs.get(i), keyValuesOfRow
+                                        .get(i).getValue());
                             }
 
                             if (logger.isDebugEnabled())
@@ -313,6 +297,45 @@ public class MongoApplier implements RawApplier
         this.latestHeader = header;
         if (doCommit)
             commit();
+    }
+
+    /**
+     * @param doc
+     * @param columnSpec
+     * @param value
+     * @throws ReplicatorException
+     */
+    private void setValue(DBObject doc, ColumnSpec columnSpec, Object value)
+            throws ReplicatorException
+    {
+        String name = columnSpec.getName();
+
+        if (value == null)
+            doc.put(name, value);
+        else if (value instanceof SerialBlob)
+            doc.put(name, deserializeBlob(name, (SerialBlob) value));
+        else if (columnSpec.getType() == Types.TIME)
+        {
+            if (value instanceof Timestamp)
+            {
+                Timestamp timestamp = ((Timestamp) value);
+                StringBuffer time = new StringBuffer(new Time(
+                        timestamp.getTime()).toString());
+                if (timestamp.getNanos() > 0)
+                {
+                    time.append(".");
+                    time.append(String.format("%09d", timestamp.getNanos()));
+                }
+                doc.put(name, time.toString());
+            }
+            else
+            {
+                Time t = (Time) value;
+                doc.put(name, t.toString());
+            }
+        }
+        else
+            doc.put(name, value.toString());
     }
 
     // Ensure that a collection has required indexes.
