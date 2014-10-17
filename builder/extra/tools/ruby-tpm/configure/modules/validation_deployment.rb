@@ -143,7 +143,7 @@ class WriteableTempDirectoryCheck < ConfigureValidationCheck
     end
   
     # Check to see if the tmp directory is executable
-    noexec = ssh_result("echo  'echo 0' > #{validation_temp_directory}/check.sh;chmod +x #{validation_temp_directory}/check.sh; #{validation_temp_directory}/check.sh", @config.getProperty(HOST), user)   
+    noexec = ssh_result("echo  'echo 0' > #{validation_temp_directory}/check.sh;chmod +x #{validation_temp_directory}/check.sh; #{validation_temp_directory}/check.sh; rm -f #{validation_temp_directory}/check.sh", @config.getProperty(HOST), user)   
     unless noexec == "0"
       error "Unable to execute scripts on #{validation_temp_directory} is noexec set?"
     else
