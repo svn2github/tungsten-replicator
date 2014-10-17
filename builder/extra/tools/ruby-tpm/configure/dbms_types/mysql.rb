@@ -458,7 +458,7 @@ class MySQLDriver < ConfigurePrompt
   include ClusterHostPrompt
   
   def initialize
-    pv = PropertyValidator.new("^mysql|drizzle|mariadb$", 
+    pv = PropertyValidator.new("^drizzle|mysql|mariadb$", 
       "Value must be mysql, drizzle or mariadb")
       
     super(MYSQL_DRIVER, "MySQL Driver Vendor", pv)
