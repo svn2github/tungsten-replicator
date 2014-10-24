@@ -288,7 +288,7 @@ class SwappinessCheck < ConfigureValidationCheck
 
   def validate
     swappiness = cmd_result("cat /proc/sys/vm/swappiness", true)
-    reboot_swappiness = cmd_result("grep '^vm.swappiness' /etc/sysctl.conf", true).split("=")[-1]
+    reboot_swappiness = cmd_result("grep -rs '^vm.swappiness' /etc/sysctl.conf /etc/sysctl.d/*.conf | sed -E 's/[[:space:]]+//g' | cut -f2 -d'=' | tail -n1", true)
     if reboot_swappiness.to_s() == ""
       reboot_swappiness = 60
     end
