@@ -958,7 +958,7 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                         statusProps.setString(Replicator.CURRENT_EVENT_ID,
                                 currentEventId);
                 }
-                catch (ExtractorException e)
+                catch (ReplicatorException e)
                 {
                     statusProps.setString(Replicator.CURRENT_EVENT_ID, "ERROR");
                     if (logger.isDebugEnabled())
