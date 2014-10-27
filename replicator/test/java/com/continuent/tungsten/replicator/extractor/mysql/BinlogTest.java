@@ -33,14 +33,14 @@ import com.continuent.tungsten.replicator.applier.DummyApplier;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.conf.ReplicatorMonitor;
 import com.continuent.tungsten.replicator.conf.ReplicatorRuntime;
+import com.continuent.tungsten.replicator.datasource.AliasDataSource;
 import com.continuent.tungsten.replicator.extractor.ExtractorWrapper;
 import com.continuent.tungsten.replicator.management.MockOpenReplicatorContext;
 import com.continuent.tungsten.replicator.pipeline.Pipeline;
 import com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask;
 
 /**
- * This class defines a BinlogTest.  It requires a MySQL server in order to 
- * run. 
+ * This class defines a BinlogTest. It requires a MySQL server in order to run.
  * 
  * @author <a href="mailto:seppo.jaakola@continuent.com">Seppo Jaakola</a>
  * @version 1.0
@@ -75,11 +75,12 @@ public class BinlogTest extends TestCase
             // Configure runtime with these properties and prepare the
             // extractor for use.
             ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                    new MockOpenReplicatorContext(), ReplicatorMonitor
-                            .getInstance());
+                    new MockOpenReplicatorContext(),
+                    ReplicatorMonitor.getInstance());
             runtime.configure();
             MySQLExtractor extractor = getMySQLExtractor(runtime);
             extractor.setStrictVersionChecking(false);
+            extractor.setDataSource("extractor");
             extractor.prepare(runtime);
             extractor.setLastEventId("000001:0");
 
@@ -113,11 +114,12 @@ public class BinlogTest extends TestCase
             // Configure runtime with these properties and prepare the
             // extractor for use.
             ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                    new MockOpenReplicatorContext(), ReplicatorMonitor
-                            .getInstance());
+                    new MockOpenReplicatorContext(),
+                    ReplicatorMonitor.getInstance());
             runtime.configure();
             MySQLExtractor extractor = getMySQLExtractor(runtime);
             extractor.setStrictVersionChecking(false);
+            extractor.setDataSource("extractor");
             extractor.prepare(runtime);
             extractor.setLastEventId("000001:0");
 
@@ -131,8 +133,8 @@ public class BinlogTest extends TestCase
         }
         catch (MySQLExtractException e)
         {
+            logger.error("extractor failed", e);
             fail(e.getMessage());
-            logger.info("extractor failed");
         }
         return;
     }
@@ -151,11 +153,13 @@ public class BinlogTest extends TestCase
             // Configure runtime with these properties and prepare the
             // extractor for use.
             ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-                    new MockOpenReplicatorContext(), ReplicatorMonitor
-                            .getInstance());
+                    new MockOpenReplicatorContext(),
+                    ReplicatorMonitor.getInstance());
             runtime.configure();
             MySQLExtractor extractor = getMySQLExtractor(runtime);
             extractor.setStrictVersionChecking(false);
+            extractor.setDataSource("extractor");
+
             extractor.prepare(runtime);
             extractor.setLastEventId("000001:0");
 
@@ -179,51 +183,51 @@ public class BinlogTest extends TestCase
     {
         if (true)
             return;
-        
+
         // Code clean-up : commenting out dead code
-//        try
-//        {
-//            // Set properties.
-//            TungstenProperties conf = this.createConfProperties();
-//            conf.setString(ReplicatorConf.EXTRACTOR_ROOT + ".mysql.binlog_dir",
-//                    ".");
-//            conf.setString(ReplicatorConf.EXTRACTOR_ROOT
-//                    + ".mysql.binlog_file_pattern", "mysql-bin-row");
-//
-//            // Configure runtime with these properties and prepare the
-//            // extractor for use.
-//            ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
-//                    new MockOpenReplicatorContext(), ReplicatorMonitor
-//                            .getInstance());
-//            runtime.configure();
-//
-//            MySQLExtractor extractor = getMySQLExtractor(runtime);
-//            extractor.setStrictVersionChecking(false);
-//            extractor.prepare(runtime);
-//            extractor.setLastEventId("000003:0");
-//
-//            // Extract events. Make sure we get expected number (7).
-//            runtime.prepare();
-//            Pipeline pipeline = runtime.getPipeline();
-//            pipeline.start(new EventDispatcher());
-//            Future<ReplDBMSEvent> future = pipeline
-//                    .watchForAppliedSequenceNumber(6);
-//            future.get(3, TimeUnit.SECONDS);
-//            /**
-//             * Applier applier = runtime.getApplier(); applier.prepare(runtime);
-//             * // applier.configure(); // read all 5 events from file
-//             * logger.info("RBR extractor/applier starting"); for (int i = 0; i
-//             * < 7; i++) { DBMSEvent event = extractor.extract(); if (event !=
-//             * null) { applier.apply(event, i, true); } }
-//             */
-//            logger.info("RBR extractor/applier finished");
-//        }
-//        catch (MySQLExtractException e)
-//        {
-//            fail(e.getMessage());
-//            logger.info("RBR extractor/applier failed");
-//        }
-//        return;
+        // try
+        // {
+        // // Set properties.
+        // TungstenProperties conf = this.createConfProperties();
+        // conf.setString(ReplicatorConf.EXTRACTOR_ROOT + ".mysql.binlog_dir",
+        // ".");
+        // conf.setString(ReplicatorConf.EXTRACTOR_ROOT
+        // + ".mysql.binlog_file_pattern", "mysql-bin-row");
+        //
+        // // Configure runtime with these properties and prepare the
+        // // extractor for use.
+        // ReplicatorRuntime runtime = new ReplicatorRuntime(conf,
+        // new MockOpenReplicatorContext(), ReplicatorMonitor
+        // .getInstance());
+        // runtime.configure();
+        //
+        // MySQLExtractor extractor = getMySQLExtractor(runtime);
+        // extractor.setStrictVersionChecking(false);
+        // extractor.prepare(runtime);
+        // extractor.setLastEventId("000003:0");
+        //
+        // // Extract events. Make sure we get expected number (7).
+        // runtime.prepare();
+        // Pipeline pipeline = runtime.getPipeline();
+        // pipeline.start(new EventDispatcher());
+        // Future<ReplDBMSEvent> future = pipeline
+        // .watchForAppliedSequenceNumber(6);
+        // future.get(3, TimeUnit.SECONDS);
+        // /**
+        // * Applier applier = runtime.getApplier(); applier.prepare(runtime);
+        // * // applier.configure(); // read all 5 events from file
+        // * logger.info("RBR extractor/applier starting"); for (int i = 0; i
+        // * < 7; i++) { DBMSEvent event = extractor.extract(); if (event !=
+        // * null) { applier.apply(event, i, true); } }
+        // */
+        // logger.info("RBR extractor/applier finished");
+        // }
+        // catch (MySQLExtractException e)
+        // {
+        // fail(e.getMessage());
+        // logger.info("RBR extractor/applier failed");
+        // }
+        // return;
     }
 
     // Generate a simple runtime.
@@ -245,6 +249,26 @@ public class BinlogTest extends TestCase
                 DummyApplier.class.getName());
         conf.setString(ReplicatorConf.EXTRACTOR_ROOT + ".mysql",
                 MySQLExtractor.class.getName());
+
+        conf.setString("replicator.service.datasource",
+                "com.continuent.tungsten.replicator.datasource.DataSourceService");
+        conf.setString("replicator.datasources", "global,extractor");
+        conf.setString("replicator.pipeline.master.services", "datasource");
+
+        conf.setString("replicator.datasource.extractor",
+                AliasDataSource.class.getName());
+        conf.setString("replicator.datasource.extractor.dataSource", "global");
+        conf.setString("replicator.datasource.global",
+                "com.continuent.tungsten.replicator.datasource.SqlDataSource");
+
+        conf.setString("replicator.datasource.global.connectionSpec",
+                "com.continuent.tungsten.replicator.datasource.SqlConnectionSpecMySQL");
+        conf.setString("replicator.datasource.global.connectionSpec.host",
+                "dummyHost");
+        conf.setString("replicator.datasource.global.connectionSpec.user",
+                "dumyUser");
+        conf.setString("replicator.datasource.global.connectionSpec.password",
+                "dummyPass");
 
         return conf;
     }

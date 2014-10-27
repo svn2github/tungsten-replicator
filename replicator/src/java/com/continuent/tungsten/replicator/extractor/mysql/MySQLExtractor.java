@@ -1434,16 +1434,6 @@ public class MySQLExtractor implements RawExtractor
      */
     public void prepare(PluginContext context) throws ReplicatorException
     {
-        // NOTE: We can't check the database by default as unit tests depend
-        // on being able to run without the server present. Also, we may in
-        // future want to run on mirrored binlogs without the database.
-        if (!strictVersionChecking)
-        {
-            logger.warn("MySQL start-up checks are disabled; binlog "
-                    + "extraction may fail for unsupported versions "
-                    + "or if InnoDB is not present");
-            return;
-        }
 
         // Locate our data source from which we are extracting.
         logger.info("Connecting to data source");
@@ -1476,6 +1466,17 @@ public class MySQLExtractor implements RawExtractor
         else
         {
             context.setPipelineSource(binlogDir);
+        }
+
+        // NOTE: We can't check the database by default as unit tests depend
+        // on being able to run without the server present. Also, we may in
+        // future want to run on mirrored binlogs without the database.
+        if (!strictVersionChecking)
+        {
+            logger.warn("MySQL start-up checks are disabled; binlog "
+                    + "extraction may fail for unsupported versions "
+                    + "or if InnoDB is not present");
+            return;
         }
 
         // Proceed with database checks.
