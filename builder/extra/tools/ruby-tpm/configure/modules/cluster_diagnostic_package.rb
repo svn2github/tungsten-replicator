@@ -94,12 +94,7 @@ module ClusterDiagnosticPackage
       write_file("#{diag_dir}/#{h_alias}/os_info/lsb_release.txt",run_command(config,"lsb_release -a"))
 
       if @promotion_settings.getProperty([c_key, REPLICATOR_ENABLED]) == "true"
-        if @promotion_settings.getProperty([c_key, MANAGER_ENABLED]) == "true"
-          write_file("#{diag_dir}/#{h_alias}/cctrl.txt",@promotion_settings.getProperty([c_key, "cctrl_status"]))
-          write_file("#{diag_dir}/#{h_alias}/cctrl_simple.txt",@promotion_settings.getProperty([c_key, "cctrl_status_simple"]))
-          write_file("#{diag_dir}/#{h_alias}/cctrl_ping.txt",@promotion_settings.getProperty([c_key, "cctrl_ping"]))
-          write_file("#{diag_dir}/#{h_alias}/cctrl_validate.txt",@promotion_settings.getProperty([c_key, "cctrl_validate"]))
-        end
+
       
         write_file("#{diag_dir}/#{h_alias}/trepctl.json", @promotion_settings.getProperty([c_key, "replicator_json_status"]))
         
@@ -137,12 +132,6 @@ module ClusterDiagnosticPackage
         get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/xtrabackup.log", "#{diag_dir}/#{h_alias}/xtrabackup.log")
         get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/mysqldump.log", "#{diag_dir}/#{h_alias}/mysqldump.log")
         get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/script.log","#{diag_dir}/#{h_alias}/script.log")
-        get_log(config,"/home/#{config.getProperty(USERID)}/.cctrl_history","#{diag_dir}/#{h_alias}/cctrl_history.txt")
-
-        if @promotion_settings.getProperty([c_key, MANAGER_ENABLED]) == "true"
-          get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/log/tmsvc.log", "#{diag_dir}/#{h_alias}/tmsvc.log")
-        end
-
 
         #Get Replicator Static/Dynamic properties from each host
         config.getPropertyOr([REPL_SERVICES], {}).keys().sort().each{
@@ -159,6 +148,14 @@ module ClusterDiagnosticPackage
           write_file(fileName,run_command(config,command))
         }
 
+        if @promotion_settings.getProperty([c_key, MANAGER_ENABLED]) == "true"
+          get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-manager/log/tmsvc.log", "#{diag_dir}/#{h_alias}/tmsvc.log")
+          write_file("#{diag_dir}/#{h_alias}/cctrl.txt",@promotion_settings.getProperty([c_key, "cctrl_status"]))
+          write_file("#{diag_dir}/#{h_alias}/cctrl_simple.txt",@promotion_settings.getProperty([c_key, "cctrl_status_simple"]))
+          write_file("#{diag_dir}/#{h_alias}/cctrl_ping.txt",@promotion_settings.getProperty([c_key, "cctrl_ping"]))
+          write_file("#{diag_dir}/#{h_alias}/cctrl_validate.txt",@promotion_settings.getProperty([c_key, "cctrl_validate"]))
+          get_log(config,"/home/#{config.getProperty(USERID)}/.cctrl_history","#{diag_dir}/#{h_alias}/cctrl_history.txt")
+        end
 
         ds=ConfigureDatabasePlatform.build([REPL_SERVICES, h_alias], config)
 
