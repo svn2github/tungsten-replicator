@@ -365,11 +365,14 @@ public class THL implements Store
             {
                 if (context.isPrivilegedMaster())
                 {
-                    logger.info("Surpressing logging on privileged master");
+                    logger.info("Suppressing logging on privileged master");
                     conn.setPrivileged(true);
                     conn.setLogged(false);
                 }
-                else if (context.isPrivilegedSlave()
+            }
+            else if (context.isSlave())
+            {
+                if (context.isPrivilegedSlave()
                         && !context.logReplicatorUpdates())
                 {
                     logger.info("Suppressing logging on privileged slave");
