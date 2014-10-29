@@ -109,6 +109,8 @@ module RemoteCommand
         if config_obj.has_key?(DATASERVICES)
           config_obj[DATASERVICES].each_key{
             |ds_alias|
+            additional_hosts = additional_hosts + config_obj[DATASERVICES][ds_alias][DATASERVICE_MASTER_MEMBER].to_s().split(',')
+            additional_hosts = additional_hosts + config_obj[DATASERVICES][ds_alias][DATASERVICE_SLAVES].to_s().split(',')
             additional_hosts = additional_hosts + config_obj[DATASERVICES][ds_alias][DATASERVICE_MEMBERS].to_s().split(',')
             additional_hosts = additional_hosts + config_obj[DATASERVICES][ds_alias][DATASERVICE_CONNECTORS].to_s().split(',')
           }
