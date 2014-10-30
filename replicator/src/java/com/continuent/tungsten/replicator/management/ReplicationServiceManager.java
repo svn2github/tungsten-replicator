@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.Vector;
 
@@ -214,6 +215,7 @@ public class ReplicationServiceManager
     public static void main(String argv[])
     {
         ManifestParser.logReleaseWithBuildNumber(logger);
+        logger.info("Using default timezone : " + TimeZone.getDefault());
         logger.info("Starting replication service manager");
 
         boolean forceOffline = false;
