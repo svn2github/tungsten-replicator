@@ -218,7 +218,8 @@ public class DsQueryCtrl
                         jsonObj.put("results", logResults(stmt, isRS));
                     else
                         jsonObj.put("results", new JSONArray());
-                    jsonObj.put("error", sqlEx);
+
+                    jsonObj.put("error", logError(sqlEx));
 
                 }
                 catch (Exception e)
@@ -237,6 +238,14 @@ public class DsQueryCtrl
         {
             e.printStackTrace();
         }
+    }
+
+    private static Object logError(SQLException sqlEx)
+    {
+        if (sqlEx == null)
+            return null;
+
+        return sqlEx.getMessage();
     }
 
     @SuppressWarnings("unchecked")
