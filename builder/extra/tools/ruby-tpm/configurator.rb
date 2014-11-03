@@ -1745,16 +1745,18 @@ def scp_result(local_file, remote_file, host, user)
     return FileUtils.cp(local_file, remote_file)
   end
   
-  unless defined?(Net::SCP)
-    begin
-      require "openssl"
-    rescue LoadError
-      error("Unable to find the Ruby openssl library")
-      error("Try installing the openssl package for your version of Ruby (libopenssl-ruby#{RUBY_VERSION[0,3]}).")
-      cleanup(1)
+  Configurator.instance.synchronize() {
+    unless defined?(Net::SCP)
+      begin
+        require "openssl"
+      rescue LoadError
+        Configurator.instance.error("Unable to find the Ruby openssl library")
+        Configurator.instance.error("Try installing the openssl package for your version of Ruby (libopenssl-ruby#{RUBY_VERSION[0,3]}).")
+        Configurator.instance.cleanup(1)
+      end
+      system_require 'net/scp'
     end
-    system_require 'net/scp'
-  end
+  }
   
   ssh_user = Configurator.instance.get_ssh_user(user)
   if user != ssh_user
