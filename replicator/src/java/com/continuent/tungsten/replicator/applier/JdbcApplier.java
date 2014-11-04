@@ -31,11 +31,13 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
@@ -139,6 +141,9 @@ public class JdbcApplier implements RawApplier
     // Indicates whether ROW events should be optimized (grouping inserts or
     // deletes) -- only supported by MySQL appliers for now
     protected boolean                 optimizeRowEvents          = false;
+
+    protected final SimpleDateFormat  formatter                  = new SimpleDateFormat(
+                                                                         "yyyy-MM-dd HH:mm:ss");
 
     // Setters.
 
@@ -1171,7 +1176,7 @@ public class JdbcApplier implements RawApplier
                 OneRowChange.ColumnVal value = values.get(c);
                 log.append('\n');
                 log.append(THLManagerCtrl.formatColumn(colSpec, value, "COL",
-                        "utf8", false, true));
+                        "utf8", false, true, formatter));
             }
         }
         // Print key values.
@@ -1184,7 +1189,7 @@ public class JdbcApplier implements RawApplier
                 OneRowChange.ColumnVal value = values.get(k);
                 log.append('\n');
                 log.append(THLManagerCtrl.formatColumn(colSpec, value, "KEY",
-                        "utf8", false, true));
+                        "utf8", false, true, formatter));
             }
         }
         return log.toString();
@@ -1812,6 +1817,7 @@ public class JdbcApplier implements RawApplier
         {
             ignoreSessionPattern = Pattern.compile(ignoreSessionVars);
         }
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
     }
 
     /**

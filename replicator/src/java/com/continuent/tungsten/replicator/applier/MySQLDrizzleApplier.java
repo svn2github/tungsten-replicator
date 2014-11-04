@@ -34,9 +34,7 @@ import java.sql.SQLWarning;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.text.SimpleDateFormat;
 import java.util.List;
-import java.util.TimeZone;
 
 import org.apache.log4j.Logger;
 import org.drizzle.jdbc.DrizzleStatement;
@@ -57,17 +55,13 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 public class MySQLDrizzleApplier extends MySQLApplier
 {
 
-    static Logger                         logger        = Logger.getLogger(MySQLDrizzleApplier.class);
+    static Logger   logger        = Logger.getLogger(MySQLDrizzleApplier.class);
 
-    private boolean                       alreadyLogged = false;
-
-    private static final SimpleDateFormat formatter     = new SimpleDateFormat(
-                                                                "yyyy-MM-dd HH:mm:ss");
+    private boolean alreadyLogged = false;
 
     @Override
     public void configure(PluginContext context) throws ReplicatorException
     {
-        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
         super.configure(context);
     }
 

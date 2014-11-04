@@ -30,6 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,14 +76,11 @@ public class THLManagerCtrl
     /**
      * Default path to replicator.properties if user not specified other.
      */
-    protected static final String         defaultConfigPath  = ".."
-                                                                     + File.separator
-                                                                     + "conf"
-                                                                     + File.separator
-                                                                     + "static-default.properties";
-
-    private static final SimpleDateFormat formatter          = new SimpleDateFormat(
-                                                                     "yyyy-MM-dd HH:mm:ss");
+    protected static final String defaultConfigPath  = ".."
+                                                             + File.separator
+                                                             + "conf"
+                                                             + File.separator
+                                                             + "static-default.properties";
 
     /**
      * Maximum length of characters to print out for a BLOB. If BLOB is larger,
@@ -114,7 +112,6 @@ public class THLManagerCtrl
         TungstenProperties properties = readConfig();
         logDir = properties.getString("replicator.store.thl.log_dir");
         this.doChecksum = doChecksum;
-        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
     }
 
     /**
@@ -233,7 +230,7 @@ public class THLManagerCtrl
      */
     public static String formatColumn(OneRowChange.ColumnSpec colSpec,
             OneRowChange.ColumnVal value, String prefix, String charset,
-            boolean hex, boolean specs)
+            boolean hex, boolean specs, DateFormat dateFormatter)
     {
         String log = "  - " + prefix + "(";
         if (colSpec != null)
@@ -301,7 +298,8 @@ public class THLManagerCtrl
                         && value.getValue() instanceof Timestamp)
                 {
                     Timestamp ts = (Timestamp) value.getValue();
-                    StringBuffer date = new StringBuffer(formatter.format(ts));
+                    StringBuffer date = new StringBuffer(
+                            dateFormatter.format(ts));
                     if (ts.getNanos() > 0)
                     {
                         date.append(".");
@@ -795,6 +793,9 @@ public class THLManagerCtrl
             RowChangeData rowChange, String lastSchema, boolean pureSQL,
             int sqlIndex, String charset, boolean hex, boolean specs, long seqno)
     {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
+
         printOptions(stringBuilder, rowChange.getOptions(), pureSQL);
         if (!pureSQL)
             println(stringBuilder, "- SQL(" + sqlIndex + ") =");
@@ -841,7 +842,7 @@ public class THLManagerCtrl
                             OneRowChange.ColumnVal value = values.get(c);
                             println(stringBuilder,
                                     formatColumn(colSpec, value, "COL",
-                                            charset, hex, specs));
+                                            charset, hex, specs, formatter));
                         }
                     }
                     else if (columns.size() > 0)
@@ -874,7 +875,7 @@ public class THLManagerCtrl
                                 value = values.get(k);
                             println(stringBuilder,
                                     formatColumn(colSpec, value, "KEY",
-                                            charset, hex, specs));
+                                            charset, hex, specs, formatter));
                         }
                     }
                 }
