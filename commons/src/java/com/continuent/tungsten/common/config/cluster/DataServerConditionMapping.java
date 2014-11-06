@@ -46,6 +46,24 @@ public class DataServerConditionMapping implements Serializable
 
     }
 
+    /**
+     * Creates a new <code>DataServerConditionMapping</code> object This
+     * constructor should only be used when a default mapping is needed. This
+     * mapping will not 'do any harm'. The main use for such a mapping is if the
+     * default mapping happens to be missing from the statemap properties
+     * defaults.
+     * 
+     * @param queryStatus
+     */
+    public DataServerConditionMapping(ExecuteQueryStatus queryStatus)
+    {
+        this.queryStatus = queryStatus;
+        this.state = ResourceState.UNKNOWN;
+        this.action = MappedAction.NONE;
+        this.threshold = -1;
+
+    }
+
     public DataServerConditionMapping(ExecuteQueryStatus queryStatus,
             TungstenProperties conditionProps)
     {

@@ -75,8 +75,16 @@ public class DataServerConditionMappingConfiguration
             TungstenProperties mappingForStatus = mappingProps.subset(status
                     .toString().toLowerCase() + ".", true);
 
-            if (mappingForStatus != null && mappingForStatus.size() != 0)
+            if (mappingForStatus != null)
             {
+                if (mappingForStatus.size() != 3)
+                {
+                    logger.warn(String
+                            .format("The mapping for status '%s' is malformed: only contains %d elements",
+                                    status.toString().toLowerCase(),
+                                    mappingForStatus.size()));
+                    continue;
+                }
                 mapping.put(status, new DataServerConditionMapping(status,
                         mappingForStatus));
             }
@@ -151,6 +159,16 @@ public class DataServerConditionMappingConfiguration
         if (mapping == null)
         {
             mapping = defaults.get(queryStatus);
+
+            if (mapping == null)
+            {
+
+                mapping = new DataServerConditionMapping(queryStatus);
+
+                logger.warn(String
+                        .format("No default mapping found for condition '%s'. Returning: %s",
+                                queryStatus, mapping));
+            }
         }
 
         return mapping;
@@ -176,6 +194,15 @@ public class DataServerConditionMappingConfiguration
             else
             {
                 mapping = defaults.get(key);
+
+                if (mapping == null)
+                {
+                    mapping = new DataServerConditionMapping(key);
+
+                    logger.warn(String
+                            .format("No default mapping found for condition '%s'. Using: %s",
+                                    key, mapping));
+                }
                 builder.append(String.format("%s\n", mapping));
             }
         }
@@ -244,7 +271,7 @@ public class DataServerConditionMappingConfiguration
                             : "RELOADING"),
                     getGlobalConfigDirName(clusterHomeName),
                     ConfigurationConstants.CLUSTER_STATE_MAP_DEFAULT_PROPS),
-                    CLLogLevel.debug);
+                    CLLogLevel.detailed);
             defaultStateMappingModified = lastModified;
             loadNeeded = true;
         }
@@ -259,7 +286,7 @@ public class DataServerConditionMappingConfiguration
                             : "RELOADING"),
                     getGlobalConfigDirName(clusterHomeName),
                     ConfigurationConstants.CLUSTER_STATE_MAP_OVERRIDE_PROPS),
-                    CLLogLevel.debug);
+                    CLLogLevel.detailed);
             overriddenStateMappingModified = lastModified;
             loadNeeded = true;
         }
@@ -282,7 +309,7 @@ public class DataServerConditionMappingConfiguration
             overrides = new HashMap<ExecuteQueryStatus, DataServerConditionMapping>();
         }
 
-        CLUtils.println(showStateMapping());
+        CLUtils.println(showStateMapping(), CLLogLevel.detailed);
 
     }
 }
