@@ -174,6 +174,12 @@ public class DataServerConditionMappingConfiguration
         return mapping;
     }
 
+    /**
+     * 
+     * Prints out current state mapping.
+     * 
+     * @return
+     */
     public static String showStateMapping()
     {
         StringBuilder builder = new StringBuilder();
