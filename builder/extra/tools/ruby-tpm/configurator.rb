@@ -1414,37 +1414,41 @@ class Configurator
   end
   
   def start_alive_thread
-    if @alive_thread == nil && enable_log_level?(Logger::NOTICE) && has_tty?() && @options.stream_output == false
-      if @command && @command.display_alive_thread?() == false
-        return
-      end
-      
-      @alive_thread = Thread.new{
-        Thread.current[:has_output] = false
-        while true
-          sleep 2
-          putc '.'
-          $stdout.flush()
-          Thread.current[:has_output] = true
-        end
-      }
+    if @command && @command.display_alive_thread?() == false
+      return
     end
+    
+    self.synchronize() {
+      if @alive_thread == nil && enable_log_level?(Logger::NOTICE) && has_tty?() && @options.stream_output == false
+        @alive_thread = Thread.new{
+          Thread.current[:has_output] = false
+          while true
+            sleep 2
+            putc '.'
+            $stdout.flush()
+            Thread.current[:has_output] = true
+          end
+        }
+      end
+    }
   end
   
   def stop_alive_thread
-    if @alive_thread != nil
-      if @alive_thread[:has_output] == true
-        puts "\n"
-        $stdout.flush()
+    self.synchronize() {
+      if @alive_thread != nil
+        if @alive_thread[:has_output] == true
+          puts "\n"
+          $stdout.flush()
+        end
+
+        begin
+          Thread.kill(@alive_thread)
+        rescue TypeError
+        end
+
+        @alive_thread = nil
       end
-      
-      begin
-        Thread.kill(@alive_thread)
-      rescue TypeError
-      end
-      
-      @alive_thread = nil
-    end
+    }
   end
   
   def synchronize(&block)

@@ -11,6 +11,9 @@ rescue LoadError
   raise "The aws-sdk Ruby gem or rubygem-aws-sdk package is required for this class"
 end
 
+# TODO: Snapshot when there is an lvm
+# TODO: Hooks before/after the snapshot/restore to modify the list of 
+# directories or paths to backup
 class EBSSnapshotBackup < TungstenSnapshotBackup
   def create_snapshot(timestamp)
     snapshots = {}
