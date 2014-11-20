@@ -199,6 +199,9 @@ public class Replicator extends Resource implements Serializable
     private String             masterConnectUri               = null;
     private String             masterListenUri                = null;
 
+    /** Replicator properties used for json output */
+    private TungstenProperties replicatorProperties           = null;
+
     /**
      * Obsolete values provided for compatibility with branched open replicator.
      * 
@@ -255,6 +258,10 @@ public class Replicator extends Resource implements Serializable
                 .getString(Replicator.MASTER_CONNECT_URI));
         newReplicator.setMasterListenUri(replicatorProps
                 .getString(Replicator.MASTER_LISTEN_URI));
+
+        // Add all of the Replicator properties
+        // TUC-2351
+        newReplicator.setReplicatorProperties(replicatorProps);
 
         return newReplicator;
     }
@@ -597,6 +604,26 @@ public class Replicator extends Resource implements Serializable
     public void setAppliedLastSeqno(long appliedLastSeqno)
     {
         this.appliedLastSeqno = appliedLastSeqno;
+    }
+
+    /**
+     * Returns the replicatorProperties value.
+     * 
+     * @return Returns the replicatorProperties.
+     */
+    public TungstenProperties getReplicatorProperties()
+    {
+        return replicatorProperties;
+    }
+
+    /**
+     * Sets the replicatorProperties value.
+     * 
+     * @param replicatorProperties The replicatorProperties to set.
+     */
+    public void setReplicatorProperties(TungstenProperties replicatorProperties)
+    {
+        this.replicatorProperties = replicatorProperties;
     }
 
 }
