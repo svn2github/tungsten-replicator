@@ -73,11 +73,6 @@ public class DeleteRowsLogEvent extends RowsLogEvent
         int rowIndex = 0; /* index of the row in value arrays */
 
         int size = bufferSize;
-        if (descriptionEvent.useChecksum())
-        {
-            // Remove 4 bytes for CRC
-            size -= 4;
-        }
 
         for (int i = 0; i < size;)
         {

@@ -78,11 +78,6 @@ public class UpdateRowsLogEvent extends RowsLogEvent
         int bufferIndex = 0;
 
         int size = bufferSize;
-        if (descriptionEvent.useChecksum())
-        {
-            // Remove 4 bytes for CRC
-            size -= 4;
-        }
 
         while (bufferIndex < size)
         {
