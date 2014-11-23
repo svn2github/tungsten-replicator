@@ -92,7 +92,7 @@ module ResetClusterDeploymentStep
       ConfigureCommitmentMethod.new("reset_replication_services", 0, 2),
       ConfigureCommitmentMethod.new("wait_for_manager", 2, -1),
       ConfigureCommitmentMethod.new("set_original_policy", 4, 2),
-      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false)
+      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, ConfigureDeploymentStepParallelization::NONE)
     ]
   end
   module_function :get_methods

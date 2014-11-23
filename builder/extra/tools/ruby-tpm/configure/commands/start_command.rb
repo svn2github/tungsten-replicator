@@ -103,7 +103,7 @@ module StartClusterDeploymentStep
     [
       ConfigureCommitmentMethod.new("start_services_from_event", 1, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT),
       ConfigureCommitmentMethod.new("wait_for_manager", 2, -1),
-      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false)
+      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, ConfigureDeploymentStepParallelization::NONE)
     ]
   end
   module_function :get_methods

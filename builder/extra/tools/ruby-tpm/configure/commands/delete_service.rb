@@ -132,7 +132,7 @@ module DeleteReplicationServiceDeploymentStep
       ConfigureCommitmentMethod.new("delete_replication_service", 0, 0),
       ConfigureCommitmentMethod.new("start_replication_services", 1, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT),
       ConfigureCommitmentMethod.new("set_original_policy", 4, 2),
-      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false)
+      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, ConfigureDeploymentStepParallelization::NONE)
     ]
   end
   module_function :get_methods

@@ -6,12 +6,12 @@ module ConfigureDeploymentStepServices
       ConfigureDeploymentMethod.new("apply_config_services", 0, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT),
       ConfigureCommitmentMethod.new("update_metadata", 1, 0),
       ConfigureCommitmentMethod.new("deploy_services", 1, 1),
-      ConfigureCommitmentMethod.new("start_replication_services_unless_provisioning", 2, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT-1, false),
-      ConfigureCommitmentMethod.new("wait_for_manager", 2, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, false),
-      ConfigureCommitmentMethod.new("start_connector", 4, 1, false),
+      ConfigureCommitmentMethod.new("start_replication_services_unless_provisioning", 2, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT-1, ConfigureDeploymentStepParallelization::BY_SERVICE),
+      ConfigureCommitmentMethod.new("wait_for_manager", 2, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT, ConfigureDeploymentStepParallelization::BY_SERVICE),
+      ConfigureCommitmentMethod.new("start_connector", 4, 1, ConfigureDeploymentStepParallelization::NONE),
       ConfigureCommitmentMethod.new("set_original_policy", 5, 0),
       ConfigureCommitmentMethod.new("provision_server", 5, 1),
-      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT-1, false),
+      ConfigureCommitmentMethod.new("report_services", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT-1, ConfigureDeploymentStepParallelization::NONE),
       ConfigureCommitmentMethod.new("check_ping", ConfigureDeploymentStepMethod::FINAL_GROUP_ID, ConfigureDeploymentStepMethod::FINAL_STEP_WEIGHT)
     ]
   end

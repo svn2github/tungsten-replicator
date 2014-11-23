@@ -658,17 +658,18 @@ module ConfigureCommand
       get_deployment_objects_group_ids(type).each {
         |group_id|
         
-        allow_parallel=true
+        parallelization=ConfigureDeploymentStepParallelization::BY_HOST
         if deployment_methods.has_key?(group_id)
           deployment_methods[group_id].each{
             |method|
-            unless method.allow_parallel
-              allow_parallel=false
+            if method.parallelization < parallelization
+              parallelization = method.parallelization
             end
           }
         end
         
-        if allow_parallel == true
+        case parallelization
+        when ConfigureDeploymentStepParallelization::BY_HOST
           threads = []
           
           config_objs.each_index {
@@ -684,7 +685,38 @@ module ConfigureCommand
             }
           }
           threads.each{|t| t.join() }
-        else
+        when ConfigureDeploymentStepParallelization::BY_SERVICE
+          # Group the configurations by their default service
+          configs_by_service = {}
+          config_objs.each_index {
+            |idx|
+            config_svc = config_objs[idx].getProperty([DEPLOYMENT_DATASERVICE])
+            if configs_by_service.has_key?(config_svc)
+              configs_by_service[config_svc] << idx
+            else
+              configs_by_service[config_svc] = [idx]
+            end
+          }
+          
+          threads = []
+          
+          configs_by_service.each_key {
+            |svc|
+            threads << Thread.new(svc) {
+              |svc|
+              configs_by_service[svc].each{
+                |idx|
+                h = @deployment_handlers[idx]
+
+                h.deploy_config_group(config_objs[idx], type, group_id)
+                mtx.synchronize do
+                  add_remote_result(h.get_remote_result())
+                end
+              }
+            }
+          }
+          threads.each{|t| t.join() }
+        when ConfigureDeploymentStepParallelization::NONE
           config_objs.each_index {
             |idx|
 
@@ -1329,18 +1361,24 @@ module DisabledForExternalConfiguration
   end
 end
 
+class ConfigureDeploymentStepParallelization
+  NONE = 0
+  BY_SERVICE = 1
+  BY_HOST = 2
+end
+
 class ConfigureDeploymentStepMethod
   FIRST_GROUP_ID = -100
   FIRST_STEP_WEIGHT = -100
   FINAL_GROUP_ID = 100
   FINAL_STEP_WEIGHT = 100
   
-  attr_reader :method_name, :weight, :group_id, :allow_parallel
-  def initialize(method_name, group_id = 0, weight = 0, allow_parallel = true)
+  attr_reader :method_name, :weight, :group_id, :parallelization
+  def initialize(method_name, group_id = 0, weight = 0, parallelization = ConfigureDeploymentStepParallelization::BY_HOST)
     @method_name=method_name
     @group_id=group_id
     @weight=weight
-    @allow_parallel=allow_parallel
+    @parallelization=parallelization
   end
 end
 
