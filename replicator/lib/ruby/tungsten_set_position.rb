@@ -8,7 +8,16 @@ class TungstenReplicatorSetPosition
       if @options[:source] != nil
         begin
           TU.info("Load seqno #{@options[:seqno]} from #{@options[:source]}")
-          cmd = "#{TI.thl(@options[:service])} list -seqno #{@options[:seqno]} -headers -json"
+          if TI.is_commercial?()
+            # Do not include a service name when using the clustering software
+            # because the source service name be different but the replicator
+            # will only have a single service defined. This enables proper
+            # operation for SOR deployments
+            cmd = "#{TI.thl()} list -seqno #{@options[:seqno]} -headers -json"
+          else
+            cmd = "#{TI.thl(@options[:service])} list -seqno #{@options[:seqno]} -headers -json"
+          end
+          
           thl_record_content = TU.ssh_result(cmd, @options[:source], TI.user())
         rescue CommandError => ce
           TU.debug(ce)

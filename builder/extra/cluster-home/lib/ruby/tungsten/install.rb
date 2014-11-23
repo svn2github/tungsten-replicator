@@ -246,8 +246,12 @@ class TungstenInstall
     end
   end
   
-  def thl(service)
-    "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/thl -service #{service}"
+  def thl(service = nil)
+    if service == nil
+      "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/thl"
+    else
+      "#{tungsten_sudo_prefix()}#{@root}/#{CURRENT_RELEASE_DIRECTORY}/tungsten-replicator/bin/thl -service #{service}"
+    end
   end
   
   def service_path(component)
