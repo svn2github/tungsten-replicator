@@ -236,7 +236,17 @@ class TungstenInstall
   def trepctl_value(service, key)
     TU.cmd_result("#{trepctl(service)} status | grep #{key} | awk -F: '{ st = index($0,\":\");print substr($0,st+1)}' | tr -d ' '")
   end
-  
+
+  def trepctl_name_value(service, name_value, stage, key)
+    begin
+      output=JSON.parse(TU.cmd_result("#{trepctl(service)} status -name #{name_value} -json"))
+    rescue Exception => e
+      output=nil
+    end
+    stage_values=output.find{|x| x['stage']=stage}
+    stage_values[key]
+  end
+
   def trepctl_property(service, key)
     properties = JSON.parse(TU.cmd_result("#{trepctl(service)} properties -filter #{key}"))
     if properties.has_key?(key)
