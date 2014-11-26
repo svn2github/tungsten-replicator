@@ -465,11 +465,7 @@ class MySQLDriver < ConfigurePrompt
   end
   
   def load_default_value
-    if Configurator.instance.is_enterprise?() == true
-      @default = "mysql"
-    else
       @default = "drizzle"
-    end
   end
   
   def get_template_value
