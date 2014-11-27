@@ -163,6 +163,11 @@
        	    <fileset dir="test/data">
 	       <include name="*bin*"/>
 	    </fileset>
+	    </copy>
+	    <copy todir="${test.work}">
+       	    <fileset dir="test/data/filter/">
+	       <include name="*"/>
+	    </fileset>
         </copy>
         <!-- Copy in drizzle test data. -->
         <copy todir="${test.work}">

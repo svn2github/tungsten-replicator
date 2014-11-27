@@ -253,6 +253,182 @@ public class ReplicateFilterTest extends TestCase
         filterHelper.done();
     }
 
+    /**
+     * Verify that we allow operations on schemas including wildcard
+     * substitutions.
+     */
+    public void testSchemasAcceptedWithFile() throws ReplicatorException,
+            InterruptedException
+    {
+        // Configure the filter to allow databases including wild cards.
+        ReplicateFilter rf = new ReplicateFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setFilePrefix("testSchemasAcceptedWithFile");
+        filterHelper.setFilter(rf);
+
+        // Confirm that the following commands are accepted if the default
+        // database is foo.
+        verifyStmtAccept(filterHelper, 0, null, "create database foo");
+        verifyStmtAccept(filterHelper, 1, null, "drop database bar");
+        verifyStmtAccept(filterHelper, 2, null,
+                "insert into foobar1.x1 values(1,2,3)");
+        verifyStmtAccept(filterHelper, 3, null,
+                "update test_tab set age=32 where id=1");
+
+        // Just for calibration ensure we ignore a non-matching schema.
+        verifyStmtIgnore(filterHelper, 4, null,
+                "insert into test.tab values(52,1)");
+
+        // All done.
+        filterHelper.done();
+    }
+
+    /**
+     * Verify that we properly ignore operations on schemas including those with
+     * wildcard substitutions.
+     */
+    public void testSchemasIgnoredWithFile() throws ReplicatorException,
+            InterruptedException
+    {
+        // Configure the filter to allow databases including wild cards.
+        ReplicateFilter rf = new ReplicateFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setFilePrefix("testSchemasIgnoredWithFile");
+        filterHelper.setFilter(rf);
+
+        // Confirm that the following commands are ignored if the default
+        // database is foo.
+        verifyStmtIgnore(filterHelper, 0, "bar", "create database foo");
+        verifyStmtIgnore(filterHelper, 1, "foo", "drop database bar");
+        verifyStmtIgnore(filterHelper, 2, "foo",
+                "delete from bar2.test where id=2");
+        verifyStmtIgnore(filterHelper, 3, "foo",
+                "insert into foobar1.x1 values(1,2,3)");
+        verifyStmtIgnore(filterHelper, 4, "foo",
+                "update test_tab set age=32 where id=1");
+
+        // Just for calibration ensure we accept a non-matching schema.
+        verifyStmtAccept(filterHelper, 5, "foo",
+                "insert into test.tab values(52,1)");
+
+        // All done.
+        filterHelper.done();
+    }
+
+    /**
+     * Verify that we handle cases where a subset of databases and/or tables is
+     * ignored.
+     */
+    public void testSchemasIgnoreSubsetWithFile() throws ReplicatorException,
+            InterruptedException
+    {
+        // Configure the filter to allow databases including wild cards.
+        ReplicateFilter rf = new ReplicateFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setFilePrefix("testSchemasIgnoreSubsetWithFile");
+        filterHelper.setFilter(rf);
+
+        // Confirm that the following commands are accepted if the default
+        // database is foo.
+        verifyStmtAccept(filterHelper, 0, null, "create database foobar1");
+        verifyStmtAccept(filterHelper, 1, "foo", "drop table foo.test2");
+        verifyStmtAccept(filterHelper, 2, "foo",
+                "delete from bar2.test where id=2");
+
+        // Confirm that we ignore subset values.
+        verifyStmtIgnore(filterHelper, 3, "foo",
+                "delete from foo.test where id=2");
+        verifyStmtIgnore(filterHelper, 4, "foo",
+                "create table foobar2.foobar1 (id int)");
+        verifyStmtIgnore(filterHelper, 5, "foo", "drop database bar234");
+
+        // All done.
+        filterHelper.done();
+    }
+
+    /**
+     * Verify that we accept and ignore databases appropriately when using row
+     * updates.
+     */
+    public void testRowHandlingWithFile() throws ReplicatorException,
+            InterruptedException
+    {
+        // Configure the filter to allow databases including wild cards.
+        ReplicateFilter rf = new ReplicateFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setFilePrefix("testRowHandlingWithFile");
+        filterHelper.setFilter(rf);
+
+        // Verify accepted events.
+        String names[] = {"id"};
+        Long values[] = {new Long(99)};
+        verifyRowAccept(filterHelper, 0, "foobar1", "foobar2", names, values);
+        verifyRowAccept(filterHelper, 1, "bar2", "foo", names, values);
+        verifyRowAccept(filterHelper, 2, "foo", "test2", names, values);
+
+        // Verify ignored events.
+        verifyRowIgnore(filterHelper, 3, "foo", "test", names, values);
+        verifyRowIgnore(filterHelper, 4, "foobar2", "foobar1", names, values);
+        verifyRowIgnore(filterHelper, 5, "bar234", "foobar1", names, values);
+
+        // All done.
+        filterHelper.done();
+    }
+
+    /**
+     * Verify that we handle table acceptance including cases where the table
+     * names are wildcarded.
+     */
+    public void testTableAcceptWithFile() throws ReplicatorException,
+            InterruptedException
+    {
+        // Configure the filter to allow databases including wild cards.
+        ReplicateFilter rf = new ReplicateFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setFilePrefix("testTableAcceptWithFile");
+        filterHelper.setFilter(rf);
+
+        // Confirm that the following commands are accepted.
+        verifyStmtAccept(filterHelper, 0, "bar",
+                "insert into foo.test values(1)");
+        verifyStmtAccept(filterHelper, 1, "foo", "delete from test1 where id=1");
+        verifyStmtAccept(filterHelper, 2, "bar", "insert into wild1 values(1)");
+        verifyStmtAccept(filterHelper, 3, "bar", "update w2 set age=29");
+
+        // Confirm that the following are ignored, because they do not trigger
+        // acceptance.
+        verifyStmtIgnore(filterHelper, 4, null, "create database foo");
+        verifyStmtIgnore(filterHelper, 5, "bar", "insert into test2 values(1)");
+        verifyStmtIgnore(filterHelper, 6, "bar", "create table will1 (id int)");
+        verifyStmtIgnore(filterHelper, 7, "bar", "delete from w22");
+
+        // All done.
+        filterHelper.done();
+    }
+
+    /**
+     * Verify that we always accept the Tungsten catalog even if it is
+     * explicitly ignored.
+     */
+    public void testTungstenCatalogAcceptWithFile() throws ReplicatorException,
+            InterruptedException
+    {
+        // Configure the filter to allow databases including wild cards.
+        ReplicateFilter rf = new ReplicateFilter();
+        rf.setTungstenSchema("tungsten_foo");
+        rf.setFilePrefix("testTungstenCatalogAcceptWithFile");
+        filterHelper.setFilter(rf);
+
+        // Confirm that the following commands are accepted.
+        verifyStmtAccept(filterHelper, 0, "bar",
+                "delete from tungsten_foo.trep_commit_seqno where task_id=9");
+        verifyRowAccept(filterHelper, 1, "tungsten_foo", "trep_commit_seqno",
+                new String[]{"task_id"}, new Object[]{0});
+
+        // All done.
+        filterHelper.done();
+    }
+
     // Confirms that a particular event is accepted.
     private void verifyAccept(FilterVerificationHelper filterHelper,
             ReplDBMSEvent e) throws ReplicatorException, InterruptedException

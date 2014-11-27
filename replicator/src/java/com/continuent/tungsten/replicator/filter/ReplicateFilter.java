@@ -27,12 +27,10 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-import com.continuent.tungsten.common.cache.IndexedLRUCache;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
 import com.continuent.tungsten.replicator.database.SqlOperation;
 import com.continuent.tungsten.replicator.database.SqlStatementParser;
-import com.continuent.tungsten.replicator.database.TableMatcher;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
@@ -61,17 +59,14 @@ public class ReplicateFilter implements Filter
 {
     private static Logger            logger = Logger.getLogger(ReplicateFilter.class);
 
-    private TableMatcher             doMatcher;
-    private TableMatcher             ignoreMatcher;
-
     private String                   doFilter;
     private String                   ignoreFilter;
+    private String                   filePrefix;
 
     private String                   tungstenSchema;
     private final SqlStatementParser parser = SqlStatementParser.getParser();
 
-    // Cache to look up filtered tables.
-    private IndexedLRUCache<Boolean> filterCache;
+    private SchemaTableFilter        filter;
 
     /**
      * Define a comma-separated list of schemas with optional table names (e.g.,
@@ -113,6 +108,11 @@ public class ReplicateFilter implements Filter
     public void setTungstenSchema(String tungstenSchema)
     {
         this.tungstenSchema = tungstenSchema;
+    }
+
+    public void setFilePrefix(String filePrefix)
+    {
+        this.filePrefix = filePrefix;
     }
 
     /**
@@ -234,63 +234,12 @@ public class ReplicateFilter implements Filter
         if (schema.length() == 0)
             return false;
 
-        // Find out if we need to filter.
-        String key = fullyQualifiedName(schema, table);
-        Boolean filter = filterCache.get(key);
-        if (filter == null)
-        {
-            filter = filterEventRaw(schema, table);
-            filterCache.put(key, filter);
-        }
-
-        // Return a value.
-        return filter;
-    }
-
-    // Performs a scan of all rules to see if we need to filter this event.
-    private boolean filterEventRaw(String schema, String table)
-    {
         // Tungsten schema is always passed through as dropping this can
         // confuse the replicator.
         if (schema.equals(tungstenSchema))
             return false;
 
-        // Check to see if we explicitly ignore this schema/table.
-        if (ignoreMatcher != null)
-        {
-            if (logger.isDebugEnabled())
-                logger.debug("Checking if we should ignore: schema=" + schema
-                        + " table=" + table);
-            if (ignoreMatcher.match(schema, table))
-                return true;
-        }
-
-        // Now to see if we accept this schema/table...
-        if (doMatcher == null)
-        {
-            // If there is no explicit 'do' matcher, we do not filter anything.
-            return false;
-        }
-        else
-        {
-            // If there is an explicit filter we filter only if we *do not*
-            // match.
-            if (logger.isDebugEnabled())
-                logger.debug("Checking if we should replicate: schema="
-                        + schema + " table=" + table);
-            return !doMatcher.match(schema, table);
-        }
-    }
-
-    // Returns the fully qualified schema and/or table name, which can be used
-    // as a key.
-    public String fullyQualifiedName(String schema, String table)
-    {
-        StringBuffer fqn = new StringBuffer();
-        fqn.append(schema);
-        if (table != null)
-            fqn.append(".").append(table);
-        return fqn.toString();
+        return filter.filterEvent(schema, table);
     }
 
     /**
@@ -319,24 +268,11 @@ public class ReplicateFilter implements Filter
         if (logger.isDebugEnabled())
             logger.debug("Preparing Replicate Filter");
 
-        // Implement filter rules.
-        this.doMatcher = extractFilter(doFilter);
-        this.ignoreMatcher = extractFilter(ignoreFilter);
+        if (doFilter != null || ignoreFilter != null)
+            filter = new SchemaTableFilter(doFilter, ignoreFilter);
+        else if (filePrefix != null)
+            filter = new SchemaTableFilter(filePrefix);
 
-        // Initialize LRU cache.
-        this.filterCache = new IndexedLRUCache<Boolean>(1000, null);
-    }
-
-    // Prepares table matcher.
-    private TableMatcher extractFilter(String filter)
-    {
-        // If empty, we do nothing.
-        if (filter == null || filter.length() == 0)
-            return null;
-
-        TableMatcher tableMatcher = new TableMatcher();
-        tableMatcher.prepare(filter);
-        return tableMatcher;
     }
 
     /**
@@ -347,7 +283,7 @@ public class ReplicateFilter implements Filter
     public void release(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
-        if (filterCache != null)
-            this.filterCache.invalidateAll();
+        filter.release();
     }
+
 }

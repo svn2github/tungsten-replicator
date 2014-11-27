@@ -15,6 +15,8 @@ var awsAccessKey;
 var awsSecretKey;
 var serviceName;
 
+var filter;
+
 /** Reads AWS configuration file into a string. */
 function readAWSConfigFile()
 {
@@ -76,7 +78,14 @@ function prepare()
   awsSecretKey = awsConfig["awsSecretKey"];
   cleanUpS3Files = awsConfig["cleanUpS3Files"];
   storeCDCIn = awsConfig["storeCDCIn"];
-
+  
+  filterConfFile=awsConfig["replicateCDC"];
+  if(filterConfFile != null && filterConfFile.length > 0)
+  {
+    logger.info("Using CDC filtering configuration file prefix : " + filterConfFile)
+    filter.setSchemaTableFilterFilePrefix(filterConfFile);
+  }
+  
   logger.info("AWS S3 CSV staging path: " + awsS3Path);
   
   initCleanUpS3Files();
@@ -157,13 +166,16 @@ function apply(csvinfo)
   // Change Data Capture.
   if (storeCDCIn != null && storeCDCIn.length > 0)
   {
-    cdc_table_fqn = storeCDCIn.replace("{table}", table).replace("{schema}",
-        schema);
-    insert_select_sql = runtime.sprintf("INSERT INTO %s SELECT * FROM %s",
-        cdc_table_fqn, stage_table_fqn);
-    if (logger.isDebugEnabled())
-      logger.debug(insert_select_sql);
-    sql.execute(insert_select_sql);
+    if(filter == null || !filter.filterEvent(schema,table))
+    {
+      cdc_table_fqn = storeCDCIn.replace("{table}", table).replace("{schema}",
+          schema);
+      insert_select_sql = runtime.sprintf("INSERT INTO %s SELECT * FROM %s",
+          cdc_table_fqn, stage_table_fqn);
+      if (logger.isDebugEnabled())
+        logger.debug(insert_select_sql);
+      sql.execute(insert_select_sql);
+    }
   }
 
   // Remove deleted rows from base table.

@@ -74,6 +74,7 @@ import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.event.ReplOptionParams;
+import com.continuent.tungsten.replicator.filter.SchemaTableFilter;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 import com.continuent.tungsten.replicator.scripting.HdfsWrapper;
@@ -110,16 +111,16 @@ public class SimpleBatchApplier implements RawApplier
      * followed by INSERT unless update opcodes are enabled.
      */
     public static String                UPDATE              = "U";
-    
+
     /**
      * Denotes a delete operation resulting from an update.
      */
-    public static String                UPDATE_DELETE              = "UD";
+    public static String                UPDATE_DELETE       = "UD";
 
     /**
      * Denotes an insert operation resulting from an update.
      */
-    public static String                UPDATE_INSERT              = "UI";
+    public static String                UPDATE_INSERT       = "UI";
 
     // Names of staging header columns. These are prefixed when writing data.
     public static String                OPCODE              = "opcode";
@@ -211,6 +212,8 @@ public class SimpleBatchApplier implements RawApplier
 
     // Old catalog tables.
     protected HeartbeatTable            heartbeatTable      = null;
+
+    private SchemaTableFilter           filter              = null;
 
     public void setDataSource(String dataSource)
     {
@@ -989,6 +992,10 @@ public class SimpleBatchApplier implements RawApplier
                 // environment as 'hdfs'.
                 contextMap.put("hdfs", new HdfsWrapper((HdfsConnection) conn));
             }
+
+            filter = new SchemaTableFilter();
+            contextMap.put("filter", filter);
+
             exec.setContextMap(contextMap);
 
             // Prepare the executor for use.
