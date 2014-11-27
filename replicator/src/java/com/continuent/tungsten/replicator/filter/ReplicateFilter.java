@@ -283,7 +283,8 @@ public class ReplicateFilter implements Filter
     public void release(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
-        filter.release();
+        if (filter != null)
+            filter.release();
     }
 
 }
