@@ -247,6 +247,15 @@ class TungstenInstall
     stage_values[key]
   end
 
+  def trepctl_name_all(service, name_value)
+    begin
+      output=JSON.parse(TU.cmd_result("#{trepctl(service)} status -name #{name_value} -json"))
+    rescue Exception => e
+      output=nil
+    end
+    output
+  end
+
   def trepctl_property(service, key)
     properties = JSON.parse(TU.cmd_result("#{trepctl(service)} properties -filter #{key}"))
     if properties.has_key?(key)
