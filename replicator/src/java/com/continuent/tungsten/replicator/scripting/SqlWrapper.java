@@ -135,4 +135,9 @@ public class SqlWrapper
             }
         }
     }
+
+    public String getDatabaseObjectName(String obj)
+    {
+        return connection.getDatabaseObjectName(obj);
+    }
 }

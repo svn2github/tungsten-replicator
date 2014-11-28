@@ -32,6 +32,7 @@ import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Key;
 import com.continuent.tungsten.replicator.database.Table;
+import com.continuent.tungsten.replicator.scripting.SqlWrapper;
 
 /**
  * Defines a struct to hold batch CSV file information. When using staging the
@@ -93,12 +94,22 @@ public class CsvInfo
         return baseTableMetadata.fullyQualifiedName();
     }
 
+    public String getBaseTableFQN(SqlWrapper connection)
+    {
+        return baseTableMetadata.fullyQualifiedName(connection);
+    }
+
     /**
      * Returns the fully qualified name of the staging table.
      */
     public String getStageTableFQN()
     {
         return stageTableMetadata.fullyQualifiedName();
+    }
+
+    public String getStageTableFQN(SqlWrapper connection)
+    {
+        return stageTableMetadata.fullyQualifiedName(connection);
     }
 
     /**
@@ -113,6 +124,22 @@ public class CsvInfo
             if (colNames.length() > 0)
                 colNames.append(",");
             colNames.append(col.getName());
+        }
+        return colNames.toString();
+    }
+
+    /**
+     * Returns the base table column names as a comma-separated list suitable
+     * for use in SQL commands.
+     */
+    public String getBaseColumnList(SqlWrapper connection)
+    {
+        StringBuffer colNames = new StringBuffer();
+        for (Column col : baseTableMetadata.getAllColumns())
+        {
+            if (colNames.length() > 0)
+                colNames.append(",");
+            colNames.append(connection.getDatabaseObjectName(col.getName()));
         }
         return colNames.toString();
     }
@@ -160,6 +187,23 @@ public class CsvInfo
     }
 
     /**
+     * Returns a comma separated list of primary key columns.
+     */
+    public String getPKColumnList(SqlWrapper connection)
+    {
+        StringBuffer keyColList = new StringBuffer();
+        List<String> pkeys = this.getPKColumns();
+        for (int i = 0; i < pkeys.size(); i++)
+        {
+            String pkey = pkeys.get(i);
+            if (i > 0)
+                keyColList.append(",");
+            keyColList.append(connection.getDatabaseObjectName(pkey));
+        }
+        return keyColList.toString();
+    }
+
+    /**
      * Returns a list of joined keys suitable for plunking into a SQL where
      * clause. If the keys are just one name e.g. id, you'll get
      * 
@@ -191,6 +235,27 @@ public class CsvInfo
             joinBuf.append(basePrefix);
             joinBuf.append(".");
             joinBuf.append(pkey);
+        }
+        return joinBuf.toString();
+    }
+
+    public String getPKColumnJoinList(SqlWrapper connection,
+            String stagePrefix, String basePrefix)
+    {
+        StringBuffer joinBuf = new StringBuffer();
+        List<String> pkeys = this.getPKColumns();
+        for (int i = 0; i < pkeys.size(); i++)
+        {
+            String pkey = pkeys.get(i);
+            if (i > 0)
+                joinBuf.append(" AND ");
+            joinBuf.append(stagePrefix);
+            joinBuf.append(".");
+            joinBuf.append(connection.getDatabaseObjectName(pkey));
+            joinBuf.append(" = ");
+            joinBuf.append(basePrefix);
+            joinBuf.append(".");
+            joinBuf.append(connection.getDatabaseObjectName(pkey));
         }
         return joinBuf.toString();
     }

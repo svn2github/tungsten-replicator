@@ -114,11 +114,11 @@ function apply(csvinfo)
   table = csvinfo.table;
   seqno = csvinfo.startSeqno;
   key = csvinfo.key;
-  stage_table_fqn = csvinfo.getStageTableFQN();
-  base_table_fqn = csvinfo.getBaseTableFQN();
-  base_columns = csvinfo.getBaseColumnList();
-  pkey_columns = csvinfo.getPKColumnList();
-  where_clause = csvinfo.getPKColumnJoinList(stage_table_fqn, base_table_fqn);
+  stage_table_fqn = csvinfo.getStageTableFQN(sql);
+  base_table_fqn = csvinfo.getBaseTableFQN(sql);
+  base_columns = csvinfo.getBaseColumnList(sql);
+  pkey_columns = csvinfo.getPKColumnList(sql);
+  where_clause = csvinfo.getPKColumnJoinList(sql, stage_table_fqn, base_table_fqn);
 
   // Upload CSV to S3.
   s3PutCmd = runtime.sprintf("s3cmd put %s %s/%s/", csv_file, awsS3Path,
