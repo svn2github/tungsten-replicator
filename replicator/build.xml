@@ -20,7 +20,7 @@
     Contributor(s): Csaba Simon, Robert Hodges
 -->
 
-<project name="tungsten_replicator" default="all">
+<project name="tungsten_replicator" default="all" xmlns:jacoco="antlib:org.jacoco.ant">
     <description>
         tungsten (continuent.org)
         Application Server for uni/cluster
@@ -54,6 +54,10 @@
     <!-- Dummy entry for cases where directory does not exist. -->
     <property name="external.lib.dir" value="lib"/>
 
+    <!-- Code Coverage properties -->
+    <property name="test.coverage.dir" location="${build.dir}/coverage"/>
+    <property name="test.coverage.file" location="${build.dir}/jacoco.exec"/>
+
     <path id="compile.classpath">
     	<path location="${common.classes.dir}"/>
 	<fileset dir="lib/">
@@ -84,6 +88,10 @@
         <path location="${java.src.dir}"/>
     </path>
 
+    <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+        <classpath path="${project.common}/lib-test/jacocoant.jar"/>
+    </taskdef>
+	
     <target name="all" depends="clean, build-dependencies, releases"
         description="--> creates the release without running JUnit tests"/>
     <target name="allPlusJunit" depends="clean,build-dependencies,test,releases"
@@ -155,7 +163,9 @@
     </target>
 
     <target name="test" depends="compile-test" description="--> run unit tests">
-        <delete dir="${test.reports}"/>
+        <delete dir="${test.coverage.dir}"/>
+    	<mkdir dir="${test.coverage.dir}"/>
+    	<delete dir="${test.reports}"/>
         <mkdir dir="${test.reports}"/>
         <delete dir="${test.work}"/>
         <mkdir dir="${test.work}"/>
@@ -179,6 +189,7 @@
               toFile="${test.work}/replicator.properties"/>
         <copy file="test.properties" todir="${test.work}"/>
 
+        <jacoco:coverage destfile="${test.coverage.file}">
         <junit printsummary="yes" haltonfailure="no" fork="yes"
           dir="${test.work}" failureproperty="tests.failed" timeout="500000">
             <jvmarg value="-Dreplicator.log.dir=." />
@@ -204,9 +215,10 @@
                 	<exclude name="**/*TestReplicatorManager.java"/>
                 	<exclude name="**/*TestOpenReplicatorManager.java"/>
                 </fileset>
-
             </batchtest>
         </junit>
+        </jacoco:coverage>
+
         <junitreport tofile="${test.reports}/TESTS-TestSuites.xml">
             <fileset dir="${test.reports}">
                 <include name="TEST-*.xml"/>
@@ -365,6 +377,24 @@
           <arg value="--java_out=${java.src.dir}"/>
           <arg value="protobuf/TungstenProtobufMessage"/>
         </exec>
+    </target>
+
+    <target name="test-coverage" depends="test"
+    	description="--> generate junit code coverage reports">
+        <jacoco:report>
+            <executiondata>
+                <file file="${test.coverage.file}"/>
+            </executiondata>
+            <structure name="JUnit Code Coverage Report">
+                <classfiles>
+                    <fileset dir="${classes.dir}"/>
+                </classfiles>
+                <sourcefiles encoding="UTF-8">
+                    <fileset dir="${java.src.dir}"/>
+                </sourcefiles>
+            </structure>
+            <html destdir="${test.coverage.dir}"/>
+        </jacoco:report>
     </target>
 
 </project>
