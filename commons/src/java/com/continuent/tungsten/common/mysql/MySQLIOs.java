@@ -60,18 +60,18 @@ import com.continuent.tungsten.common.utils.CLUtils;
  */
 public class MySQLIOs
 {
-    private final static String                            TSR_CONNECTION_SIMPLE_CLASSNAME   = "TSRConnection";
-    private final static String                            TSR_CONNECTION_FULL_CLASSNAME     = "com.continuent.tungsten.router.jdbc.TSRConnection";
-    private final static String                            C3P0_CONNECTION_CLASSNAME         = "NewProxyConnection";
-    private final static String                            C3P0_INNER_CONNECTION_VARNAME     = "inner";
-    private final static String                            BONECP_CONNECTION_CLASSNAME       = "ConnectionHandle";
-    private final static String                            BONECP_INNER_CONNECTION_VARNAME   = "connection";
-    private final static String                            MYSQL_CONNECTION_CLASSNAME_PREFIX = "com.mysql.jdbc";
-    private final static String                            MYSQL_CONNECTION_CLASSNAME        = MYSQL_CONNECTION_CLASSNAME_PREFIX
+    public final static String                             TSR_CONNECTION_SIMPLE_CLASSNAME   = "TSRConnection";
+    public final static String                             TSR_CONNECTION_FULL_CLASSNAME     = "com.continuent.tungsten.router.jdbc.TSRConnection";
+    public final static String                             C3P0_CONNECTION_CLASSNAME         = "NewProxyConnection";
+    public final static String                             C3P0_INNER_CONNECTION_VARNAME     = "inner";
+    public final static String                             BONECP_CONNECTION_CLASSNAME       = "ConnectionHandle";
+    public final static String                             BONECP_INNER_CONNECTION_VARNAME   = "connection";
+    public final static String                             MYSQL_CONNECTION_CLASSNAME_PREFIX = "com.mysql.jdbc";
+    public final static String                             MYSQL_CONNECTION_CLASSNAME        = MYSQL_CONNECTION_CLASSNAME_PREFIX
                                                                                                      + ".ConnectionImpl";
-    private final static String                            MYSQL_CONNECTION_CLASSNAME_5_0    = MYSQL_CONNECTION_CLASSNAME_PREFIX
+    public final static String                             MYSQL_CONNECTION_CLASSNAME_5_0    = MYSQL_CONNECTION_CLASSNAME_PREFIX
                                                                                                      + ".Connection";
-    private final static String                            DRIZZLE_CONNECTION_CLASSNAME      = "org.drizzle.jdbc.DrizzleConnection";
+    public final static String                             DRIZZLE_CONNECTION_CLASSNAME      = "org.drizzle.jdbc.DrizzleConnection";
     private static final Logger                            logger                            = Logger.getLogger(MySQLIOs.class);
 
     /** Where we will read data sent by the MySQL server */
