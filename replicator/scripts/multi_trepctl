@@ -920,8 +920,10 @@ $> multi_trepctl -- online -skip-seqno 5<br>")
         results[idx] = Tempfile.new('tpm')
         pids[idx] = fork {
           begin
-            present = TU.ssh_result("test -f #{dir[:directory]}/tungsten/tungsten-replicator/bin/trepctl", host, TI.user())
-            results[idx].write(Marshal.dump(dir.merge({:host => host})))
+            if TU.test_ssh(host,TI.user())
+              present = TU.ssh_result("test -f #{dir[:directory]}/tungsten/tungsten-replicator/bin/trepctl", host, TI.user())
+              results[idx].write(Marshal.dump(dir.merge({:host => host})))
+            end
           rescue RemoteCommandError
             TU.debug("Unable to find a replicator at #{host}:#{dir[:directory]}")
           rescue CommandError
