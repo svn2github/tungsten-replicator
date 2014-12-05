@@ -128,7 +128,7 @@ module ClusterDiagnosticPackage
         }
         out.close
         
-        get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/trepsvc.log","#{diag_dir}/#{h_alias}/trepsvc.log.tmp")
+        get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/trepsvc.log","#{diag_dir}/#{h_alias}/trepsvc.log")
         get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/xtrabackup.log", "#{diag_dir}/#{h_alias}/xtrabackup.log")
         get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/mysqldump.log", "#{diag_dir}/#{h_alias}/mysqldump.log")
         get_log(config,"#{config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-replicator/log/script.log","#{diag_dir}/#{h_alias}/script.log")
