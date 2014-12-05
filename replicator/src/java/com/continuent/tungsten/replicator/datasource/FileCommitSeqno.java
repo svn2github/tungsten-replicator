@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2013 Continuent Inc.
+ * Copyright (C) 2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,12 +17,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): Stephane Giron
+ * Contributor(s): Stephane Giron, Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.datasource;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -337,6 +338,23 @@ public class FileCommitSeqno implements CommitSeqno
         return minHeader;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#maxCommitSeqno()
+     */
+    public List<ReplDBMSHeader> getHeaders() throws ReplicatorException,
+            InterruptedException
+    {
+        ArrayList<ReplDBMSHeader> headers = new ArrayList<ReplDBMSHeader>();
+        for (String seqnoFileName : listSeqnoFileNames())
+        {
+            ReplDBMSHeader header = retrieve(seqnoFileName);
+            headers.add(header);
+        }
+        return headers;
+    }
+    
     /**
      * {@inheritDoc}
      * 

@@ -81,4 +81,15 @@ public interface ReplDBMSHeader
      * Returns the applied latency in seconds.
      */
     public long getAppliedLatency();
+    
+    /**
+     * Not all DBMS types have this field for position, hence might be null.
+     */
+    public Timestamp getUpdateTstamp();
+
+    /**
+     * Not all DBMS types have this field for position, in which case -1 is
+     * returned.
+     */
+    public Long getTaskId();
 }

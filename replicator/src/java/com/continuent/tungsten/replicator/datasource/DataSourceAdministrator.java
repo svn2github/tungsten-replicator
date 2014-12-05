@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
 import com.continuent.tungsten.replicator.ReplicatorException;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 
 /**
  * Handles stand-alone administration of data sources defined for a single
@@ -120,6 +121,43 @@ public class DataSourceAdministrator
         {
             ds.clear();
             return true;
+        }
+    }
+    
+    /**
+     * Gets position information from catalog data for a named data source.
+     */
+    public List<ReplDBMSHeader> get(String name) throws ReplicatorException,
+            InterruptedException
+    {
+        UniversalDataSource ds = manager.find(name);
+        if (ds == null)
+        {
+            return null;
+        }
+        else
+        {
+            return ds.getCommitSeqno().getHeaders();
+        }
+    }
+    
+    /**
+     * Sets position information for catalog data for a named data source.
+     * 
+     * @return true, if successfully set, false, otherwise.
+     */
+    public boolean set(String name, long seqno, long epoch, String eventId,
+            String sourceId)
+    {
+        UniversalDataSource ds = manager.find(name);
+        if (ds == null)
+        {
+            return false;
+        }
+        else
+        {
+            // TODO: implement.
+            return false;
         }
     }
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s): Stephane Giron
+ * Contributor(s): Stephane Giron, Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.datasource;
@@ -28,6 +28,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -124,7 +126,7 @@ public class SqlCommitSeqno implements CommitSeqno
             defineTableData();
 
             // Prepare SQL.
-            allSeqnoQuery = "SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency from "
+            allSeqnoQuery = "SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency, update_timestamp, task_id from "
                     + schema + "." + TABLE_NAME;
         }
         catch (SQLException e)
@@ -308,6 +310,45 @@ public class SqlCommitSeqno implements CommitSeqno
         finally
         {
             connectionManager.releaseCatalogConnection(database);
+        }
+    }
+    
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#getHeaders()
+     */
+    public List<ReplDBMSHeader> getHeaders() throws ReplicatorException,
+            InterruptedException
+    {
+        ArrayList<ReplDBMSHeader> headers = new ArrayList<ReplDBMSHeader>();
+        Database database = null;
+        CommitSeqnoAccessor accessor = null;
+        try
+        {
+            database = connectionManager.getWrappedConnection();
+            accessor = this.createAccessor(0, database);
+
+            Statement stmt = database.createStatement();
+            ResultSet res = stmt.executeQuery(allSeqnoQuery);
+            while (res.next())
+            {
+                ReplDBMSHeaderData header = headerFromResult(res);
+                headers.add(header);
+            }
+
+            return headers;
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException("Unabled to get position header(s): "
+                    + e.getMessage(), e);
+        }
+        finally
+        {
+            if (accessor != null)
+                accessor.close();
+            connectionManager.releaseConnection(database);
         }
     }
 
@@ -604,7 +645,10 @@ public class SqlCommitSeqno implements CommitSeqno
         String shardId = rs.getString(7);
         Timestamp extractTimestamp = rs.getTimestamp(8);
         long appliedLatency = rs.getLong("applied_latency");
+        Timestamp updateTimestamp = rs.getTimestamp("update_timestamp");
+        long taskId = rs.getLong("task_id");
         return new ReplDBMSHeaderData(seqno, fragno, lastFrag, sourceId,
-                epochNumber, eventId, shardId, extractTimestamp, appliedLatency);
+                epochNumber, eventId, shardId, extractTimestamp,
+                appliedLatency, updateTimestamp, taskId);
     }
 }

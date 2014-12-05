@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2010 Continuent Inc.
+ * Copyright (C) 2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s):
+ * Contributor(s): Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.event;
@@ -42,6 +42,31 @@ public class ReplDBMSHeaderData implements ReplDBMSHeader
     private final Timestamp extractedTstamp;
     private final long      appliedLatency;
 
+    // Not all DBMS types have the following fields:
+    private Timestamp       updateTstamp = null;
+    private Long            taskId       = null;
+
+    /**
+     * Create extensive header instance from component parts.
+     */
+    public ReplDBMSHeaderData(long seqno, short fragno, boolean lastFrag,
+            String sourceId, long epochNumber, String eventId, String shardId,
+            Timestamp extractedTstamp, long latency, Timestamp updateTimestamp,
+            long taskId)
+    {
+        this.seqno = seqno;
+        this.fragno = fragno;
+        this.lastFrag = lastFrag;
+        this.sourceId = sourceId;
+        this.epochNumber = epochNumber;
+        this.eventId = eventId;
+        this.shardId = shardId;
+        this.extractedTstamp = extractedTstamp;
+        this.appliedLatency = latency;
+        this.updateTstamp = updateTimestamp;
+        this.taskId = taskId;
+    }
+    
     /**
      * Create header instance from component parts.
      */
@@ -117,5 +142,15 @@ public class ReplDBMSHeaderData implements ReplDBMSHeader
     public long getAppliedLatency()
     {
         return appliedLatency;
+    }
+
+    public Timestamp getUpdateTstamp()
+    {
+        return updateTstamp;
+    }
+
+    public Long getTaskId()
+    {
+        return taskId;
     }
 }

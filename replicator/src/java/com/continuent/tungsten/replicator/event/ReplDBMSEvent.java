@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2007-2010 Continuent Inc.
+ * Copyright (C) 2007-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s): Robert Hodges
+ * Contributor(s): Robert Hodges, Linas Virbalas
  */
 
 package com.continuent.tungsten.replicator.event;
@@ -211,5 +211,19 @@ public class ReplDBMSEvent extends ReplEvent implements ReplDBMSHeader
         return 0;
     }
     
-    
+    /**
+     * Not applicable.
+     */
+    public Timestamp getUpdateTstamp()
+    {
+        return null;
+    }
+
+    /**
+     * Not applicable.
+     */
+    public Long getTaskId()
+    {
+        return null;
+    }
 }
