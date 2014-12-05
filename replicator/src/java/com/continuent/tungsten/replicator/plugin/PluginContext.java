@@ -23,6 +23,7 @@
 package com.continuent.tungsten.replicator.plugin;
 
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.Future;
 
 import com.continuent.tungsten.common.config.TungstenProperties;
@@ -240,4 +241,17 @@ public interface PluginContext
      * pipeline is not active.
      */
     public int getChannels();
+    
+    /**
+     * Returns the host time zone. Replicators override the host time zone, so
+     * this is the only way for services to determine the time zone used by the
+     * host itself.
+     */
+    public TimeZone getHostTimeZone();
+
+    /**
+     * Returns the replicator time zone, which defaults to GMT or can be
+     * overridden from services.properties for testing. 
+     */
+    public TimeZone getReplicatorTimeZone();
 }

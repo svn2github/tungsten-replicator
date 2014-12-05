@@ -473,8 +473,9 @@ public class QueryLogEvent extends LogEvent
                         pos++;
                         if (timeZoneLength > 0)
                         {
-                            timeZoneName = new String(buffer, pos,
-                                    timeZoneLength);
+                            timeZoneName = "'"
+                                    + new String(buffer, pos, timeZoneLength)
+                                    + "'";
                             if (logger.isDebugEnabled())
                                 logger.debug("Using time zone : "
                                         + timeZoneName);
@@ -589,6 +590,11 @@ public class QueryLogEvent extends LogEvent
     public String getUniqueChecksFlag()
     {
         return (flagUniqueChecks ? "1" : "0");
+    }
+
+    public String getTimeZoneName()
+    {
+        return timeZoneName;
     }
 
     /**

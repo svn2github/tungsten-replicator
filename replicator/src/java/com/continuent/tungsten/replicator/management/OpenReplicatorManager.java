@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -179,8 +180,11 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     /** Cluster name to which replicator belongs. */
     private String                  clusterName;
 
+    // Global process information.
     private String                  rmiHost                 = null;
     private int                     rmiPort                 = -1;
+    private TimeZone                hostTimeZone;
+    private TimeZone                replicatorTimeZone;
 
     // Open replicator plugin
     private OpenReplicatorPlugin    openReplicator;
@@ -3281,6 +3285,40 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
     public void setRmiPort(int rmiPort)
     {
         this.rmiPort = rmiPort;
+    }
+
+    /**
+     * Sets the host time zone.
+     */
+    public void setHostTimeZone(TimeZone hostTimeZone)
+    {
+        this.hostTimeZone = hostTimeZone;
+    }
+
+    /**
+     * Returns the host time zone, which is the original time zone on the host
+     * and may be different from the replicator, which uses GMT.
+     */
+    public TimeZone getHostTimeZone()
+    {
+        return hostTimeZone;
+    }
+
+    /**
+     * Returns the host time zone.
+     */
+    public void setReplicatorTimeZone(TimeZone replicatorTimeZone)
+    {
+        this.replicatorTimeZone = replicatorTimeZone;
+    }
+
+    /**
+     * Returns the replicator time zone, which is GMT unless overridden in
+     * services.properties.
+     */
+    public TimeZone getReplicatorTimeZone()
+    {
+        return replicatorTimeZone;
     }
 
     public static TungstenProperties getConfigurationProperties(

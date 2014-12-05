@@ -240,6 +240,11 @@ public class Replicator
     public static final String CHANNELS                    = "channels";
 
     /**
+     * Denotes the time zone used by the replicator. 
+     */
+    public static final String TIME_ZONE                    = "timezone";
+
+    /**
      * Denotes the replicator version.
      */
     public static final String VERSION                     = "version";

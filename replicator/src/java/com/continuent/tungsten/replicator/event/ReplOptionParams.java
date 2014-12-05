@@ -145,4 +145,10 @@ public class ReplOptionParams
      * This is the seqno from the GTID (if any)
      */
     public static final String GTID_SEQNO              = "gtid_seqno";
+
+    /**
+     * If set, the event is time zone aware, which means it marks source time
+     * zone on SQL changes and statements.
+     */
+    public static final String TIME_ZONE_AWARE         = "tz_aware";
 }

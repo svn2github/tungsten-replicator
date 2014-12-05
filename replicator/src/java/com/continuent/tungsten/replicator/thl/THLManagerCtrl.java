@@ -71,8 +71,8 @@ import com.continuent.tungsten.replicator.thl.log.LogEventReplReader;
  */
 public class THLManagerCtrl
 {
-    private static Logger                 logger             = Logger.getLogger(THLManagerCtrl.class);
-    
+    private static Logger         logger             = Logger.getLogger(THLManagerCtrl.class);
+
     /**
      * Default path to replicator.properties if user not specified other.
      */
@@ -86,14 +86,14 @@ public class THLManagerCtrl
      * Maximum length of characters to print out for a BLOB. If BLOB is larger,
      * it is truncated and "<...>" is added to the end.<br/>
      */
-    private static final int              maxBlobPrintLength = 1000;
-    protected static ArgvIterator         argvIterator       = null;
-    protected String                      configFile         = null;
-    private boolean                       doChecksum;
-    private String                        logDir;
-    private DiskLog                       diskLog;
+    private static final int      maxBlobPrintLength = 1000;
+    protected static ArgvIterator argvIterator       = null;
+    protected String              configFile         = null;
+    private boolean               doChecksum;
+    private String                logDir;
+    private DiskLog               diskLog;
 
-    protected static SQLTypes             sqlTypes           = new SQLTypes();
+    protected static SQLTypes     sqlTypes           = new SQLTypes();
 
     /**
      * Creates a new <code>THLManagerCtrl</code> object.
@@ -194,11 +194,11 @@ public class THLManagerCtrl
         long minSeqno = diskLog.getMinSeqno();
         long maxSeqno = diskLog.getMaxSeqno();
         String logDirName = diskLog.getLogDir();
-        
+
         int logFiles = diskLog.getLogFileNames().length;
 
         File logDir = new File(logDirName);
-        
+
         // Calculate total size.
         File[] logs = DiskLog.listLogFiles(logDir, diskLog.getFilePrefix());
         long logsSize = 0;
@@ -220,7 +220,7 @@ public class THLManagerCtrl
         return new InfoHolder(logDirName, minSeqno, maxSeqno, maxSeqno
                 - minSeqno, -1, logFiles, oldestFile, newestFile, logsSize);
     }
-    
+
     /**
      * Formats column and column value for printing.
      * 
@@ -793,9 +793,9 @@ public class THLManagerCtrl
             RowChangeData rowChange, String lastSchema, boolean pureSQL,
             int sqlIndex, String charset, boolean hex, boolean specs, long seqno)
     {
+        // This will pick up the default time zone or the time zone from
+        // -timezone option. 
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
-
         printOptions(stringBuilder, rowChange.getOptions(), pureSQL);
         if (!pureSQL)
             println(stringBuilder, "- SQL(" + sqlIndex + ") =");
@@ -947,6 +947,7 @@ public class THLManagerCtrl
             String charsetName = null;
             boolean hex = false;
             boolean doChecksum = true;
+            TimeZone timezone = TimeZone.getTimeZone("UTC");
 
             // Parse command line arguments.
             ArgvIterator argvIterator = new ArgvIterator(argv);
@@ -986,6 +987,26 @@ public class THLManagerCtrl
                         charsetName = null;
                     }
                 }
+                else if ("-timezone".equals(curArg))
+                {
+                    String timezoneName = argvIterator.next();
+                    if (timezoneName == null)
+                    {
+                        println("Time zone name is missing");
+                        fail();
+                    }
+                    TimeZone tz = TimeZone.getTimeZone(timezoneName);
+                    if (!timezoneName.equals(tz.getID()))
+                    {
+                        // If the name and time zone ID do not match, Java has
+                        // returned another value, perhaps GMT. Let the user
+                        // know.
+                        println("WARNING: Your time zone name does not match Java naming; using time zone: "
+                                + tz.getID());
+                    }
+                    // Name is good enough, so let's use it.
+                    timezone = tz;
+                }
                 else if ("-hex".equals(curArg))
                 {
                     hex = true;
@@ -1022,6 +1043,10 @@ public class THLManagerCtrl
                 println("Currently JSON output is supported only with -headers flag");
                 fail();
             }
+
+            // Set the default time zone in the VM to ensure proper printing of
+            // Timestamp values.
+            TimeZone.setDefault(timezone);
 
             // Use default configuration file in case user didn't specify one.
             if (configFile == null)
@@ -1163,7 +1188,7 @@ public class THLManagerCtrl
             fatal("Fatal error: " + t.getMessage(), t);
         }
     }
-    
+
     /**
      * Converts size in bytes to megabytes.
      */
@@ -1321,6 +1346,7 @@ public class THLManagerCtrl
         println("       [-headers]                   Print headers only");
         println("       [-json]                      Output in machine-parsable JSON format");
         println("       [-no-checksum]               Suppress checksums");
+        println("       [-timezone timezone]         Time used zone for time-related data");
         println("  index [-no-checksum]            - Display index of log files");
         println("  purge [-low #] [-high #]        - Delete THL files identified by the given range");
         println("        [-no-checksum] [-y]         Use -y to suppress prompt");
@@ -1473,17 +1499,17 @@ public class THLManagerCtrl
         {
             return highestReplicatedEvent;
         }
-        
+
         public int getLogFiles()
         {
             return logFiles;
         }
-        
+
         public File getOldestFile()
         {
             return oldestFile;
         }
-        
+
         public File getNewestFile()
         {
             return newestFile;

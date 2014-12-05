@@ -46,7 +46,6 @@ public class DBMSData implements Serializable
      */
     public DBMSData()
     {
-
     }
 
     /**

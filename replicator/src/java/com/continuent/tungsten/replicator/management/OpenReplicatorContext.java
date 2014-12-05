@@ -22,6 +22,8 @@
 
 package com.continuent.tungsten.replicator.management;
 
+import java.util.TimeZone;
+
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 
 /**
@@ -40,4 +42,17 @@ public interface OpenReplicatorContext
 
     /** Registers a JMX MBean from a lower-level service. */
     public void registerMBean(Object mbean, Class<?> mbeanClass, String name);
+
+    /**
+     * Returns the host time zone. Replicators override the host time zone, so
+     * this is the only way for services to determine the time zone used by the
+     * host itself.
+     */
+    public TimeZone getHostTimeZone();
+
+    /**
+     * Returns the replicator time zone, which defaults to GMT or can be
+     * overridden from services.properties for testing. 
+     */
+    public TimeZone getReplicatorTimeZone();
 }

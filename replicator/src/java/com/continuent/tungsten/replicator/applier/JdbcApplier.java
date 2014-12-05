@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
@@ -142,7 +141,9 @@ public class JdbcApplier implements RawApplier
     // deletes) -- only supported by MySQL appliers for now
     protected boolean                 optimizeRowEvents          = false;
 
-    protected final SimpleDateFormat  formatter                  = new SimpleDateFormat(
+    // Generic formatter for date-time values. This can safely be set without a
+    // time zone, as it will pick up the default replicator time zone.
+    protected final SimpleDateFormat  dateTimeFormatter          = new SimpleDateFormat(
                                                                          "yyyy-MM-dd HH:mm:ss");
 
     // Setters.
@@ -1176,7 +1177,7 @@ public class JdbcApplier implements RawApplier
                 OneRowChange.ColumnVal value = values.get(c);
                 log.append('\n');
                 log.append(THLManagerCtrl.formatColumn(colSpec, value, "COL",
-                        "utf8", false, true, formatter));
+                        "utf8", false, true, dateTimeFormatter));
             }
         }
         // Print key values.
@@ -1189,7 +1190,7 @@ public class JdbcApplier implements RawApplier
                 OneRowChange.ColumnVal value = values.get(k);
                 log.append('\n');
                 log.append(THLManagerCtrl.formatColumn(colSpec, value, "KEY",
-                        "utf8", false, true, formatter));
+                        "utf8", false, true, dateTimeFormatter));
             }
         }
         return log.toString();
@@ -1293,6 +1294,10 @@ public class JdbcApplier implements RawApplier
         {
             throw new ApplierException("Failed to start new transaction", e);
         }
+
+        // Check compatibility of event in case we need to do any fixup at this
+        // point to support older log versions.
+        checkEventCompatibility(header, event);
 
         try
         {
@@ -1527,6 +1532,16 @@ public class JdbcApplier implements RawApplier
             if (logger.isDebugEnabled())
                 logger.debug("Transaction rollback error", e);
         }
+    }
+
+    /**
+     * Perform compatibility check on event in case we need to do fix-ups due to
+     * older log versions.
+     */
+    protected void checkEventCompatibility(ReplDBMSHeader header,
+            DBMSEvent event) throws ReplicatorException
+    {
+        // Default is to do nothing.
     }
 
     private void applyDeleteFile(int fileID) throws ReplicatorException
@@ -1817,7 +1832,6 @@ public class JdbcApplier implements RawApplier
         {
             ignoreSessionPattern = Pattern.compile(ignoreSessionVars);
         }
-        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
     }
 
     /**

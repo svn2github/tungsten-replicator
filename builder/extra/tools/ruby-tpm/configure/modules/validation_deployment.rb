@@ -1347,6 +1347,22 @@ class ConflictingReplicationServiceTHLPortsCheck < ConfigureValidationCheck
   end
 end
 
+class JavaUserTimezoneCheck < ConfigureValidationCheck
+  include ClusterHostCheck
+  include ReplicatorEnabledCheck
+ 
+  def set_vars
+    @title = "Java user timezone check"
+  end
+ 
+  def validate
+    user_timezone = @config.getProperty(REPL_JAVA_USER_TIMEZONE)
+    unless user_timezone == ""
+      warning("The --java-user-timezone option is deprecated! Replicators use GMT by default. Please check product documentation for instructions on changing the Java time zone safely.")
+    end
+  end
+end
+
 class MissingReplicationServiceConfigurationCheck < ConfigureValidationCheck
   include ClusterHostCheck
   include ReplicatorEnabledCheck

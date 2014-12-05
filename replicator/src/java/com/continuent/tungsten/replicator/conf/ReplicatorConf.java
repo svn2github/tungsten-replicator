@@ -278,6 +278,13 @@ public class ReplicatorConf
     static public final String   SCRIPT_PROCESSOR                      = "replicator.script.processor";
 
     /**
+     * Replicator global time zone and standard default value. These are set in
+     * services.properties.
+     */
+    static public final String   TIME_ZONE                             = "replicator.timezone";
+    static public final String   TIME_ZONE_DEFAULT                     = "GMT";
+
+    /**
      * Replicator start option to prevent services from going online
      * automatically
      */

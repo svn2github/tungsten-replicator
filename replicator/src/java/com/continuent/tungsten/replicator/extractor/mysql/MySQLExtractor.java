@@ -663,6 +663,9 @@ public class MySQLExtractor implements RawExtractor
                                 String.valueOf(event.getClientCollationId())));
                         savedOptions.add(new ReplOption("collation_server",
                                 String.valueOf(event.getServerCollationId())));
+                        if (event.getTimeZoneName() != null)
+                            savedOptions.add(new ReplOption("time_zone", event
+                                    .getTimeZoneName()));
 
                         if (event.getAutoIncrementIncrement() >= 0)
                             savedOptions.add(new ReplOption(
@@ -760,6 +763,9 @@ public class MySQLExtractor implements RawExtractor
                                 event.getForeignKeyChecksFlag());
                         statement.addOption("unique_checks",
                                 event.getUniqueChecksFlag());
+                        if (event.getTimeZoneName() != null)
+                            statement.addOption("time_zone",
+                                    event.getTimeZoneName());
 
                         if (event.getAutoIncrementIncrement() >= 0)
                             statement.addOption("auto_increment_increment",
@@ -922,6 +928,7 @@ public class MySQLExtractor implements RawExtractor
                     TableMapLogEvent tableEvent = tableEvents.get(rowsEvent
                             .getTableId());
                     rowsEvent.processExtractedEvent(rowChangeData, tableEvent);
+                    rowChangeData.addOption("time_zone", "'+00:00'");
                     dataArray.add(rowChangeData);
                     foundRowsLogEvent = true;
                 }
@@ -1018,6 +1025,10 @@ public class MySQLExtractor implements RawExtractor
 
                     /* Adding statement sql_mode */
                     statement.addOption("sql_mode", event.getSqlMode());
+
+                    if (event.getTimeZoneName() != null)
+                        statement.addOption("time_zone",
+                                event.getTimeZoneName());
 
                     /* Adding character set / collation information */
                     statement.addOption("character_set_client",
@@ -1117,6 +1128,7 @@ public class MySQLExtractor implements RawExtractor
                         dbmsEvent.setOptions(savedOptions);
 
                 }
+
                 if (dbmsEvent != null)
                 {
                     dbmsEvent.addMetadataOption(ReplOptionParams.SERVER_ID,
@@ -1138,6 +1150,10 @@ public class MySQLExtractor implements RawExtractor
                     if (unsafeForBlockCommit)
                         dbmsEvent.addMetadataOption(
                                 ReplOptionParams.UNSAFE_FOR_BLOCK_COMMIT, "");
+ 
+                    // MySQL event extraction is time zone-aware.
+                    dbmsEvent.addMetadataOption(
+                            ReplOptionParams.TIME_ZONE_AWARE, "true");
                     return dbmsEvent;
                 }
             }

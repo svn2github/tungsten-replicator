@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -54,7 +55,6 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class MySQLDrizzleApplier extends MySQLApplier
 {
-
     static Logger   logger        = Logger.getLogger(MySQLDrizzleApplier.class);
 
     private boolean alreadyLogged = false;
@@ -264,27 +264,6 @@ public class MySQLDrizzleApplier extends MySQLApplier
         {
             super.setObject(prepStatement, bindLoc, value, columnSpec);
         }
-        else if (columnSpec.getType() == Types.TIME)
-        {
-            if (value.getValue() instanceof Timestamp)
-            {
-                Timestamp timestamp = ((Timestamp) value.getValue());
-                StringBuffer time = new StringBuffer(new Time(
-                        timestamp.getTime()).toString());
-                if (timestamp.getNanos() > 0)
-                {
-                    time.append(".");
-                    time.append(String.format("%09d%n", timestamp.getNanos()));
-                }
-                prepStatement.setString(bindLoc, time.toString());
-            }
-            else
-            {
-
-                Time t = (Time) value.getValue();
-                prepStatement.setString(bindLoc, t.toString());
-            }
-        }
         else if (columnSpec.getType() == Types.DOUBLE)
         {
             BigDecimal dec = new BigDecimal((Double) value.getValue());
@@ -317,21 +296,56 @@ public class MySQLDrizzleApplier extends MySQLApplier
         else if (columnSpec.getType() == Types.TIMESTAMP
                 && value.getValue() instanceof Timestamp /* Issue 679 */)
         {
-            prepStatement.setString(bindLoc,
-                    ((Timestamp) value.getValue()).toString());
+            // This is a MySQL TIMESTAMP field.
+            Timestamp ts = (Timestamp) value.getValue();
+            StringBuffer timeStampString = new StringBuffer(
+                    dateTimeFormatter.format(ts));
+            if (ts.getNanos() > 0)
+            {
+                timeStampString.append(".");
+                timeStampString.append(String.format("%09d%n", ts.getNanos()));
+            }
+            prepStatement.setString(bindLoc, timeStampString.toString());
         }
         else if (columnSpec.getType() == Types.DATE
                 && value.getValue() instanceof Timestamp)
         {
-            Timestamp ts = (Timestamp) value.getValue();
-            StringBuffer date = new StringBuffer(formatter.format(ts));
-            if (ts.getNanos() > 0)
+            // This is a MySQL DATETIME field. For these it is sufficent to
+            // use a toString() which will work since the background time zone
+            // is GMT.
+            prepStatement.setObject(bindLoc, value.getValue());
+        }
+        else if (columnSpec.getType() == Types.DATE
+                && value.getValue() instanceof java.sql.Date)
+        {
+            // This is a MySQL DATE field.
+            Date date = (Date) value.getValue();
+            StringBuffer dateString = new StringBuffer(
+                    dateFormatter.format(date));
+            prepStatement.setString(bindLoc, dateString.toString());
+        }
+        else if (columnSpec.getType() == Types.TIME)
+        {
+            if (value.getValue() instanceof Timestamp)
             {
-                date.append(".");
-                date.append(String.format("%09d%n", ts.getNanos()));
+                // This is a MySQL TIME field.
+                Timestamp timestamp = ((Timestamp) value.getValue());
+                StringBuffer time = new StringBuffer(
+                        timeFormatter.format(timestamp));
+                if (timestamp.getNanos() > 0)
+                {
+                    time.append(".");
+                    time.append(String.format("%09d%n", timestamp.getNanos()));
+                }
+                prepStatement.setString(bindLoc, time.toString());
             }
-            prepStatement.setString(bindLoc, date.toString());
-
+            else
+            {
+                // This is not from MySQL, but we should at least
+                // honor it with time-zone aware formatting.
+                Time t = (Time) value.getValue();
+                prepStatement.setString(bindLoc, timeFormatter.format(t));
+            }
         }
         else if (columnSpec.getType() == Types.BLOB
                 && value.getValue() instanceof SerialBlob

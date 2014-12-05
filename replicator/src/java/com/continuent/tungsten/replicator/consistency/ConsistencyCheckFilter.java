@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Alex Yurchenko
- * Contributor(s): Stephane Giron
+ * Contributor(s): Stephane Giron, Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.consistency;
@@ -101,6 +101,7 @@ public class ConsistencyCheckFilter implements Filter
         {
             if (this.isConsistencyCheck(data))
             {
+                // Retrieve the where statement for the consistency check.
                 if (data.get(data.size() - 1) instanceof StatementData)
                 {
                     getWhereFromStatement(event);
@@ -116,6 +117,9 @@ public class ConsistencyCheckFilter implements Filter
                                     .getCanonicalName();
                     logger.error(msg);
                 }
+
+                // Normalize data to UTC if required.
+                normalizeToUTC(event);
             }
         }
         catch (ConsistencyException e)
@@ -243,6 +247,24 @@ public class ConsistencyCheckFilter implements Filter
         if (where != null)
             event.getDBMSEvent().addMetadataOption(
                     ReplOptionParams.CONSISTENCY_WHERE, where);
+    }
+
+    // If we are extracting from MySQL and the time zone is not already set,
+    // normalize to UTC. This is necessary to ensure checks operate correctly on
+    // a target MySQL instance.
+    private void normalizeToUTC(ReplDBMSEvent event)
+            throws ConsistencyException
+    {
+        String dbmsType = event.getDBMSEvent().getMetadataOptionValue(
+                ReplOptionParams.DBMS_TYPE);
+        if ("mysql".equals(dbmsType))
+        {
+            for (DBMSData data : event.getData())
+            {
+                if (data.getOption("time_zone") == null)
+                    data.addOption("time_zone", "'+00:00'");
+            }
+        }
     }
 
     // Extracts the WHERE clause and database schema from row changes.

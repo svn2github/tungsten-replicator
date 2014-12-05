@@ -22,6 +22,8 @@
 
 package com.continuent.tungsten.replicator.management;
 
+import java.util.TimeZone;
+
 import com.continuent.tungsten.common.jmx.JmxManager;
 import com.continuent.tungsten.fsm.event.EventDispatcher;
 
@@ -33,7 +35,9 @@ import com.continuent.tungsten.fsm.event.EventDispatcher;
  */
 public class MockOpenReplicatorContext implements OpenReplicatorContext
 {
-    private EventDispatcher eventDispatcher = new MockEventDispatcher();
+    private EventDispatcher eventDispatcher    = new MockEventDispatcher();
+    private TimeZone        hostTimeZone       = TimeZone.getDefault();
+    private TimeZone        replicatorTimeZone = TimeZone.getTimeZone("GMT");
 
     public EventDispatcher getEventDispatcher()
     {
@@ -43,5 +47,15 @@ public class MockOpenReplicatorContext implements OpenReplicatorContext
     public void registerMBean(Object mbean, Class<?> mbeanClass, String name)
     {
         JmxManager.registerMBean(mbean, mbeanClass);
+    }
+
+    public TimeZone getHostTimeZone()
+    {
+        return hostTimeZone;
+    }
+
+    public TimeZone getReplicatorTimeZone()
+    {
+        return replicatorTimeZone;
     }
 }

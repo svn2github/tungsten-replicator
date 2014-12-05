@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -67,7 +68,6 @@ import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.Table;
 import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
 import com.continuent.tungsten.replicator.extractor.Extractor;
-import com.continuent.tungsten.replicator.extractor.ExtractorException;
 import com.continuent.tungsten.replicator.heartbeat.HeartbeatTable;
 import com.continuent.tungsten.replicator.management.OpenReplicatorContext;
 import com.continuent.tungsten.replicator.management.OpenReplicatorPlugin;
@@ -289,8 +289,8 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
     {
         try
         {
-            return conn
-                    .findTable(replicatorSchema, ConsistencyTable.TABLE_NAME, false);
+            return conn.findTable(replicatorSchema,
+                    ConsistencyTable.TABLE_NAME, false);
         }
         catch (Exception e)
         {
@@ -921,6 +921,8 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
         statusProps.setString(Replicator.OFFLINE_REQUESTS, "NONE");
         statusProps.setString(Replicator.PIPELINE_SOURCE, "UNKNOWN");
         statusProps.setLong(Replicator.CHANNELS, -1);
+        statusProps.setString(Replicator.TIME_ZONE, TimeZone.getDefault()
+                .getID());
 
         // The following logic avoids race conditions that may cause
         // different sources of information to be null.

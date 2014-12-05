@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Teemu Ollakka
- * Contributor(s):Stephane Giron
+ * Contributor(s):Stephane Giron, Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.applier;
@@ -26,7 +26,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.TimeZone;
 
 import org.apache.log4j.Logger;
 
@@ -39,11 +41,14 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowIdData;
+import com.continuent.tungsten.replicator.event.DBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplDBMSHeader;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 
 /**
- * Stub applier class that automatically constructs url from Oracle-specific
- * properties like host, port, and service.
+ * Stub applier class that automatically constructs url from MySQL-specific
+ * properties like host, port, and urlOptions.
  * 
  * @author <a href="mailto:robert.hodges@continuent.com">Robert Hodges</a>
  * @version 1.0
@@ -51,10 +56,37 @@ import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
 public class MySQLApplier extends JdbcApplier
 {
     private static Logger logger     = Logger.getLogger(MySQLApplier.class);
-
     protected String      host       = "localhost";
     protected int         port       = 3306;
     protected String      urlOptions = null;
+
+/**
+     * If true the replicator is operating time zone unaware compatibility mode.
+     * In this mode we set the JVM time zone to the host time zone and set the
+     * MySQL session time zone to match the MySQL global time zone. This mode
+     * requires extra clean-up at release time to ensure the JVM time zone is
+     * set back correctly.
+     */
+    protected boolean                nonTzAwareMode        = false;
+
+    /**
+     * If true this applier will switch the replicator to time zone unaware
+     * operation to apply events from a time zone unaware source. This is to
+     * enable seamless upgrade of logs from older replicators.
+     */
+    protected boolean                supportNonTzAwareMode = true;
+
+    // Formatters for MySQL DATE, TIME, and TIMESTAMP values.
+    /**
+     * Format date value according to MySQL expectations.
+     */
+    protected final SimpleDateFormat dateFormatter         = new SimpleDateFormat(
+                                                                   "yyyy-MM-dd");
+    /**
+     * Format time value according to MySQL expectations.
+     */
+    protected final SimpleDateFormat timeFormatter         = new SimpleDateFormat(
+            "HH:mm:ss");
 
     /**
      * Host name or IP address.
@@ -78,6 +110,106 @@ public class MySQLApplier extends JdbcApplier
     public void setUrlOptions(String urlOptions)
     {
         this.urlOptions = urlOptions;
+    }
+
+    /**
+     * If set to true, time stamp-aware unaware events will be processed with
+     * old replicator settings. If false, settings will not be altered.
+     */
+    public void setSupportNonTzAwareMode(boolean supportNonTzAwareMode)
+    {
+        this.supportNonTzAwareMode = supportNonTzAwareMode;
+    }
+
+    /**
+     * Check to see if we have change in the time zone awareness of the event
+     * and adjust time zone processing accordingly.
+     */
+    protected void checkEventCompatibility(ReplDBMSHeader header,
+            DBMSEvent event) throws ReplicatorException
+    {
+        // If we don't support compatible operation with non-TZ aware events
+        // there is nothing to do. Also, events without any metadata are empty
+        // and are ignored.
+        if (supportNonTzAwareMode == false)
+            return;
+        else if (event.getMetadata().size() == 0)
+            return;
+
+        // Compute time zone-awareness of the event.
+        boolean timeZoneAwareEvent = event
+                .getMetadataOptionValue(ReplOptionParams.TIME_ZONE_AWARE) != null;
+
+        if (nonTzAwareMode)
+        {
+            // We are not enabled for TZ-aware operation. Check for a TZ-enabled
+            // event.
+            if (timeZoneAwareEvent)
+            {
+                // We are now processing a time zone-aware event.
+                logger.info("Found a time zone-aware event while in non-TZ-aware mode: seqno="
+                        + header.getSeqno());
+                enableTzAwareMode();
+            }
+        }
+        else
+        {
+            // We are enabled for TZ-aware operation. Check for an event that is
+            // not time zone-aware.
+            if (!timeZoneAwareEvent)
+            {
+                // We are now processing a time zone-unaware event.
+                logger.info("Found a non-time zone-aware event while in TZ-aware mode: seqno="
+                        + header.getSeqno());
+                enableNonTzAwareMode();
+            }
+        }
+    }
+
+    /**
+     * Reset formatters to replicator global time zone to time-zone aware
+     * operation.
+     */
+    protected void enableTzAwareMode()
+    {
+        TimeZone replicatorTz = runtime.getReplicatorTimeZone();
+        logger.info("Resetting time zones used for date-time to enable time zone-aware operation: new tz="
+                + replicatorTz.getDisplayName());
+        dateTimeFormatter.setTimeZone(replicatorTz);
+        dateFormatter.setTimeZone(replicatorTz);
+        timeFormatter.setTimeZone(replicatorTz);
+        nonTzAwareMode = false;
+    }
+
+    /**
+     * Initiate non-time zone-ware operation, which imitates operation of old
+     * prior to the time zone fix.
+     */
+    protected void enableNonTzAwareMode() throws ReplicatorException
+    {
+        // Set the session time_zone back to the global time zone;
+        logger.info("Resetting MySQL session time zone back to global value");
+        String sql = "set session time_zone=@@global.time_zone";
+        try
+        {
+            conn.execute(sql);
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(
+                    "Unable to reset MySQL session time_zone: sql=" + sql
+                            + " message=" + e.getLocalizedMessage());
+        }
+
+        // Set the time zone to the host time zone.
+        TimeZone hostTz = runtime.getHostTimeZone();
+        logger.info("Resetting time zones used for date-time to enable non-time zone-aware operation: new tz="
+                + hostTz.getDisplayName());
+        dateTimeFormatter.setTimeZone(hostTz);
+        dateFormatter.setTimeZone(hostTz);
+        timeFormatter.setTimeZone(hostTz);
+
+        nonTzAwareMode = true;
     }
 
     protected void applyRowIdData(RowIdData data) throws ReplicatorException

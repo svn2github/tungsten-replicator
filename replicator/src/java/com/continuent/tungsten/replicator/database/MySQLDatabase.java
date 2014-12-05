@@ -205,6 +205,22 @@ public class MySQLDatabase extends AbstractDatabase
             }
         }
 
+        // Set the time zone to UTC to ensure consistent handling of timestamp
+        // values.
+        try
+        {
+            executeUpdate("SET session time_zone='+00:00'");
+        }
+        catch (SQLException e)
+        {
+            logger.warn("Unable to set time zone to +00:00: message="
+                    + e.getMessage());
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(e);
+            }
+        }
+
         if (initScript != null)
         {
             // Load the file : one sql statement per line
