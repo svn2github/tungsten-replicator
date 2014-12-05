@@ -43,7 +43,7 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
 
     private MySQLOperationStringBuilder prefixBuilder;
 
-    private static final String         OBJECT_NAME     = "(?:(`(?:.*?)`|\"(?:.*?)\"|(?:[a-zA-Z0-9_]+)))";
+    private static final String         OBJECT_NAME     = "(?:((?:`(?:[^`]*)`)|(?:\"(?:[^\"]*)\")|(?:[a-zA-Z0-9_]+)))";
 
     // CREATE {DATABASE | SCHEMA} [IF NOT EXISTS] db_name
     protected Pattern                   createDb        = Pattern

@@ -834,6 +834,11 @@ public class TestSqlOperationMatcher
                 "UpDaTe \"bar-dash\".\"foo-dash\" set id=1 WHere msg= 'data'",
                 "update  LOW_PRIORITY IGNORE   `bar-dash`.`foo-dash` /* hello*/ set id=1"};
 
+        String[] cmds3 = {
+                "UPDATE `users` SET `confirmation_token` = NULL, `confirmed_at` = '2014-11-30 19:33:56', `updated_at` = '2014-11-30 19:33:56' WHERE `users`.`id` = 521",
+                "UPDATE users SET `confirmation_token` = NULL, `confirmed_at` = '2014-11-30 19:33:56', `updated_at` = '2014-11-30 19:33:56' WHERE `users`.`id` = 521",
+                "UPDATE \"users\" SET \"confirmation_token\" = NULL, \"confirmed_at\" = '2014-11-30 19:33:56', \"updated_at\" = '2014-11-30 19:33:56' WHERE \"users\".\"id\" = 521"};
+
         SqlOperationMatcher m = new MySQLOperationMatcher();
         for (String cmd : cmds1)
         {
@@ -887,6 +892,20 @@ public class TestSqlOperationMatcher
                     sqlName.getName());
             Assert.assertEquals("Found database: " + cmd, "bar-dash",
                     sqlName.getSchema());
+        }
+
+        for (String cmd : cmds3)
+        {
+            SqlOperation sqlName = m.match(cmd);
+            Assert.assertNotNull("Matched: " + cmd, sqlName);
+            Assert.assertEquals("Found object: " + cmd, SqlOperation.TABLE,
+                    sqlName.getObjectType());
+            Assert.assertEquals("Found operation: " + cmd, SqlOperation.UPDATE,
+                    sqlName.getOperation());
+            Assert.assertEquals("Found name: " + cmd, "users",
+                    sqlName.getName());
+            Assert.assertNull("Found database: " + cmd, sqlName.getSchema());
+            Assert.assertFalse("Is autocommit: " + cmd, sqlName.isAutoCommit());
         }
 
     }
