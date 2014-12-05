@@ -86,6 +86,9 @@ public class SqlCommitSeqno implements CommitSeqno
         this.connectionManager = connectionManager;
         this.schema = schema;
         this.tableType = tableType;
+
+        allSeqnoQuery = "SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency, update_timestamp, task_id from "
+                + schema + "." + TABLE_NAME;
     }
 
     /**
@@ -105,12 +108,6 @@ public class SqlCommitSeqno implements CommitSeqno
      */
     public void configure() throws ReplicatorException, InterruptedException
     {
-        // Check channels.
-        if (channels < 0)
-        {
-            throw new ReplicatorException(
-                    "Channels are not set for commit seqno");
-        }
     }
 
     /**
@@ -120,25 +117,19 @@ public class SqlCommitSeqno implements CommitSeqno
      */
     public void prepare() throws ReplicatorException, InterruptedException
     {
-        try
-        {
-            // Set up table definitions.
-            defineTableData();
-
-            // Prepare SQL.
-            allSeqnoQuery = "SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, applied_latency, update_timestamp, task_id from "
-                    + schema + "." + TABLE_NAME;
-        }
-        catch (SQLException e)
+        // Check channels.
+        if (channels < 0)
         {
             throw new ReplicatorException(
-                    "Unabled to prepare commit seqno table: " + e.getMessage(),
-                    e);
+                    "Channels are not set for commit seqno");
         }
+
+        // Set up table definitions.
+        defineTableData();
     }
 
     // Set up SQL structures for table.
-    private void defineTableData() throws SQLException
+    private void defineTableData()
     {
         // Define schema.
         commitSeqnoTable = new Table(schema, TABLE_NAME);
@@ -536,9 +527,7 @@ public class SqlCommitSeqno implements CommitSeqno
             database = connectionManager.getCatalogConnection();
 
             // Scan task positions.
-            allSeqnosQuery = database
-                    .prepareStatement("SELECT seqno, fragno, last_frag, source_id, epoch_number, eventid, shard_id, extract_timestamp, task_id, applied_latency from "
-                            + schema + "." + TABLE_NAME);
+            allSeqnosQuery = database.prepareStatement(allSeqnoQuery);
             String lastEventId = null;
             int rows = 0;
             rs = allSeqnosQuery.executeQuery();

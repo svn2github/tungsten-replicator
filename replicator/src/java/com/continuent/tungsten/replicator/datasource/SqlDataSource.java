@@ -151,6 +151,7 @@ public class SqlDataSource extends AbstractDataSource
         commitSeqno = new SqlCommitSeqno(connectionManager,
                 connectionSpec.getSchema(), connectionSpec.getTableType());
         commitSeqno.setChannels(channels);
+        commitSeqno.configure();
         commitSeqno.prepare();
     }
 
