@@ -127,9 +127,9 @@ public class SqlConnectionManager
         try
         {
             Database conn = getRawConnection(createDB);
-            conn.connect();
             conn.setInitScript(connectionSpec.getInitScript());
             conn.setCsvSpecification(csvSpec);
+            conn.connect();
             return conn;
         }
         catch (SQLException e)

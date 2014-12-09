@@ -55,38 +55,44 @@ import com.continuent.tungsten.replicator.extractor.mysql.SerialBlob;
  */
 public class MySQLApplier extends JdbcApplier
 {
-    private static Logger logger     = Logger.getLogger(MySQLApplier.class);
-    protected String      host       = "localhost";
-    protected int         port       = 3306;
-    protected String      urlOptions = null;
+    private static Logger            logger                 = Logger.getLogger(MySQLApplier.class);
+    protected String                 host                   = "localhost";
+    protected int                    port                   = 3306;
+    protected String                 urlOptions             = null;
 
-/**
+    /**
      * If true the replicator is operating time zone unaware compatibility mode.
      * In this mode we set the JVM time zone to the host time zone and set the
      * MySQL session time zone to match the MySQL global time zone. This mode
      * requires extra clean-up at release time to ensure the JVM time zone is
      * set back correctly.
      */
-    protected boolean                nonTzAwareMode        = false;
+    protected boolean                nonTzAwareMode         = false;
 
     /**
      * If true this applier will switch the replicator to time zone unaware
      * operation to apply events from a time zone unaware source. This is to
      * enable seamless upgrade of logs from older replicators.
      */
-    protected boolean                supportNonTzAwareMode = true;
+    protected boolean                supportNonTzAwareMode  = true;
 
-    // Formatters for MySQL DATE, TIME, and TIMESTAMP values.
+    // Formatters for MySQL DATE, TIME, and DATETIME values.
     /**
-     * Format date value according to MySQL expectations.
+     * Format DATE value according to MySQL expectations.
      */
-    protected final SimpleDateFormat dateFormatter         = new SimpleDateFormat(
-                                                                   "yyyy-MM-dd");
+    protected final SimpleDateFormat dateFormatter          = new SimpleDateFormat(
+                                                                    "yyyy-MM-dd");
     /**
-     * Format time value according to MySQL expectations.
+     * Format TIME value according to MySQL expectations.
      */
-    protected final SimpleDateFormat timeFormatter         = new SimpleDateFormat(
-            "HH:mm:ss");
+    protected final SimpleDateFormat timeFormatter          = new SimpleDateFormat(
+                                                                    "HH:mm:ss");
+    /**
+     * Format MySQL DATETIME value according to MySQL expectations. The DATETIME
+     * data type cannot change time zones or upgrade breaks.
+     */
+    protected final SimpleDateFormat mysqlDatetimeFormatter = new SimpleDateFormat(
+                                                                    "yyyy-MM-dd HH:mm:ss");
 
     /**
      * Host name or IP address.
@@ -178,6 +184,7 @@ public class MySQLApplier extends JdbcApplier
         dateTimeFormatter.setTimeZone(replicatorTz);
         dateFormatter.setTimeZone(replicatorTz);
         timeFormatter.setTimeZone(replicatorTz);
+        // Do not alter the formatter for MySQL DATETIME type.
         nonTzAwareMode = false;
     }
 
@@ -208,7 +215,7 @@ public class MySQLApplier extends JdbcApplier
         dateTimeFormatter.setTimeZone(hostTz);
         dateFormatter.setTimeZone(hostTz);
         timeFormatter.setTimeZone(hostTz);
-
+        // Do not alter the formatter for MySQL DATETIME type.
         nonTzAwareMode = true;
     }
 

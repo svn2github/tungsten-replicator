@@ -310,10 +310,17 @@ public class MySQLDrizzleApplier extends MySQLApplier
         else if (columnSpec.getType() == Types.DATE
                 && value.getValue() instanceof Timestamp)
         {
-            // This is a MySQL DATETIME field. For these it is sufficent to
-            // use a toString() which will work since the background time zone
-            // is GMT.
-            prepStatement.setObject(bindLoc, value.getValue());
+            // This is a MySQL DATETIME field. For these we need to keep the
+            // background replicator time zone even in cases where we are reading
+            // older logs. 
+            Timestamp ts = (Timestamp) value.getValue();
+            StringBuffer datetime = new StringBuffer(mysqlDatetimeFormatter.format(ts));
+            if (ts.getNanos() > 0)
+            {
+                datetime.append(".");
+                datetime.append(String.format("%09d%n", ts.getNanos()));
+            }
+            prepStatement.setString(bindLoc, datetime.toString());
         }
         else if (columnSpec.getType() == Types.DATE
                 && value.getValue() instanceof java.sql.Date)
