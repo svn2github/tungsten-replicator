@@ -138,7 +138,7 @@ public class DsctlCtrl
 
             // Retrieve configuration file if user didn't specify one.
             if (configFile == null)
-                configFile = getConfigFile(service);
+                configFile = getConfigFile();
 
             // Read configuration file.
             TungstenProperties properties = DDLScanCtrl.readConfig(configFile);
@@ -286,8 +286,8 @@ public class DsctlCtrl
         {
             String msg = "Service \"" + service + "\" datasource \""
                     + datasource + "\" position was set to: seqno=" + seqno
-                    + " epoch=" + epoch + " eventId=" + eventId + " sourceId="
-                    + sourceId;
+                    + " epoch_number=" + epoch + " eventid=" + eventId
+                    + " source_id=" + sourceId;
             logger.info(msg);
             println(msg);
             return 0;
@@ -296,14 +296,14 @@ public class DsctlCtrl
         {
             String msg = "FAILED to set position of service \"" + service
                     + "\" datasource \"" + datasource + "\" to: seqno=" + seqno
-                    + " epoch=" + epoch + " eventId=" + eventId + " sourceId="
-                    + sourceId;
+                    + " epoch_number=" + epoch + " eventid=" + eventId
+                    + " source_id=" + sourceId;
             printlnerr(msg);
             return 7;
         }
     }
 
-    protected static String getConfigFile(String service)
+    protected static String getConfigFile()
     {
         String configFile = null;
         if (service == null)
@@ -315,6 +315,11 @@ public class DsctlCtrl
             {
                 fatal("Replicator configuration file not found or there is more than one, check -service parameter",
                         null, 1);
+            }
+            else
+            {
+                // Parse service out of filename.
+                service = DDLScanCtrl.serviceFromConfigFileName(configFile);
             }
         }
         else
@@ -345,7 +350,7 @@ public class DsctlCtrl
         println("      -epoch ###");
         println("      -event-id AAAAAAAAA.######:#######");
         println("      -source-id AAA.AAA.AAA");
-        println("  reset            - Delete catalog tables and schema (if practical)");
+        println("  reset            - Clear datasource position information");
         println("  help             - Print this help display");
     }
 

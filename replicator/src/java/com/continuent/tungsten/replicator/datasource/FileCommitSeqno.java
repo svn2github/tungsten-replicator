@@ -190,6 +190,33 @@ public class FileCommitSeqno implements CommitSeqno
             throw new ReplicatorException(msg);
         }
     }
+    
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#setPosition(long,
+     *      long, String, String)
+     */
+    public void initPosition(long seqno, String sourceId, long epoch,
+            String eventId) throws ReplicatorException, InterruptedException
+    {
+        // Create initial position file.
+        String[] seqnoFileNames = fileIO.list(serviceDir, prefix);
+        if (seqnoFileNames.length == 0)
+        {
+            String fname = prefix + ".0";
+            logger.info("Initializing file-based seqno tracking: directory="
+                    + serviceDir.toString() + " file=" + fname);
+            ReplDBMSHeaderData header = new ReplDBMSHeaderData(seqno,
+                    (short) -1, false, sourceId, epoch, eventId, "", null, 0);
+            store(fname, header, -1, false);
+        }
+        else
+        {
+            throw new ReplicatorException(
+                    "Cannot set position, because tasks already exist - clear position first");
+        }
+    }
 
     /**
      * {@inheritDoc}

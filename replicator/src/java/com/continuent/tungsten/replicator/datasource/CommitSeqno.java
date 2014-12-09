@@ -86,6 +86,15 @@ public interface CommitSeqno extends CatalogEntity
             InterruptedException;
 
     /**
+     * Set position for task ID zero. If there are no tasks, single one with ID
+     * zero will be created. If there are one or mare (in case of parallel
+     * replication) tasks, setting will throw an exception and suggest doing a
+     * reset first.
+     */
+    public void initPosition(long seqno, String sourceId, long epoch,
+            String eventId) throws ReplicatorException, InterruptedException;
+
+    /**
      * Returns an accessor suitable for performing operations for a particular
      * task ID.
      * 

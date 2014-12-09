@@ -147,7 +147,7 @@ public class DataSourceAdministrator
      * @return true, if successfully set, false, otherwise.
      */
     public boolean set(String name, long seqno, long epoch, String eventId,
-            String sourceId)
+            String sourceId) throws ReplicatorException, InterruptedException
     {
         UniversalDataSource ds = manager.find(name);
         if (ds == null)
@@ -156,8 +156,8 @@ public class DataSourceAdministrator
         }
         else
         {
-            // TODO: implement.
-            return false;
+            ds.getCommitSeqno().initPosition(seqno, sourceId, epoch, eventId);
+            return true;
         }
     }
 

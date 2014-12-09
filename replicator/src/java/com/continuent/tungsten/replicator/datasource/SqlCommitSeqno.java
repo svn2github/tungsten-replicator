@@ -190,13 +190,7 @@ public class SqlCommitSeqno implements CommitSeqno
             database = connectionManager.getCatalogConnection();
 
             // Create the table if it does not exist.
-            if (database.findTable(commitSeqnoTable.getSchema(),
-                    commitSeqnoTable.getName()) == null)
-            {
-                if (logger.isDebugEnabled())
-                    logger.debug("Initializing " + TABLE_NAME + " table");
-                database.createTable(commitSeqnoTable, false, tableType);
-            }
+            initTable(database);
 
             // Count rows to see if the table is empty and if so add a dummy
             // first row (taskID = 0).
@@ -265,7 +259,78 @@ public class SqlCommitSeqno implements CommitSeqno
             connectionManager.releaseCatalogConnection(database);
         }
     }
+    
+    /**
+     * Create the table if it does not exist already.
+     * @throws SQLException 
+     */
+    private void initTable(Database database) throws SQLException
+    {
+        if (database.findTable(commitSeqnoTable.getSchema(),
+                commitSeqnoTable.getName()) == null)
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("Initializing " + TABLE_NAME + " table");
+            database.createTable(commitSeqnoTable, false, tableType);
+        }
+    }
+    
+    /**
+     * {@inheritDoc}
+     * 
+     * @see com.continuent.tungsten.replicator.datasource.CommitSeqno#setPosition(long,
+     *      long, String, String)
+     */
+    public void initPosition(long seqno, String sourceId, long epoch,
+            String eventId) throws ReplicatorException, InterruptedException
+    {
+        Database database = null;
+        CommitSeqnoAccessor accessor = null;
+        try
+        {
+            database = connectionManager.getCatalogConnection();
 
+            // Create the table if it does not exist.
+            initTable(database);
+
+            // Count rows to see if the table is empty and if so add the
+            // position row (taskID = 0).
+            int rows = count(database);
+            if (rows == 0)
+            {
+                if (logger.isDebugEnabled())
+                    logger.debug("Adding first row to " + TABLE_NAME + " table");
+
+                // Set position.
+                commitSeqnoTableTaskId.setValue(0);
+                commitSeqnoTableSeqno.setValue(seqno);
+                commitSeqnoTableFragno.setValue(-1);
+                commitSeqnoTableSourceId.setValue(sourceId);
+                commitSeqnoTableEpochNumber.setValue(epoch);
+                commitSeqnoTableEventId.setValue(eventId);
+
+                database.insert(commitSeqnoTable);
+            }
+            else
+            {
+                throw new ReplicatorException(
+                        "Cannot set position, because tasks already exist - clear position first");
+            }
+        }
+        catch (SQLException e)
+        {
+            throw new ReplicatorException(
+                    "Unable to initialize commit seqno table: "
+                            + e.getMessage(), e);
+        }
+        finally
+        {
+            if (accessor != null)
+                accessor.close();
+            connectionManager.releaseCatalogConnection(database);
+        }
+    }
+    
     /**
      * {@inheritDoc}
      * 

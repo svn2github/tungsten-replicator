@@ -1013,10 +1013,10 @@ public class TungstenPlugin extends NotificationBroadcasterSupport
                 statusProps.setDouble(Replicator.APPLIED_LATENCY,
                         pipeline.getApplyLatency());
                 Timestamp commitTime = lastEvent.getExtractedTstamp();
-                double relativeLatency = ((System.currentTimeMillis() - commitTime
-                        .getTime()) / 1000.0);
                 if (commitTime != null)
                 {
+                    double relativeLatency = ((System.currentTimeMillis() - commitTime
+                            .getTime()) / 1000.0);
                     statusProps.setDouble(Replicator.RELATIVE_LATENCY,
                             relativeLatency);
                 }
