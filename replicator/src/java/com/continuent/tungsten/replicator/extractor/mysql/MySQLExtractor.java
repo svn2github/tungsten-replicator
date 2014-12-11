@@ -1854,7 +1854,11 @@ public class MySQLExtractor implements RawExtractor
         ResultSet rs = null;
         try
         {
-            conn = dataSourceImpl.getConnection();
+            // Try to get a connection. If we cannot, return NONE as above.
+            conn = dataSourceImpl.getUnmanagedConnection();
+            if (conn == null)
+                return "NONE";
+
             st = conn.createStatement();
             logger.debug("Seeking head position in binlog");
             rs = st.executeQuery("SHOW MASTER STATUS");
@@ -1878,15 +1882,6 @@ public class MySQLExtractor implements RawExtractor
                 logger.debug("Full error was ", e);
             throw new ExtractorException(
                     "Unable to run SHOW MASTER STATUS to find log position", e);
-        }
-        catch (NullPointerException e)
-        {
-            // Suppress NPEs due to data sources being in a bad state. This is
-            // being addressed by Google Issue 1033.
-            logger.warn(
-                    "Unable to run SHOW MASTER STATUS to find log position; this can occur when service is going on/offline",
-                    e);
-            return null;
         }
         finally
         {
@@ -1918,15 +1913,8 @@ public class MySQLExtractor implements RawExtractor
             {
             }
         }
-        // We proceed carefully here as we might hit a race condition where
-        // the dataSourceImpl disappears due to a concurrent offline command.
-        if (dataSourceImpl != null)
+        if (conn != null)
         {
-            dataSourceImpl.releaseConnection(conn);
-        }
-        else if (conn != null)
-        {
-            // Do not lose the resource even if dataSourceImpl is gone.
             conn.close();
         }
     }

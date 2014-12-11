@@ -127,7 +127,8 @@ public class SqlDataSource extends AbstractDataSource
      * Instantiate and configure all data source tables.
      */
     @Override
-    public void configure() throws ReplicatorException, InterruptedException
+    public synchronized void configure() throws ReplicatorException,
+            InterruptedException
     {
         super.configure();
     }
@@ -136,7 +137,8 @@ public class SqlDataSource extends AbstractDataSource
      * Prepare all data source tables for use.
      */
     @Override
-    public void prepare() throws ReplicatorException, InterruptedException
+    public synchronized void prepare() throws ReplicatorException,
+            InterruptedException
     {
         // Initialize connection manager.
         connectionManager = new SqlConnectionManager();
@@ -203,7 +205,8 @@ public class SqlDataSource extends AbstractDataSource
      * 
      * @see com.continuent.tungsten.replicator.datasource.CatalogEntity#release()
      */
-    public void release() throws ReplicatorException, InterruptedException
+    public synchronized void release() throws ReplicatorException,
+            InterruptedException
     {
         // Only release if commit seqno is not null.
         if (commitSeqno != null)
@@ -429,16 +432,31 @@ public class SqlDataSource extends AbstractDataSource
     }
 
     /**
+     * Returns a connection that caller is responsible for closing
+     * independently. This is synchronized with ReplicatorPlugin life cycle
+     * operations to make it is safe to call by code running outside the
+     * pipeline.
+     * 
+     * @return A live JDBC connection or null if data source is not in a state
+     *         suitable for creating connections. Callers must call close()
+     *         directly on this connection.
+     */
+    public synchronized Database getUnmanagedConnection()
+            throws ReplicatorException
+    {
+        if (connectionManager == null)
+            return null;
+        else
+            return connectionManager.getWrappedConnection();
+    }
+
+    /**
      * {@inheritDoc}
      * 
      * @see com.continuent.tungsten.replicator.datasource.UniversalDataSource#releaseConnection(com.continuent.tungsten.replicator.datasource.UniversalConnection)
      */
     public void releaseConnection(UniversalConnection conn)
     {
-        // For now we must release the connection directly to prevent
-        // NullPointerException from out of band calls status calls
-        // that do not respect the pipeline model.
-        if (conn != null)
-            conn.close();
+        connectionManager.releaseConnection((Database) conn);
     }
 }
