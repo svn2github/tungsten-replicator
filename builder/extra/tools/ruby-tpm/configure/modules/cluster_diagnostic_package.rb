@@ -198,6 +198,7 @@ module ClusterDiagnosticPackage
       write_file("#{diag_dir}/#{h_alias}/os_info/free.txt",run_command(config,"free -m") )
       write_file("#{diag_dir}/#{h_alias}/os_info/java_info.txt",run_command(config,"java -version 2>&1") )
       write_file("#{diag_dir}/#{h_alias}/os_info/ruby_info.txt",run_command(config,"ruby -v") )
+      write_file("#{diag_dir}/#{h_alias}/os_info/uptime.txt",run_command(config,"uptime") )
 
     }
     
