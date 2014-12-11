@@ -96,9 +96,7 @@ public class MySQLDrizzleApplier extends MySQLApplier
 
             applyUseSchema(schema);
 
-            applySetTimestamp(timestamp);
-
-            applySessionVariables(options);
+            applyVariables(timestamp, options);
 
             // Using drizzle driver specific method to send bytes directly to
             // mysql
@@ -187,9 +185,7 @@ public class MySQLDrizzleApplier extends MySQLApplier
 
             applyUseSchema(schema);
 
-            applySetTimestamp(timestamp);
-
-            applySessionVariables(options);
+            applyVariables(timestamp, options);
 
             try
             {

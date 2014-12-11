@@ -119,7 +119,7 @@ public class JdbcApplier implements RawApplier
 
     /**
      * Maximum length of SQL string to log in case of an error. This is needed
-     * because some statements may be very large. 
+     * because some statements may be very large.
      */
     protected int                     maxSQLLogLength            = 5000;
 
@@ -579,9 +579,7 @@ public class JdbcApplier implements RawApplier
 
             applyUseSchema(schema);
 
-            applySetTimestamp(timestamp);
-
-            applySessionVariables(options);
+            applyVariables(timestamp, options);
 
             if (data.getQuery() != null)
                 statement.addBatch(data.getQuery());
@@ -661,14 +659,15 @@ public class JdbcApplier implements RawApplier
      * @param timestamp the timestamp to be used
      * @throws SQLException if an error occurs
      */
-    protected void applySetTimestamp(Long timestamp) throws SQLException
+    protected void applySetTimestamp(List<String> batchOptions, Long timestamp)
+            throws SQLException
     {
         if (timestamp != null && conn.supportsControlTimestamp())
         {
             if (timestamp.longValue() != currentTimestamp)
             {
                 currentTimestamp = timestamp.longValue();
-                statement.addBatch(conn.getControlTimestampQuery(timestamp));
+                batchOptions.add(conn.getControlTimestampQuery(timestamp));
             }
         }
     }
@@ -697,12 +696,13 @@ public class JdbcApplier implements RawApplier
      * connection options, if needed and if possible (if the database support
      * such a feature)
      * 
+     * @param batchOptions
      * @param options
      * @return true if any option changed
      * @throws SQLException
      */
-    protected boolean applySessionVariables(List<ReplOption> options)
-            throws SQLException
+    protected boolean applySessionVariables(List<String> batchOptions,
+            List<ReplOption> options) throws SQLException
     {
         boolean sessionVarChange = false;
 
@@ -721,7 +721,16 @@ public class JdbcApplier implements RawApplier
                 // Ignore internal Tungsten options.
                 if (optionName
                         .startsWith(ReplOptionParams.INTERNAL_OPTIONS_PREFIX))
+                {
+                    if (conn.hasMicrosecondsSupport() && batchOptions != null
+                            && optionName.equals("##microseconds"))
+                    {
+                        // Add microseconds to timestamp
+                        batchOptions.set(0, batchOptions.get(0) + "."
+                                + optionValue);
+                    }
                     continue;
+                }
 
                 // If we are ignoring this option, just continue.
                 if (ignoreSessionPattern != null)
@@ -753,7 +762,10 @@ public class JdbcApplier implements RawApplier
                     {
                         if (logger.isDebugEnabled())
                             logger.debug("Issuing " + optionSetStatement);
-                        statement.addBatch(optionSetStatement);
+                        if (batchOptions != null)
+                            batchOptions.add(optionSetStatement);
+                        else
+                            statement.addBatch(optionSetStatement);
                     }
                     currentOptions.put(optionName, optionValue);
                     sessionVarChange = true;
@@ -1203,7 +1215,7 @@ public class JdbcApplier implements RawApplier
         {
             try
             {
-                if (applySessionVariables(options))
+                if (applySessionVariables(null, options))
                 {
                     // Apply session variables to the connection only if
                     // something changed
@@ -1223,7 +1235,7 @@ public class JdbcApplier implements RawApplier
         {
             try
             {
-                if (applySessionVariables(rowOptions))
+                if (applySessionVariables(null, rowOptions))
                 {
                     // Apply session variables to the connection only if
                     // something changed
@@ -1861,6 +1873,20 @@ public class JdbcApplier implements RawApplier
         {
             tableMetadataCache.invalidateAll();
             tableMetadataCache = null;
+        }
+    }
+
+    protected void applyVariables(Long timestamp, List<ReplOption> options)
+            throws SQLException
+    {
+        List<String> batchOptions = new ArrayList<String>();
+
+        applySetTimestamp(batchOptions, timestamp);
+        applySessionVariables(batchOptions, options);
+
+        for (String sql : batchOptions)
+        {
+            statement.addBatch(sql);
         }
     }
 }
