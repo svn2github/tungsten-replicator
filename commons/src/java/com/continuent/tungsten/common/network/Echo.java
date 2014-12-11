@@ -372,7 +372,7 @@ public class Echo
         {
             System.out.println("Tungsten ping utility");
             System.out.println("Usage: tping hostname port timeout");
-            System.out.println("   timeout is in miliseconds");
+            System.out.println("   timeout is in milliseconds");
             System.exit(1);
         }
         else
