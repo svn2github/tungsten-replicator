@@ -55,6 +55,8 @@ public class Echo
     public static final String  SOCKET_PHASE_RECEIVE = "reading from";
     public static final String  SOCKET_PHASE_WRITE   = "writing to";
 
+    // Modifying the order here and in cluster-home/bin/tping bash script should
+    // be synchronous
     public enum EchoStatus
     {
         OK, OPEN_FILE_LIMIT_ERROR, SOCKET_NO_IO, SOCKET_CONNECT_TIMEOUT, SEND_MESSAGE_TIMEOUT, RECEIVE_MESSAGE_TIMEOUT, MESSAGE_CORRUPT, SOCKET_IO_ERROR, HOST_IS_DOWN, NO_ROUTE_TO_HOST, UNKNOWN_HOST
@@ -357,5 +359,48 @@ public class Echo
         }
 
         return props;
+    }
+
+    /**
+     * Main method to permit external invocation.
+     * 
+     * @param argv The program arguments.
+     */
+    public static void main(String argv[])
+    {
+        if (argv.length != 3)
+        {
+            System.out.println("Tungsten ping utility");
+            System.out.println("Usage: tping hostname port timeout");
+            System.out.println("   timeout is in miliseconds");
+            System.exit(1);
+        }
+        else
+        {
+            try
+            {
+                String hostName = argv[0];
+                int portNumber = Integer.parseInt(argv[1]);
+                int timeout = Integer.parseInt(argv[2]);
+                TungstenProperties result = isReachable(hostName, portNumber,
+                        timeout);
+
+                if (result.getObject(Echo.STATUS_KEY) == EchoStatus.OK)
+                {
+                    System.exit(0);
+                }
+                else
+                {
+                    EchoStatus echoStatus = (EchoStatus) result
+                            .getObject(STATUS_KEY);
+                    System.exit(1 + echoStatus.ordinal());
+                }
+            }
+            catch (NumberFormatException e)
+            {
+                System.out.println("Error parsing number: " + e.getMessage());
+                System.exit(1);
+            }
+        }
     }
 }
