@@ -58,6 +58,11 @@ public class MySQLDatabase extends AbstractDatabase
 
     private boolean                        sessionLevelLoggingSuppressed = false;
 
+    // SET TIMESTAMP support requires to know whether the timestamp can be a
+    // double (MySQL 5.6 or later) or is a LONGLONG (older releases)
+    private static final int               MYSQL_DOUBLE                  = 8;
+    // private static final int MYSQL_LONGLONG = -5;
+
     /** A list of words that can't be used in table and column names. */
     private static final ArrayList<String> reservedWords                 = new ArrayList<String>(
                                                                                  Arrays.asList(new String[]{
@@ -103,6 +108,8 @@ public class MySQLDatabase extends AbstractDatabase
 
     private static final List<String>      SYSTEM_SCHEMAS                = Arrays.asList(new String[]{
             "mysql", "performance_schema", "information_schema"          });
+
+    private boolean                        supportsMicroseconds;
 
     public MySQLDatabase() throws SQLException
     {
@@ -152,13 +159,12 @@ public class MySQLDatabase extends AbstractDatabase
                 return "UNKNOWN";
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    protected Column addColumn(ResultSet rs)
-            throws SQLException
+    protected Column addColumn(ResultSet rs) throws SQLException
     {
         // Generic initialization.
         Column column = super.addColumn(rs);
@@ -221,6 +227,34 @@ public class MySQLDatabase extends AbstractDatabase
             }
         }
 
+        Statement sqlStatement = null;
+        ResultSet rs = null;
+        try
+        {
+            sqlStatement = dbConn.createStatement();
+            rs = sqlStatement.executeQuery("SELECT @@timestamp");
+            supportsMicroseconds = rs.getMetaData().getColumnType(1) == MYSQL_DOUBLE;
+        }
+        finally
+        {
+            if (rs != null)
+                try
+                {
+                    rs.close();
+                }
+                catch (SQLException ignore)
+                {
+                }
+            if (sqlStatement != null)
+                try
+                {
+                    sqlStatement.close();
+                }
+                catch (SQLException ignore)
+                {
+                }
+        }
+
         if (initScript != null)
         {
             // Load the file : one sql statement per line
@@ -238,7 +272,7 @@ public class MySQLDatabase extends AbstractDatabase
 
             try
             {
-                // Add to support misleading Eclipse warning. 
+                // Add to support misleading Eclipse warning.
                 @SuppressWarnings("resource")
                 BufferedReader br = new BufferedReader(reader);
                 String sql = null;
@@ -250,7 +284,7 @@ public class MySQLDatabase extends AbstractDatabase
                     if (sql.startsWith("#") || sql.length() == 0)
                         continue;
 
-                    // For now, we don't care for the results. 
+                    // For now, we don't care for the results.
                     stmt.execute(sql);
                 }
             }
@@ -992,5 +1026,10 @@ public class MySQLDatabase extends AbstractDatabase
                 }
             }
         }
+    }
+
+    public boolean hasMicrosecondsSupport()
+    {
+        return supportsMicroseconds;
     }
 }

@@ -1011,7 +1011,7 @@ public abstract class AbstractDatabase implements Database
      */
     protected abstract ResultSet getTablesResultSet(DatabaseMetaData md,
             String schemaName, boolean baseTablesOnly) throws SQLException;
-    
+
     /**
      * Override in specific database classes. Adds column from a metadata result
      * set with database-specific logic.
@@ -1554,5 +1554,10 @@ public abstract class AbstractDatabase implements Database
         }
         else
             return csvSpec.createCsvWriter(writer);
+    }
+
+    public boolean hasMicrosecondsSupport()
+    {
+        return false;
     }
 }

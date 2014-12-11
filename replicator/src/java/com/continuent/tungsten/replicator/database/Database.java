@@ -686,4 +686,6 @@ public interface Database extends UniversalConnection
      * @return the generated flashback clause based on the position
      */
     public String getFlashbackQuery(String position);
+
+    public boolean hasMicrosecondsSupport();
 }
