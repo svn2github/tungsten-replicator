@@ -62,6 +62,9 @@ public class HostAddressService
     /** Ping method using operating system ping command. */
     public static String                  PING          = "ping";
 
+    /** Ping method using the echo server. */
+    public static String                  ECHO          = "echo";
+
     // Ping methods are stored in a list as well as a hash index. The names list
     // contains only enabled methods. Access to these *must* be synchronized to
     // preserve thread safety.
@@ -82,6 +85,7 @@ public class HostAddressService
         // Add known ping methods.
         addMethod(DEFAULT, InetAddressPing.class.getName(), autoEnable);
         addMethod(PING, OsUtilityPing.class.getName(), autoEnable);
+        addMethod(ECHO, EchoPing.class.getName(), autoEnable);
     }
 
     /**
