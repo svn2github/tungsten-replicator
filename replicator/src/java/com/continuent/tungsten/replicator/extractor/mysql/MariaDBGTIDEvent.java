@@ -69,10 +69,10 @@ public class MariaDBGTIDEvent extends QueryLogEvent
         postHeaderLength = descriptionEvent.maria10PostHeaderLength[type
                 - MysqlBinlog.ENUM_MARIA_START_EVENT];
 
-        // if (logger.isDebugEnabled())
-        logger.warn("event length: " + eventLength + " common header length: "
-                + commonHeaderLength + " post header length: "
-                + postHeaderLength);
+        if (logger.isDebugEnabled())
+            logger.debug("event length: " + eventLength
+                    + " common header length: " + commonHeaderLength
+                    + " post header length: " + postHeaderLength);
 
         offset = commonHeaderLength;
 
