@@ -162,7 +162,14 @@
         </java>
     </target>
 
-    <target name="test" depends="compile-test" description="--> run unit tests">
+	<target name="test" depends="compile-test" description="--> run unit tests">
+		<testmacro enablecoverage="false"/>
+	</target>
+			
+    <macrodef name="testmacro">
+    	<attribute name="enablecoverage" default="false"/>
+    	<sequential>
+   		<echo message="Unit Test Coverage enabled=@{enablecoverage}"/>
         <delete dir="${test.coverage.dir}"/>
     	<mkdir dir="${test.coverage.dir}"/>
     	<delete dir="${test.reports}"/>
@@ -189,7 +196,7 @@
               toFile="${test.work}/replicator.properties"/>
         <copy file="test.properties" todir="${test.work}"/>
 
-        <jacoco:coverage destfile="${test.coverage.file}">
+        <jacoco:coverage destfile="${test.coverage.file}" enabled="@{enablecoverage}">
         <junit printsummary="yes" haltonfailure="no" fork="yes"
           dir="${test.work}" failureproperty="tests.failed" timeout="500000">
             <jvmarg value="-Dreplicator.log.dir=." />
@@ -226,7 +233,8 @@
             <report format="frames" todir="${test.reports}/html"/>
         </junitreport>
     	<fail if="tests.failed" message="Not all unit tests were completed. Process aborted!"/>
-    </target>
+    	</sequential>
+    </macrodef>
 
     <target name="test-report" description="--> generate junit reports">
         <junitreport tofile="${test.reports}/TESTS-TestSuites.xml">
@@ -379,8 +387,9 @@
         </exec>
     </target>
 
-    <target name="test-coverage" depends="test"
+    <target name="test-coverage"
     	description="--> generate junit code coverage reports">
+    	<testmacro enablecoverage="true"/>
         <jacoco:report>
             <executiondata>
                 <file file="${test.coverage.file}"/>
