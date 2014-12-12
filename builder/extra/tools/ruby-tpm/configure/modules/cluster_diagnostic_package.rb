@@ -170,7 +170,7 @@ module ClusterDiagnosticPackage
           get_log(config, mysql_error_log,"#{diag_dir}/#{h_alias}/mysql/mysql_error.log")
           # If it does fail we'll try another way
           unless File.exist?("#{diag_dir}/#{h_alias}/mysql/mysql_error.log")
-            mysql_error_log_output=ssh_result("sudo -n cat #{mysql_error_log}|tail -n 100", config.getProperty(HOST), config.getProperty(USERID))
+            mysql_error_log_output=ssh_result("sudo -n cat #{mysql_error_log}|tail -n 1000", config.getProperty(HOST), config.getProperty(USERID))
             write_file("#{diag_dir}/#{h_alias}/mysql/mysql_error.log", mysql_error_log_output)
           end
         end
