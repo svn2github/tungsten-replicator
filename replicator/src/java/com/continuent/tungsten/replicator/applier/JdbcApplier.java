@@ -500,8 +500,9 @@ public class JdbcApplier implements RawApplier
                 data.getTableName());
         if (t == null)
         {
-            logger.warn("Table " + data.getSchemaName() + " "
-                    + data.getTableName() + " not found in cache");
+            if (logger.isDebugEnabled())
+                logger.debug("Table " + data.getSchemaName() + " "
+                        + data.getTableName() + " not found in cache");
             // Not yet in cache
             t = conn.findTable(data.getSchemaName(), data.getTableName(), false);
 
@@ -1900,7 +1901,7 @@ public class JdbcApplier implements RawApplier
 
         if (applyTS)
             statement.addBatch(setTimestampQuery);
-        
+
         for (String sql : batchOptions)
         {
             statement.addBatch(sql);
