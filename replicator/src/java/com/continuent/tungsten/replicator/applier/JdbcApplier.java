@@ -112,6 +112,7 @@ public class JdbcApplier implements RawApplier
     // unnecessary commands on the SQL connection.
     protected String                  currentSchema              = null;
     protected long                    currentTimestamp           = -1;
+    private long                      currentMicroseconds        = -1;
 
     // Statistics.
     protected long                    eventCount                 = 0;
@@ -146,7 +147,8 @@ public class JdbcApplier implements RawApplier
     protected final SimpleDateFormat  dateTimeFormatter          = new SimpleDateFormat(
                                                                          "yyyy-MM-dd HH:mm:ss");
 
-    // Setters.
+    private String                    setTimestampQuery          = "";
+    private boolean                   applyTS                    = false;
 
     /**
      * Sets the optimizeRowEvents value.
@@ -659,15 +661,15 @@ public class JdbcApplier implements RawApplier
      * @param timestamp the timestamp to be used
      * @throws SQLException if an error occurs
      */
-    protected void applySetTimestamp(List<String> batchOptions, Long timestamp)
-            throws SQLException
+    protected void applySetTimestamp(Long timestamp) throws SQLException
     {
         if (timestamp != null && conn.supportsControlTimestamp())
         {
+            setTimestampQuery = conn.getControlTimestampQuery(timestamp);
             if (timestamp.longValue() != currentTimestamp)
             {
                 currentTimestamp = timestamp.longValue();
-                batchOptions.add(conn.getControlTimestampQuery(timestamp));
+                applyTS = true;
             }
         }
     }
@@ -696,7 +698,7 @@ public class JdbcApplier implements RawApplier
      * connection options, if needed and if possible (if the database support
      * such a feature)
      * 
-     * @param batchOptions
+     * @param batchOptions null for RBR, list of option to batch for SBR
      * @param options
      * @return true if any option changed
      * @throws SQLException
@@ -722,12 +724,24 @@ public class JdbcApplier implements RawApplier
                 if (optionName
                         .startsWith(ReplOptionParams.INTERNAL_OPTIONS_PREFIX))
                 {
-                    if (conn.hasMicrosecondsSupport() && batchOptions != null
+
+                    if (conn.hasMicrosecondsSupport()
+                            && conn.supportsControlTimestamp()
+                            && batchOptions != null
                             && optionName.equals("##microseconds"))
                     {
-                        // Add microseconds to timestamp
-                        batchOptions.set(0, batchOptions.get(0) + "."
-                                + optionValue);
+                        // This is only useful for statement base replication
+                        // (i.e. batchOptions != null)
+                        if (applyTS
+                                || currentMicroseconds != Long
+                                        .valueOf(optionValue))
+                        {
+                            // Save current microseconds value
+                            currentMicroseconds = Long.valueOf(optionValue);
+                            // Add microseconds to timestamp
+                            setTimestampQuery += "." + optionValue;
+                            applyTS = true;
+                        }
                     }
                     continue;
                 }
@@ -1881,12 +1895,18 @@ public class JdbcApplier implements RawApplier
     {
         List<String> batchOptions = new ArrayList<String>();
 
-        applySetTimestamp(batchOptions, timestamp);
+        applySetTimestamp(timestamp);
         applySessionVariables(batchOptions, options);
 
+        if (applyTS)
+            statement.addBatch(setTimestampQuery);
+        
         for (String sql : batchOptions)
         {
             statement.addBatch(sql);
         }
+
+        setTimestampQuery = "";
+        applyTS = false;
     }
 }
