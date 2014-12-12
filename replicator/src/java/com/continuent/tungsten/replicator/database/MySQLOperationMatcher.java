@@ -214,7 +214,27 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
                                                                         "^\\s*rename\\s+table\\s+(?:"
                                                                                 + OBJECT_NAME
                                                                                 + "\\.){0,1}"
-                                                                                + OBJECT_NAME,
+                                                                                + OBJECT_NAME
+                                                                                + "\\s+TO\\s+(?:"
+                                                                                + OBJECT_NAME
+                                                                                + "\\.){0,1}"
+                                                                                + OBJECT_NAME
+                                                                                + "(?:\\s*,\\s*(.*))?",
+                                                                        Pattern.CASE_INSENSITIVE);
+
+    private String                      renamimgList    = "(?:"
+                                                                + OBJECT_NAME
+                                                                + "\\.){0,1}"
+                                                                + OBJECT_NAME
+                                                                + "\\s+TO\\s+(?:"
+                                                                + OBJECT_NAME
+                                                                + "\\.){0,1}"
+                                                                + OBJECT_NAME
+                                                                + "(?:\\s*,\\s*(.*))?";
+
+    private Pattern                     renameListPtrn  = Pattern
+                                                                .compile(
+                                                                        renamimgList,
                                                                         Pattern.CASE_INSENSITIVE);
 
     // CREATE [ONLINE|OFFLINE] [UNIQUE|FULLTEXT|SPATIAL] INDEX index_name
@@ -566,8 +586,27 @@ public class MySQLOperationMatcher implements SqlOperationMatcher
             m = rename.matcher(statement);
             if (m.find())
             {
-                return new SqlOperation(SqlOperation.TABLE,
+                SqlOperation operation = new SqlOperation(SqlOperation.TABLE,
                         SqlOperation.RENAME, m.group(1), m.group(2));
+
+                operation.addDatabaseObject(m.group(3), m.group(4));
+                if (m.group(5) != null)
+                {
+                    Matcher matcher = renameListPtrn.matcher(m.group(5));
+                    while (matcher.matches())
+                    {
+                        operation.addDatabaseObject(matcher.group(1),
+                                matcher.group(2));
+                        operation.addDatabaseObject(matcher.group(3),
+                                matcher.group(4));
+                        if (matcher.group(5) != null)
+                            matcher.reset(matcher.group(5));
+                        else
+                            break;
+                    }
+
+                }
+                return operation;
             }
         }
 

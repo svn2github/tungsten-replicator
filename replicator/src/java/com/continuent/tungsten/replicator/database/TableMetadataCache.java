@@ -67,7 +67,7 @@ public class TableMetadataCache implements CacheResourceManager<Table>
      */
     public void store(Table metadata)
     {
-        String key = generateKey(metadata.getSchema(), metadata.getName()); 
+        String key = generateKey(metadata.getSchema(), metadata.getName());
         cache.put(key, metadata);
     }
 
@@ -130,6 +130,21 @@ public class TableMetadataCache implements CacheResourceManager<Table>
         {
             return invalidateTable(sqlOperation.getSchema(), defaultSchema,
                     sqlOperation.getName());
+        }
+        else if (sqlOperation.getOperation() == SqlOperation.RENAME)
+        {
+            int count = invalidateTable(sqlOperation.getSchema(),
+                    defaultSchema, sqlOperation.getName());
+            if (sqlOperation.hasMoreDatabaseObjects())
+            {
+                for (SqlObject sqlObject : sqlOperation
+                        .getMoreDatabaseObjects())
+                {
+                    count += invalidateTable(sqlObject.getSchema(),
+                            defaultSchema, sqlObject.getName());
+                }
+            }
+            return count;
         }
         return 0;
     }

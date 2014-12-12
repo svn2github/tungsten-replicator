@@ -22,6 +22,9 @@
 
 package com.continuent.tungsten.replicator.database;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * Summarizes an operation on a named SQL object.
  * 
@@ -31,46 +34,50 @@ package com.continuent.tungsten.replicator.database;
 public class SqlOperation
 {
     // Unrecognized object or operation.
-    public static int UNRECOGNIZED = 0;
+    public static int UNRECOGNIZED        = 0;
 
     // Object types.
-    public static int SCHEMA       = 1;
-    public static int TABLE        = 2;
-    public static int SESSION      = 3;
-    public static int PROCEDURE    = 4;
-    public static int FUNCTION     = 5;
-    public static int TRANSACTION  = 6;
-    public static int BLOCK        = 7;
-    public static int VIEW         = 8;
-    public static int INDEX        = 9;
-    public static int DBMS         = 10;
+    public static int SCHEMA              = 1;
+    public static int TABLE               = 2;
+    public static int SESSION             = 3;
+    public static int PROCEDURE           = 4;
+    public static int FUNCTION            = 5;
+    public static int TRANSACTION         = 6;
+    public static int BLOCK               = 7;
+    public static int VIEW                = 8;
+    public static int INDEX               = 9;
+    public static int DBMS                = 10;
+    public static int TRIGGER             = 11;
 
     // Operation types.
-    public static int CREATE       = 1;
-    public static int DROP         = 2;
-    public static int INSERT       = 3;
-    public static int UPDATE       = 4;
-    public static int DELETE       = 5;
-    public static int REPLACE      = 6;
-    public static int TRUNCATE     = 7;
-    public static int LOAD_DATA    = 8;
-    public static int SET          = 9;
-    public static int BEGIN        = 10;
-    public static int COMMIT       = 11;
-    public static int BEGIN_END    = 12;
-    public static int SELECT       = 13;
-    public static int ALTER        = 14;
-    public static int ROLLBACK     = 15;
-    public static int RENAME       = 16;
+    public static int CREATE              = 1;
+    public static int DROP                = 2;
+    public static int INSERT              = 3;
+    public static int UPDATE              = 4;
+    public static int DELETE              = 5;
+    public static int REPLACE             = 6;
+    public static int TRUNCATE            = 7;
+    public static int LOAD_DATA           = 8;
+    public static int SET                 = 9;
+    public static int BEGIN               = 10;
+    public static int COMMIT              = 11;
+    public static int BEGIN_END           = 12;
+    public static int SELECT              = 13;
+    public static int ALTER               = 14;
+    public static int ROLLBACK            = 15;
+    public static int RENAME              = 16;
 
     // Specialized operation types for MySQL.
-    public static int FLUSH_TABLES = 101;
+    public static int FLUSH_TABLES        = 101;
 
     int               objectType;
     int               operation;
     String            schema;
     String            name;
-    boolean           autoCommit   = true;
+
+    List<SqlObject>   moreDatabaseObjects = new LinkedList<SqlObject>();
+
+    boolean           autoCommit          = true;
     boolean           bidiUnsafe;
     private String    sqlCommand;
 
@@ -227,4 +234,18 @@ public class SqlOperation
         return name;
     }
 
+    public void addDatabaseObject(String schema, String table)
+    {
+        moreDatabaseObjects.add(new SqlObject(schema, table));
+    }
+
+    public List<SqlObject> getMoreDatabaseObjects()
+    {
+        return moreDatabaseObjects;
+    }
+
+    public boolean hasMoreDatabaseObjects()
+    {
+        return !moreDatabaseObjects.isEmpty();
+    }
 }
