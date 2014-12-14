@@ -538,15 +538,18 @@ public class QueryLogEvent extends LogEvent
                         }
                         break;
                     case MysqlBinlog.Q_MICROSECONDS :
+                    case MysqlBinlog.Q_MDB_MICROSECONDS :
                         /*
                          * 3 bytes unsigned int containing microseconds
                          */
                         microseconds = LittleEndianConversion
                                 .convert3BytesToInt(buffer, pos);
-                        logger.warn("Extracted MS =" + microseconds + " ("
-                                + hexdump(buffer, pos, 3) + ")");
+                        if (logger.isDebugEnabled())
+                            logger.debug("Extracted MS =" + microseconds + " ("
+                                    + hexdump(buffer, pos, 3) + ")");
                         pos += 3;
                         break;
+
                     default :
                         if (logger.isDebugEnabled())
                             logger.debug("QueryLogEvent has unknown status variable +"

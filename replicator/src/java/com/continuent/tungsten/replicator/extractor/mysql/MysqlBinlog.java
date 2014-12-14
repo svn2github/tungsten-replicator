@@ -269,6 +269,7 @@ public class MysqlBinlog
     public static final int                     Q_CHARSET_DATABASE_CODE             = 8;
     public static final int                     Q_UPDATED_DB_NAMES                  = 0x0c;
     public static final int                     Q_MICROSECONDS                      = 0x0d;
+    public static final int                     Q_MDB_MICROSECONDS                  = 0x80;
 
     // Intvar offsets.
     public static final int                     I_TYPE_OFFSET                       = 0;
