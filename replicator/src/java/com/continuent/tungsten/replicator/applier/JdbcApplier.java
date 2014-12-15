@@ -740,7 +740,8 @@ public class JdbcApplier implements RawApplier
                             // Save current microseconds value
                             currentMicroseconds = Long.valueOf(optionValue);
                             // Add microseconds to timestamp
-                            setTimestampQuery += "." + optionValue;
+                            setTimestampQuery += "."
+                                    + String.format("%06d", currentMicroseconds);
                             applyTS = true;
                         }
                     }
