@@ -31,6 +31,7 @@ import java.util.Vector;
 
 import javax.management.MBeanOperationInfo;
 
+import com.continuent.tungsten.common.utils.CLLogLevel;
 import com.continuent.tungsten.common.utils.CLUtils;
 import com.continuent.tungsten.common.utils.ReflectUtils;
 
@@ -161,7 +162,7 @@ public class DynamicMBeanOperation implements Serializable
             {
                 throw new Exception(
                         String.format(
-                                "No parameters passed ivalidateAndGetParamsn but %d were required",
+                                "No parameters passed  to validateAndGetNamedParams but %d were required",
                                 params.size()));
             }
         }
@@ -193,6 +194,13 @@ public class DynamicMBeanOperation implements Serializable
             // match.
             if (paramValue != null)
             {
+                CLUtils.println(
+                        String.format(
+                                "Checking datatype for param %s: value type=%s, param type=%s",
+                                paramName, paramValue.getClass()
+                                        .getSimpleName(), mbeanParam.getType()
+                                        .getSimpleName()), CLLogLevel.debug);
+
                 if (paramValue.getClass() != mbeanParam.getType())
                 {
                     try
@@ -202,6 +210,11 @@ public class DynamicMBeanOperation implements Serializable
                         // exception.
                         if (mbeanParam.getType().isPrimitive())
                         {
+                            CLUtils.println(
+                                    String.format(
+                                            "Testing for castability of param %s value %s to String",
+                                            paramName, paramValue),
+                                    CLLogLevel.debug);
                             Class<?> wrapperClass = ReflectUtils
                                     .primitiveToWrapper(mbeanParam.getType());
                             paramValue = wrapperClass.getConstructor(
@@ -210,22 +223,20 @@ public class DynamicMBeanOperation implements Serializable
                     }
                     catch (Exception e)
                     {
+                        if (CLUtils.getLogLevel().ordinal() >= CLLogLevel.debug
+                                .ordinal())
+                        {
+                            CLUtils.println(String
+                                    .format("EXCEPTION: Validating params for operation %s\n%s",
+                                            getUsage(), e.toString()));
+                            e.printStackTrace();
+                        }
                         // Ignore any exception as this is a usability
                         // increasing step. We pass the argument as is in case
                         // of exception.
                     }
                 }
             }
-
-            // if (!(paramValue.getClass() instanceof mbeanParam.getType()))
-            // {
-            // throw new Exception(
-            // String
-            // .format(
-            // "Param %s has type %s but must be of type %s. Usage: %s",
-            // paramValue.getClass().getName(),
-            // mbeanParam.getType().getName(), usage()));
-            // }
 
             mbeanParams[mbeanParam.getOrder()] = paramValue;
             copyParams.remove(paramName);
@@ -236,8 +247,10 @@ public class DynamicMBeanOperation implements Serializable
         {
             throw new Exception(
                     String.format(
-                            "Parameters passed in were missing required parameters. Usage: %s",
-                            defaultUsage()));
+                            "Parameters passed in were missing required parameters. Usage: %s\nMissing params:\n%s",
+                            defaultUsage(), CLUtils
+                                    .iterableToCommaSeparatedList(copyParams
+                                            .keySet())));
         }
 
         return mbeanParams;
