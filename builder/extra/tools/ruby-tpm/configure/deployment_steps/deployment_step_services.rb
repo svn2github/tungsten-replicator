@@ -94,7 +94,19 @@ module ConfigureDeploymentStepServices
           if get_additional_property(RECONFIGURE_CONNECTORS_ALLOWED) == true
             # We are updating the existing directory so `connector reconfigure` can be used
             info("Tell the connector to update its configuration")
-            info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector reconfigure"))
+            begin
+              Timeout.timeout(10) {
+                info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector reconfigure"))
+              }
+            rescue Timeout::Error
+              # The reconfigure command took too long so we must stop and start the connector
+              begin
+                info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector graceful-stop 30"))
+              ensure
+                sleep(1)
+                info(cmd_result("#{@config.getProperty(CURRENT_RELEASE_DIRECTORY)}/tungsten-connector/bin/connector start"))
+              end
+            end
           else
             # Stop the connector and start it again so that the full configuration, including ports, are reloaded
             begin

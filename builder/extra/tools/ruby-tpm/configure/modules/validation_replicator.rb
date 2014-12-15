@@ -258,6 +258,43 @@ class THLStorageCheck < ConfigureValidationCheck
   end
 end
 
+class THLSchemaChangeCheck < ConfigureValidationCheck
+  include ReplicationServiceValidationCheck
+  
+  def set_vars
+    @title = "THL schema change check"
+    self.extend(TungstenUpdateCheck)
+  end
+  
+  def validate
+    schema_key = get_member_key(REPL_SVC_SCHEMA).join('.')
+    begin
+      raw = cmd_result(@config.getProperty(CURRENT_RELEASE_DIRECTORY) + "/tools/tpm query values #{HOST_ENABLE_REPLICATOR} #{schema_key}")
+    rescue CommandError => ce
+      return
+    end
+    
+    begin
+      result = JSON.parse(raw)
+      if result[HOST_ENABLE_REPLICATOR] == "true"
+        if result[schema_key] != @config.getProperty(schema_key)
+          begin
+            get_applier_datasource.check_thl_schema(@config.getProperty(get_member_key(REPL_SVC_SCHEMA)))
+          rescue => e
+            error(e.message)
+          end
+        end
+      end
+    rescue JSON::ParserError
+      return
+    end
+  end
+  
+  def enabled?
+    super() && (get_topology().is_a?(ClusterTopology) == true)
+  end
+end
+
 class RowBasedBinaryLoggingCheck < ConfigureValidationCheck
   include ReplicationServiceValidationCheck
 
