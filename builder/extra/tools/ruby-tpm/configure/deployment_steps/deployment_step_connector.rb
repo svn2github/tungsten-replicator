@@ -35,7 +35,6 @@ module ConfigureDeploymentStepConnector
     write_evaluator("readonly")
     write_evaluator("readwrite")
     
-    add_service("tungsten-connector/bin/connector")
     add_log_file("tungsten-connector/log/connector.log")
     set_run_as_user("tungsten-connector/bin/connector")
     transform_host_template("tungsten-connector/conf/wrapper.conf",
@@ -55,6 +54,7 @@ module ConfigureDeploymentStepConnector
     elsif @config.getProperty(ENABLE_CONNECTOR_BRIDGE_MODE) == "false"
       host_transformer(user_map) {
         |t|
+        t.watch_file?(false)
         t.mode(0600)
         t.set_template("tungsten-connector/samples/conf/user.map.tpl")
       }

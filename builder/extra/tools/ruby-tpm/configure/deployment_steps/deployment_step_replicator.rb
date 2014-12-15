@@ -48,7 +48,6 @@ module ConfigureDeploymentStepReplicator
       @config.setProperty(DEPLOYMENT_DATASERVICE, nil)
     }
     
-    add_service("tungsten-replicator/bin/replicator")
     add_log_file("tungsten-replicator/log/trepsvc.log")
     add_log_file("tungsten-replicator/log/xtrabackup.log")
     add_log_file("tungsten-replicator/log/mysqldump.log")

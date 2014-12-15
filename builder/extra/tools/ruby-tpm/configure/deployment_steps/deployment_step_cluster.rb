@@ -420,6 +420,20 @@ EOF
         end
       }
     end
+    
+    if is_replicator?()
+      add_service("tungsten-replicator/bin/replicator")
+    end
+    if is_manager?()
+      add_service("tungsten-manager/bin/manager")
+    end
+    if is_connector?()
+      add_service("tungsten-connector/bin/connector")
+    end
+    write_deployall()
+    write_undeployall()
+    write_startall()
+    write_stopall()
   end
   
   def write_dataservices_properties

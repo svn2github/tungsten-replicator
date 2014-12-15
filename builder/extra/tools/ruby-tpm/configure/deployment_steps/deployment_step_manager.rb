@@ -54,7 +54,6 @@ module ConfigureDeploymentStepManager
       FileUtils.cp("#{get_deployment_basedir()}/tungsten-manager/rules-ext/Instrumentation.drl", "#{get_deployment_basedir()}/tungsten-manager/rules/")
     end
     
-    add_service("tungsten-manager/bin/manager")
     add_log_file("tungsten-manager/log/tmsvc.log")
     set_run_as_user("tungsten-manager/bin/manager")
     transform_host_template("tungsten-manager/conf/wrapper.conf",
