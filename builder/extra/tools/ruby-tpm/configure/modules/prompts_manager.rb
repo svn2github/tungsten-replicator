@@ -54,6 +54,7 @@ MGR_REPL_DBPORT = "mgr_repl_port"
 MGR_REPL_SCHEMA = "mgr_repl_schema"
 MGR_REPL_RMI_PORT = "mgr_repl_rmi_port"
 MGR_REPL_JDBC_DRIVER = "mgr_repl_jdbc_driver"
+MGR_PING_METHOD = "mgr_ping_method"
 
 class Managers < GroupConfigurePrompt
   def initialize
@@ -734,6 +735,60 @@ class ManagerAPIAddress < ConfigurePrompt
   end
 end
 
+class ManagerPingMethod < ConfigurePrompt
+  include ManagerPrompt
+  
+  def initialize
+    validator = PropertyValidator.new("^echo|ping$", 
+      "Value must be echo or ping")
+    super(MGR_PING_METHOD, "Mechanism to use when identifying the liveness of other datasources (ping, echo)", validator)
+  end
+  
+  def load_default_value
+    successful_ping = []
+    successful_echo = []
+    
+    # Generate a list of nodes that the manager may attempt to ping
+    hosts = @config.getProperty(get_dataservice_key(DATASERVICE_MEMBERS)).split(",")
+    if @config.getProperty(get_dataservice_key(ENABLE_ACTIVE_WITNESSES)) == "true"
+      hosts = hosts + @config.getProperty(get_dataservice_key(DATASERVICE_WITNESSES)).split(",")
+    end
+    hosts = hosts.uniq()
+    
+    tping = "#{Configurator.instance.get_base_path()}/cluster-home/bin/tping"
+    hosts.each{
+      |h|
+      begin
+        Timeout.timeout(2) {
+          ping_result = cmd_result("ping -c1 #{h} 2>/dev/null >/dev/null ; echo $?", true)
+          if ping_result.to_i == 0
+            successful_ping << h
+          end
+        }
+      rescue Timeout::Error
+      end
+      
+      begin
+        Timeout.timeout(2) {
+          echo_result = cmd_result("#{tping} #{h} 7 2000 2>/dev/null >/dev/null ; echo $?", true)
+          if echo_result.to_i == 0
+            successful_echo << h
+          end
+        }
+      rescue Timeout::Error
+      end
+    }
+    
+    if successful_ping.size() == hosts.size()
+      @default = "ping"
+    elsif successful_echo.size() == hosts.size()
+      @default = "echo"
+    else
+      raise "Unable to identify an available manager ping method. An ICMP Ping works with #{successful_ping.size()} hosts and TCP Echo works with #{successful_echo.size()} hosts."
+    end
+  end
+end
+
 class ManagerValidateWitness < ConfigurePrompt
   include ManagerPrompt
   include HiddenValueModule
@@ -752,7 +807,7 @@ class ManagerIsWitness < ConfigurePrompt
     super(MGR_IS_WITNESS, "Manager is an active witness", PV_BOOLEAN, "false")
   end
   
-  def get_default_value
+  def load_default_value
     if @config.getProperty(get_dataservice_key(ENABLE_ACTIVE_WITNESSES)) == "true"
       if @config.getPropertyOr(get_dataservice_key(DATASERVICE_WITNESSES)).include_alias?(get_host_alias())
         @default = "true"

@@ -1315,6 +1315,31 @@ class GlobalHostAddressesCheck < ConfigureValidationCheck
   end
 end
 
+class GlobalMatchingPingMethodCheck < ConfigureValidationCheck
+  include PostValidationCheck
+  
+  def set_vars
+    @title = "Matching manager ping method check"
+  end
+  
+  def validate
+    ping_methods = []
+    
+    Configurator.instance.command.get_deployment_configurations().each {
+      |cfg|
+      if cfg.getProperty(HOST_ENABLE_MANAGER) == "true"
+        ping_methods << cfg.getProperty(MGR_PING_METHOD)
+      end
+    }
+    
+    ping_methods.uniq!()
+    
+    if ping_methods.size() > 1
+      error("There are multiple ping methods (#{ping_methods.join(',')}) being used. Specify a ping method with the --mgr-ping-method option.")
+    end
+  end
+end
+
 class ConflictingReplicationServiceTHLPortsCheck < ConfigureValidationCheck
   include ClusterHostCheck
   include ReplicatorEnabledCheck

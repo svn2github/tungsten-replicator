@@ -299,3 +299,59 @@ class ManagerHeapThresholdCheck < ConfigureValidationCheck
     end
   end
 end
+
+class ManagerPingMethodCheck < ConfigureValidationCheck
+  include ManagerCheck
+  
+  def set_vars
+    @title = "Manager ping method check"
+  end
+  
+  def validate
+    method = @config.getProperty(get_member_key(MGR_PING_METHOD))
+    # Generate a list of nodes that the manager may attempt to ping
+    hosts = @config.getProperty(get_dataservice_key(DATASERVICE_MEMBERS)).split(",")
+    if @config.getProperty(get_dataservice_key(ENABLE_ACTIVE_WITNESSES)) == "true"
+      hosts = hosts + @config.getProperty(get_dataservice_key(DATASERVICE_WITNESSES)).split(",")
+    end
+    hosts = hosts.uniq()
+    
+    case method
+    when "ping"
+      hosts.each{
+        |h|
+        begin
+          Timeout.timeout(2) {
+            ping_result = cmd_result("ping -c1 #{h} 2>/dev/null >/dev/null ; echo $?", true)
+            if ping_result.to_i != 0
+              error("Unable to contact #{h} via ICMP Ping")
+            end
+          }
+        rescue Timeout::Error
+          error("Unable to contact #{h} via ICMP Ping")
+        rescue
+          error("Unable to contact #{h} via ICMP Ping")
+        end
+      }
+    when "echo"
+      tping = "#{Configurator.instance.get_base_path()}/cluster-home/bin/tping"
+      hosts.each{
+        |h|
+        begin
+          Timeout.timeout(2) {
+            echo_result = cmd_result("#{tping} #{h} 7 2000 2>/dev/null >/dev/null ; echo $?", true)
+            if echo_result.to_i != 0
+              error("Unable to contact #{h} via TCP Echo")
+            end
+          }
+        rescue Timeout::Error
+          error("Unable to contact #{h} via TCP Echo")
+        rescue
+          error("Unable to contact #{h} via TCP Echo")
+        end
+      }
+    else
+      error("The '#{method}' ping method is not supported")
+    end
+  end
+end
