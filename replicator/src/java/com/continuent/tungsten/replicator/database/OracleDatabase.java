@@ -108,26 +108,16 @@ public class OracleDatabase extends AbstractDatabase
     }
 
     /**
-     * In Oracle, to support timestamp with local time zone replication we need
-     * to set the session level time zone to be the same as the database time
-     * zone.
+     * Forcing Oracle session time zone to GMT, as per the "new" way of handling
+     * time zones.
      */
     @Override
     public synchronized void connect() throws SQLException
     {
         super.connect();
-        ResultSet res = null;
-        Statement statement = createStatement();
         String timeZone = "00:00";
         try
         {
-            res = statement.executeQuery("select dbtimezone from dual");
-
-            if (res.next())
-            {
-                // Get consistency check parameters:
-                timeZone = res.getString("dbtimezone");
-            }
             String SQL = "alter session set TIME_ZONE='" + timeZone + "'";
             if (logger.isDebugEnabled())
             {
