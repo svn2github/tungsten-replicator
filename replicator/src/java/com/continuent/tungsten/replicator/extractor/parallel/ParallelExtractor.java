@@ -38,6 +38,7 @@ import com.continuent.tungsten.replicator.datasource.UniversalDataSource;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.extractor.RawExtractor;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
@@ -293,6 +294,8 @@ public class ParallelExtractor implements RawExtractor
             }
         }
 
+        // Event extraction is now time zone-aware.
+        event.addMetadataOption(ReplOptionParams.TIME_ZONE_AWARE, "true");
         return event;
     }
 
