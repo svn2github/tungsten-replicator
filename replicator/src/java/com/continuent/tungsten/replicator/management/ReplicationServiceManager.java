@@ -258,7 +258,6 @@ public class ReplicationServiceManager
     public static void main(String argv[])
     {
         ManifestParser.logReleaseWithBuildNumber(logger);
-        logger.info("Using default timezone : " + TimeZone.getDefault());
         logger.info("Starting replication service manager");
 
         boolean forceOffline = false;
