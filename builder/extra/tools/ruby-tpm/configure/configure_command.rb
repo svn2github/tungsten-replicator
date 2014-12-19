@@ -578,8 +578,10 @@ module ConfigureCommand
       config_objs.each_index {
         |idx|
       
+        Configurator.instance.debug("Call #{klass}:#{method} for config #{idx} on #{config_objs[idx].getProperty(HOST)}")
         threads << Thread.new(idx, config_objs[idx]) {
-          |idx, cfg|
+          |cfgidx, cfg|
+          Configurator.instance.debug("[INSIDE THREAD] Call #{klass}:#{method} for config #{cfgidx} on #{cfg.getProperty(HOST)}")
           h = klass.new()
           h.send(method.to_sym(), [cfg])
           
