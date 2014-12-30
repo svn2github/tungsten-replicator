@@ -523,7 +523,10 @@ public class QueryLogEvent extends LogEvent
                         int count = LittleEndianConversion.convert1ByteToInt(
                                 buffer, pos);
                         pos++;
-                        for (int i = 0; i < count; i++)
+                        // CONT-179 : handling special case where database count
+                        // is 0xFE meaning there is no data about updated
+                        // database in the binlog event
+                        for (int i = 0; i < count && count != 0xFE; i++)
                         {
                             StringBuffer buf = new StringBuffer();
                             while (buffer[pos] != '\0')
