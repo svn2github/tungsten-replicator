@@ -7,8 +7,8 @@ replicator.filter.pkey.dataSource=global
 
 # Set to true in order to add primary keys to INSERT operations.  This is
 # required for batch loading. 
-replicator.filter.pkey.addPkeyToInserts=@{ENABLE_BATCH_MASTER}
+replicator.filter.pkey.addPkeyToInserts=@{ENABLE_HETEROGENOUS_MASTER}
 
 # Set to true in order to add full column metadata to DELETEs.  This is
 # likewise required for batch loading. 
-replicator.filter.pkey.addColumnsToDeletes=@{ENABLE_BATCH_MASTER}
+replicator.filter.pkey.addColumnsToDeletes=@{ENABLE_HETEROGENOUS_MASTER}

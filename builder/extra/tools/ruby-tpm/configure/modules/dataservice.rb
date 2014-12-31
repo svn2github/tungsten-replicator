@@ -1353,11 +1353,7 @@ class ReplicationServiceRemoteFilters < ConfigurePrompt
   end
  
   def get_template_value
-    if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SLAVE)) == "true"
-      "fixmysqlstrings"
-    else
-      ""
-    end
+    (get_value().to_s().split(",") + get_applier_datasource().get_remote_filters()).join(",")
   end
 
   def required?
@@ -1493,8 +1489,6 @@ class ReplicationBatchMaster < ConfigurePrompt
   
   def load_default_value
     if @config.getProperty(get_member_key(ENABLE_BATCH_SERVICE)) == "true"
-      @default = "true"
-    elsif @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER)) == "true"
       @default = "true"
     else
       super()

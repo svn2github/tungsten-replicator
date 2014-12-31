@@ -74,6 +74,15 @@ class ConfigureDatabasePlatform
 	  []
 	end
 	
+	def get_remote_filters()
+	  filters = []
+	  unless applier_supports_bytes_for_strings?()
+      filters << "fixmysqlstrings"
+	  end
+	  
+	  return filters
+	end
+	
 	def get_applier_filters()
 	  filters = []
 	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_SLAVE]) == "false"
@@ -205,6 +214,10 @@ class ConfigureDatabasePlatform
     end
   end
   
+  def get_topology
+    Topology.build(@config.getProperty(@prefix + [DEPLOYMENT_DATASERVICE]), @config)
+  end
+  
   def get_batch_load_template
     "LOAD DATA INFILE '%%FILE%%' REPLACE INTO TABLE %%TABLE%% CHARACTER SET utf8 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
   end
@@ -238,6 +251,10 @@ class ConfigureDatabasePlatform
   end
   
   def applier_supports_reset?
+    false
+  end
+  
+  def applier_supports_bytes_for_strings?
     false
   end
   

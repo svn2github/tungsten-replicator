@@ -448,6 +448,10 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def applier_supports_reset?
     true
   end
+  
+  def applier_supports_bytes_for_strings?
+    true
+  end
 end
 
 #
@@ -901,10 +905,16 @@ class MySQLUseBytesForStrings < ConfigurePrompt
   end
   
   def load_default_value
-    if get_extractor_datasource().class != get_applier_datasource().class
-      @default = "false"
+    if get_topology().class == ClusterTopology
+      @default  = "true"
     else
-      super()
+      if get_extractor_datasource().class != get_applier_datasource().class
+        @default = "false"
+      elsif @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER)) == "true"
+        @default = "false"
+      else
+        super()
+      end
     end
   end
 end
