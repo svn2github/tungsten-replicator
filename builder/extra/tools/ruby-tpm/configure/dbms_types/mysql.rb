@@ -903,8 +903,6 @@ class MySQLUseBytesForStrings < ConfigurePrompt
   def load_default_value
     if get_extractor_datasource().class != get_applier_datasource().class
       @default = "false"
-    elsif @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER)) == "true"
-      @default = "false"
     else
       super()
     end

@@ -7,15 +7,11 @@
  *
  * This filter fixes MySQL strings by converting byte values to either a 
  * normal Java String or a Hex'ed string if the source type is VARBINARY
- * or BINARY.  For this to work you must: 
- *
- *   1.) Run colnames filter before it in the filter chain. This filter 
- *       depends on the type description being filled in.  
+ * or BINARY.  
  * 
- *   2.) Run before pkey.  The filter will break if pkey removes key columns.
- * 
- *   3.) Set the MySQL extractor to use bytes for strings, e.g.: 
- *       replicator.extractor.dbms.usingBytesForString=true
+ * IMPORTANT: For this script to work you must run the colnames filter 
+ * to fill in the type dsecription.  It can run anywhere upstream as the 
+ * value is preserved in the log. 
  *
  * @author <a href="mailto:eric.stone@continuent.com">Eric M. Stone</a>
  * @author <a href="mailto:robert.hodges@continuent.com">Robert M. Hodges</a>
@@ -102,7 +98,12 @@ function fixUpStrings(schema, table, columns, columnValues)
       logger.debug("Found a VARCHAR column that may need sorting: column=" + colName + ' table=' + schema + '.' + table);
       // Iterate through the rows.
       for (row = 0; row < columnValues.size(); row++) {
+        // Ensure values are actually there--for insert keys they may not be. 
         values = columnValues.get(row);
+        if (row >= values.size())
+          break;
+
+        // Fetch the values. 
         value = values.get(c);
         raw_v = value.getValue();
         if (raw_v == null || colDesc == null) {

@@ -1344,6 +1344,27 @@ class ReplicationServiceApplierFilters < ConfigurePrompt
   end
 end
 
+class ReplicationServiceRemoteFilters < ConfigurePrompt
+  include ReplicationServicePrompt
+  include AdvancedPromptModule
+  
+  def initialize
+    super(REPL_SVC_REMOTE_FILTERS, "Replication service remote download filters")
+  end
+ 
+  def get_template_value
+    if @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_SLAVE)) == "true"
+      "fixmysqlstrings"
+    else
+      ""
+    end
+  end
+
+  def required?
+    false
+  end
+end
+
 class ReplicationServiceSchema < ConfigurePrompt
   include ReplicationServicePrompt
   include ConstantValueModule
@@ -1472,6 +1493,8 @@ class ReplicationBatchMaster < ConfigurePrompt
   
   def load_default_value
     if @config.getProperty(get_member_key(ENABLE_BATCH_SERVICE)) == "true"
+      @default = "true"
+    elsif @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER)) == "true"
       @default = "true"
     else
       super()

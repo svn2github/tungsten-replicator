@@ -377,7 +377,7 @@
     </target>
 
     <target name="protos" description="--> [re-]generate protobuf classes for events">
-        <echo message="protoc 2.3.0 must be in path"/>
+        <echo message="protoc 2.6.1 must be in path"/>
         <exec executable="protoc">
           <arg value="--version"/>
         </exec>

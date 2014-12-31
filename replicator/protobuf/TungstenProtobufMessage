@@ -26,24 +26,25 @@ message ProtobufOneRowChange {
   }
 
   message ProtobufColumnSpec {
-  required int32  index = 1;
-  optional string  name = 2;
-  required int32  type = 3;
-  required bool  signed = 4;
-  required int32  length = 5;
-  required bool  notNull = 6;
+    required int32  index = 1;
+    optional string name = 2;
+    required int32  type = 3;
+    required bool   signed = 4;
+    required int32  length = 5;
+    required bool   notNull = 6;
+    optional string typeDescription = 7;
   }
 
   message ProtobufRowValue {
     message ProtobufColumnVal {
-    enum Type {INT=1; LONG=2; FLOAT=3; DOUBLE=4; STRING=5; TIMESTAMP=6; BIT=7; TIME=8; DATE=9; BLOB=10; NULL=11;DECIMAL=12; BINARYSTRING=13;}
-    required Type type = 1;
-    optional sint32 intValue = 2;
-    optional sint64 longValue = 3;
-    optional float floatValue = 4;
-    optional double doubleValue = 5;
-    optional string stringValue = 6;
-    optional bytes bytesValue = 7;
+      enum Type {INT=1; LONG=2; FLOAT=3; DOUBLE=4; STRING=5; TIMESTAMP=6; BIT=7; TIME=8; DATE=9; BLOB=10; NULL=11;DECIMAL=12; BINARYSTRING=13;}
+      required Type type = 1;
+      optional sint32 intValue = 2;
+      optional sint64 longValue = 3;
+      optional float floatValue = 4;
+      optional double doubleValue = 5;
+      optional string stringValue = 6;
+      optional bytes bytesValue = 7;
     }
   
     repeated ProtobufColumnVal columnValue = 1;
@@ -96,7 +97,7 @@ message ProtobufStatementData {
   optional string query = 3;
   repeated ProtobufEventOption options = 4;
   required int32 errorCode = 5;
-  optional bytes queryBytes = 6;
+  optional bytes queryAsBytes = 6;
 }
 
 message ProtobufEventOption {

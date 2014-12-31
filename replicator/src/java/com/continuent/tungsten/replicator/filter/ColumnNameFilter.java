@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Stephane Giron
- * Contributor(s): Linas Virbalas
+ * Contributor(s): Linas Virbalas, Robert Hodges
  */
 
 package com.continuent.tungsten.replicator.filter;
@@ -33,11 +33,11 @@ import org.apache.log4j.Logger;
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.database.Column;
 import com.continuent.tungsten.replicator.database.Database;
-import com.continuent.tungsten.replicator.database.DatabaseFactory;
 import com.continuent.tungsten.replicator.database.MySQLOperationMatcher;
 import com.continuent.tungsten.replicator.database.SqlOperation;
 import com.continuent.tungsten.replicator.database.SqlOperationMatcher;
 import com.continuent.tungsten.replicator.database.Table;
+import com.continuent.tungsten.replicator.datasource.SqlDataSource;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnSpec;
@@ -65,11 +65,12 @@ public class ColumnNameFilter implements Filter
     // updated only when a table is used for the first time by a row event.
     private Hashtable<String, Hashtable<String, Table>> metadataCache;
 
+    // Connection information.
+    private SqlDataSource                               dataSourceImpl;
     Database                                            conn                = null;
 
-    private String                                      user;
-    private String                                      url;
-    private String                                      password;
+    // Properties.
+    private String                                      dataSource;
     private boolean                                     addSignedFlag       = true;
     private boolean                                     addTypeDescriptor   = true;
     private boolean                                     ignoreMissingTables = true;
@@ -102,24 +103,16 @@ public class ColumnNameFilter implements Filter
         // Initialize cache for tables.
         metadataCache = new Hashtable<String, Hashtable<String, Table>>();
 
-        // Load defaults for connection
-        if (url == null)
-            url = context.getJdbcUrl(null);
-        if (user == null)
-            user = context.getJdbcUser();
-        if (password == null)
-            password = context.getJdbcPassword();
-
-        // Connect.
-        try
+        // Locate our data source that we use to pick up metadata and create
+        // connection.
+        logger.info("Connecting to data source");
+        dataSourceImpl = (SqlDataSource) context.getDataSource(dataSource);
+        if (dataSourceImpl == null)
         {
-            conn = DatabaseFactory.createDatabase(url, user, password);
-            conn.connect();
+            throw new ReplicatorException("Unable to locate data source: name="
+                    + dataSource);
         }
-        catch (SQLException e)
-        {
-            throw new ReplicatorException(e);
-        }
+        conn = dataSourceImpl.getConnection();
     }
 
     /**
@@ -136,7 +129,7 @@ public class ColumnNameFilter implements Filter
         }
         if (conn != null)
         {
-            conn.close();
+            dataSourceImpl.releaseConnection(conn);
             conn = null;
         }
     }
@@ -344,19 +337,10 @@ public class ColumnNameFilter implements Filter
         // We could retrieve primary keys at this point.
     }
 
-    public void setUser(String user)
+    /** Declares the data source name for this filter. */
+    public void setDataSource(String dataSource)
     {
-        this.user = user;
-    }
-
-    public void setUrl(String url)
-    {
-        this.url = url;
-    }
-
-    public void setPassword(String password)
-    {
-        this.password = password;
+        this.dataSource = dataSource;
     }
 
     /**

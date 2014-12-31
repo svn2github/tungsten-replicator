@@ -457,6 +457,11 @@ public class ProtobufSerializer implements Serializer
                     colSpecBuilder.setNotNull(columnSpec.isNotNull());
                     colSpecBuilder.setSigned(!columnSpec.isUnsigned());
                     colSpecBuilder.setType(columnSpec.getType());
+                    if (columnSpec.getTypeDescription() != null)
+                    {
+                        colSpecBuilder.setTypeDescription(columnSpec
+                                .getTypeDescription());
+                    }
                     oneRowBuilder.addColumnSpec(colSpecBuilder);
                 }
 
@@ -477,6 +482,11 @@ public class ProtobufSerializer implements Serializer
                     colSpecBuilder.setNotNull(columnSpec.isNotNull());
                     colSpecBuilder.setSigned(!columnSpec.isUnsigned());
                     colSpecBuilder.setType(columnSpec.getType());
+                    if (columnSpec.getTypeDescription() != null)
+                    {
+                        colSpecBuilder.setTypeDescription(columnSpec
+                                .getTypeDescription());
+                    }
                     oneRowBuilder.addKeySpec(colSpecBuilder);
                 }
 
@@ -870,6 +880,7 @@ public class ProtobufSerializer implements Serializer
                 c.setNotNull(columnSpec.getNotNull());
                 c.setSigned(columnSpec.getSigned());
                 c.setType(columnSpec.getType());
+                c.setTypeDescription(columnSpec.getTypeDescription());
                 rowChange.getKeySpec().add(c);
             }
 
@@ -883,6 +894,7 @@ public class ProtobufSerializer implements Serializer
                 c.setNotNull(columnSpec.getNotNull());
                 c.setSigned(columnSpec.getSigned());
                 c.setType(columnSpec.getType());
+                c.setTypeDescription(columnSpec.getTypeDescription());
                 rowChange.getColumnSpec().add(c);
             }
 
@@ -1098,7 +1110,7 @@ public class ProtobufSerializer implements Serializer
                         : null));
         if (statement.hasQuery())
             statementData.setQuery(statement.getQuery());
-        else if (statement.hasQueryBytes())
+        else if (statement.hasQueryAsBytes())
             statementData.setQuery(statement.getQueryAsBytes().toByteArray());
         else
             logger.warn("Logged statement did not contain any query");

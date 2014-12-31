@@ -2,9 +2,8 @@
 # reduce the number of columns used in comparisons for updates and deletes. 
 replicator.filter.pkey=com.continuent.tungsten.replicator.filter.PrimaryKeyFilter
 
-# If left empty, credentials are taken from the JDBC connection.
-replicator.filter.pkey.user=
-replicator.filter.pkey.password=
+# Use the default data source. 
+replicator.filter.pkey.dataSource=global
 
 # Set to true in order to add primary keys to INSERT operations.  This is
 # required for batch loading. 
