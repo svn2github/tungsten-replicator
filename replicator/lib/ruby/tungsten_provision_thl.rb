@@ -20,6 +20,8 @@ class TungstenReplicatorProvisionTHL
       File.unlink(schema.path())
     when "cleanup"
       cleanup_sandbox()
+    when "status"
+      sandbox_status()
     end
   end
   
@@ -77,6 +79,14 @@ class TungstenReplicatorProvisionTHL
       raise "There were issues configuring the sandbox Tungsten Replicator"
     end
     
+    # Create a TungstenInstall object for the sandbox replicator
+    sandbox = TungstenInstall.get(opt(:replicator_dir) + "/tungsten")
+    
+    if opt(:provision_from_slave) == true
+      slave_uri = sandbox.trepctl_value(opt(:service), "masterListenUri")
+      TU.notice("Run `trepctl -service #{opt(:service)} setrole -role slave -uri #{slave_uri}` to point at the sandbox replicator")
+    end
+    
     sandbox_my_cnf = Tempfile.new("cnf")
     sandbox_my_cnf.puts("!include #{opt(:my_cnf)}")
     sandbox_my_cnf.puts('[client]')
@@ -117,23 +127,64 @@ class TungstenReplicatorProvisionTHL
       raise "Unable to extract and apply the MySQL data for provisioning"
     end
     
-    # Parse the CHANGE MASTER information for the file number and position
-    change_master_line = TU.cmd_result("cat #{opt(:change_master_file)}")
-    if change_master_line != nil
-      binlog_file = nil
-      binlog_position = nil
-      
-      m = change_master_line.match(/MASTER_LOG_FILE='([a-zA-Z0-9\.\-\_]*)', MASTER_LOG_POS=([0-9]*)/)
-      if m
-        binlog_file = m[1]
-        binlog_position = m[2]
-      else
-        raise "Unable to parse CHANGE MASTER data"
-      end
-      
-      TU.notice("The sandbox has been provisioned to #{binlog_file}:#{binlog_position} on #{opt(:extraction_host)}:#{opt(:extraction_port)}")
+    if opt(:provision_from_slave) == true
+      TU.notice("The command(s) below should be used to set replication position on")
+      TU.notice("slaves after they have caught up with the sandbox replicator. Only")
+      TU.notice("run commands associated with replication services running on the slave.")
+      TI.sql_result(@options[:service], "show schemas like 'tungsten_%';").each{
+        |row|
+        schema = row["Database (tungsten_%)"]
+        svc = schema[9, schema.length()]
+        sql = "SELECT * FROM #{schema}.trep_commit_seqno;"
+
+        begin
+          position = TI.sql_result(opt(:service), sql)
+        rescue CommandError => ce
+          next
+        end
+
+        if position.size() == 0
+          TU.notice("For #{svc}: `dsctl -service #{svc} reset`")
+        elsif position.size() == 1
+          TU.notice("For #{svc}: `#{get_dsctl_set_command(svc, position[0])}`")
+        else
+          TU.notice("Unable to set a consistent replication position for the #{svc} service. You may try the command below to set it to the lowest committed position.")
+          lowest_position = nil
+          position.each{
+            |pos|
+            if pos["seqno"] == "-1"
+              next
+            end
+            
+            if lowest_position == nil or lowest_position["seqno"] > pos["seqno"]
+              lowest_position = pos.dup()
+            end
+          }
+          
+          if lowest_position != nil
+            TU.notice("For #{svc}: `#{get_dsctl_set_command(svc, lowest_position)}`")
+          end
+        end
+      }
     else
-      raise "Unable to find CHANGE MASTER data"
+      # Parse the CHANGE MASTER information for the file number and position
+      change_master_line = TU.cmd_result("cat #{opt(:change_master_file)}")
+      if change_master_line != nil
+        binlog_file = nil
+        binlog_position = nil
+      
+        m = change_master_line.match(/MASTER_LOG_FILE='([a-zA-Z0-9\.\-\_]*)', MASTER_LOG_POS=([0-9]*)/)
+        if m
+          binlog_file = m[1]
+          binlog_position = m[2]
+        else
+          raise "Unable to parse CHANGE MASTER data"
+        end
+      
+        TU.notice("The sandbox has been provisioned to #{binlog_file}:#{binlog_position} on #{opt(:extraction_host)}:#{opt(:extraction_port)}")
+      else
+        raise "Unable to find CHANGE MASTER data"
+      end
     end
     
     old_trap = trap("INT") {
@@ -145,8 +196,6 @@ class TungstenReplicatorProvisionTHL
     sandbox_replicator_caught_up = false
     while (sandbox_replicator_caught_up == false && TungstenReplicatorProvisionTHL.interrupted?() == false)
       # Check that the sandbox replicator is still running
-      sandbox = TungstenInstall.get(opt(:replicator_dir) + "/tungsten")
-      
       unless sandbox.is_running?("replicator") == true
         raise "The sandbox replicator is no longer running. It may be possible to complete the provisioning process. Resolve the issue and let the replication service in #{opt(:replicator_dir)} catch up before running `#{script_name()} cleanup`."
       end
@@ -182,6 +231,13 @@ class TungstenReplicatorProvisionTHL
     # will remain for further inspection.
     if TungstenReplicatorProvisionTHL.interrupted?() == true
       TU.error("The #{script_name()} process was interrupted but the provisioning process may still complete. Check the replicator in #{opt(:replicator_dir)}/tungsten before running `#{script_name()} cleanup`.")
+    end
+    
+    if TU.is_valid?()
+      if opt(:provision_from_slave) == true
+        appliedLastSeqno = sandbox.trepctl_value(opt(:service), "appliedLastSeqno")
+        TU.notice("The final extracted THL event from the sandbox replicator is #{appliedLastSeqno}.")
+      end
     end
     
     trap("INT", old_trap);
@@ -233,13 +289,22 @@ class TungstenReplicatorProvisionTHL
     add_option(:sandbox_mysql_port, {
       :on => "--sandbox-mysql-port String",
       :help => "The listening port for the MySQL Sandbox",
+      :parse => method(:parse_integer_option),
       :default => "3307"
     })
     
     add_option(:sandbox_rmi_port, {
       :on => "--sandbox-rmi-port String",
       :help => "The listening port for the temporary Tungsten Replicator",
+      :parse => method(:parse_integer_option),
       :default => "10002"
+    })
+    
+    add_option(:sandbox_thl_port, {
+      :on => "--sandbox-thl-port String",
+      :help => "The THL listening port for the temporary Tungsten Replicator",
+      :parse => method(:parse_integer_option),
+      :required => false
     })
     
     add_option(:tungsten_replicator_package, {
@@ -271,6 +336,12 @@ class TungstenReplicatorProvisionTHL
       :default => false
     })
     
+    add_option(:provision_from_slave, {
+      :on => "--provision-from-slave String",
+      :parse => method(:parse_boolean_option),
+      :default => false
+    })
+    
     add_command(:provision, {
       :help => "Create THL entries",
       :default => true
@@ -278,6 +349,10 @@ class TungstenReplicatorProvisionTHL
     
     add_command(:cleanup, {
       :help => "Cleanup the sandbox environment from a previous run"
+    })
+    
+    add_command(:status, {
+      :help => "Show the current sandbox replicator status"
     })
     
     add_command(:generate_schema_file, {
@@ -302,6 +377,10 @@ class TungstenReplicatorProvisionTHL
     when "generate_schema_file"
       @option_definitions[:tungsten_replicator_package][:required] = false
       @option_definitions[:mysql_package][:required] = false
+    when "status"
+      @option_definitions[:tungsten_replicator_package][:required] = false
+      @option_definitions[:mysql_package][:required] = false
+      @option_definitions[:schemas][:required] = false
     end
     
     super()
@@ -321,8 +400,16 @@ class TungstenReplicatorProvisionTHL
       unless TI.is_running?("replicator")
         TU.error("The replicator must be running with the #{opt(:service)} service OFFLINE. Try running `#{TI.service_path("replicator")} start offline`.")
       else
-        unless ["master", "direct"].include?(TI.trepctl_value(opt(:service), "role"))
-          TU.error("The #{script_name()} script may only be run on a master replication service.")
+        unless opt(:provision_from_slave) == true
+          unless ["master", "direct"].include?(TI.trepctl_value(opt(:service), "role"))
+            TU.error("The #{script_name()} script may only be run on a master replication service.")
+          end
+        end
+      end
+      
+      if opt(:provision_from_slave) == true
+        if opt(:sandbox_thl_port) == nil
+          TU.error("The --sandbox-thl-port option is required when using --provision-from-slave")
         end
       end
     
@@ -441,6 +528,19 @@ class TungstenReplicatorProvisionTHL
       additional_properties << "--property=#{line}"
     }
     
+    if opt(:sandbox_thl_port) != nil
+      thl_listening_port = opt(:sandbox_thl_port)
+    else
+      # Use the same THL port so slaves can start applying while we provision
+      thl_listening_port = TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), 'repl_thl_port'))
+    end
+    
+    if opt(:provision_from_slave) == true
+      thl_directory = "#{opt(:replicator_dir)}/thl"
+    else
+      thl_directory = TI.setting(TI.setting_key(HOSTS, "repl_thl_directory"))
+    end
+    
     [
       "topology=master-slave",
       "home-directory=#{opt(:replicator_dir)}",
@@ -454,16 +554,14 @@ class TungstenReplicatorProvisionTHL
       "repl-java-mem-size=4096",
       "auto-recovery-max-attempts=5",    
       "start=true",
-      
-      # Use the same THL port so slaves can start applying while we provision
-      "--thl-port=#{TI.setting(TI.setting_key(REPL_SERVICES, opt(:service), 'repl_thl_port'))}",
+      "thl-port=#{thl_listening_port}",
 
       # Use the MySQL::Sandbox path for any necessary scripts
-      "--preferred-path=#{opt(:mysql_basedir)}/bin",
+      "preferred-path=#{opt(:mysql_basedir)}/bin",
 
       # Use the same THL directory so the existing replicator will use
       # the new THL entries
-      "thl-directory=#{TI.setting(TI.setting_key(HOSTS, "repl_thl_directory"))}",
+      "thl-directory=#{thl_directory}",
       "skip-validation-check=THLStorageCheck",
 
       # Use a unique source-id for each iteration so the extractor starts
@@ -484,7 +582,20 @@ class TungstenReplicatorProvisionTHL
   end
   
   def cleanup(code = 0)
+    cleanup = false
+    
+    # A succesful run includes a cleanup so the original replicator can
+    # come back ONLINE
     if code == 0 || opt(:cleanup_on_failure) == true
+      cleanup = true
+    end
+    
+    # Leave running for all attached slaves to finish the provisioning process
+    if opt(:provision_from_slave) == true
+      cleanup = false
+    end
+    
+    if cleanup == true
       cleanup_sandbox()
     else
       TU.notice("The sandbox services were left in place. Run `#{script_name()} cleanup` to remove them.")
@@ -508,12 +619,20 @@ class TungstenReplicatorProvisionTHL
     end
   end
   
+  def sandbox_status
+    TU.output(TU.cmd_result("#{opt(:replicator_dir)}/tungsten/tungsten-replicator/bin/trepctl status"))
+  end
+  
   def script_log_path
     if TI
       "#{TI.root()}/service_logs/provision_thl.log"
     else
       super()
     end
+  end
+  
+  def get_dsctl_set_command(svc, position)
+    "dsctl -service #{svc} set -seqno #{position["seqno"]} -epoch #{position["epoch_number"]} -event-id #{position["eventid"].split(";")[0]} -source-id #{position["source_id"]}"
   end
   
   def self.interrupted?(val = nil)
