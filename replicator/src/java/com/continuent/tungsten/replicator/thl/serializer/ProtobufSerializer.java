@@ -1056,7 +1056,7 @@ public class ProtobufSerializer implements Serializer
         if (data.getQueryAsBytes() == null)
             statementBuilder.setQuery(data.getQuery());
         else
-            statementBuilder.setQueryBytes(ByteString.copyFrom(data
+            statementBuilder.setQueryAsBytes(ByteString.copyFrom(data
                     .getQueryAsBytes()));
 
         statementBuilder.setErrorCode(data.getErrorCode());
