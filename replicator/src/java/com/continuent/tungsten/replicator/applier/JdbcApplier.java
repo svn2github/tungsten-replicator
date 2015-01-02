@@ -1022,7 +1022,11 @@ public class JdbcApplier implements RawApplier
                             columnValues.get(row), bindLoc, columns, false);
                 }
                 /* bind key values */
-                if (keyValues.size() > 0)
+                // Do not try to bind key values, which have been added to make
+                // heterogeneous cluster slave to work as part of Issue 1079,
+                // for INSERTs.
+                if (oneRowChange.getAction() != RowChangeData.ActionType.INSERT
+                        && keyValues.size() > 0)
                 {
                     bindLoc = bindColumnValues(prepStatement,
                             keyValues.get(row), bindLoc, key, true);
