@@ -905,12 +905,29 @@ end
 class THLStorageRetention < ConfigurePrompt
   include ReplicationServicePrompt
   include AdvancedPromptModule
-  
+
   def initialize
     super(REPL_THL_LOG_RETENTION, "How long do you want to keep THL files?", 
       PV_ANY, "7d")
   end
-  
+
+  def valid_replicator_interval?(value)
+    prefix = value.to_i()
+    suffix = value[-1, 1]
+    return false unless %w(d h m s).include? suffix
+    return false if prefix < 1 || prefix.to_s() + suffix != value
+    return true
+  end
+
+  def validate_value(value)
+    unless valid_replicator_interval?(value)
+      error("Valid values for thl-log-retention are an integer greater than 0, followed by one of 'd', 'h', 'm', 's' (days, hours, minutes, seconds). The value given was: '#{value}'")
+    end
+    if is_valid?()
+      super(value)
+    end
+  end
+
   def enabled?
     super() && @config.getProperty(get_member_key(REPL_LOG_TYPE)) == "disk"
   end
