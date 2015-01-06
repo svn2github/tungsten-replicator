@@ -381,6 +381,12 @@ public class ParallelExtractorThread extends Thread
                                         .getName());
                                 ev.addMetadataOption("nbBlocks",
                                         String.valueOf(chunk.getNbBlocks()));
+                                ev.addMetadataOption(
+                                        ReplOptionParams.STRINGS, "utf8");
+                                ev.addMetadataOption(
+                                        ReplOptionParams.DBMS_TYPE,
+                                        connection.getType().toString()
+                                                .toLowerCase());
                                 queue.put(ev);
                             }
                             catch (InterruptedException e)
