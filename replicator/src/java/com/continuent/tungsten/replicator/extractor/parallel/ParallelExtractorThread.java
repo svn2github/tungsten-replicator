@@ -50,6 +50,7 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.event.DBMSEmptyEvent;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 
 /**
  * @author <a href="mailto:stephane.giron@continuent.com">Stephane Giron</a>
@@ -343,6 +344,12 @@ public class ParallelExtractorThread extends Thread
                                             .getTable().getName());
                                     ev.addMetadataOption("nbBlocks",
                                             String.valueOf(chunk.getNbBlocks()));
+                                    ev.addMetadataOption(
+                                            ReplOptionParams.STRINGS, "utf8");
+                                    ev.addMetadataOption(
+                                            ReplOptionParams.DBMS_TYPE,
+                                            connection.getType().toString()
+                                                    .toLowerCase());
                                     queue.put(ev);
                                 }
                                 catch (InterruptedException e)

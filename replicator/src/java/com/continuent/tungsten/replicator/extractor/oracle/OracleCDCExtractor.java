@@ -47,6 +47,7 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
 import com.continuent.tungsten.replicator.event.DBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.extractor.RawExtractor;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
@@ -557,9 +558,23 @@ public class OracleCDCExtractor implements RawExtractor
                 false);
 
         if (data.size() > 0)
-            return new DBMSEvent(String.valueOf(maxSCN), data, sourceTStamp);
+        {
+            DBMSEvent event = new DBMSEvent(String.valueOf(maxSCN), data,
+                    sourceTStamp);
 
-        return null;
+            // Mark the event as coming from Oracle.
+            event.setMetaDataOption(ReplOptionParams.DBMS_TYPE, Database.ORACLE);
+
+            // Strings are converted to UTF8 rather than using bytes for this
+            // extractor.
+            event.setMetaDataOption(ReplOptionParams.STRINGS, "utf8");
+
+            return event;
+        }
+        else
+        {
+            return null;
+        }
     }
 
     /**

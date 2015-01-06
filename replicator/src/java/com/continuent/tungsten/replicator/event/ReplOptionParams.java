@@ -96,7 +96,8 @@ public class ReplOptionParams
 
     /**
      * Names the source DBMS type so that we can parse and otherwise process
-     * transactions properly when they contain features.
+     * transactions properly when they contain features specific to a particular
+     * DBMS.
      */
     public static String       DBMS_TYPE               = "dbms_type";
 
@@ -151,4 +152,20 @@ public class ReplOptionParams
      * zone on SQL changes and statements.
      */
     public static final String TIME_ZONE_AWARE         = "tz_aware";
+
+    /**
+     * If set, string values are stored as UTF8. If unset, string values are
+     * stored as bytes. String values includes statements as well as row
+     * changes.
+     * <p/>
+     * Operations that extract or convert string values should observe the
+     * following semantics.
+     * <ul>
+     * <li>Convert all strings completely or not at all.</li>
+     * <li>Once strings are converted set 'strings=utf8' as an event option.</li>
+     * <li>Filters that convert strings after the fact should skip the
+     * conversion if strings=utf is set.</li>
+     * </ul>
+     */
+    public static final String STRINGS                 = "strings";
 }

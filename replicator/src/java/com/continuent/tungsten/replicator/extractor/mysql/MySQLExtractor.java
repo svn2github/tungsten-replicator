@@ -679,7 +679,7 @@ public class MySQLExtractor implements RawExtractor
                                             "auto_increment_offset",
                                             String.valueOf(event
                                                     .getAutoIncrementOffset())));
-                        
+
                         if (event.getMicroseconds() >= 0)
                             savedOptions.add(new ReplOption("##microseconds",
                                     String.valueOf(event.getMicroseconds())));
@@ -1289,8 +1289,17 @@ public class MySQLExtractor implements RawExtractor
 
         // Extract the next event.
         DBMSEvent event = extractEvent(binlogPosition);
+
+        // Mark the event as coming from MySQL.
         if (event != null)
             event.setMetaDataOption(ReplOptionParams.DBMS_TYPE, Database.MYSQL);
+
+        // If strings are converted to UTF8 rather than using bytes, mark
+        // settings accordingly.
+        if (!useBytesForStrings)
+            event.setMetaDataOption(ReplOptionParams.STRINGS, "utf8");
+
+        // Return the completed event.
         return event;
     }
 

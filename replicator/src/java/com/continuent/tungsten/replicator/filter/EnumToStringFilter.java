@@ -47,6 +47,7 @@ import com.continuent.tungsten.replicator.dbms.OneRowChange.ColumnVal;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
+import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
@@ -192,6 +193,13 @@ public class EnumToStringFilter implements Filter
     public ReplDBMSEvent filter(ReplDBMSEvent event)
             throws ReplicatorException, InterruptedException
     {
+        // This filter only works on MySQL data. Exit if we have an event from
+        // another DBMS type.
+        String dbms = event.getMetadataOption(ReplOptionParams.DBMS_TYPE);
+        if (!Database.MYSQL.equals(dbms))
+            return event;
+
+        // Now process the data.
         ArrayList<DBMSData> data = event.getData();
         if (data == null)
             return event;

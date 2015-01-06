@@ -24,11 +24,16 @@ package com.continuent.tungsten.replicator.dbms;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.continuent.tungsten.replicator.dbms.RowChangeData.ActionType;
 
 /**
- * Holds information from a
+ * Holds metadata and data for a row change set, which is a change of a unique
+ * type (INSERT/UPDATE/DELETE) involving one or more rows in a single table. Row
+ * changes include "keys," which are effectively the before images of rows that
+ * can be used to identify rows to update or delete, and "values," which are the
+ * after images of rows that should be inserted or updated.
  */
 public class OneRowChange implements Serializable
 {
@@ -217,6 +222,10 @@ public class OneRowChange implements Serializable
     private ArrayList<ArrayList<ColumnVal>> columnValues;
     private long                            tableId;
 
+    // Type cache to enable filters to check whether particular types are
+    // present. This value is not serialized.
+    private HashMap<Integer, Integer>       typeCountCache;
+
     public ArrayList<ColumnSpec> getColumnSpec()
     {
         return columnSpec;
@@ -224,7 +233,9 @@ public class OneRowChange implements Serializable
 
     public void setColumnSpec(ArrayList<ColumnSpec> columnSpec)
     {
+        // Set the key specifications and invalidate type cache.
         this.columnSpec = columnSpec;
+        this.typeCountCache = null;
     }
 
     public ArrayList<ArrayList<ColumnVal>> getColumnValues()
@@ -244,7 +255,9 @@ public class OneRowChange implements Serializable
 
     public void setKeySpec(ArrayList<ColumnSpec> keySpec)
     {
+        // Set the key specifications and invalidate type cache.
         this.keySpec = keySpec;
+        this.typeCountCache = null;
     }
 
     public ArrayList<ArrayList<ColumnVal>> getKeyValues()
@@ -312,5 +325,61 @@ public class OneRowChange implements Serializable
     public long getTableId()
     {
         return tableId;
+    }
+
+    /**
+     * Returns the count of a particular column specification type within either
+     * the values or keys. If the count is 0, the type is not present.
+     */
+    public int typeCount(int aType)
+    {
+        if (this.typeCountCache == null)
+        {
+            HashMap<Integer, Integer> countCache = new HashMap<Integer, Integer>();
+            // Check values first and only if the specifications array exists.
+            if (this.columnSpec != null)
+            {
+                for (ColumnSpec cs : columnSpec)
+                {
+                    int csType = cs.getType();
+                    Integer count = countCache.get(csType);
+                    if (count == null)
+                        countCache.put(csType, 1);
+                    else
+                        countCache.put(csType, count + 1);
+                }
+            }
+            // Check keys next and only if the specifications array exists.
+            if (this.keySpec != null)
+            {
+                for (ColumnSpec ks : keySpec)
+                {
+                    int ksType = ks.getType();
+                    Integer count = countCache.get(ksType);
+                    if (count == null)
+                        countCache.put(ksType, 1);
+                    else
+                        countCache.put(ksType, count + 1);
+                }
+            }
+
+            // Store the completed hash map as the cache.
+            typeCountCache = countCache;
+        }
+
+        // Look up the count for this type.
+        Integer count = typeCountCache.get(aType);
+        if (count == null)
+            return 0;
+        else
+            return count;
+    }
+
+    /**
+     * Returns true if the change set includes the type argument.
+     */
+    public boolean hasType(int aType)
+    {
+        return (this.typeCount(aType) > 0);
     }
 }

@@ -210,7 +210,29 @@ public class ReplDBMSEvent extends ReplEvent implements ReplDBMSHeader
     {
         return 0;
     }
-    
+
+    /**
+     * Returns the value of a metadata option, if present.
+     */
+    public String getMetadataOption(String name)
+    {
+        DBMSEvent dbmsEvent = getDBMSEvent();
+        if (dbmsEvent == null)
+            return null;
+        else
+            return dbmsEvent.getMetadataOptionValue(name);
+    }
+
+    /**
+     * Sets the value of a metadata option.
+     */
+    public void setMetadataOption(String name, String value)
+    {
+        DBMSEvent dbmsEvent = getDBMSEvent();
+        if (dbmsEvent != null)
+            dbmsEvent.setMetaDataOption(name, value);
+    }
+
     /**
      * Not applicable.
      */

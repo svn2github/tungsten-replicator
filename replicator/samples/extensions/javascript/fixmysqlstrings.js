@@ -11,7 +11,7 @@
  * 
  * IMPORTANT: For this script to work you must run the colnames filter 
  * to fill in the type dsecription.  It can run anywhere upstream as the 
- * value is preserved in the log. 
+ * value is now preserved in the log. 
  *
  * @author <a href="mailto:eric.stone@continuent.com">Eric M. Stone</a>
  * @author <a href="mailto:robert.hodges@continuent.com">Robert M. Hodges</a>
@@ -44,6 +44,19 @@ function prepare() {
  * @see org.apache.log4j.Logger
  */
 function filter(event) {
+  // Ensure that we are dealing with a MySQL event. If not, we can stop. 
+  dbms_type = event.getMetadataOption("dbms_type");
+  if (dbms_type != "mysql")
+    return;
+
+  // Next see strings need fixing up.  If 'strings=utf8' is set, there is
+  // no further work required. 
+  strings = event.getMetadataOption("strings");
+  if (strings == "utf8")
+  {
+    return;
+  }
+
   // Get the data.
   data = event.getData();
   if (data != null) {
@@ -54,12 +67,18 @@ function filter(event) {
 
       // Determine the underlying type of DBMSData event.
       if (d != null && d instanceof com.continuent.tungsten.replicator.dbms.StatementData) {
-        // We can't do anything about statements.
+        // Convert statement data from bytes to string. 
+        query = d.getQuery();
+        d.setQuery(query);
       } else if (d != null && d instanceof com.continuent.tungsten.replicator.dbms.RowChangeData) {
         processRowChanges(event, d);
       }
     }
   }
+
+  // If we made it this far, byte values are properly translated to UTF8. 
+  // Make a note to that effect. 
+  event.setMetadataOption("strings", "utf8");
 }
 
 // Convert String bytes to blob or string based on type description. 

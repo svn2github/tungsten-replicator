@@ -109,6 +109,19 @@ public class EventGenerationHelper
     }
 
     /**
+     * Convenience method to create a transaction event from a row delete using
+     * the current time as the commit time.
+     */
+    public ReplDBMSEvent eventFromRowDelete(long seqno, String schema,
+            String table, String[] names, Object[] values, int fragNo,
+            boolean lastFrag)
+    {
+        Timestamp ts = new Timestamp(System.currentTimeMillis());
+        return eventFromRowDelete(seqno, schema, table, names, values, fragNo,
+                lastFrag, ts);
+    }
+
+    /**
      * Creates a transaction event from a row insert.
      * 
      * @param seqno Sequence number
@@ -129,12 +142,54 @@ public class EventGenerationHelper
         OneRowChange rowChange = generateRowChange(schema, table,
                 RowChangeData.ActionType.INSERT);
 
-        // Add specifications and values for keys. This is the before value.
-        // Key specs are for DELETEs and UPDATEs.
-        // rowChange.setKeySpec(generateSpec(rowChange, names));
-        // INSERTs have column specs.
+        // Add specifications and values for columns only. Inserts do not
+        // normally have key specifications unless they are added later by a
+        // filter.
         rowChange.setColumnSpec(generateSpec(rowChange, names));
         rowChange.setColumnValues(generateValues(rowChange, values));
+
+        // Wrap the row change in a change set.
+        RowChangeData rowChangeData = new RowChangeData();
+        rowChangeData.appendOneRowChange(rowChange);
+
+        // Add the change set to the event array and generate a DBMS
+        // transaction.
+        ArrayList<DBMSData> data = new ArrayList<DBMSData>();
+        data.add(rowChangeData);
+
+        DBMSEvent dbmsEvent = new DBMSEvent(new Long(seqno).toString(), null,
+                data, lastFrag, new Timestamp(System.currentTimeMillis()));
+        ReplDBMSEvent replDbmsEvent = new ReplDBMSEvent(seqno, (short) fragNo,
+                lastFrag, "NONE", 0, commitTime, dbmsEvent);
+        return replDbmsEvent;
+    }
+
+    /**
+     * Creates a transaction event from a row delete.
+     * 
+     * @param seqno Sequence number
+     * @param schema Schema name
+     * @param table Table name
+     * @param names Column names
+     * @param values Value columns
+     * @param fragNo Fragment number within transaction
+     * @param lastFrag If true, last fragment in the transaction
+     * @param commitTime Time of commit
+     * @return A fully formed event containing a single row change
+     */
+    public ReplDBMSEvent eventFromRowDelete(long seqno, String schema,
+            String table, String[] names, Object[] values, int fragNo,
+            boolean lastFrag, Timestamp commitTime)
+    {
+        // Create row change data. This will contain a set of updates.
+        OneRowChange rowChange = generateRowChange(schema, table,
+                RowChangeData.ActionType.DELETE);
+
+        // Add specifications and values for keys only. Deletes do not
+        // have column specifications unless they are added later by a
+        // filter.
+        rowChange.setKeySpec(generateSpec(rowChange, names));
+        rowChange.setKeyValues(generateValues(rowChange, values));
 
         // Wrap the row change in a change set.
         RowChangeData rowChangeData = new RowChangeData();
