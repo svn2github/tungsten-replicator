@@ -133,16 +133,23 @@ module ConfigurePromptInterface
     return description
   end
   
+  def include_command_line_aliases_in_output_usage?
+    true
+  end
+  
   # Output how to set this value from the command line
   def output_usage
     output_usage_line("--#{get_command_line_argument()}", get_prompt(), get_output_usage_value(), nil, get_prompt_description())
-    get_command_line_aliases().each{
-      |a|
-      if a == get_command_line_argument()
-        next
-      end
-      output_usage_line("--#{a}", get_prompt() + " (Alias of --#{get_command_line_argument()})", get_output_usage_value(), nil, get_prompt_description())
-    }
+    
+    if include_command_line_aliases_in_output_usage?() == true
+      get_command_line_aliases().each{
+        |a|
+        if a == get_command_line_argument()
+          next
+        end
+        output_usage_line("--#{a}", get_prompt() + " (Alias of --#{get_command_line_argument()})", get_output_usage_value(), nil, get_prompt_description())
+      }
+    end
   end
   
   def get_bash_completion_arguments

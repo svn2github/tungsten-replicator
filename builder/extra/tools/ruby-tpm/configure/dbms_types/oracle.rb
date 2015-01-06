@@ -125,6 +125,10 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
     ["CDC", "CDCASYNC", "CDCSYNC"]
   end
   
+  def get_extractor_filters
+    ["CDC"] + super()
+  end
+  
 	def get_applier_filters()
 	  ["nocreatedbifnotexists","dbupper"] + super()
 	end

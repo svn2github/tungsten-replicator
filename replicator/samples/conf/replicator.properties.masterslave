@@ -231,7 +231,7 @@ replicator.stage.prov-db-to-q.filters=@{REPL_SVC_EXTRACTOR_FILTERS}
 replicator.stage.prov-q-to-thl=com.continuent.tungsten.replicator.pipeline.SingleThreadStageTask
 replicator.stage.prov-q-to-thl.extractor=queue
 replicator.stage.prov-q-to-thl.applier=thl-applier
-replicator.stage.prov-q-to-thl.filters=
+replicator.stage.prov-q-to-thl.filters=@{REPL_SVC_THL_FILTERS}
 replicator.stage.prov-q-to-thl.blockCommitRowCount=${replicator.global.buffer.size}
 
 # SLAVE PIPELINE:  three stages:  extract from remote THL to local THL;

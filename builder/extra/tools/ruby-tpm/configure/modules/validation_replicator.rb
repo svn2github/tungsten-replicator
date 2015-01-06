@@ -309,9 +309,21 @@ class RowBasedBinaryLoggingCheck < ConfigureValidationCheck
   end
 
   def enabled?
+    # If this service is configured to be a master by default
+    if @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_M
+      is_master = true
+    else
+      is_master = false
+    end
+    
+    # If this is part of a cluster then it may become a master
+    if get_topology().class == ClusterTopology
+      is_master = true
+    end
+    
     super() \
       && get_extractor_datasource().class == MySQLDatabasePlatform \
-        && @config.getProperty(get_member_key(REPL_ROLE)) == REPL_ROLE_M \
+        && (is_master == true) \
           && @config.getProperty(get_member_key(ENABLE_HETEROGENOUS_MASTER))  == "true"
   end
 end

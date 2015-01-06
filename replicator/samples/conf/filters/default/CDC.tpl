@@ -3,5 +3,5 @@
 # under Oracle to MySQL replication.
 
 replicator.filter.CDC=com.continuent.tungsten.replicator.filter.TungstenTableCDCTransformFilter
-replicator.filter.CDC.from=
-replicator.filter.CDC.to=
+replicator.filter.CDC.from=@{REPL_SVC_SCHEMA}.HEARTBEAT
+replicator.filter.CDC.to=tungsten_@{DSNAME}.heartbeat

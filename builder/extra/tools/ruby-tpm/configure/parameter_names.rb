@@ -87,6 +87,8 @@ ENABLE_BATCH_SLAVE = "enable_batch_slave"
 
 DROP_STATIC_COLUMNS = "drop_static_columns_in_updates"
 
+TRACK_SCHEMA_CHANGES = "track_schema_changes"
+
 # Operating system service parameters.
 SVC_INSTALL = "install"
 SVC_START = "start"

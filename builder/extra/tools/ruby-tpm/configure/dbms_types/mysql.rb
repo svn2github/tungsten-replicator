@@ -452,6 +452,10 @@ class MySQLDatabasePlatform < ConfigureDatabasePlatform
   def applier_supports_bytes_for_strings?
     true
   end
+  
+  def applier_supports_statements?
+    true
+  end
 end
 
 #

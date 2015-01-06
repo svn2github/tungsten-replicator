@@ -57,13 +57,20 @@ class ConfigureDatabasePlatform
 
 	def get_extractor_filters()
     filters = []
+    
+    if @config.getProperty(@prefix + [DROP_STATIC_COLUMNS]) == "true"
+      filters << "optimizeupdates"
+    end
+    
 	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_MASTER]) == "true"
 	    unless extractor_provides_colnames?()
 	      filters << "colnames"
 	    end
-	    if @config.getProperty(@prefix + [DROP_STATIC_COLUMNS]) == "true"
-	      filters << "optimizeupdates"
+	    
+	    if @config.getProperty(@prefix + [TRACK_SCHEMA_CHANGES]) == "true"
+	      filters << "schemachange"
 	    end
+	    
 	    filters << "pkey"
 	  end
 	  
@@ -85,10 +92,20 @@ class ConfigureDatabasePlatform
 	
 	def get_applier_filters()
 	  filters = []
-	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_SLAVE]) == "false"
-	    if @config.getProperty(@prefix + [DROP_STATIC_COLUMNS]) == "true"
-	      filters << "optimizeupdates"
+    
+    # If --enable-heterogeneous-slave is true
+	  if @config.getProperty(@prefix + [ENABLE_HETEROGENOUS_SLAVE]) == "true"
+	    # If --track-schema-changes is true
+	    if @config.getProperty(@prefix + [TRACK_SCHEMA_CHANGES]) == "true"
+	      filters << "monitorschemachange"
 	    end
+	    
+	    # If the applier doesn't drop or isn't able to apply statements, 
+	    # this filter will remove them so the applier doesn't fail
+	    if applier_supports_statements?() == false
+	      filters << "dropstatementdata"
+	    end
+	  else
 	    filters << "pkey"
 	  end
 	  
@@ -255,6 +272,10 @@ class ConfigureDatabasePlatform
   end
   
   def applier_supports_bytes_for_strings?
+    false
+  end
+  
+  def applier_supports_statements?
     false
   end
   

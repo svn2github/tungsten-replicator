@@ -58,6 +58,10 @@ class HdfsDatabasePlatform < ConfigureDatabasePlatform
   def get_default_master_log_pattern
     nil
   end
+  
+  def applier_supports_statements?
+    true
+  end
 end
 
 #

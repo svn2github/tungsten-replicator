@@ -1491,6 +1491,7 @@ end
 
 class ReplicationBatchService < ConfigurePrompt
   include ReplicationServicePrompt
+  include HiddenValueModule
   
   def initialize
     super(ENABLE_BATCH_SERVICE, "Enable batch operation", PV_BOOLEAN, "false")
@@ -1499,6 +1500,7 @@ end
 
 class ReplicationBatchMaster < ConfigurePrompt
   include ReplicationServicePrompt
+  include HiddenValueModule
   
   def initialize
     super(ENABLE_BATCH_MASTER, "Enable batch operation for the master", PV_BOOLEAN, "false")
@@ -1515,6 +1517,7 @@ end
 
 class ReplicationBatchSlave < ConfigurePrompt
   include ReplicationServicePrompt
+  include HiddenValueModule
   
   def initialize
     super(ENABLE_BATCH_SLAVE, "Enable batch operation for the slave", PV_BOOLEAN, "false")
@@ -1544,6 +1547,10 @@ class ReplicationHeterogenousService < ConfigurePrompt
       super()
     end
   end
+  
+  def include_command_line_aliases_in_output_usage?
+    false
+  end
 end
 
 class ReplicationHeterogenousMaster < ConfigurePrompt
@@ -1562,6 +1569,10 @@ class ReplicationHeterogenousMaster < ConfigurePrompt
     else
       super()
     end
+  end
+  
+  def include_command_line_aliases_in_output_usage?
+    false
   end
 end
 
@@ -1582,6 +1593,10 @@ class ReplicationHeterogenousSlave < ConfigurePrompt
       super()
     end
   end
+  
+  def include_command_line_aliases_in_output_usage?
+    false
+  end
 end
 
 class ReplicationServiceDropStaticColumns < ConfigurePrompt
@@ -1589,6 +1604,14 @@ class ReplicationServiceDropStaticColumns < ConfigurePrompt
   
   def initialize
     super(DROP_STATIC_COLUMNS, "This will modify UPDATE transactions in row-based replication and eliminate any columns that were not modified.", PV_BOOLEAN, false)
+  end
+end
+
+class ReplicationServiceTrackSchemaChanges < ConfigurePrompt
+  include ReplicationServicePrompt
+  
+  def initialize
+    super(TRACK_SCHEMA_CHANGES, "This will enable filters that track DDL statements and write the resulting change to files on slave hosts. The feature is intended for use in some batch deployments.", PV_BOOLEAN, false)
   end
 end
 
