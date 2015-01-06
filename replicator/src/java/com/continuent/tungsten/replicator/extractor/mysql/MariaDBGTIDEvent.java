@@ -117,6 +117,16 @@ public class MariaDBGTIDEvent extends QueryLogEvent
     }
 
     /**
+     * Returns the standalone value.
+     * 
+     * @return true if it is a standalone statement.
+     */
+    public boolean isStandalone()
+    {
+        return standalone;
+    }
+
+    /**
      * Returns the GTID domainId value.
      * 
      * @return Returns the domainId.

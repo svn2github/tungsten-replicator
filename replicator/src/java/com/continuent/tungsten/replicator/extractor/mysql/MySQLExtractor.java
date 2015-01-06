@@ -590,10 +590,10 @@ public class MySQLExtractor implements RawExtractor
                 {
                     // Start of new transaction for MariaDB 10 with GTID
                     // enforced
-
-                    inTransaction = true;
-                    doCommit = false;
                     MariaDBGTIDEvent event = (MariaDBGTIDEvent) logEvent;
+                    doCommit = event.isStandalone();
+                    inTransaction = !doCommit;
+
                     // This is an equivalent of BEGIN statement : not sure where
                     // session variables are stored though
                     gtidDomainId = event.getGTIDDomainId();
