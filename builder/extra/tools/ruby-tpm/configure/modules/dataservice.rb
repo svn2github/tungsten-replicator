@@ -946,7 +946,9 @@ class THLStorageRetention < ConfigurePrompt
   def valid_replicator_interval?(value)
     prefix = value.to_i()
     suffix = value[-1, 1]
+    # The suffix must be one of d, h, m, s,
     return false unless %w(d h m s).include? suffix
+    # Reject if value is less than 1 or if the prefix joined to the suffix are not equal to the original value
     return false if prefix < 1 || prefix.to_s() + suffix != value
     return true
   end
