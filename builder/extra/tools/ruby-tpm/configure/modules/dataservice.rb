@@ -735,6 +735,38 @@ class ReplicationServiceApplierBlockCommitInterval < ConfigurePrompt
     super(REPL_SVC_APPLIER_BLOCK_COMMIT_INTERVAL, "Minimum interval between commits (Use values like 1s, 2h, 3, etc. or 0 to turn off)",
       PV_ANY, 0)
   end
+
+  def load_default_value
+    if @config.getProperty(get_member_key(BATCH_ENABLED)) == "true"
+      @default = "15s"
+    else
+      @default = "0"
+    end
+  end
+
+  def valid_replicator_interval?(value)
+    prefix = value.to_i()
+    suffix = value[-1, 1].gsub(/\d+/, '')
+    # Only a positive integer is acceptable 
+    return false if prefix < 0
+    # If the suffix is not one of d, h, m, s, we only accept the value if it is over 1000 
+    return false if !(%w(d h m s).include? suffix) && prefix < 1001
+    # For safety we join the prefix to the suffix and reject if it is not the same as the original value 
+    return false if prefix.to_s() + suffix != value
+    # If we got this far the value is acceptable
+    return true
+  end
+
+  def validate_value(value)
+    # If value is 0, no need to validate further
+    return if value == '0'
+    unless valid_replicator_interval?(value)
+      error("Valid values for svc-applier-block-commit-interval are a positive integer, followed by one of 'd', 'h', 'm', 's' (days, hours, minutes, seconds). The value given was: '#{value}'")
+    end
+    if is_valid?()
+      super(value)
+    end
+  end
 end
 
 class ReplicationServiceSlaveTakeover < ConfigurePrompt
