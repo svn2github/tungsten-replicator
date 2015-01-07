@@ -1323,12 +1323,27 @@ public class OpenReplicatorManager extends NotificationBroadcasterSupport
             catch (ReplicatorException e)
             {
                 if (logger.isDebugEnabled())
-                    logger.debug("Unable to set dynamic properties", e);
+                    logger.debug("Unable to clear dynamic properties", e);
                 throw new TransitionRollbackException(
-                        "Failed to set dynamic proeprties: " + e.getMessage(),
+                        "Failed to clear dynamic properties: " + e.getMessage(),
                         event, entity, transition, actionType, e);
             }
             properties = propertiesManager.getProperties();
+            try
+            {
+                doConfigure();
+            }
+            catch (ReplicatorException e)
+            {
+                if (logger.isDebugEnabled())
+                    logger.debug(
+                            "Unable to re-configure after clearing dynamic properties",
+                            e);
+                throw new TransitionRollbackException(
+                        "Unable to re-configure after clearing dynamic properties: "
+                                + e.getMessage(), event, entity, transition,
+                        actionType, e);
+            }
         }
     };
 
