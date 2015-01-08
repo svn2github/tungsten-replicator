@@ -29,14 +29,13 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
+import com.continuent.tungsten.replicator.database.MySQLOperationMatcher;
 import com.continuent.tungsten.replicator.database.SqlOperation;
-import com.continuent.tungsten.replicator.database.SqlStatementParser;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.OneRowChange;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
 import com.continuent.tungsten.replicator.event.ReplDBMSEvent;
-import com.continuent.tungsten.replicator.event.ReplOptionParams;
 import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 /**
@@ -57,16 +56,16 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class ReplicateFilter implements Filter
 {
-    private static Logger            logger = Logger.getLogger(ReplicateFilter.class);
+    private static Logger               logger = Logger.getLogger(ReplicateFilter.class);
 
-    private String                   doFilter;
-    private String                   ignoreFilter;
-    private String                   filePrefix;
+    private String                      doFilter;
+    private String                      ignoreFilter;
+    private String                      filePrefix;
 
-    private String                   tungstenSchema;
-    private final SqlStatementParser parser = SqlStatementParser.getParser();
+    private String                      tungstenSchema;
+    private final MySQLOperationMatcher parser = new MySQLOperationMatcher();
 
-    private SchemaTableFilter        filter;
+    private SchemaTableFilter           filter;
 
     /**
      * Define a comma-separated list of schemas with optional table names (e.g.,
@@ -131,12 +130,6 @@ public class ReplicateFilter implements Filter
             throws ReplicatorException, InterruptedException
     {
         ArrayList<DBMSData> data = event.getData();
-        String dbmsType;
-        if (event.getDBMSEvent() == null)
-            dbmsType = null;
-        else
-            dbmsType = event.getDBMSEvent().getMetadataOptionValue(
-                    ReplOptionParams.DBMS_TYPE);
 
         if (data == null)
             return event;
@@ -177,7 +170,7 @@ public class ReplicateFilter implements Filter
                 if (parsingMetadata == null)
                 {
                     String query = sdata.getQuery();
-                    parsingMetadata = parser.parse(query, dbmsType);
+                    parsingMetadata = parser.match(query);
                     sdata.setParsingMetadata(parsingMetadata);
                 }
 

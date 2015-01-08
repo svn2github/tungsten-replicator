@@ -29,8 +29,8 @@ import org.apache.log4j.Logger;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
 import com.continuent.tungsten.replicator.conf.ReplicatorConf;
+import com.continuent.tungsten.replicator.database.MySQLOperationMatcher;
 import com.continuent.tungsten.replicator.database.SqlOperation;
-import com.continuent.tungsten.replicator.database.SqlStatementParser;
 import com.continuent.tungsten.replicator.dbms.DBMSData;
 import com.continuent.tungsten.replicator.dbms.RowChangeData;
 import com.continuent.tungsten.replicator.dbms.StatementData;
@@ -54,10 +54,10 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
  */
 public class SchemaChangeFilter implements Filter
 {
-    private static Logger            logger = Logger.getLogger(SchemaChangeFilter.class);
+    private static Logger               logger = Logger.getLogger(SchemaChangeFilter.class);
 
-    private String                   tungstenSchema;
-    private final SqlStatementParser parser = SqlStatementParser.getParser();
+    private String                      tungstenSchema;
+    private final MySQLOperationMatcher parser = new MySQLOperationMatcher();
 
     /**
      * Sets the Tungsten schema which will be ignored if set.
@@ -81,12 +81,6 @@ public class SchemaChangeFilter implements Filter
         boolean truncate = false;
 
         ArrayList<DBMSData> data = event.getData();
-        String dbmsType;
-        if (event.getDBMSEvent() == null)
-            dbmsType = null;
-        else
-            dbmsType = event.getDBMSEvent().getMetadataOptionValue(
-                    ReplOptionParams.DBMS_TYPE);
 
         if (data == null)
             return event;
@@ -110,7 +104,7 @@ public class SchemaChangeFilter implements Filter
                 if (parsingMetadata == null)
                 {
                     String query = sdata.getQuery();
-                    parsingMetadata = parser.parse(query, dbmsType);
+                    parsingMetadata = parser.match(query);
                     sdata.setParsingMetadata(parsingMetadata);
                 }
 
