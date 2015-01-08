@@ -1,6 +1,6 @@
 /**
  * Tungsten Scale-Out Stack
- * Copyright (C) 2013 Continuent Inc.
+ * Copyright (C) 2013-2014 Continuent Inc.
  * Contact: tungsten@continuent.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
  * Initial developer(s): Robert Hodges
- * Contributor(s):
+ * Contributor(s): Stephane Giron
  */
 
 package com.continuent.tungsten.replicator.database;
@@ -32,6 +32,8 @@ import java.util.HashMap;
  * visibility across all threads. Also, we final variables for all instances to
  * avoid unnecessary object creation, as the parsing function is called
  * potentially many times.
+ * 
+ * WARNING : this is not thread safe !
  */
 public class SqlStatementParser
 {
