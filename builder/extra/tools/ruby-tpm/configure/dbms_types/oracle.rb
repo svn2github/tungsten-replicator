@@ -126,7 +126,7 @@ class OracleDatabasePlatform < ConfigureDatabasePlatform
   end
   
   def get_extractor_filters
-    ["CDC"] + super()
+    super() + ["CDC"]
   end
   
 	def get_applier_filters()
