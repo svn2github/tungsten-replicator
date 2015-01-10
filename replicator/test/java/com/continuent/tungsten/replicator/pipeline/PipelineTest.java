@@ -383,7 +383,7 @@ public class PipelineTest extends TestCase
 
         // Test for successfully applied and extracted sequence numbers.
         Future<ReplDBMSHeader> future = pipeline
-                .watchForProcessedSequenceNumber(9);
+                .watchForCommittedSequenceNumber(9, false);
         ReplDBMSHeader matchingEvent = future.get(3, TimeUnit.SECONDS);
         assertTrue("Applied sequence number matches",
                 matchingEvent.getSeqno() >= 9);
@@ -455,7 +455,7 @@ public class PipelineTest extends TestCase
 
         // Test for successfully applied and extracted sequence numbers.
         Future<ReplDBMSHeader> future = pipeline
-                .watchForProcessedSequenceNumber(9);
+                .watchForCommittedSequenceNumber(9, false);
         ReplDBMSHeader matchingEvent = future.get(2, TimeUnit.SECONDS);
         assertEquals("Applied sequence number matches", 9,
                 matchingEvent.getSeqno());
@@ -492,8 +492,8 @@ public class PipelineTest extends TestCase
         pipeline.start(new MockEventDispatcher());
 
         // Wait for and verify events.
-        Future<ReplDBMSHeader> wait = pipeline
-                .watchForProcessedSequenceNumber(9);
+        Future<ReplDBMSHeader> wait = pipeline.watchForCommittedSequenceNumber(
+                9, false);
         ReplDBMSHeader lastEvent = wait.get(10, TimeUnit.SECONDS);
         assertEquals("Expected 10 sequence numbers", 9, lastEvent.getSeqno());
 
@@ -546,8 +546,10 @@ public class PipelineTest extends TestCase
             pipeline.start(new MockEventDispatcher());
 
             // Test for successfully applied and extracted sequence numbers.
+            // We must look for committed seqnos as we'll be checking commit
+            // stats from the pipeline. 
             Future<ReplDBMSHeader> future = pipeline
-                    .watchForProcessedSequenceNumber(39);
+                    .watchForCommittedSequenceNumber(39, false);
             ReplDBMSHeader matchingEvent = future.get(2, TimeUnit.SECONDS);
             assertEquals("Applied sequence number matches", xacts - 1,
                     matchingEvent.getSeqno());
@@ -928,6 +930,9 @@ public class PipelineTest extends TestCase
         pipeline.start(new MockEventDispatcher());
 
         // Test for successfully applied and extracted sequence numbers.
+        // NOTE:  This call can use Pipeline.watchForProcessedSequenceNumber() 
+        // as there is no race condition with the event actually getting into
+        // the end of the pipeline. 
         Future<ReplDBMSHeader> future = pipeline
                 .watchForProcessedSequenceNumber(maxEvents - 1);
         ReplDBMSHeader matchingEvent = future.get(600, TimeUnit.SECONDS);

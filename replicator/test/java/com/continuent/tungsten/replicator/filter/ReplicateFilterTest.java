@@ -263,7 +263,7 @@ public class ReplicateFilterTest extends TestCase
         // Configure the filter to allow databases including wild cards.
         ReplicateFilter rf = new ReplicateFilter();
         rf.setTungstenSchema("tungsten_foo");
-        rf.setFilePrefix("testSchemasAcceptedWithFile");
+        rf.setFilePrefix("filter/testSchemasAcceptedWithFile");
         filterHelper.setFilter(rf);
 
         // Confirm that the following commands are accepted if the default
@@ -293,7 +293,7 @@ public class ReplicateFilterTest extends TestCase
         // Configure the filter to allow databases including wild cards.
         ReplicateFilter rf = new ReplicateFilter();
         rf.setTungstenSchema("tungsten_foo");
-        rf.setFilePrefix("testSchemasIgnoredWithFile");
+        rf.setFilePrefix("filter/testSchemasIgnoredWithFile");
         filterHelper.setFilter(rf);
 
         // Confirm that the following commands are ignored if the default
@@ -325,7 +325,7 @@ public class ReplicateFilterTest extends TestCase
         // Configure the filter to allow databases including wild cards.
         ReplicateFilter rf = new ReplicateFilter();
         rf.setTungstenSchema("tungsten_foo");
-        rf.setFilePrefix("testSchemasIgnoreSubsetWithFile");
+        rf.setFilePrefix("filter/testSchemasIgnoreSubsetWithFile");
         filterHelper.setFilter(rf);
 
         // Confirm that the following commands are accepted if the default
@@ -356,7 +356,7 @@ public class ReplicateFilterTest extends TestCase
         // Configure the filter to allow databases including wild cards.
         ReplicateFilter rf = new ReplicateFilter();
         rf.setTungstenSchema("tungsten_foo");
-        rf.setFilePrefix("testRowHandlingWithFile");
+        rf.setFilePrefix("filter/testRowHandlingWithFile");
         filterHelper.setFilter(rf);
 
         // Verify accepted events.
@@ -385,7 +385,7 @@ public class ReplicateFilterTest extends TestCase
         // Configure the filter to allow databases including wild cards.
         ReplicateFilter rf = new ReplicateFilter();
         rf.setTungstenSchema("tungsten_foo");
-        rf.setFilePrefix("testTableAcceptWithFile");
+        rf.setFilePrefix("filter/testTableAcceptWithFile");
         filterHelper.setFilter(rf);
 
         // Confirm that the following commands are accepted.
@@ -416,7 +416,7 @@ public class ReplicateFilterTest extends TestCase
         // Configure the filter to allow databases including wild cards.
         ReplicateFilter rf = new ReplicateFilter();
         rf.setTungstenSchema("tungsten_foo");
-        rf.setFilePrefix("testTungstenCatalogAcceptWithFile");
+        rf.setFilePrefix("filter/testTungstenCatalogAcceptWithFile");
         filterHelper.setFilter(rf);
 
         // Confirm that the following commands are accepted.

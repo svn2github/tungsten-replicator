@@ -177,21 +177,9 @@
         <delete dir="${test.work}"/>
         <mkdir dir="${test.work}"/>
         <copy todir="${test.work}">
-       	    <fileset dir="test/data">
-	       <include name="*bin*"/>
-	    </fileset>
-	    </copy>
-	    <copy todir="${test.work}">
-       	    <fileset dir="test/data/filter/">
-	       <include name="*"/>
-	    </fileset>
+       	    <fileset dir="test/data"/>
         </copy>
-        <!-- Copy in drizzle test data. -->
-        <copy todir="${test.work}">
-       	    <fileset dir="test/data/drizzle/">
-	        <include name="*txn*"/>
-	    </fileset>
-        </copy>
+
         <copy file="samples/conf/replicator.properties.slave"
               toFile="${test.work}/replicator.properties"/>
         <copy file="test.properties" todir="${test.work}"/>

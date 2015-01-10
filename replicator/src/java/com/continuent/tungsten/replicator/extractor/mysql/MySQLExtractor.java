@@ -24,6 +24,7 @@ package com.continuent.tungsten.replicator.extractor.mysql;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -937,6 +938,11 @@ public class MySQLExtractor implements RawExtractor
                             .getTableId());
                     rowsEvent.processExtractedEvent(rowChangeData, tableEvent);
                     rowChangeData.addOption("time_zone", "'+00:00'");
+                    if (useBytesForStrings)
+                    {
+                        rowChangeData.addOption("##charset", Charset
+                                .defaultCharset().displayName());
+                    }
                     dataArray.add(rowChangeData);
                     foundRowsLogEvent = true;
                 }

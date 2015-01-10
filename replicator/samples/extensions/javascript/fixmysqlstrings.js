@@ -7,11 +7,21 @@
  *
  * This filter fixes MySQL strings by converting byte values to either a 
  * normal Java String or a Hex'ed string if the source type is VARBINARY
- * or BINARY.  
+ * or BINARY.  After fixing strings it marks the strings=utf8 option so 
+ * that downstream filters can see strings have been fixed.  It also 
+ * removes the ##charset tag from row events as this is no longer needed
+ * after strings are converted. 
  * 
+ * The filter is designed to be used in place of the MySQL option
+ * usingBytesForStrings=true, which cannot be used in cases where the 
+ * master replicator is also generating log records to be applied to other
+ * MySQL servers. 
+ *
  * IMPORTANT: For this script to work you must run the colnames filter 
- * to fill in the type dsecription.  It can run anywhere upstream as the 
- * value is now preserved in the log. 
+ * to fill in the type description.  It can run anywhere upstream as the 
+ * value is now preserved in the log. The tpm --enable-heterogeneous-master
+ * option will cause colnames to be applied and is the recommended method
+ * to enable metadata collection. 
  *
  * @author <a href="mailto:eric.stone@continuent.com">Eric M. Stone</a>
  * @author <a href="mailto:robert.hodges@continuent.com">Robert M. Hodges</a>
@@ -85,6 +95,13 @@ function filter(event) {
 function processRowChanges(event, d) {
   rowChanges = d.getRowChanges();
 
+  // Find the applicable charset for converting strings, if known. 
+  charsetName = d.getOption("##charset");
+  if (charsetName == null)
+    charset = null;
+  else
+    charset = java.nio.charset.Charset.forName(charsetName);
+
   // One RowChangeData may contain many OneRowChange events.
   for (j = 0; j < rowChanges.size(); j++) {
     // Get com.continuent.tungsten.replicator.dbms.OneRowChange
@@ -93,17 +110,23 @@ function processRowChanges(event, d) {
     var table = oneRowChange.getTableName();
     var columns = oneRowChange.getColumnSpec();
     var columnValues = oneRowChange.getColumnValues();
-    fixUpStrings(schema, table, columns, columnValues);
+    fixUpStrings(schema, table, columns, columnValues, charset);
 
     // Iterate through its keys if any
     keys = oneRowChange.getKeySpec();
     keyValues = oneRowChange.getKeyValues();
-    fixUpStrings(schema, table, keys, keyValues);
+    fixUpStrings(schema, table, keys, keyValues, charset);
   }
+
+  // If the character set is set, try to remove the option from the 
+  // row change event, as it is no longer needed now that strings are 
+  // converted. 
+  if (charsetName != null)
+    d.removeOption("##charset");
 }
 
 // Look for strings to fix up. 
-function fixUpStrings(schema, table, columns, columnValues) 
+function fixUpStrings(schema, table, columns, columnValues, charset) 
 {
   for (c = 0; c < columns.size(); c++) {
     columnSpec = columns.get(c);
@@ -135,7 +158,10 @@ function fixUpStrings(schema, table, columns, columnValues)
             value.setValue(hex);
           } 
           else {
-            value.setValue(new java.lang.String(raw_v));
+            if (charset == null)
+              value.setValue(new java.lang.String(raw_v));
+            else
+              value.setValue(new java.lang.String(raw_v, charset));
           }
         }
       }
